@@ -1,6 +1,6 @@
 # WIP Rust bindings for FreeBSD KPI
 
-This requires build system changes in src from [this branch](https://github.com/ayrton/freebsd-src/tree/m2).
+This requires build system changes in src from [this branch](https://github.com/ayrtonm/freebsd-src/tree/m2).
 ```
 # Copy this repo to src/sys/rust
 git clone git@github.com:ayrtonm/freebsd-kpi-rs /path/to/src/sys/rust

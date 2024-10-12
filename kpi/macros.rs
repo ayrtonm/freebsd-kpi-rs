@@ -1,3 +1,6 @@
+include!(concat!(env!("OUT_DIR"), "/device_if.rs"));
+include!(concat!(env!("OUT_DIR"), "/pic_if.rs"));
+
 #[macro_export]
 macro_rules! enum_c_macros {
     ($(#[$($meta:meta)*])*

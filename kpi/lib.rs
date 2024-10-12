@@ -217,7 +217,7 @@ pub enum State {
 #[macro_export]
 macro_rules! driver {
     ($cdriver:ident, $cname:expr, $methods:ident, $sc:ty,
-        $($if_name:ident $if_fn:ident $impl:ident $(,)?)*
+        $($if_fn:ident $impl:ident $(,)?)*
     ) => {
         use $crate::prelude::*;
 
@@ -376,7 +376,7 @@ macro_rules! driver {
             DeviceMethod::null(),
         ];
 
-        $($if_name::$if_fn!($impl, $cdriver);)*
+        $($crate::$if_fn!($impl, $cdriver);)*
     };
 }
 
