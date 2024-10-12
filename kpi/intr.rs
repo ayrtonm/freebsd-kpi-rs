@@ -1,13 +1,42 @@
+/*-
+ * SPDX-License-Identifier: BSD-2-Clause
+ *
+ * Copyright (c) 2024 Ayrton Muñoz
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ */
+
 use crate::bus::Resource;
 use crate::bindings::{pcell_t, intr_irqsrc, intr_map_data, intr_map_data_fdt, intr_pic, trapframe};
 use crate::device::Device;
 use crate::ofw::XRef;
-use crate::{bindings, AsRustType, ErrCode, PointsTo, Ptr, Ref, Result , SharedValue, SuperClass};
+use crate::{bindings, AsRustType, ErrCode, PointsTo, Ptr, Ref, Result , SharedValue, SubClass};
 use core::marker::PhantomData;
 use core::ops::Deref;
 use core::cell::UnsafeCell;
 use core::ffi::{c_int, c_void, CStr};
 use core::mem::{transmute, MaybeUninit};
+use core::pin::Pin;
 
 enum_c_macros! {
     #[repr(i32)]
@@ -30,40 +59,42 @@ enum_c_macros! {
     }
 }
 
-impl<'a, T> AsRustType<&'a SuperClass<IrqSrc, T>> for *mut intr_irqsrc {
-    fn as_rust_type(self) -> &'a SuperClass<IrqSrc, T> {
+impl<'a, T> AsRustType<&'a mut SubClass<IrqSrc, T>> for *mut intr_irqsrc {
+    fn as_rust_type(self) -> &'a mut SubClass<IrqSrc, T> {
         unsafe {
-            SuperClass::from_base(self)
+            SubClass::from_base(self)
         }
     }
 }
 
 impl AsRustType<MapData> for *mut intr_map_data {
     fn as_rust_type(self) -> MapData {
-        MapData(Ptr::new(self))
+        MapData::new(self)
     }
 }
 
-impl AsRustType<*mut Ptr<IrqSrc>> for *mut *mut intr_irqsrc {
-    fn as_rust_type(self) -> *mut Ptr<IrqSrc> {
-        self.cast()
+impl<'a> AsRustType<&'a mut *mut intr_irqsrc> for *mut *mut intr_irqsrc {
+    fn as_rust_type(self) -> &'a mut *mut intr_irqsrc {
+        unsafe {
+            self.as_mut().unwrap()
+        }
     }
 }
 
 pub type IrqSrc = intr_irqsrc;
 
-impl<T> SuperClass<IrqSrc, T> {
+impl<T> SubClass<IrqSrc, T> {
     pub fn isrc_dispatch(&self, tf: *mut trapframe) -> c_int {
         unsafe {
-            bindings::intr_isrc_dispatch(self.base_ptr(), tf)
+            bindings::intr_isrc_dispatch(SubClass::base_ptr(self), tf)
         }
     }
 }
 
 pub trait PicIf<T> {
-    fn isrc_register(&self, dev: Device, isrc: &SuperClass<IrqSrc, T>, flags: i32, desc: &CStr) -> Result<()> {
+    fn isrc_register(&self, dev: Device, isrc: &SubClass<IrqSrc, T>, flags: i32, fmt_str: &CStr, arg0: &CStr, arg1: u32, arg2: u32) -> Result<()> {
         let res = unsafe {
-            bindings::intr_isrc_register(isrc.base_ptr(), dev.as_ptr(), flags as u32, desc.as_ptr())
+            bindings::intr_isrc_register(SubClass::base_ptr(isrc), dev.as_ptr(), flags as u32, fmt_str.as_ptr(), arg0.as_ptr(), arg1, arg2)
         };
         if res != 0 {
             Err(ErrCode::from(res))
@@ -71,24 +102,20 @@ pub trait PicIf<T> {
             Ok(())
         }
     }
-    fn pic_setup_intr(&self, dev: Device, isrc: &SuperClass<IrqSrc, T>, res: Resource, data: MapData) -> Result<()>;
-    //fn pic_map_intr(&self, dev: Device, data: MapData, isrcp: *mut Ptr<IrqSrc<T>>) -> Result<()>;
+    fn pic_setup_intr(&self, dev: Device, isrc: &mut SubClass<IrqSrc, T>, res: Resource, data: MapData) -> Result<()>;
+    fn pic_map_intr(&self, dev: Device, data: MapData, isrcp: &mut *mut IrqSrc) -> Result<()>;
     //fn pic_teardown_intr(&self, dev: Device, isrc: Ptr<IrqSrc<T>>, res: Resource, data: MapData) -> Result<()>;
 
-    fn pic_disable_intr(&self, dev: Device, isrc: &SuperClass<IrqSrc, T>);
-    fn pic_enable_intr(&self, dev: Device, isrc: &SuperClass<IrqSrc, T>);
+    fn pic_disable_intr(&self, dev: Device, isrc: &SubClass<IrqSrc, T>);
+    fn pic_enable_intr(&self, dev: Device, isrc: &SubClass<IrqSrc, T>);
 
-    //fn pic_post_filter(&self, dev: Device, isrc: IrqSrc);
-    //fn pic_post_ithread(&self, dev: Device, isrc: IrqSrc);
-    //fn pic_pre_ithread(&self, dev: Device, isrc: IrqSrc);
+    fn pic_post_filter(&self, dev: Device, isrc: &SubClass<IrqSrc, T>);
+    fn pic_pre_ithread(&self, dev: Device, isrc: &SubClass<IrqSrc, T>);
+    fn pic_post_ithread(&self, dev: Device, isrc: &SubClass<IrqSrc, T>);
 }
 
 #[derive(Debug)]
-#[repr(transparent)]
-pub struct MapData(Ptr<intr_map_data>);
-
-#[derive(Debug)]
-pub enum MapDataContents {
+pub enum MapData {
     ACPI,
     FDT(Ref<intr_map_data_fdt>),
     GPIO,
@@ -105,22 +132,21 @@ impl Ref<intr_map_data_fdt> {
 }
 
 impl MapData {
-    pub fn get_contents(&self) -> MapDataContents {
-        let map_data_ptr = self.0.as_ptr();
+    pub fn new(map_data_ptr: *mut intr_map_data) -> Self {
         let ty = unsafe { (*map_data_ptr).type_ };
         match ty {
-            bindings::INTR_MAP_DATA_ACPI => MapDataContents::ACPI,
+            bindings::INTR_MAP_DATA_ACPI => Self::ACPI,
             bindings::INTR_MAP_DATA_FDT => {
                 let fdt_data_ptr = Ptr::new(map_data_ptr.cast());
                 // this should be fine if the C side doesn't touch the fdt data for the lifetime of the Ref
                 let fdt_data_ref = unsafe {
-                    fdt_data_ptr.can_ref()
+                    fdt_data_ptr.allows_ref()
                 };
-                MapDataContents::FDT(fdt_data_ref)
+                Self::FDT(fdt_data_ref)
             }
-            bindings::INTR_MAP_DATA_GPIO => MapDataContents::GPIO,
-            bindings::INTR_MAP_DATA_MSI => MapDataContents::MSI,
-            _ => MapDataContents::Unknown,
+            bindings::INTR_MAP_DATA_GPIO => Self::GPIO,
+            bindings::INTR_MAP_DATA_MSI => Self::MSI,
+            _ => Self::Unknown,
         }
     }
 }

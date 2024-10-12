@@ -1,3 +1,31 @@
+/*-
+ * SPDX-License-Identifier: BSD-2-Clause
+ *
+ * Copyright (c) 2024 Ayrton Muñoz
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ */
+
 #![no_std]
 #![feature(allocator_api, concat_idents)]
 #![deny(improper_ctypes, unused_must_use, unreachable_patterns)]
@@ -7,9 +35,12 @@ extern crate alloc;
 
 #[macro_use]
 mod macros;
+
+#[macro_use]
+pub mod bindings;
+
 pub mod allocator;
 pub mod arm64;
-pub mod bindings;
 pub mod bus;
 pub mod device;
 pub mod intr;
@@ -51,10 +82,10 @@ macro_rules! count {
     };
 }
 
-/// Rust's view of a variable of type T defined in C.
+/// Rust's view of a variable of type T that has its address shared with C.
 ///
 /// This opts out of Rust's requirements that &T must be immutable and T always have a valid value.
-/// Creating &mut T to these variables is not allowed.
+/// While creating a &mut SharedValue<T> is perfectly fine, it may not be used to get a &mut T.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct SharedValue<T>(UnsafeCell<MaybeUninit<T>>);
@@ -73,30 +104,40 @@ impl<T> SharedValue<T> {
 /// The definition assumes that the base class is shared between Rust and C but places no
 /// restriction on the extra fields so it may be possible to create references to them.
 #[derive(Debug)]
-pub struct SuperClass<B, F> {
+pub struct SubClass<B, F> {
     base: SharedValue<B>,
-    fields: F,
+    pub sub: F,
 }
 
-impl<B, F> SuperClass<B, F> {
-    pub const fn new(fields: F) -> Self {
+impl<B, F> SubClass<B, F> {
+    pub const fn new(sub: F) -> Self {
         Self {
             base: SharedValue::zeroed(),
-            fields,
+            sub,
         }
     }
 
-    pub fn base_ptr(&self) -> *mut B {
-        addr_of!(self.base).cast::<*const B>() as *mut B
+    pub fn base_ptr(sub: &Self) -> *mut B {
+        addr_of!(sub.base).cast::<*const B>() as *mut B
     }
 
-    pub unsafe fn from_base<'a>(ptr: *mut B) -> &'a Self {
+    pub unsafe fn from_base<'a>(ptr: *mut B) -> &'a mut Self {
         let super_ptr = ptr.byte_sub(offset_of!(Self, base)).cast::<Self>();
-        super_ptr.as_ref().unwrap()
+        super_ptr.as_mut().unwrap()
     }
+}
 
-    pub fn fields(&self) -> &F {
-        &self.fields
+impl<B, F> Deref for SubClass<B, F> {
+    type Target = F;
+
+    fn deref(&self) -> &Self::Target {
+        &self.sub
+    }
+}
+
+impl<B, F> DerefMut for SubClass<B, F> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.sub
     }
 }
 
@@ -120,11 +161,13 @@ impl<T> PointsTo<T> for Ptr<T> {
 }
 
 impl<T> Ptr<T> {
+    // TODO: this should be unsafe to forbid users from creating Pin<*mut T> to e.g. variables on
+    // the rust stack through Ref
     pub fn new(ptr: *mut T) -> Self {
         Self(ptr)
     }
 
-    pub unsafe fn can_ref(self) -> Ref<T> {
+    pub unsafe fn allows_ref(self) -> Ref<T> {
         Ref(self.0)
     }
 }
@@ -232,7 +275,7 @@ macro_rules! driver {
         pub struct Driver(());
 
         impl Driver {
-            pub fn softc_init(&self, mut dev: $crate::device::Device, sc_init: $sc) -> $crate::Result<()> {
+            pub fn init_softc(&self, mut dev: $crate::device::Device, sc_init: $sc) -> $crate::Result<()> {
                 use core::mem::{MaybeUninit, offset_of};
                 use $crate::State;
 
@@ -252,13 +295,13 @@ macro_rules! driver {
                 }
                 let sc_ptr = unsafe { csc_ptr.byte_add(offset_of!(CSoftc, sc)).cast::<MaybeUninit<$sc>>() };
                 let mut sc_ref = unsafe {
-                    $crate::Ptr::new(sc_ptr).can_ref().is_unique()
+                    $crate::Ptr::new(sc_ptr).allows_ref().is_unique()
                 };
                 sc_ref.write(sc_init);
                 Ok(())
             }
 
-            pub fn softc_claim(&self, mut dev: $crate::device::Device) -> $crate::Result<$crate::UniqRef<$sc>> {
+            pub fn claim_softc(&self, mut dev: $crate::device::Device) -> $crate::Result<$crate::UniqRef<$sc>> {
                 use core::mem::offset_of;
                 use $crate::State;
 
@@ -279,12 +322,12 @@ macro_rules! driver {
                 let sc_ptr = unsafe { csc_ptr.byte_add(offset_of!(CSoftc, sc)).cast::<$sc>() };
 
                 let sc_ref = unsafe {
-                    $crate::Ptr::new(sc_ptr).can_ref().is_unique()
+                    $crate::Ptr::new(sc_ptr).allows_ref().is_unique()
                 };
                 Ok(sc_ref)
             }
 
-            pub fn softc_release(&self, mut dev: $crate::device::Device, _sc: $crate::UniqRef<$sc>) {
+            pub fn release_softc(&self, mut dev: $crate::device::Device, _sc: $crate::UniqRef<$sc>) {
                 use $crate::State;
 
                 let csc_ptr = dev.get_softc::<CSoftc>();
@@ -294,7 +337,7 @@ macro_rules! driver {
                 }
             }
 
-            pub fn softc_share(&self, mut dev: $crate::device::Device) -> $crate::Result<$crate::Ref<$sc>> {
+            pub fn share_softc(&self, mut dev: $crate::device::Device) -> $crate::Result<$crate::Ref<$sc>> {
                 use core::mem::offset_of;
                 use $crate::State;
 
@@ -315,9 +358,15 @@ macro_rules! driver {
                 let sc_ptr = unsafe { csc_ptr.byte_add(offset_of!(CSoftc, sc)).cast::<$sc>() };
 
                 let sc_ref = unsafe {
-                    $crate::Ptr::new(sc_ptr).can_ref()
+                    $crate::Ptr::new(sc_ptr).allows_ref()
                 };
                 Ok(sc_ref)
+            }
+
+            pub fn share_softc_as_pin(&self, mut dev: $crate::device::Device) -> $crate::Result<core::pin::Pin<$crate::Ref<$sc>>> {
+                use core::pin::Pin;
+
+                self.share_softc(dev).map(|r| unsafe { Pin::new_unchecked(r) })
             }
         }
 
@@ -494,7 +543,7 @@ err_codes! {
     ENOPROTOOPT, "Protocol not available",
     EPROTONOSUPPORT, "Protocol not supported",
     ESOCKTNOSUPPORT, "Socket type not supported",
-    EOPNOTSUPP, "Operation not supported",
+    ENOTSUP, "Operation not supported",
     EPFNOSUPPORT, "Protocol family not supported",
     EAFNOSUPPORT, "Address family not supported by protocol family",
     EADDRINUSE, "Address already in use",
