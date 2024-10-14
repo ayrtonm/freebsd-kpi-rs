@@ -26,11 +26,66 @@
  * SUCH DAMAGE.
  */
 
-//use alloc::boxed::Box;
-//use crate::{bindings, PointsTo};
-use crate::bindings::{task, taskqueue_thread};
+use core::mem::transmute;
+use core::ffi::{c_void, c_int};
+use alloc::boxed::Box;
+use crate::{PointsTo, RefMut, Ptr, ErrCode, Result, FFICell, bindings};
+use crate::bindings::{task_fn_t, task, taskqueue};
+use crate::allocator::KernelAllocator;
 
-#[derive(Debug)]
-struct Taskq(());
+pub struct Task {
+    inner: FFICell<task>,
+    is_initialized: bool,
+}
 
-//static THREAD: Taskq(())
+// TODO: assert this is ABI-compatible with task_fn_t
+pub type RawTaskFn = extern "C" fn(context: *mut c_void, pending: c_int);
+// TODO: remove unsafe
+pub type TaskFn<P> = unsafe extern "C" fn(context: P, pending: c_int);
+
+impl Task {
+    pub fn new_in_heap(flags: KernelAllocator) -> RefMut<Self> {
+        RefMut::new_in_heap(Task::new(), flags)
+    }
+
+    pub fn new() -> Self {
+        Self {
+            inner: FFICell::zeroed(),
+            is_initialized: false,
+        }
+    }
+}
+
+use crate::bindings::rtkit_task;
+impl PointsTo<rtkit_task> for *mut rtkit_task {
+    fn as_ptr(&self) -> *mut rtkit_task {
+        *self
+    }
+}
+
+impl RefMut<Task> {
+    pub fn init<T, P: PointsTo<T>>(&mut self, callback: TaskFn<P>, ctx: P) {
+        let inner_ptr = self.inner.get_out_ptr();
+        let callback = unsafe { transmute(callback) };
+        let ctx = ctx.as_ptr().cast();
+        unsafe {
+            get_field!(inner_ptr, ta_func).write(Some(callback));
+            get_field!(inner_ptr, ta_context).write(ctx);
+        }
+        self.is_initialized = true;
+    }
+
+    pub fn enqueue(&mut self, tq: *mut taskqueue) -> Result<()> {
+        if !self.is_initialized {
+            return Err(ErrCode::EPERM);
+        }
+        let task_ptr = self.inner.get_out_ptr().as_ptr();
+        let res = unsafe {
+            bindings::taskqueue_enqueue(tq, task_ptr)
+        };
+        if res != 0 {
+            return Err(ErrCode::from(res));
+        }
+        Ok(())
+    }
+}

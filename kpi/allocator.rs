@@ -33,49 +33,48 @@ use core::ffi::c_int;
 use core::ptr::{addr_of_mut, NonNull};
 
 #[derive(Debug, Copy, Clone)]
-pub struct KernelAllocator<const F: c_int> {
+pub struct KernelAllocator {
     ty: *mut malloc_type,
+    flags: c_int,
 }
 
-impl<const F: c_int> KernelAllocator<F> {
-    pub const fn new(ty: *mut malloc_type) -> Self {
-        Self { ty }
-    }
-}
-
-impl<const F: c_int> KernelAllocator<F> {
+impl KernelAllocator {
     unsafe fn malloc(&self, layout: Layout, flags: c_int) -> *mut u8 {
-        bindings::malloc(layout.size(), self.ty, F).cast()
+        bindings::malloc(layout.size(), self.ty, flags).cast()
     }
 }
 
 #[global_allocator]
-pub static WAITOK: KernelAllocator<{ M_WAITOK }> =
-    KernelAllocator::new(addr_of_mut!(M_DEVBUF) as *mut malloc_type);
+pub static WAITOK: KernelAllocator = KernelAllocator {
+    ty: addr_of_mut!(M_DEVBUF) as *mut malloc_type,
+    flags: M_WAITOK,
+};
 
-pub static NOWAIT: KernelAllocator<{ M_NOWAIT }> =
-    KernelAllocator::new(addr_of_mut!(M_DEVBUF) as *mut malloc_type);
+pub static NOWAIT: KernelAllocator = KernelAllocator {
+    ty: addr_of_mut!(M_DEVBUF) as *mut malloc_type,
+    flags: M_NOWAIT,
+};
 
-unsafe impl<const F: c_int> Sync for KernelAllocator<F> {}
+unsafe impl Sync for KernelAllocator {}
 
-unsafe impl GlobalAlloc for KernelAllocator<{ M_WAITOK }> {
+unsafe impl GlobalAlloc for KernelAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        self.malloc(layout, M_WAITOK)
+        self.malloc(layout, self.flags)
     }
     unsafe fn dealloc(&self, ptr: *mut u8, _layout: Layout) {
         bindings::free(ptr.cast(), self.ty);
     }
     unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
-        self.malloc(layout, M_WAITOK | M_ZERO)
+        self.malloc(layout, self.flags | M_ZERO)
     }
     unsafe fn realloc(&self, ptr: *mut u8, _layout: Layout, new_size: usize) -> *mut u8 {
-        bindings::realloc(ptr.cast(), new_size, self.ty, M_WAITOK).cast()
+        bindings::realloc(ptr.cast(), new_size, self.ty, self.flags).cast()
     }
 }
 
-unsafe impl Allocator for KernelAllocator<{ M_NOWAIT }> {
+unsafe impl Allocator for KernelAllocator {
     fn allocate(&self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
-        let ptr = unsafe { self.malloc(layout, M_NOWAIT) };
+        let ptr = unsafe { self.malloc(layout, self.flags) };
         match NonNull::new(ptr) {
             Some(non_null_ptr) => Ok(NonNull::slice_from_raw_parts(non_null_ptr, layout.size())),
             None => Err(AllocError),

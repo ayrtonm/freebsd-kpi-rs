@@ -27,7 +27,7 @@
  */
 
 use crate::bindings::_device;
-use crate::{bindings, AsCType, AsRustType, ErrCode, PointsTo, Ptr, Result};
+use crate::{bindings, AsCType, AsRustType, ErrCode, PointsTo, Ptr, OutPtr, Result};
 use core::ffi::{c_int, CStr};
 use core::ptr::NonNull;
 
@@ -54,7 +54,9 @@ impl AsCType for ProbeRes {
 
 impl AsRustType<Device> for *mut _device {
     fn as_rust_type(self) -> Device {
-        Device::new(self)
+        unsafe {
+            Device::new(self)
+        }
     }
 }
 
@@ -73,7 +75,7 @@ impl Device {
         if res.is_null() {
             Err(ErrCode::ENULLPTR)
         } else {
-            Ok(Device::new(res))
+            Ok(unsafe { Device::new(res) })
         }
     }
 
@@ -89,9 +91,10 @@ impl Device {
         unsafe { CStr::from_ptr(name) }
     }
 
-    pub fn get_softc<SC>(&mut self) -> *mut SC {
+    pub fn get_softc<SC>(&mut self) -> OutPtr<SC> {
         let dev_ptr = self.0;
         let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
-        sc_void_ptr.cast::<SC>()
+        let sc_ptr = sc_void_ptr.cast::<SC>();
+        OutPtr(sc_ptr)
     }
 }

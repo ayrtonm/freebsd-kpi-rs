@@ -6,6 +6,7 @@
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
@@ -47,9 +48,11 @@ rust_bindings_ofw_bus_get_node(device_t dev)
 }
 #endif
 
+struct rtkit_task;
+
 int rtkit_set_iop_pwrstate(struct rtkit_state *state, uint16_t pwrstate);
 int rtkit_rx_callback(void *cookie, struct apple_mbox_msg msg);
-void rtkit_rx_task(void *context, int pending);
+void rtkit_rx_task(struct rtkit_task *context, int pending);
 
 struct rtkit_buffer {
 	bus_addr_t			addr;
@@ -65,7 +68,7 @@ struct rtkit_buffer {
 };
 
 struct rtkit_task {
-	struct task				task;
+	//struct task				task;
 	struct apple_mbox_msg	msg;
 	struct rtkit_state		*state;
 };

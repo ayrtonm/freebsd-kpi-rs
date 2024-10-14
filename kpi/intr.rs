@@ -30,13 +30,12 @@ use crate::bus::Resource;
 use crate::bindings::{pcell_t, intr_irqsrc, intr_map_data, intr_map_data_fdt, intr_pic, trapframe};
 use crate::device::Device;
 use crate::ofw::XRef;
-use crate::{bindings, AsRustType, ErrCode, PointsTo, Ptr, Ref, Result , SharedValue, SubClass};
+use crate::{bindings, AsRustType, ErrCode, PointsTo, Ptr, Ref, Result , SubClass};
 use core::marker::PhantomData;
 use core::ops::Deref;
 use core::cell::UnsafeCell;
 use core::ffi::{c_int, c_void, CStr};
 use core::mem::{transmute, MaybeUninit};
-use core::pin::Pin;
 
 enum_c_macros! {
     #[repr(i32)]
@@ -86,15 +85,16 @@ pub type IrqSrc = intr_irqsrc;
 impl<T> SubClass<IrqSrc, T> {
     pub fn isrc_dispatch(&self, tf: *mut trapframe) -> c_int {
         unsafe {
-            bindings::intr_isrc_dispatch(SubClass::base_ptr(self), tf)
+            bindings::intr_isrc_dispatch(SubClass::get_base_ptr(self), tf)
         }
     }
 }
 
 pub trait PicIf<T> {
-    fn isrc_register(&self, dev: Device, isrc: &SubClass<IrqSrc, T>, flags: i32, fmt_str: &CStr, arg0: &CStr, arg1: u32, arg2: u32) -> Result<()> {
+    // TODO: the isrc address passed in here is returned in pic_if methods so I need to ensure its pointee pinned. This is trivially true for a softc but only when it points to the softc allocated by the driver. This API could still be misused by creating a softc on the stack (e.g. when initializing the real softc) and passing that address in by mistake
+    fn isrc_register(&self, dev: Device, isrc: Ref<SubClass<IrqSrc, T>>, flags: i32, fmt_str: &CStr, arg0: &CStr, arg1: u32, arg2: u32) -> Result<()> {
         let res = unsafe {
-            bindings::intr_isrc_register(SubClass::base_ptr(isrc), dev.as_ptr(), flags as u32, fmt_str.as_ptr(), arg0.as_ptr(), arg1, arg2)
+            bindings::intr_isrc_register(SubClass::get_base_ptr(&isrc), dev.as_ptr(), flags as u32, fmt_str.as_ptr(), arg0.as_ptr(), arg1, arg2)
         };
         if res != 0 {
             Err(ErrCode::from(res))
@@ -137,7 +137,7 @@ impl MapData {
         match ty {
             bindings::INTR_MAP_DATA_ACPI => Self::ACPI,
             bindings::INTR_MAP_DATA_FDT => {
-                let fdt_data_ptr = Ptr::new(map_data_ptr.cast());
+                let fdt_data_ptr = unsafe { Ptr::new(map_data_ptr.cast()) };
                 // this should be fine if the C side doesn't touch the fdt data for the lifetime of the Ref
                 let fdt_data_ref = unsafe {
                     fdt_data_ptr.allows_ref()

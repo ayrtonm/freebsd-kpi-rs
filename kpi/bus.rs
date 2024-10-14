@@ -29,7 +29,7 @@
 use crate::bindings::{bus_size_t, resource, resource_spec, RF_ACTIVE};
 use crate::device::Device;
 use crate::intr::FilterRes;
-use crate::{AsRustType, bindings, ErrCode, PointsTo, Ref, Result};
+use crate::{AsRustType, bindings, Ptr, ErrCode, PointsTo, Ref, Result};
 use core::ffi::{c_int, c_void};
 use core::mem::transmute;
 use core::ptr::{addr_of_mut, null_mut};
@@ -53,7 +53,7 @@ type Handler<T> = Option<extern "C" fn(T)>;
 impl AsRustType<Resource> for *mut resource {
     fn as_rust_type(self) -> Resource {
         Resource {
-            res: self,
+            res: unsafe { Ptr::new(self) },
             rid: None,
         }
     }
@@ -61,7 +61,7 @@ impl AsRustType<Resource> for *mut resource {
 
 #[derive(Debug)]
 pub struct Resource {
-    res: *mut resource,
+    res: Ptr<resource>,
     rid: Option<c_int>,
 }
 
@@ -97,6 +97,9 @@ impl Device {
         if res.is_null() {
             Err(ErrCode::ENULLPTR)
         } else {
+            let res = unsafe {
+                Ptr::new(res)
+            };
             Ok(Resource { res, rid: Some(rid) })
         }
     }
@@ -133,7 +136,7 @@ impl Device {
         if res != 0 {
             Err(ErrCode::from(res))
         } else {
-            let mut ret: [Resource; N] = resp.map(|r| Resource { res: r, rid: None });
+            let mut ret: [Resource; N] = resp.map(|r| Resource { res: unsafe { Ptr::new(r) }, rid: None });
             for n in 0..N {
                 ret[n].rid = Some(spec.list[n].rid);
             }
@@ -151,10 +154,11 @@ impl Device {
         intrhand: *mut *mut c_void,
     ) -> Result<()> {
         let dev_ptr = self.as_ptr();
+        let res_ptr = irq.res.as_ptr();
         let res = unsafe {
             bindings::bus_setup_intr(
                 dev_ptr,
-                irq.res,
+                res_ptr,
                 flags as c_int,
                 filter,
                 handler,
@@ -187,37 +191,37 @@ impl Device {
 
 // TODO: these should take &mut Resource to avoid races with shared mmio
 impl Resource {
-    pub fn read_4(&self, offset: bus_size_t) -> u32 {
+    pub fn read_4(&mut self, offset: bus_size_t) -> u32 {
+        let tag = unsafe { get_field!(self.res, r_bustag).read() };
+        let handle = unsafe { get_field!(self.res, r_bushandle).read() };
         unsafe {
-            let tag = (*self.res).r_bustag;
-            let handle = (*self.res).r_bushandle;
             let f = (*tag).bs_r_4.unwrap();
             f((*tag).bs_cookie, handle, offset)
         }
     }
 
-    pub fn write_4(&self, offset: bus_size_t, value: u32) {
+    pub fn write_4(&mut self, offset: bus_size_t, value: u32) {
+        let tag = unsafe { get_field!(self.res, r_bustag).read() };
+        let handle = unsafe { get_field!(self.res, r_bushandle).read() };
         unsafe {
-            let tag = (*self.res).r_bustag;
-            let handle = (*self.res).r_bushandle;
             let f = (*tag).bs_w_4.unwrap();
             f((*tag).bs_cookie, handle, offset, value)
         }
     }
 
-    pub fn read_8(&self, offset: bus_size_t) -> u64 {
+    pub fn read_8(&mut self, offset: bus_size_t) -> u64 {
+        let tag = unsafe { get_field!(self.res, r_bustag).read() };
+        let handle = unsafe { get_field!(self.res, r_bushandle).read() };
         unsafe {
-            let tag = (*self.res).r_bustag;
-            let handle = (*self.res).r_bushandle;
             let f = (*tag).bs_r_8.unwrap();
             f((*tag).bs_cookie, handle, offset)
         }
     }
 
-    pub fn write_8(&self, offset: bus_size_t, value: u64) {
+    pub fn write_8(&mut self, offset: bus_size_t, value: u64) {
+        let tag = unsafe { get_field!(self.res, r_bustag).read() };
+        let handle = unsafe { get_field!(self.res, r_bushandle).read() };
         unsafe {
-            let tag = (*self.res).r_bustag;
-            let handle = (*self.res).r_bushandle;
             let f = (*tag).bs_w_8.unwrap();
             f((*tag).bs_cookie, handle, offset, value)
         }
