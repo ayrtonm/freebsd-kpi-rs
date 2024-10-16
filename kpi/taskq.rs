@@ -26,16 +26,17 @@
  * SUCH DAMAGE.
  */
 
-use core::mem::transmute;
-use core::ffi::{c_void, c_int};
-use alloc::boxed::Box;
-use crate::{PointsTo, RefMut, Ptr, ErrCode, Result, FFICell, bindings};
-use crate::bindings::{task_fn_t, task, taskqueue};
 use crate::allocator::KernelAllocator;
+use crate::bindings::{task, task_fn_t, taskqueue};
+use crate::{bindings, OutPtr, ErrCode, FFICell, PointsTo, Ptr, RefMut, Result};
+use alloc::boxed::Box;
+use core::ffi::{c_int, c_void};
+use core::mem::transmute;
+
+pub type TaskQueue = *mut taskqueue;
 
 pub struct Task {
     inner: FFICell<task>,
-    is_initialized: bool,
 }
 
 // TODO: assert this is ABI-compatible with task_fn_t
@@ -44,48 +45,47 @@ pub type RawTaskFn = extern "C" fn(context: *mut c_void, pending: c_int);
 pub type TaskFn<P> = unsafe extern "C" fn(context: P, pending: c_int);
 
 impl Task {
-    pub fn new_in_heap(flags: KernelAllocator) -> RefMut<Self> {
-        RefMut::new_in_heap(Task::new(), flags)
-    }
-
     pub fn new() -> Self {
         Self {
             inner: FFICell::zeroed(),
-            is_initialized: false,
         }
     }
-}
 
-use crate::bindings::rtkit_task;
-impl PointsTo<rtkit_task> for *mut rtkit_task {
-    fn as_ptr(&self) -> *mut rtkit_task {
-        *self
+    pub fn new_in_heap(flags: KernelAllocator) -> Box<Self, KernelAllocator> {
+        Box::new_in(Task::new(), flags)
     }
-}
 
-impl RefMut<Task> {
-    pub fn init<T, P: PointsTo<T>>(&mut self, callback: TaskFn<P>, ctx: P) {
-        let inner_ptr = self.inner.get_out_ptr();
+    pub fn init<T, P: PointsTo<T>>(task: &mut Box<Task>, callback: TaskFn<P>, ctx: P) {
         let callback = unsafe { transmute(callback) };
         let ctx = ctx.as_ptr().cast();
+        let inner_ptr = task.inner.get_out_ptr();
         unsafe {
             get_field!(inner_ptr, ta_func).write(Some(callback));
             get_field!(inner_ptr, ta_context).write(ctx);
         }
-        self.is_initialized = true;
     }
 
-    pub fn enqueue(&mut self, tq: *mut taskqueue) -> Result<()> {
-        if !self.is_initialized {
-            return Err(ErrCode::EPERM);
+    pub fn enqueue(self: &mut Box<Task>, tq: TaskQueue) -> Result<()> {
+        let inner_ptr = self.inner.get_out_ptr();
+        let old_func = get_field!(inner_ptr, ta_func).as_ptr();
+        if old_func.is_null() {
+            return Err(ErrCode::EDOOFUS);
         }
         let task_ptr = self.inner.get_out_ptr().as_ptr();
-        let res = unsafe {
-            bindings::taskqueue_enqueue(tq, task_ptr)
-        };
+        let res = unsafe { bindings::taskqueue_enqueue(tq, task_ptr) };
         if res != 0 {
             return Err(ErrCode::from(res));
         }
         Ok(())
     }
+
+    //pub fn init_and_enqueue<T, P: PointsTo<T>>(
+    //    &mut self,
+    //    callback: TaskFn<P>,
+    //    ctx: P,
+    //    tq: *mut taskqueue,
+    //) -> Result<()> {
+    //    self.init(callback, ctx);
+    //    self.enqueue(tq)
+    //}
 }

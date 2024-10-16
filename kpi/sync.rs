@@ -98,9 +98,11 @@ impl<T, const SPINS: bool> Mutex<T, SPINS> {
         let lo_flags = unsafe { lo_flags_ptr.read() };
         (lo_flags & LO_INITIALIZED as u32) != 0
     }
+
+    #[track_caller]
     pub fn lock(&self) -> Result<MutexGuard<'_, T, SPINS>> {
         if !self.is_init() {
-            return Err(ErrCode::EPERM)
+            return Err(ErrCode::EDOOFUS)
         }
         let inner_ptr = self.inner.get_out_ptr();
         let inner_lock_ptr = get_field!(inner_ptr, mtx_lock).as_ptr();
@@ -109,16 +111,6 @@ impl<T, const SPINS: bool> Mutex<T, SPINS> {
                 bindings::__mtx_lock_spin_flags(inner_lock_ptr, 0, c"".as_ptr(), 0);
             }
         } else {
-            /*
-            #define mtx_lock(m) mtx_lock_flags(m, 0)
-            #define mtx_lock_flags(m, opts) mtx_lock_flags_(m, opts, LOCK_FILE, LOCK_LINE)
-            #ifdef LOCK_DEBUG
-            #define mtx_lock_flags_(m, opts, file, line)  _mtx_lock_flags(m, opts, file, line)
-            #else
-            #define mtx_lock_flags_(m, opts,file,line) __mtx_lock(m, curthread, opts, file, line)
-            #endif
-            #define _mtx_lock_flags(m, o, f, l) __mtx_lock_flags(&m->mtx_lock, o, f, l)
-            */
             unsafe {
                 bindings::__mtx_lock_flags(inner_lock_ptr, 0, c"".as_ptr(), 0);
             }
@@ -126,5 +118,21 @@ impl<T, const SPINS: bool> Mutex<T, SPINS> {
         Ok(MutexGuard {
             lock: self
         })
+    }
+}
+
+impl<T, const SPINS: bool> Drop for MutexGuard<'_, T, SPINS> {
+    fn drop(&mut self) {
+        let inner_ptr = self.lock.inner.get_out_ptr();
+        let inner_lock_ptr = get_field!(inner_ptr, mtx_lock).as_ptr();
+        if SPINS {
+            unsafe {
+                bindings::__mtx_unlock_spin_flags(inner_lock_ptr, 0, c"".as_ptr(), 0);
+            }
+        } else {
+            unsafe {
+                bindings::__mtx_unlock_flags(inner_lock_ptr, 0, c"".as_ptr(), 0);
+            }
+        }
     }
 }

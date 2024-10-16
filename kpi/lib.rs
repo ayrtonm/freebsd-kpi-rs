@@ -52,6 +52,7 @@ pub mod taskq;
 
 use alloc::boxed::Box;
 use alloc::collections::TryReserveError;
+use core::alloc::Allocator;
 use core::cell::UnsafeCell;
 use core::ffi::c_int;
 use core::fmt;
@@ -314,14 +315,6 @@ impl<T> Deref for Ref<T> {
 pub struct RefMut<T>(*mut T);
 
 impl<T> RefMut<T> {
-    pub fn new_in_heap(t: T, flags: KernelAllocator) -> RefMut<T> {
-        let boxed_t = Box::new_in(t, flags);
-        let t_ptr = Box::into_raw(boxed_t);
-        unsafe {
-            Ptr::new(t_ptr).allows_ref().assume_unique()
-        }
-    }
-
     pub fn share(self) -> Ref<T> {
         Ref(self.0)
     }
@@ -331,11 +324,6 @@ impl<T> RefMut<T> {
     where F: FnOnce(*mut T) -> *mut U {
         RefMut(f(self.0))
     }
-
-    //pub fn map_ref<U, F>(self, f: F) -> RefMut<U>
-    //where F: FnOnce(&mut T) -> &mut U {
-    //    self.get_field_helper(f)
-    //}
 }
 
 impl<T> PointsTo<T> for RefMut<T> {
@@ -402,7 +390,7 @@ pub trait GetSoftc<SC> {
         if unsafe { init.read() } {
             Ok(())
         } else {
-            Err(ErrCode::EPERM)
+            Err(ErrCode::EDOOFUS)
         }
     }
 
@@ -411,7 +399,7 @@ pub trait GetSoftc<SC> {
         let state = self.get_softc_state(dev);
 
         if unsafe { state.read() } != State::Available {
-            return Err(ErrCode::EPERM);
+            return Err(ErrCode::EDOOFUS);
         }
         unsafe {
             get_field!(csc, initialized).write(true);
@@ -429,7 +417,7 @@ pub trait GetSoftc<SC> {
         let mut state = self.get_softc_state(dev);
 
         if unsafe { state.read() } != State::Available {
-            return Err(ErrCode::EPERM);
+            return Err(ErrCode::EDOOFUS);
         }
         self.is_softc_init(dev)?;
         unsafe {
@@ -451,7 +439,7 @@ pub trait GetSoftc<SC> {
         let mut state = self.get_softc_state(dev);
 
         if unsafe { state.read() } == State::Claimed {
-            return Err(ErrCode::EPERM);
+            return Err(ErrCode::EDOOFUS);
         }
         self.is_softc_init(dev)?;
         unsafe {

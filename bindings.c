@@ -99,3 +99,4 @@ struct rtkit_state {
 	bool				verbose;
 	bool				noalloc;
 };
+int rtkit_handle_mgmt(struct rtkit_state *state, struct apple_mbox_msg *msg);
