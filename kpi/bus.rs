@@ -29,7 +29,8 @@
 use crate::bindings::{bus_size_t, resource, resource_spec, RF_ACTIVE};
 use crate::device::Device;
 use crate::intr::FilterRes;
-use crate::{AsRustType, bindings, Ptr, ErrCode, PointsTo, Ref, Result};
+use crate::{bindings, AsRustType, ErrCode, PointsTo, Ptr, Ref, Result};
+use alloc::vec::Vec;
 use core::ffi::{c_int, c_void};
 use core::mem::transmute;
 use core::ptr::{addr_of_mut, null_mut};
@@ -55,6 +56,7 @@ impl AsRustType<Resource> for *mut resource {
         Resource {
             res: unsafe { Ptr::new(self) },
             rid: None,
+            claimed_windows: Vec::new(),
         }
     }
 }
@@ -62,7 +64,22 @@ impl AsRustType<Resource> for *mut resource {
 #[derive(Debug)]
 pub struct Resource {
     res: Ptr<resource>,
-    rid: Option<c_int>,
+    // bus_alloc_resouce writes rid out to a pointer so let's make this public
+    // TODO: it's currently Option for the PicIf interface
+    pub rid: Option<c_int>,
+    // TODO: Should this be fixed-size?
+    claimed_windows: Vec<Window>,
+}
+
+#[derive(Debug)]
+struct Window {
+    start: bus_size_t,
+    end: bus_size_t,
+}
+
+#[derive(Debug)]
+pub struct Register<const START: bus_size_t = 0, const SIZE: bus_size_t = { bus_size_t::MAX }> {
+    res: Ptr<resource>,
 }
 
 #[derive(Debug)]
@@ -97,10 +114,12 @@ impl Device {
         if res.is_null() {
             Err(ErrCode::ENULLPTR)
         } else {
-            let res = unsafe {
-                Ptr::new(res)
-            };
-            Ok(Resource { res, rid: Some(rid) })
+            let res = unsafe { Ptr::new(res) };
+            Ok(Resource {
+                res,
+                rid: Some(rid),
+                claimed_windows: Vec::new(),
+            })
         }
     }
 
@@ -136,7 +155,11 @@ impl Device {
         if res != 0 {
             Err(ErrCode::from(res))
         } else {
-            let mut ret: [Resource; N] = resp.map(|r| Resource { res: unsafe { Ptr::new(r) }, rid: None });
+            let mut ret: [Resource; N] = resp.map(|r| Resource {
+                res: unsafe { Ptr::new(r) },
+                rid: None,
+                claimed_windows: Vec::new(),
+            });
             for n in 0..N {
                 ret[n].rid = Some(spec.list[n].rid);
             }
@@ -191,7 +214,32 @@ impl Device {
 
 // TODO: these should take &mut Resource to avoid races with shared mmio
 impl Resource {
+    pub fn whole_register(self) -> Register {
+        Register { res: self.res }
+    }
+
+    pub fn take_register<const START: bus_size_t, const SIZE: bus_size_t>(
+        &mut self,
+    ) -> Result<Register<START, SIZE>> {
+        let end = START + SIZE;
+        for claimed in &mut self.claimed_windows {
+            if (end > claimed.start) || (START < claimed.end) {
+                return Err(ErrCode::EDOOFUS);
+            }
+        }
+        self.claimed_windows.push(Window { start: START, end });
+        Ok(Register { res: self.res })
+    }
+}
+
+impl<const START: bus_size_t, const SIZE: bus_size_t> Register<START, SIZE> {
+    fn assert_precond(offset: bus_size_t) {
+        assert!(START <= offset);
+        assert!(offset < START + SIZE);
+    }
+
     pub fn read_4(&mut self, offset: bus_size_t) -> u32 {
+        Self::assert_precond(offset);
         let tag = unsafe { get_field!(self.res, r_bustag).read() };
         let handle = unsafe { get_field!(self.res, r_bushandle).read() };
         unsafe {
@@ -201,6 +249,7 @@ impl Resource {
     }
 
     pub fn write_4(&mut self, offset: bus_size_t, value: u32) {
+        Self::assert_precond(offset);
         let tag = unsafe { get_field!(self.res, r_bustag).read() };
         let handle = unsafe { get_field!(self.res, r_bushandle).read() };
         unsafe {
@@ -210,6 +259,7 @@ impl Resource {
     }
 
     pub fn read_8(&mut self, offset: bus_size_t) -> u64 {
+        Self::assert_precond(offset);
         let tag = unsafe { get_field!(self.res, r_bustag).read() };
         let handle = unsafe { get_field!(self.res, r_bushandle).read() };
         unsafe {
@@ -219,6 +269,7 @@ impl Resource {
     }
 
     pub fn write_8(&mut self, offset: bus_size_t, value: u64) {
+        Self::assert_precond(offset);
         let tag = unsafe { get_field!(self.res, r_bustag).read() };
         let handle = unsafe { get_field!(self.res, r_bushandle).read() };
         unsafe {
