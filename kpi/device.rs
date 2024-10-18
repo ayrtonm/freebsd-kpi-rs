@@ -26,6 +26,7 @@
  * SUCH DAMAGE.
  */
 
+use crate::err_codes::*;
 use crate::bindings::_device;
 use crate::{bindings, AsCType, AsRustType, ErrCode, PointsTo, Ptr, OutPtr, Result};
 use core::ffi::{c_int, CStr};
@@ -46,8 +47,8 @@ enum_c_macros! {
     }
 }
 
-impl AsCType for ProbeRes {
-    fn as_c_int(self) -> c_int {
+impl AsCType<c_int> for ProbeRes {
+    fn as_c_type(self) -> c_int {
         self as c_int
     }
 }
@@ -73,7 +74,7 @@ impl Device {
         let dev_ptr = self.0;
         let res = unsafe { bindings::device_get_parent(dev_ptr) };
         if res.is_null() {
-            Err(ErrCode::ENULLPTR)
+            Err(ENULLPTR)
         } else {
             Ok(unsafe { Device::new(res) })
         }

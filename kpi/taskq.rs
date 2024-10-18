@@ -26,6 +26,7 @@
  * SUCH DAMAGE.
  */
 
+use crate::err_codes::*;
 use crate::allocator::KernelAllocator;
 use crate::bindings::{task, task_fn_t, taskqueue};
 use crate::{bindings, OutPtr, ErrCode, FFICell, PointsTo, Ptr, RefMut, Result};
@@ -51,10 +52,6 @@ impl Task {
         }
     }
 
-    pub fn new_in_heap(flags: KernelAllocator) -> Box<Self, KernelAllocator> {
-        Box::new_in(Task::new(), flags)
-    }
-
     pub fn init<T, P: PointsTo<T>>(task: &mut Box<Task>, callback: TaskFn<P>, ctx: P) {
         let callback = unsafe { transmute(callback) };
         let ctx = ctx.as_ptr().cast();
@@ -69,7 +66,7 @@ impl Task {
         let inner_ptr = self.inner.get_out_ptr();
         let old_func = get_field!(inner_ptr, ta_func).as_ptr();
         if old_func.is_null() {
-            return Err(ErrCode::EDOOFUS);
+            return Err(EDOOFUS);
         }
         let task_ptr = self.inner.get_out_ptr().as_ptr();
         let res = unsafe { bindings::taskqueue_enqueue(tq, task_ptr) };

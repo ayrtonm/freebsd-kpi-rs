@@ -26,6 +26,7 @@
  * SUCH DAMAGE.
  */
 
+use crate::err_codes::*;
 use crate::bindings::{ofw_compat_data, phandle_t};
 use crate::device::Device;
 use crate::{bindings, ErrCode, PointsTo, Result};
@@ -120,7 +121,7 @@ impl Device {
                 unsafe { res_ptr.as_ref() }
             }
         };
-        found.ok_or(ErrCode::ENULLPTR)
+        found.ok_or(ENULLPTR)
     }
 
     pub fn ofw_bus_get_node(&self) -> Node {
@@ -187,7 +188,7 @@ impl XRef {
     pub fn device_from_xref(&self) -> Result<Device> {
         let res = unsafe { bindings::OF_device_from_xref(self.0) };
         if res.is_null() {
-            Err(ErrCode::ENULLPTR)
+            Err(ENULLPTR)
         } else {
             Ok(unsafe { Device::new(res) })
         }

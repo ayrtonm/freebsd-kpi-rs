@@ -26,6 +26,7 @@
  * SUCH DAMAGE.
  */
 
+use crate::err_codes::*;
 use core::ffi::CStr;
 use core::cell::UnsafeCell;
 use crate::{OutPtr, SubClass, RefMut, Ref, Result, FFICell};
@@ -102,7 +103,7 @@ impl<T, const SPINS: bool> Mutex<T, SPINS> {
     #[track_caller]
     pub fn lock(&self) -> Result<MutexGuard<'_, T, SPINS>> {
         if !self.is_init() {
-            return Err(ErrCode::EDOOFUS)
+            return Err(EDOOFUS)
         }
         let inner_ptr = self.inner.get_out_ptr();
         let inner_lock_ptr = get_field!(inner_ptr, mtx_lock).as_ptr();

@@ -26,6 +26,7 @@
  * SUCH DAMAGE.
  */
 
+use crate::err_codes::*;
 use crate::bus::Resource;
 use crate::bindings::{pcell_t, intr_irqsrc, intr_map_data, intr_map_data_fdt, intr_pic, trapframe};
 use crate::device::Device;
@@ -162,7 +163,7 @@ impl Device {
         let dev_ptr = self.as_ptr();
         let pic = unsafe { bindings::intr_pic_register(dev_ptr, xref.0 as _) };
         if pic.is_null() {
-            Err(ErrCode::ENULLPTR)
+            Err(ENULLPTR)
         } else {
             Ok(Pic {
                 dev: *self,

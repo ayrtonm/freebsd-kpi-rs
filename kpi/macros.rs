@@ -45,7 +45,7 @@ macro_rules! enum_c_macros {
             fn try_from(x: i32) -> $crate::Result<$enum_name> {
                 match x {
                     $(bindings::$macro_name => Ok($enum_name::$macro_name),)*
-                    _ => Err($crate::ErrCode::EDOOFUS),
+                    _ => Err($crate::EDOOFUS),
                 }
             }
         }

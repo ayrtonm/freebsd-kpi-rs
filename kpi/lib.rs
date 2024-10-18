@@ -63,13 +63,19 @@ use core::ptr::{addr_of, addr_of_mut};
 use crate::device::Device;
 use crate::allocator::KernelAllocator;
 
-pub trait AsCType {
-    fn as_c_int(self) -> c_int;
+pub trait AsCType<T> {
+    fn as_c_type(self) -> T;
 }
 
-impl AsCType for () {
-    fn as_c_int(self) -> c_int {
+impl AsCType<c_int> for () {
+    fn as_c_type(self) -> c_int {
         0
+    }
+}
+
+impl AsCType<c_int> for ErrCode {
+    fn as_c_type(self) -> c_int {
+        self.0.get()
     }
 }
 
@@ -390,7 +396,7 @@ pub trait GetSoftc<SC> {
         if unsafe { init.read() } {
             Ok(())
         } else {
-            Err(ErrCode::EDOOFUS)
+            Err(EDOOFUS)
         }
     }
 
@@ -399,7 +405,7 @@ pub trait GetSoftc<SC> {
         let state = self.get_softc_state(dev);
 
         if unsafe { state.read() } != State::Available {
-            return Err(ErrCode::EDOOFUS);
+            return Err(EDOOFUS);
         }
         unsafe {
             get_field!(csc, initialized).write(true);
@@ -417,7 +423,7 @@ pub trait GetSoftc<SC> {
         let mut state = self.get_softc_state(dev);
 
         if unsafe { state.read() } != State::Available {
-            return Err(ErrCode::EDOOFUS);
+            return Err(EDOOFUS);
         }
         self.is_softc_init(dev)?;
         unsafe {
@@ -439,7 +445,7 @@ pub trait GetSoftc<SC> {
         let mut state = self.get_softc_state(dev);
 
         if unsafe { state.read() } == State::Claimed {
-            return Err(ErrCode::EDOOFUS);
+            return Err(EDOOFUS);
         }
         self.is_softc_init(dev)?;
         unsafe {
@@ -535,7 +541,7 @@ pub mod prelude {
     pub use crate::intr::FilterRes::*;
     pub use crate::intr::IntrRoot::*;
     pub use crate::ErrCode;
-    pub use crate::ErrCode::*;
+    pub use crate::err_codes::*;
     pub use crate::{dprint, dprintln, print, println, Result};
 
     pub use crate::GetSoftc;
@@ -543,43 +549,51 @@ pub mod prelude {
 
 macro_rules! err_codes {
     ($($name:ident, $desc:literal,)+) => {
-        // This enum has a variant for all KPI error code (including non-POSIX ones) and a few extra
-        // to handle the impedance mismatch between the c_int and ErrCode types and a catch-all to
-        // handle C KPIs that don't return descriptive error info (e.g. fns returning NULL pointer
-        // on error). Since all variants are glob imported in mod prelude, the extra variants are
-        // stylized like the KPI error codes to avoid unexpected surprises.
-        #[repr(i32)]
-        #[derive(Copy, Clone)]
-        pub enum ErrCode {
-            $($name = bindings::$name,)*
-            ENOERR,
-            EUNKNOWN,
-            ENULLPTR,
+        use core::num::NonZeroI32;
+        use crate::err_codes::*;
+
+        // This is effectively an extensible enum with some overlapping variants
+        #[derive(Copy, Clone, PartialEq, Eq)]
+        pub struct ErrCode(pub(crate) NonZeroI32);
+        pub mod err_codes {
+            use core::num::NonZeroI32;
+            use crate::{bindings, ErrCode};
+            const _: () = {
+                $(assert!(bindings::$name != i32::MIN);)*
+                $(assert!(bindings::$name != i32::MIN + 1);)*
+            };
+            $(pub const $name: ErrCode = ErrCode(unsafe { NonZeroI32::new_unchecked(bindings::$name) });)*
+            pub const ENULLPTR: ErrCode = ErrCode(unsafe { NonZeroI32::new_unchecked(i32::MIN) });
+            pub const EBADFFI: ErrCode = ErrCode(unsafe { NonZeroI32::new_unchecked(i32::MIN + 1) });
         }
 
         impl Debug for ErrCode {
+            // EWOULDBLOCK/EAGAIN and ENOTSUP/EOPNOTSUPP have identical values on the C side so
+            // this match statement must have unreachable patterns
+            #[allow(unreachable_patterns)]
             fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-                let msg = match self {
-                    $(ErrCode::$name => $desc,)*
-                    ErrCode::ENOERR => "Accidentally converted non-error int into ErrCode",
-                    ErrCode::EUNKNOWN => "Unknown error code",
-                    ErrCode::ENULLPTR => "Catch-all for issues not described by KPI error codes",
+                let msg = match *self {
+                    $(err_codes::$name => $desc,)*
+                    err_codes::ENULLPTR => "Received a NULL pointer as an error code",
+                    err_codes::EBADFFI => "Error at the FFI boundary",
+                    _ => "Unknown error code",
                 };
                 f.write_str(msg)
             }
         }
 
         impl From<c_int> for ErrCode {
+            // EWOULDBLOCK/EAGAIN and ENOTSUP/EOPNOTSUPP have identical values on the C side so
+            // this match statement must have unreachable patterns
+            #[allow(unreachable_patterns)]
             fn from(val: c_int) -> Self {
                 match val {
-                    // Error codes are positive so map negative integers to ENOERR
-                    c_int::MIN..=0 => ErrCode::ENOERR,
                     // Map KPI error code values to the respective enum variants
-                    $(bindings::$name => ErrCode::$name,)*
-                    // Map anything else to EUNKNOWN
-                    _ => ErrCode::EUNKNOWN,
-                    // ENULLPTR is only for use on the rust side while this function converts
-                    // values coming from the C side so I shouldn't need to map ENULLPTR's value
+                    $(bindings::$name => $name,)*
+                    // Map ENULLPTR to itself in case an error code keeps getting round-tripped
+                    i32::MIN => ENULLPTR,
+                    // Map anything else to EBADFFI
+                    _ => EBADFFI,
                 }
             }
         }
@@ -587,7 +601,7 @@ macro_rules! err_codes {
         impl From<TryReserveError> for ErrCode {
             // TODO: this is a lossy conversion, maybe add a new rust error code?
             fn from(_: TryReserveError) -> Self {
-                ErrCode::ENOMEM
+                ENOMEM
             }
         }
     };
@@ -628,7 +642,8 @@ err_codes! {
     EPIPE, "Broken pipe",
     EDOM, "Numerical argument out of domain",
     ERANGE, "Result too large",
-    EWOULDBLOCK, "Operation would block",
+    EWOULDBLOCK, "Operation would block or Resource temporarily unavailable",
+    EAGAIN, "Resource temporarily unavailable",
     EINPROGRESS, "Operation now in progress",
     EALREADY, "Operation already in progress",
     ENOTSOCK, "Socket operation on non-socket",
@@ -638,6 +653,7 @@ err_codes! {
     ENOPROTOOPT, "Protocol not available",
     EPROTONOSUPPORT, "Protocol not supported",
     ESOCKTNOSUPPORT, "Socket type not supported",
+    EOPNOTSUPP, "Operation not supported",
     ENOTSUP, "Operation not supported",
     EPFNOSUPPORT, "Protocol family not supported",
     EAFNOSUPPORT, "Address family not supported by protocol family",

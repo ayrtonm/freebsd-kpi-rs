@@ -26,6 +26,7 @@
  * SUCH DAMAGE.
  */
 
+use crate::err_codes::*;
 use crate::bindings::{bus_size_t, resource, resource_spec, RF_ACTIVE};
 use crate::device::Device;
 use crate::intr::FilterRes;
@@ -112,7 +113,7 @@ impl Device {
             )
         };
         if res.is_null() {
-            Err(ErrCode::ENULLPTR)
+            Err(ENULLPTR)
         } else {
             let res = unsafe { Ptr::new(res) };
             Ok(Resource {
@@ -224,7 +225,7 @@ impl Resource {
         let end = START + SIZE;
         for claimed in &mut self.claimed_windows {
             if (end > claimed.start) || (START < claimed.end) {
-                return Err(ErrCode::EDOOFUS);
+                return Err(EDOOFUS);
             }
         }
         self.claimed_windows.push(Window { start: START, end });
