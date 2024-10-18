@@ -46,7 +46,7 @@ pub type RawTaskFn = extern "C" fn(context: *mut c_void, pending: c_int);
 pub type TaskFn<P> = unsafe extern "C" fn(context: P, pending: c_int);
 
 impl Task {
-    pub fn new() -> Self {
+    pub fn uninit() -> Self {
         Self {
             inner: FFICell::zeroed(),
         }

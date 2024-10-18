@@ -62,7 +62,7 @@ impl<T, const SPINS: bool> DerefMut for MutexGuard<'_, T, SPINS> {
 }
 
 impl<T, const SPINS: bool> Mutex<T, SPINS> {
-    pub fn new_uninit(t: T) -> Self {
+    pub fn uninit(t: T) -> Self {
         Self {
             inner: FFICell::zeroed(),
             data: UnsafeCell::new(t),

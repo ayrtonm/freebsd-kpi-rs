@@ -47,9 +47,11 @@ pub mod intr;
 pub mod ofw;
 mod panic;
 pub mod sync;
-pub mod tty;
 pub mod taskq;
+pub mod tty;
 
+use crate::allocator::KernelAllocator;
+use crate::device::Device;
 use alloc::boxed::Box;
 use alloc::collections::TryReserveError;
 use core::alloc::Allocator;
@@ -60,8 +62,7 @@ use core::fmt::{Debug, Formatter};
 use core::mem::{offset_of, MaybeUninit};
 use core::ops::{Deref, DerefMut};
 use core::ptr::{addr_of, addr_of_mut};
-use crate::device::Device;
-use crate::allocator::KernelAllocator;
+use core::sync::atomic::{AtomicU32, Ordering};
 
 pub trait AsCType<T> {
     fn as_c_type(self) -> T;
@@ -107,9 +108,7 @@ impl<T> FFICell<T> {
     }
 
     fn get_out_ptr(&self) -> OutPtr<T> {
-        unsafe {
-            OutPtr::new(self.0.get().cast())
-        }
+        unsafe { OutPtr::new(self.0.get().cast()) }
     }
 }
 
@@ -168,7 +167,6 @@ impl<B, F> DerefMut for SubClass<B, F> {
 // - points to a region of memory big enough to hold `T`
 // - points to a region of memory with the proper alignment for `T`
 
-
 /// A pointer received from the C KPI.
 ///
 /// The memory it points to is not assumed to be initialized and may have other pointers.
@@ -210,7 +208,9 @@ impl<T> OutPtr<T> {
 
     #[doc(hidden)]
     pub fn get_field_helper<U, F>(self, f: F) -> OutPtr<U>
-    where F: FnOnce(*mut T) -> *mut U {
+    where
+        F: FnOnce(*mut T) -> *mut U,
+    {
         OutPtr(f(self.0))
     }
 }
@@ -260,9 +260,15 @@ impl<T> Ptr<T> {
         Ref(self.0)
     }
 
+    pub unsafe fn allows_mut_ref(self) -> RefMut<T> {
+        RefMut(self.0)
+    }
+
     #[doc(hidden)]
     pub fn get_field_helper<U, F>(self, f: F) -> Ptr<U>
-    where F: FnOnce(*mut T) -> *mut U {
+    where
+        F: FnOnce(*mut T) -> *mut U,
+    {
         Ptr(f(self.0))
     }
 }
@@ -273,20 +279,20 @@ impl<T> Ptr<T> {
 pub struct Ref<T>(*mut T);
 
 impl<T> Ref<T> {
-    pub unsafe fn assume_unique(self) -> RefMut<T> {
-        RefMut(self.0)
-    }
-
     #[doc(hidden)]
     pub fn get_field_helper<U, F>(self, f: F) -> Ref<U>
-    where F: FnOnce(&T) -> &U {
+    where
+        F: FnOnce(&T) -> &U,
+    {
         let new_ptr = f(self.deref()) as *const U;
         Ref(new_ptr as *mut U)
     }
 
     // just for documentation
     pub fn map_ref<U, F>(self, f: F) -> Ref<U>
-    where F: FnOnce(&T) -> &U {
+    where
+        F: FnOnce(&T) -> &U,
+    {
         self.get_field_helper(f)
     }
 }
@@ -309,9 +315,7 @@ impl<T> Deref for Ref<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        unsafe {
-            self.0.as_ref().unwrap()
-        }
+        unsafe { self.0.as_ref().unwrap() }
     }
 }
 
@@ -327,7 +331,9 @@ impl<T> RefMut<T> {
 
     #[doc(hidden)]
     pub fn get_field_helper<U, F>(&mut self, f: F) -> RefMut<U>
-    where F: FnOnce(*mut T) -> *mut U {
+    where
+        F: FnOnce(*mut T) -> *mut U,
+    {
         RefMut(f(self.0))
     }
 }
@@ -342,17 +348,13 @@ impl<T> Deref for RefMut<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        unsafe {
-            self.0.as_ref().unwrap()
-        }
+        unsafe { self.0.as_ref().unwrap() }
     }
 }
 
 impl<T> DerefMut for RefMut<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe {
-            self.0.as_mut().unwrap()
-        }
+        unsafe { self.0.as_mut().unwrap() }
     }
 }
 
@@ -360,12 +362,85 @@ pub trait PointsTo<T> {
     fn as_ptr(&self) -> *mut T;
 }
 
+#[repr(transparent)]
+#[derive(Debug)]
+struct State(AtomicU32);
+
+impl State {
+    const AVAILABLE: u32 = 0;
+    const CLAIMED: u32 = 1;
+    const SHARED: u32 = 2;
+}
+
+/// A value with dynamically-checked borrow rules.
+#[derive(Debug)]
+pub struct Claimable<T> {
+    data: T,
+    state: State,
+}
+
+impl<T> Claimable<T> {
+    pub fn new(data: T) -> Self {
+        Self {
+            data,
+            state: State(AtomicU32::new(State::AVAILABLE)),
+        }
+    }
+
+    pub fn claim(&self) -> Result<RefMut<T>> {
+        if self
+            .state
+            .0
+            .compare_exchange(
+                State::AVAILABLE,
+                State::CLAIMED,
+                Ordering::Relaxed,
+                Ordering::Relaxed,
+            )
+            .is_ok()
+        {
+            let ptr = &raw const self.data;
+            Ok(RefMut(ptr as *mut T))
+        } else {
+            Err(EDOOFUS)
+        }
+    }
+
+    pub fn release(&mut self, prev_claim: RefMut<T>) -> Result<()> {
+        if prev_claim.as_ptr() == &raw mut self.data {
+            self.state.0.store(State::AVAILABLE, Ordering::Relaxed);
+            Ok(())
+        } else {
+            Err(EDOOFUS)
+        }
+    }
+
+    pub fn borrow(&self) -> Result<Ref<T>> {
+        if self
+            .state
+            .0
+            .compare_exchange(
+                State::AVAILABLE,
+                State::SHARED,
+                Ordering::Relaxed,
+                Ordering::Relaxed,
+            )
+            .is_ok()
+        {
+            let ptr = &raw const self.data;
+            Ok(Ref(ptr as *mut T))
+        } else {
+            Err(EDOOFUS)
+        }
+    }
+}
+
 #[doc(hidden)]
 pub struct CSoftc<T> {
     // This is intentionally not an option<T> to allow checking its state independently of accessing
     // the softc.
     softc: MaybeUninit<T>,
-    state: State,
+    state: State2,
     initialized: bool,
 }
 
@@ -377,14 +452,12 @@ pub trait GetSoftc<SC> {
     }
 
     #[doc(hidden)]
-    fn get_softc_state(&self, dev: Device) -> Ptr<State> {
+    fn get_softc_state(&self, dev: Device) -> Ptr<State2> {
         let csc = self.get_softc_ptr(dev);
         let state = get_field!(csc, state);
         // SAFETY: The C KPI initializes memory to zero so the `state` field starts off with a valid
-        // value. All assignments are done in Rust to valid variants of the `State` enum.
-        unsafe {
-            state.assume_init()
-        }
+        // value. All assignments are done in Rust to valid variants of the `State2` enum.
+        unsafe { state.assume_init() }
     }
 
     #[doc(hidden)]
@@ -404,7 +477,7 @@ pub trait GetSoftc<SC> {
         let csc = self.get_softc_ptr(dev);
         let state = self.get_softc_state(dev);
 
-        if unsafe { state.read() } != State::Available {
+        if unsafe { state.read() } != State2::Available {
             return Err(EDOOFUS);
         }
         unsafe {
@@ -422,34 +495,32 @@ pub trait GetSoftc<SC> {
         let csc = self.get_softc_ptr(dev);
         let mut state = self.get_softc_state(dev);
 
-        if unsafe { state.read() } != State::Available {
+        if unsafe { state.read() } != State2::Available {
             return Err(EDOOFUS);
         }
         self.is_softc_init(dev)?;
         unsafe {
-            state.write(State::Claimed);
+            state.write(State2::Claimed);
         }
         let sc = get_field!(csc, softc);
-        Ok(unsafe { sc.flatten().assume_init().allows_ref().assume_unique() })
+        Ok(unsafe { sc.flatten().assume_init().allows_mut_ref() })
     }
 
     fn release_softc(&self, dev: Device, _sc: RefMut<SC>) {
         let mut state = self.get_softc_state(dev);
-        unsafe {
-            state.write(State::Available)
-        }
+        unsafe { state.write(State2::Available) }
     }
 
     fn share_softc(&self, dev: Device) -> Result<Ref<SC>> {
         let csc = self.get_softc_ptr(dev);
         let mut state = self.get_softc_state(dev);
 
-        if unsafe { state.read() } == State::Claimed {
+        if unsafe { state.read() } == State2::Claimed {
             return Err(EDOOFUS);
         }
         self.is_softc_init(dev)?;
         unsafe {
-            state.write(State::Shared);
+            state.write(State2::Shared);
         }
         let sc = get_field!(csc, softc);
         Ok(unsafe { sc.flatten().assume_init().allows_ref() })
@@ -458,7 +529,7 @@ pub trait GetSoftc<SC> {
 
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum State {
+pub enum State2 {
     // softc is zero-initialized so this ensures it starts in the correct state
     Available = 0,
     Claimed,
@@ -538,10 +609,10 @@ pub mod prelude {
     pub use crate::bindings;
     pub use crate::bus::SysRes::*;
     pub use crate::device::ProbeRes::*;
+    pub use crate::err_codes::*;
     pub use crate::intr::FilterRes::*;
     pub use crate::intr::IntrRoot::*;
     pub use crate::ErrCode;
-    pub use crate::err_codes::*;
     pub use crate::{dprint, dprintln, print, println, Result};
 
     pub use crate::GetSoftc;
