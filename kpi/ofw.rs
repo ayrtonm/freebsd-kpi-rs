@@ -26,10 +26,9 @@
  * SUCH DAMAGE.
  */
 
-use crate::err_codes::*;
+use crate::kpi_prelude::*;
 use crate::bindings::{ofw_compat_data, phandle_t};
 use crate::device::Device;
-use crate::{bindings, ErrCode, PointsTo, Result};
 use core::cell::LazyCell;
 use core::ffi::{c_int, CStr};
 use core::marker::PhantomData;
@@ -89,19 +88,19 @@ pub struct XRef(pub(crate) phandle_t);
 
 impl Device {
     pub fn ofw_bus_status_okay(&self) -> bool {
-        let dev_ptr = self.0;
+        let dev_ptr = self.as_ptr();
         unsafe { bindings::ofw_bus_status_okay(dev_ptr) != 0 }
     }
 
     pub fn ofw_bus_is_compatible(&self, compat: &CStr) -> bool {
-        let dev_ptr = self.0;
+        let dev_ptr = self.as_ptr();
         let compat_ptr = compat.as_ptr();
         let res = unsafe { bindings::ofw_bus_is_compatible(dev_ptr, compat_ptr) };
         res == 1
     }
 
     pub fn ofw_bus_search_compatible<T>(&self, compat: &[CompatEntry<T>]) -> Result<&'static T> {
-        let dev_ptr = self.0;
+        let dev_ptr = self.as_ptr();
         let compat_ptr = unsafe {
             bindings::ofw_bus_search_compatible(
                 dev_ptr,
@@ -125,7 +124,7 @@ impl Device {
     }
 
     pub fn ofw_bus_get_node(&self) -> Node {
-        let dev_ptr = self.0;
+        let dev_ptr = self.as_ptr();
         let node = unsafe { bindings::rust_bindings_ofw_bus_get_node(dev_ptr) };
         Node(node)
     }
@@ -134,7 +133,7 @@ impl Device {
 impl Device {
     // TODO: this will break if OF_device_register_xref ever changes to return non-zero
     pub fn register_xref(&mut self, xref: XRef) {
-        let dev_ptr = self.0;
+        let dev_ptr = self.as_ptr();
         unsafe {
             bindings::OF_device_register_xref(xref.0, dev_ptr);
         }

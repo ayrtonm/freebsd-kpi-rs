@@ -26,11 +26,9 @@
  * SUCH DAMAGE.
  */
 
-use crate::err_codes::*;
+use crate::kpi_prelude::*;
 use crate::bindings::_device;
-use crate::{bindings, AsCType, AsRustType, ErrCode, PointsTo, Ptr, OutPtr, Result};
 use core::ffi::{c_int, CStr};
-use core::ptr::NonNull;
 
 enum_c_macros! {
     #[repr(i32)]
@@ -71,7 +69,7 @@ pub type Device = Ptr<_device>;
 
 impl Device {
     pub fn get_parent(&self) -> Result<Device> {
-        let dev_ptr = self.0;
+        let dev_ptr = self.as_ptr();
         let res = unsafe { bindings::device_get_parent(dev_ptr) };
         if res.is_null() {
             Err(ENULLPTR)
@@ -81,21 +79,23 @@ impl Device {
     }
 
     pub fn set_desc(&self, desc: &'static CStr) {
-        let dev_ptr = self.0;
+        let dev_ptr = self.as_ptr();
         let desc_ptr = desc.as_ptr();
         unsafe { bindings::device_set_desc(dev_ptr, desc_ptr) }
     }
 
     pub fn get_nameunit(&self) -> &CStr {
-        let dev_ptr = self.0;
+        let dev_ptr = self.as_ptr();
         let name = unsafe { bindings::device_get_nameunit(dev_ptr) };
         unsafe { CStr::from_ptr(name) }
     }
 
     pub fn get_softc<SC>(&mut self) -> OutPtr<SC> {
-        let dev_ptr = self.0;
+        let dev_ptr = self.as_ptr();
         let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
         let sc_ptr = sc_void_ptr.cast::<SC>();
-        OutPtr(sc_ptr)
+        unsafe {
+            OutPtr::new(sc_ptr)
+        }
     }
 }

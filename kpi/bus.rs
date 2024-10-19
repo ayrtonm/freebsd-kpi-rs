@@ -26,11 +26,10 @@
  * SUCH DAMAGE.
  */
 
-use crate::err_codes::*;
+use crate::kpi_prelude::*;
 use crate::bindings::{bus_size_t, resource, resource_spec, RF_ACTIVE};
 use crate::device::Device;
 use crate::intr::FilterRes;
-use crate::{bindings, AsRustType, ErrCode, PointsTo, Ptr, Ref, Result};
 use alloc::vec::Vec;
 use core::ffi::{c_int, c_void};
 use core::mem::transmute;

@@ -26,17 +26,13 @@
  * SUCH DAMAGE.
  */
 
-use crate::err_codes::*;
+use crate::kpi_prelude::*;
 use crate::bus::Resource;
 use crate::bindings::{pcell_t, intr_irqsrc, intr_map_data, intr_map_data_fdt, intr_pic, trapframe};
 use crate::device::Device;
 use crate::ofw::XRef;
-use crate::{bindings, AsRustType, ErrCode, PointsTo, Ptr, Ref, Result , SubClass};
-use core::marker::PhantomData;
-use core::ops::Deref;
-use core::cell::UnsafeCell;
 use core::ffi::{c_int, c_void, CStr};
-use core::mem::{transmute, MaybeUninit};
+use core::mem::transmute;
 
 enum_c_macros! {
     #[repr(i32)]

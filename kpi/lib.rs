@@ -28,8 +28,7 @@
 
 #![no_std]
 #![feature(allocator_api, concat_idents)]
-#![deny(improper_ctypes, unused_must_use, unreachable_patterns)]
-#![allow(dead_code, unused_imports, unused_variables)]
+#![deny(improper_ctypes, unused_must_use, unused_imports, unreachable_patterns)]
 
 extern crate alloc;
 
@@ -43,46 +42,23 @@ pub mod allocator;
 pub mod arm64;
 pub mod bus;
 pub mod device;
+pub mod ffi;
 pub mod intr;
 pub mod ofw;
 mod panic;
+pub mod ptr;
 pub mod sync;
 pub mod taskq;
 pub mod tty;
 
-use crate::allocator::KernelAllocator;
+use crate::kpi_prelude::*;
 use crate::device::Device;
-use alloc::boxed::Box;
 use alloc::collections::TryReserveError;
-use core::alloc::Allocator;
-use core::cell::UnsafeCell;
 use core::ffi::c_int;
 use core::fmt;
 use core::fmt::{Debug, Formatter};
-use core::mem::{offset_of, MaybeUninit};
-use core::ops::{Deref, DerefMut};
-use core::ptr::{addr_of, addr_of_mut};
-use core::sync::atomic::{AtomicU32, Ordering};
+use core::mem::{MaybeUninit};
 
-pub trait AsCType<T> {
-    fn as_c_type(self) -> T;
-}
-
-impl AsCType<c_int> for () {
-    fn as_c_type(self) -> c_int {
-        0
-    }
-}
-
-impl AsCType<c_int> for ErrCode {
-    fn as_c_type(self) -> c_int {
-        self.0.get()
-    }
-}
-
-pub trait AsRustType<T> {
-    fn as_rust_type(self) -> T;
-}
 
 #[macro_export]
 macro_rules! count {
@@ -92,347 +68,6 @@ macro_rules! count {
     ($x:ident $($y:ident)*) => {
         1 + $crate::count!($($y)*)
     };
-}
-
-/// Rust's view of a variable of type T that has its address shared with C.
-///
-/// This opts out of Rust's requirements that &T must be immutable and T always have a valid value.
-/// While creating a &mut FFICell<T> is perfectly fine, it may not be used to get a &mut T.
-#[derive(Debug)]
-#[repr(transparent)]
-pub struct FFICell<T>(UnsafeCell<MaybeUninit<T>>);
-
-impl<T> FFICell<T> {
-    const fn zeroed() -> Self {
-        Self(UnsafeCell::new(MaybeUninit::zeroed()))
-    }
-
-    fn get_out_ptr(&self) -> OutPtr<T> {
-        unsafe { OutPtr::new(self.0.get().cast()) }
-    }
-}
-
-/// A struct containing a base class B and extra fields F.
-///
-/// The definition assumes that the base class is shared between Rust and C but places no
-/// restriction on the extra fields so it may be possible to create references to them.
-#[derive(Debug)]
-pub struct SubClass<B, F> {
-    base: FFICell<B>,
-    pub sub: F,
-}
-
-impl<B, F> SubClass<B, F> {
-    pub const fn new(sub: F) -> Self {
-        Self {
-            base: FFICell::zeroed(),
-            sub,
-        }
-    }
-
-    pub fn get_base_ptr(sub: &Self) -> *mut B {
-        sub.base.get_out_ptr().as_ptr()
-    }
-
-    pub unsafe fn from_base<'a>(ptr: *mut B) -> &'a mut Self {
-        let super_ptr = ptr.byte_sub(offset_of!(Self, base)).cast::<Self>();
-        super_ptr.as_mut().unwrap()
-    }
-}
-
-impl<B, F> Deref for SubClass<B, F> {
-    type Target = F;
-
-    fn deref(&self) -> &Self::Target {
-        &self.sub
-    }
-}
-
-impl<B, F> DerefMut for SubClass<B, F> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.sub
-    }
-}
-
-// FreeBSD Rust KPI
-//
-// Rust requires unsafe blocks around pointer accesses because it does not enforce some aspects of
-// their validity. Since this crate receives pointers from the C KPI we can assume some of these
-// aspects hold and be precise about the aspects we can't assume as true. This allows code in
-// downstream crates (i.e. drivers) to depend on the type system for checking the aspects of pointer
-// validity.
-//
-// We assume pointers received from the C KPI are always:
-// - non-null unless that is explicitly used to signal an error condition
-// - points to a region of memory big enough to hold `T`
-// - points to a region of memory with the proper alignment for `T`
-
-/// A pointer received from the C KPI.
-///
-/// The memory it points to is not assumed to be initialized and may have other pointers.
-#[derive(Debug)]
-#[repr(transparent)]
-pub struct OutPtr<T>(*mut T);
-
-impl<T> Clone for OutPtr<T> {
-    fn clone(&self) -> Self {
-        Self(self.0)
-    }
-}
-
-impl<T> Copy for OutPtr<T> {}
-
-impl<T> PointsTo<T> for OutPtr<T> {
-    fn as_ptr(&self) -> *mut T {
-        self.0
-    }
-}
-
-impl<T> OutPtr<T> {
-    // SAFETY: The caller must ensure `ptr` came directly from the C KPI to ensure the size and
-    // alignment requirements of the pointee. The caller must also ensure that the C KPI this came
-    // from does not use NULL as an error condition.
-    pub unsafe fn new(ptr: *mut T) -> Self {
-        Self(ptr)
-    }
-
-    // SAFETY: The caller must synchronize this call with other pointers to `self.`
-    pub unsafe fn write(&mut self, t: T) {
-        *self.0 = t;
-    }
-
-    // SAFETY: The caller must ensure the pointee has a valid value for `T` before calling this.
-    pub unsafe fn assume_init(self) -> Ptr<T> {
-        Ptr(self.0)
-    }
-
-    #[doc(hidden)]
-    pub fn get_field_helper<U, F>(self, f: F) -> OutPtr<U>
-    where
-        F: FnOnce(*mut T) -> *mut U,
-    {
-        OutPtr(f(self.0))
-    }
-}
-
-impl<T> OutPtr<MaybeUninit<T>> {
-    // Cast away the MaybeUninit wrapper without assuming the pointee is initialized.
-    pub fn flatten(self) -> OutPtr<T> {
-        OutPtr(self.0.cast())
-    }
-}
-
-/// A pointer received from the C KPI with the extra assumption that the pointee is initialized.
-///
-/// The pointee may have other pointers.
-#[derive(Debug)]
-#[repr(transparent)]
-pub struct Ptr<T>(*mut T);
-
-impl<T> Clone for Ptr<T> {
-    fn clone(&self) -> Self {
-        Self(self.0)
-    }
-}
-
-impl<T> Copy for Ptr<T> {}
-
-impl<T> PointsTo<T> for Ptr<T> {
-    fn as_ptr(&self) -> *mut T {
-        self.0
-    }
-}
-
-impl<T> Ptr<T> {
-    pub unsafe fn new(ptr: *mut T) -> Self {
-        Self(ptr)
-    }
-
-    pub unsafe fn write(&mut self, t: T) {
-        *self.0 = t;
-    }
-
-    pub unsafe fn read(&self) -> T {
-        core::ptr::read(self.0 as *const T)
-    }
-
-    pub unsafe fn allows_ref(self) -> Ref<T> {
-        Ref(self.0)
-    }
-
-    pub unsafe fn allows_mut_ref(self) -> RefMut<T> {
-        RefMut(self.0)
-    }
-
-    #[doc(hidden)]
-    pub fn get_field_helper<U, F>(self, f: F) -> Ptr<U>
-    where
-        F: FnOnce(*mut T) -> *mut U,
-    {
-        Ptr(f(self.0))
-    }
-}
-
-/// A pointer received from the C KPI which may be turned into a reference.
-#[derive(Debug)]
-#[repr(transparent)]
-pub struct Ref<T>(*mut T);
-
-impl<T> Ref<T> {
-    #[doc(hidden)]
-    pub fn get_field_helper<U, F>(self, f: F) -> Ref<U>
-    where
-        F: FnOnce(&T) -> &U,
-    {
-        let new_ptr = f(self.deref()) as *const U;
-        Ref(new_ptr as *mut U)
-    }
-
-    // just for documentation
-    pub fn map_ref<U, F>(self, f: F) -> Ref<U>
-    where
-        F: FnOnce(&T) -> &U,
-    {
-        self.get_field_helper(f)
-    }
-}
-
-impl<T> Clone for Ref<T> {
-    fn clone(&self) -> Self {
-        Self(self.0)
-    }
-}
-
-impl<T> Copy for Ref<T> {}
-
-impl<T> PointsTo<T> for Ref<T> {
-    fn as_ptr(&self) -> *mut T {
-        self.0
-    }
-}
-
-impl<T> Deref for Ref<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        unsafe { self.0.as_ref().unwrap() }
-    }
-}
-
-/// A pointer received from the C KPI which may be turned into a mutable reference.
-#[derive(Debug)]
-#[repr(transparent)]
-pub struct RefMut<T>(*mut T);
-
-impl<T> RefMut<T> {
-    pub fn share(self) -> Ref<T> {
-        Ref(self.0)
-    }
-
-    #[doc(hidden)]
-    pub fn get_field_helper<U, F>(&mut self, f: F) -> RefMut<U>
-    where
-        F: FnOnce(*mut T) -> *mut U,
-    {
-        RefMut(f(self.0))
-    }
-}
-
-impl<T> PointsTo<T> for RefMut<T> {
-    fn as_ptr(&self) -> *mut T {
-        self.0
-    }
-}
-
-impl<T> Deref for RefMut<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        unsafe { self.0.as_ref().unwrap() }
-    }
-}
-
-impl<T> DerefMut for RefMut<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { self.0.as_mut().unwrap() }
-    }
-}
-
-pub trait PointsTo<T> {
-    fn as_ptr(&self) -> *mut T;
-}
-
-#[repr(transparent)]
-#[derive(Debug)]
-struct State(AtomicU32);
-
-impl State {
-    const AVAILABLE: u32 = 0;
-    const CLAIMED: u32 = 1;
-    const SHARED: u32 = 2;
-}
-
-/// A value with dynamically-checked borrow rules.
-#[derive(Debug)]
-pub struct Claimable<T> {
-    data: T,
-    state: State,
-}
-
-impl<T> Claimable<T> {
-    pub fn new(data: T) -> Self {
-        Self {
-            data,
-            state: State(AtomicU32::new(State::AVAILABLE)),
-        }
-    }
-
-    pub fn claim(&self) -> Result<RefMut<T>> {
-        if self
-            .state
-            .0
-            .compare_exchange(
-                State::AVAILABLE,
-                State::CLAIMED,
-                Ordering::Relaxed,
-                Ordering::Relaxed,
-            )
-            .is_ok()
-        {
-            let ptr = &raw const self.data;
-            Ok(RefMut(ptr as *mut T))
-        } else {
-            Err(EDOOFUS)
-        }
-    }
-
-    pub fn release(&mut self, prev_claim: RefMut<T>) -> Result<()> {
-        if prev_claim.as_ptr() == &raw mut self.data {
-            self.state.0.store(State::AVAILABLE, Ordering::Relaxed);
-            Ok(())
-        } else {
-            Err(EDOOFUS)
-        }
-    }
-
-    pub fn borrow(&self) -> Result<Ref<T>> {
-        if self
-            .state
-            .0
-            .compare_exchange(
-                State::AVAILABLE,
-                State::SHARED,
-                Ordering::Relaxed,
-                Ordering::Relaxed,
-            )
-            .is_ok()
-        {
-            let ptr = &raw const self.data;
-            Ok(Ref(ptr as *mut T))
-        } else {
-            Err(EDOOFUS)
-        }
-    }
 }
 
 #[doc(hidden)]
@@ -601,19 +236,25 @@ macro_rules! driver {
 
 pub type Result<T> = core::result::Result<T, ErrCode>;
 
+// Internal prelude module for commonly used imports in the KPI crate
+mod kpi_prelude {
+    pub use crate::bindings;
+    pub use crate::Result;
+    pub use crate::ptr::{OutPtr, Ptr, PointsTo, Ref, RefMut};
+    pub use crate::ffi::{AsCType, AsRustType, FFICell, SubClass, Claimable};
+    pub use crate::err_codes::*;
+    pub use crate::ErrCode;
+}
+
 pub mod prelude {
-    use core::ffi::c_void;
-    use core::ptr::null_mut;
+    pub use crate::kpi_prelude::*;
 
     pub use crate::allocator::{NOWAIT, WAITOK};
-    pub use crate::bindings;
     pub use crate::bus::SysRes::*;
     pub use crate::device::ProbeRes::*;
-    pub use crate::err_codes::*;
     pub use crate::intr::FilterRes::*;
     pub use crate::intr::IntrRoot::*;
-    pub use crate::ErrCode;
-    pub use crate::{dprint, dprintln, print, println, Result};
+    pub use crate::{dprint, dprintln, print, println};
 
     pub use crate::GetSoftc;
 }
@@ -621,14 +262,15 @@ pub mod prelude {
 macro_rules! err_codes {
     ($($name:ident, $desc:literal,)+) => {
         use core::num::NonZeroI32;
-        use crate::err_codes::*;
 
         // This is effectively an extensible enum with some overlapping variants
         #[derive(Copy, Clone, PartialEq, Eq)]
         pub struct ErrCode(pub(crate) NonZeroI32);
+
         pub mod err_codes {
             use core::num::NonZeroI32;
             use crate::{bindings, ErrCode};
+
             const _: () = {
                 $(assert!(bindings::$name != i32::MIN);)*
                 $(assert!(bindings::$name != i32::MIN + 1);)*
@@ -636,6 +278,18 @@ macro_rules! err_codes {
             $(pub const $name: ErrCode = ErrCode(unsafe { NonZeroI32::new_unchecked(bindings::$name) });)*
             pub const ENULLPTR: ErrCode = ErrCode(unsafe { NonZeroI32::new_unchecked(i32::MIN) });
             pub const EBADFFI: ErrCode = ErrCode(unsafe { NonZeroI32::new_unchecked(i32::MIN + 1) });
+        }
+
+        impl AsCType<c_int> for () {
+            fn as_c_type(self) -> c_int {
+                0
+            }
+        }
+
+        impl AsCType<c_int> for ErrCode {
+            fn as_c_type(self) -> c_int {
+                self.0.get()
+            }
         }
 
         impl Debug for ErrCode {
@@ -662,9 +316,9 @@ macro_rules! err_codes {
                     // Map KPI error code values to the respective enum variants
                     $(bindings::$name => $name,)*
                     // Map ENULLPTR to itself in case an error code keeps getting round-tripped
-                    i32::MIN => ENULLPTR,
+                    i32::MIN => err_codes::ENULLPTR,
                     // Map anything else to EBADFFI
-                    _ => EBADFFI,
+                    _ => err_codes::EBADFFI,
                 }
             }
         }
@@ -672,7 +326,7 @@ macro_rules! err_codes {
         impl From<TryReserveError> for ErrCode {
             // TODO: this is a lossy conversion, maybe add a new rust error code?
             fn from(_: TryReserveError) -> Self {
-                ENOMEM
+                err_codes::ENOMEM
             }
         }
     };
