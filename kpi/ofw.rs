@@ -26,9 +26,9 @@
  * SUCH DAMAGE.
  */
 
-use crate::kpi_prelude::*;
 use crate::bindings::{ofw_compat_data, phandle_t};
 use crate::device::Device;
+use crate::kpi_prelude::*;
 use core::cell::LazyCell;
 use core::ffi::{c_int, CStr};
 use core::marker::PhantomData;

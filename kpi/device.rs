@@ -26,8 +26,8 @@
  * SUCH DAMAGE.
  */
 
-use crate::kpi_prelude::*;
 use crate::bindings::_device;
+use crate::kpi_prelude::*;
 use core::ffi::{c_int, CStr};
 
 enum_c_macros! {
@@ -53,9 +53,7 @@ impl AsCType<c_int> for ProbeRes {
 
 impl AsRustType<Device> for *mut _device {
     fn as_rust_type(self) -> Device {
-        unsafe {
-            Device::new(self)
-        }
+        unsafe { Device::new(self) }
     }
 }
 
@@ -90,12 +88,10 @@ impl Device {
         unsafe { CStr::from_ptr(name) }
     }
 
-    pub fn get_softc<SC>(&mut self) -> OutPtr<SC> {
+    pub fn get_softc<SC>(&self) -> OutPtr<SC> {
         let dev_ptr = self.as_ptr();
         let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
         let sc_ptr = sc_void_ptr.cast::<SC>();
-        unsafe {
-            OutPtr::new(sc_ptr)
-        }
+        unsafe { OutPtr::new(sc_ptr) }
     }
 }

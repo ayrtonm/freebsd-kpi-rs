@@ -28,7 +28,7 @@
 
 #![no_std]
 #![feature(allocator_api, concat_idents)]
-#![deny(improper_ctypes, unused_must_use, unused_imports, unreachable_patterns)]
+#![deny(improper_ctypes, unused_must_use, unreachable_patterns)]
 
 extern crate alloc;
 
@@ -51,14 +51,14 @@ pub mod sync;
 pub mod taskq;
 pub mod tty;
 
-use crate::kpi_prelude::*;
+use crate::allocator::KernelAllocator;
 use crate::device::Device;
+use crate::kpi_prelude::*;
 use alloc::collections::TryReserveError;
 use core::ffi::c_int;
 use core::fmt;
 use core::fmt::{Debug, Formatter};
-use core::mem::{MaybeUninit};
-
+use core::mem::MaybeUninit;
 
 #[macro_export]
 macro_rules! count {
@@ -70,105 +70,30 @@ macro_rules! count {
     };
 }
 
-#[doc(hidden)]
-pub struct CSoftc<T> {
-    // This is intentionally not an option<T> to allow checking its state independently of accessing
-    // the softc.
-    softc: MaybeUninit<T>,
-    state: State2,
-    initialized: bool,
-}
+// TODO: justify things that only hold for lifetime of the driver
+pub type CSoftc<T> = Claimable<MaybeUninit<T>>;
 
-pub trait GetSoftc<SC> {
-    // helper method to avoid specifying Device::get_softc generic paramters each time
-    #[doc(hidden)]
-    fn get_softc_ptr(&self, mut dev: Device) -> OutPtr<CSoftc<SC>> {
-        dev.get_softc::<CSoftc<SC>>()
-    }
-
-    #[doc(hidden)]
-    fn get_softc_state(&self, dev: Device) -> Ptr<State2> {
-        let csc = self.get_softc_ptr(dev);
-        let state = get_field!(csc, state);
-        // SAFETY: The C KPI initializes memory to zero so the `state` field starts off with a valid
-        // value. All assignments are done in Rust to valid variants of the `State2` enum.
-        unsafe { state.assume_init() }
-    }
-
-    #[doc(hidden)]
-    fn is_softc_init(&self, dev: Device) -> Result<()> {
-        let csc = self.get_softc_ptr(dev);
-        // SAFETY: The C KPI initializes memory to zero so the `initialized` field starts off with a
-        // valid value. All assignments are done in Rust to valid values for `bool`.
-        let init = unsafe { get_field!(csc, initialized).assume_init() };
-        if unsafe { init.read() } {
-            Ok(())
-        } else {
-            Err(EDOOFUS)
-        }
-    }
-
-    fn init_softc(&self, dev: Device, init_val: SC) -> Result<()> {
-        let csc = self.get_softc_ptr(dev);
-        let state = self.get_softc_state(dev);
-
-        if unsafe { state.read() } != State2::Available {
-            return Err(EDOOFUS);
-        }
-        unsafe {
-            get_field!(csc, initialized).write(true);
-        }
-
-        let mut sc = get_field!(csc, softc);
-        unsafe {
-            sc.write(MaybeUninit::new(init_val));
-        }
-        Ok(())
+// SAFETY: This trait assumes Self is CSoftc<SC> so it may only be implemented for that type
+pub unsafe trait GetSoftc<SC> {
+    fn init_softc(&self, dev: Device, initial_value: SC) -> Result<()> {
+        let sc = dev.get_softc::<CSoftc<SC>>();
+        sc.try_init(initial_value)
     }
 
     fn claim_softc(&self, dev: Device) -> Result<RefMut<SC>> {
-        let csc = self.get_softc_ptr(dev);
-        let mut state = self.get_softc_state(dev);
-
-        if unsafe { state.read() } != State2::Available {
-            return Err(EDOOFUS);
-        }
-        self.is_softc_init(dev)?;
-        unsafe {
-            state.write(State2::Claimed);
-        }
-        let sc = get_field!(csc, softc);
-        Ok(unsafe { sc.flatten().assume_init().allows_mut_ref() })
+        let sc = dev.get_softc::<CSoftc<SC>>();
+        sc.claim()
     }
 
-    fn release_softc(&self, dev: Device, _sc: RefMut<SC>) {
-        let mut state = self.get_softc_state(dev);
-        unsafe { state.write(State2::Available) }
+    fn release_softc(&self, dev: Device, prev_claim: RefMut<SC>) -> Result<()> {
+        let sc = dev.get_softc::<CSoftc<SC>>();
+        sc.release(prev_claim)
     }
 
     fn share_softc(&self, dev: Device) -> Result<Ref<SC>> {
-        let csc = self.get_softc_ptr(dev);
-        let mut state = self.get_softc_state(dev);
-
-        if unsafe { state.read() } == State2::Claimed {
-            return Err(EDOOFUS);
-        }
-        self.is_softc_init(dev)?;
-        unsafe {
-            state.write(State2::Shared);
-        }
-        let sc = get_field!(csc, softc);
-        Ok(unsafe { sc.flatten().assume_init().allows_ref() })
+        let sc = dev.get_softc::<CSoftc<SC>>();
+        sc.share()
     }
-}
-
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum State2 {
-    // softc is zero-initialized so this ensures it starts in the correct state
-    Available = 0,
-    Claimed,
-    Shared,
 }
 
 // this only needs to define the two statics in the consumer (driver) crate. Driver is also good to
@@ -184,7 +109,7 @@ macro_rules! driver {
         #[repr(C)]
         pub struct Driver(core::cell::UnsafeCell<$crate::bindings::kobj_class>);
         unsafe impl Sync for Driver {}
-        impl $crate::GetSoftc<$sc> for Driver {}
+        unsafe impl $crate::GetSoftc<$sc> for Driver {}
 
         #[no_mangle]
         pub static $cdriver: Driver = Driver(
@@ -235,15 +160,19 @@ macro_rules! driver {
 }
 
 pub type Result<T> = core::result::Result<T, ErrCode>;
+// Making `A = KernelAllocator` a param gives nicer errors than just aliasing to
+// `Box<T, KernelAllocator>` when the global allocator is used in unexpected places
+pub type Box<T, A = KernelAllocator> = alloc::boxed::Box<T, A>;
 
 // Internal prelude module for commonly used imports in the KPI crate
 mod kpi_prelude {
     pub use crate::bindings;
-    pub use crate::Result;
-    pub use crate::ptr::{OutPtr, Ptr, PointsTo, Ref, RefMut};
-    pub use crate::ffi::{AsCType, AsRustType, FFICell, SubClass, Claimable};
     pub use crate::err_codes::*;
+    pub use crate::ffi::{AsCType, AsRustType, Claimable, FFICell, SubClass};
+    pub use crate::ptr::{OutPtr, PointsTo, Ptr, Ref, RefMut};
     pub use crate::ErrCode;
+    pub use crate::Result;
+    pub use crate::Box;
 }
 
 pub mod prelude {
@@ -315,7 +244,7 @@ macro_rules! err_codes {
                 match val {
                     // Map KPI error code values to the respective enum variants
                     $(bindings::$name => $name,)*
-                    // Map ENULLPTR to itself in case an error code keeps getting round-tripped
+                    // Map ENULLPTR to itself in case an error code gets round-tripped
                     i32::MIN => err_codes::ENULLPTR,
                     // Map anything else to EBADFFI
                     _ => err_codes::EBADFFI,

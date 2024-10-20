@@ -26,61 +26,46 @@
  * SUCH DAMAGE.
  */
 
-use crate::kpi_prelude::*;
 use crate::bindings::{task, taskqueue};
-use alloc::boxed::Box;
+use crate::kpi_prelude::*;
 use core::ffi::{c_int, c_void};
 use core::mem::transmute;
 
 pub type TaskQueue = *mut taskqueue;
+pub type Task = task;
 
-pub struct Task {
-    inner: FFICell<task>,
+pub fn thread() -> TaskQueue {
+    unsafe { bindings::taskqueue_thread }
 }
 
 // TODO: assert this is ABI-compatible with task_fn_t
-pub type RawTaskFn = extern "C" fn(context: *mut c_void, pending: c_int);
-// TODO: remove unsafe
-pub type TaskFn<P> = unsafe extern "C" fn(context: P, pending: c_int);
+pub type TaskFn<F> = extern "C" fn(context: Box<SubClass<Task, F>>, pending: c_int);
 
-impl Task {
-    pub fn uninit() -> Self {
-        Self {
-            inner: FFICell::zeroed(),
-        }
-    }
-
-    pub fn init<T, P: PointsTo<T>>(task: &mut Box<Task>, callback: TaskFn<P>, ctx: P) {
+impl<F> SubClass<Task, F> {
+    pub fn enqueue_with_self(self: Box<Self>, callback: TaskFn<F>, queue: TaskQueue) -> Result<()> {
         let callback = unsafe { transmute(callback) };
-        let ctx = ctx.as_ptr().cast();
-        let inner_ptr = task.inner.get_out_ptr();
+        let task = SubClass::get_base_ptr(self.as_ref());
+        let ctx = Box::into_raw(self).cast::<c_void>();
+        // SAFETY: The pointer to ta_func is derived from Box<Self> so nothing else on the rust side
+        // can access it.
+        // TODO: I don't think this needs to be synchronized with C side accesses but that's TBD
         unsafe {
-            get_field!(inner_ptr, ta_func).write(Some(callback));
-            get_field!(inner_ptr, ta_context).write(ctx);
+            get_field!(task, ta_func).write(Some(callback));
         }
-    }
-
-    pub fn enqueue(self: &mut Box<Task>, tq: TaskQueue) -> Result<()> {
-        let inner_ptr = self.inner.get_out_ptr();
-        let old_func = get_field!(inner_ptr, ta_func).as_ptr();
-        if old_func.is_null() {
-            return Err(EDOOFUS);
+        // SAFETY: Same justification as ta_func. Additionally the function signature's context
+        // argument matches the Box that the `ctx` pointer was derived from. The implicit cast back
+        // from *mut c_void `ctx` to `Box<SubClass<Task, F>>` is legal because SubClass: Sized so
+        // Box<SubClass<_, _>> is ABI-compatible with C pointers.
+        unsafe {
+            get_field!(task, ta_context).write(ctx);
         }
-        let task_ptr = self.inner.get_out_ptr().as_ptr();
-        let res = unsafe { bindings::taskqueue_enqueue(tq, task_ptr) };
+        // SAFETY: The necessary fields in task were initialized and the context will be alive when
+        // ta_func is called because it's on the heap.
+        let res = unsafe { bindings::taskqueue_enqueue(queue, task.as_ptr()) };
         if res != 0 {
+            // TODO: don't leak the box here
             return Err(ErrCode::from(res));
         }
         Ok(())
     }
-
-    //pub fn init_and_enqueue<T, P: PointsTo<T>>(
-    //    &mut self,
-    //    callback: TaskFn<P>,
-    //    ctx: P,
-    //    tq: *mut taskqueue,
-    //) -> Result<()> {
-    //    self.init(callback, ctx);
-    //    self.enqueue(tq)
-    //}
 }

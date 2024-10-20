@@ -1,22 +1,52 @@
-use core::ops::{Deref, DerefMut};
+//! FreeBSD KPI pointers
+//!
+//! Pointers in rust (i.e. `*const T` and `*mut T`) require unsafe blocks around dereferences
+//! because the language doesn't enforce properties that make it valid to use them in different
+//! scenarios. This module provides ABI-compatible types for pointers which are known to have some
+//! of these properties. This allows downstream code (i.e. the rest of the crate and drivers) to
+//! depend on the type system for enforcing properties of pointers and restricting how they may be
+//! used with unsafe functions that have a more limited set of requirements than the native *mut T.
+//!
+//! Unless noted otherwise we assume pointers received from the FreeBSD KPI always:
+//! - are non-null unless that is explicitly used to signal an error condition
+//! - have pointees with fixed addresses unless explicitly noted otherwise
+//! - point to a region of memory big enough to hold a `T`
+//! - point to a region of memory with proper alignment for `T`
+//!
+//! `OutPtr<T>` represents pointers with these properties. Note that the pointee is not assumed to
+//! be initialized. Also uninitialized pointees should not be assumed to be zeroed out. As the name
+//! implies, this type of pointer is typically used for C functions to return "out parameters".
+//! Since the pointee may be uninitialized writing is allowed, but reading is not. The pointee may
+//! have other pointers so writes must potentially be synchronized.
+//!
+//! `Ptr<T>` has these additional assumptions:
+//! - the pointee has a valid value for `T`. This means that it must be initialized to a valid value
+//!   and any changes map it to another valid value.
+//!
+//! By ensuring this holds and calling the unsafe `OutPtr::assume_init` we get `Ptr<T>`. Since the
+//! pointee is initialized both reading and writing are allowed. The pointee may still have other
+//! pointers so both types of accesses must potentially be synchronized.
+//!
+//! `Ref<T>` has the additional assumption:
+//! - shared references (i.e. `&T`) to the pointee may be created
+//!
+//! TODO: Finish documenting Ref and RefMut and how they differ from &T and &mut T
+//!
+//! If we're sure nothing else will write to the pointee
+//!
+//! `RefMut<T>` has the additional assumption:
+//! - mutable references (i.e. `&mut T`) to the pointee may be created
+
+use core::ffi::c_void;
 use core::mem::MaybeUninit;
+use core::ops::{Deref, DerefMut};
 
 pub trait PointsTo<T> {
     fn as_ptr(&self) -> *mut T;
+    fn as_type_erased_ptr(&self) -> *mut c_void {
+        self.as_ptr().cast()
+    }
 }
-
-// FreeBSD Rust KPI
-//
-// Rust requires unsafe blocks around pointer accesses because it does not enforce some aspects of
-// their validity. Since this crate receives pointers from the C KPI we can assume some of these
-// aspects hold and be precise about the aspects we can't assume as true. This allows code in
-// downstream crates (i.e. drivers) to depend on the type system for checking the aspects of pointer
-// validity.
-//
-// We assume pointers received from the C KPI are always:
-// - non-null unless that is explicitly used to signal an error condition
-// - points to a region of memory big enough to hold `T`
-// - points to a region of memory with the proper alignment for `T`
 
 /// A pointer received from the C KPI.
 ///
@@ -66,13 +96,6 @@ impl<T> OutPtr<T> {
     }
 }
 
-impl<T> OutPtr<MaybeUninit<T>> {
-    // Cast away the MaybeUninit wrapper without assuming the pointee is initialized.
-    pub fn flatten(self) -> OutPtr<T> {
-        OutPtr(self.0.cast())
-    }
-}
-
 /// A pointer received from the C KPI with the extra assumption that the pointee is initialized.
 ///
 /// The pointee may have other pointers.
@@ -103,9 +126,14 @@ impl<T> Ptr<T> {
         Self(ptr)
     }
 
-    pub unsafe fn write(&mut self, t: T) {
-        *self.0 = t;
-    }
+    // TODO: the safety condition here is just synchronizing with other pointers to the pointee, but
+    // this must not break the first two properties about FreeBSD KPI pointers mentioned above. That
+    // means calling `write` on a Ptr<Ptr<T>> with any value other than its current value is not
+    // allowed. I might be able to impl this for T: !PointsTo but I'm not sure it's worth the
+    // complexity given the lack of uses so far.
+    //pub unsafe fn write(&mut self, t: T) {
+    //    *self.0 = t;
+    //}
 
     pub unsafe fn read(&self) -> T {
         core::ptr::read(self.0 as *const T)
@@ -125,6 +153,28 @@ impl<T> Ptr<T> {
         F: FnOnce(*mut T) -> *mut U,
     {
         Ptr(f(self.0))
+    }
+}
+
+impl<T> Ptr<MaybeUninit<T>> {
+    pub fn flatten(self) -> Ptr<T> {
+        // SAFETY: `Ptr`'s assumes its pointee is initialized and `T` and `MaybeUninit<T>` have the
+        // same memory layout
+        unsafe {
+            Ptr::new(self.0.cast())
+        }
+    }
+}
+
+impl<T> Ptr<Ptr<T>> {
+    pub fn flatten(self) -> Ptr<T> {
+        // SAFETY: The outer `Ptr` is assumed to have a pointee with a fixed address meaning that
+        // nothing can write to the outer pointer. Since the outer pointer has no writers, we can
+        // read without synchronization. That gives us the inner `Ptr` which satisfies the safety
+        // conditions for `Ptr<T>` by construction.
+        unsafe {
+            self.read()
+        }
     }
 }
 

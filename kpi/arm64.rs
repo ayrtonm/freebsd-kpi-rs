@@ -81,10 +81,9 @@ macro_rules! read_reg {
             }
         };
         res
-    }};
-    //($reg:tt) => {
-    //    read_reg!(stringify!($reg))
-    //};
+    }}; //($reg:tt) => {
+        //    read_reg!(stringify!($reg))
+        //};
 }
 #[macro_export]
 macro_rules! write_reg {
@@ -96,10 +95,9 @@ macro_rules! write_reg {
                 in(reg) $val, options(nomem, nostack)
             }
         }
-    }};
-    //($reg:tt, $val:expr) => {
-    //    write_reg!(stringify!($reg), $val)
-    //};
+    }}; //($reg:tt, $val:expr) => {
+        //    write_reg!(stringify!($reg), $val)
+        //};
 }
 
 // rust inverts the asm "memory" option with nomem

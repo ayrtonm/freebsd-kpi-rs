@@ -26,10 +26,10 @@
  * SUCH DAMAGE.
  */
 
-use crate::kpi_prelude::*;
 use crate::bindings::{bus_size_t, resource, resource_spec, RF_ACTIVE};
 use crate::device::Device;
 use crate::intr::FilterRes;
+use crate::kpi_prelude::*;
 use alloc::vec::Vec;
 use core::ffi::{c_int, c_void};
 use core::mem::transmute;
@@ -48,8 +48,8 @@ enum_c_macros! {
 type RawFilter = Option<unsafe extern "C" fn(*mut c_void) -> i32>;
 type RawHandler = Option<unsafe extern "C" fn(*mut c_void)>;
 
-type Filter<T> = Option<extern "C" fn(T) -> FilterRes>;
-type Handler<T> = Option<extern "C" fn(T)>;
+type Filter<P> = Option<extern "C" fn(P) -> FilterRes>;
+type Handler<P> = Option<extern "C" fn(P)>;
 
 impl AsRustType<Resource> for *mut resource {
     fn as_rust_type(self) -> Resource {

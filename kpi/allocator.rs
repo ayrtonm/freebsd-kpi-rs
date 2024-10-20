@@ -81,7 +81,7 @@ unsafe impl Allocator for KernelAllocator {
         }
     }
 
-    unsafe fn deallocate(&self, ptr: NonNull<u8>, layout: Layout) {
+    unsafe fn deallocate(&self, ptr: NonNull<u8>, _layout: Layout) {
         bindings::free(ptr.as_ptr().cast(), self.ty)
     }
 }

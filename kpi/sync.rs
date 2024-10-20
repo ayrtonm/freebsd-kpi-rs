@@ -26,11 +26,11 @@
  * SUCH DAMAGE.
  */
 
-use core::ffi::CStr;
-use core::cell::UnsafeCell;
+use crate::bindings::{mtx, LO_INITIALIZED, MTX_DEF, MTX_SPIN};
 use crate::kpi_prelude::*;
+use core::cell::UnsafeCell;
+use core::ffi::CStr;
 use core::ops::{Deref, DerefMut};
-use crate::bindings::{mtx, MTX_DEF, MTX_SPIN, LO_INITIALIZED};
 use core::ptr::null_mut;
 
 #[derive(Debug)]
@@ -42,7 +42,7 @@ pub struct Mutex<T, const SPINS: bool = false> {
 pub type SpinLock<T> = Mutex<T, true>;
 
 pub struct MutexGuard<'a, T, const SPINS: bool> {
-    lock: &'a Mutex<T, SPINS>
+    lock: &'a Mutex<T, SPINS>,
 }
 
 impl<T, const SPINS: bool> Deref for MutexGuard<'_, T, SPINS> {
@@ -78,14 +78,8 @@ impl<T, const SPINS: bool> RefMut<Mutex<T, SPINS>> {
         let inner_ptr = self.inner.get_out_ptr();
         let inner_lock_ptr = get_field!(inner_ptr, mtx_lock).as_ptr();
 
-        let variant = if SPINS {
-            MTX_SPIN
-        } else {
-            MTX_DEF
-        };
-        unsafe {
-            bindings::_mtx_init(inner_lock_ptr, name_ptr, kind_ptr, variant)
-        }
+        let variant = if SPINS { MTX_SPIN } else { MTX_DEF };
+        unsafe { bindings::_mtx_init(inner_lock_ptr, name_ptr, kind_ptr, variant) }
     }
 }
 
@@ -101,7 +95,7 @@ impl<T, const SPINS: bool> Mutex<T, SPINS> {
     #[track_caller]
     pub fn lock(&self) -> Result<MutexGuard<'_, T, SPINS>> {
         if !self.is_init() {
-            return Err(EDOOFUS)
+            return Err(EDOOFUS);
         }
         let inner_ptr = self.inner.get_out_ptr();
         let inner_lock_ptr = get_field!(inner_ptr, mtx_lock).as_ptr();
@@ -114,9 +108,7 @@ impl<T, const SPINS: bool> Mutex<T, SPINS> {
                 bindings::__mtx_lock_flags(inner_lock_ptr, 0, c"".as_ptr(), 0);
             }
         }
-        Ok(MutexGuard {
-            lock: self
-        })
+        Ok(MutexGuard { lock: self })
     }
 }
 

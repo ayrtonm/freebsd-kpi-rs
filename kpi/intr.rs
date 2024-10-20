@@ -26,10 +26,12 @@
  * SUCH DAMAGE.
  */
 
-use crate::kpi_prelude::*;
+use crate::bindings::{
+    intr_irqsrc, intr_map_data, intr_map_data_fdt, intr_pic, pcell_t, trapframe,
+};
 use crate::bus::Resource;
-use crate::bindings::{pcell_t, intr_irqsrc, intr_map_data, intr_map_data_fdt, intr_pic, trapframe};
 use crate::device::Device;
+use crate::kpi_prelude::*;
 use crate::ofw::XRef;
 use core::ffi::{c_int, c_void, CStr};
 use core::mem::transmute;
@@ -57,9 +59,7 @@ enum_c_macros! {
 
 impl<'a, T> AsRustType<&'a mut SubClass<IrqSrc, T>> for *mut intr_irqsrc {
     fn as_rust_type(self) -> &'a mut SubClass<IrqSrc, T> {
-        unsafe {
-            SubClass::from_base(self)
-        }
+        unsafe { SubClass::from_base(self) }
     }
 }
 
@@ -71,9 +71,7 @@ impl AsRustType<MapData> for *mut intr_map_data {
 
 impl<'a> AsRustType<&'a mut *mut intr_irqsrc> for *mut *mut intr_irqsrc {
     fn as_rust_type(self) -> &'a mut *mut intr_irqsrc {
-        unsafe {
-            self.as_mut().unwrap()
-        }
+        unsafe { self.as_mut().unwrap() }
     }
 }
 
@@ -81,17 +79,31 @@ pub type IrqSrc = intr_irqsrc;
 
 impl<T> SubClass<IrqSrc, T> {
     pub fn isrc_dispatch(&self, tf: *mut trapframe) -> c_int {
-        unsafe {
-            bindings::intr_isrc_dispatch(SubClass::get_base_ptr(self), tf)
-        }
+        unsafe { bindings::intr_isrc_dispatch(SubClass::get_base_ptr(self).as_ptr(), tf) }
     }
 }
 
 pub trait PicIf<T> {
-    // TODO: the isrc address passed in here is returned in pic_if methods so I need to ensure its pointee pinned. This is trivially true for a softc but only when it points to the softc allocated by the driver. This API could still be misused by creating a softc on the stack (e.g. when initializing the real softc) and passing that address in by mistake
-    fn isrc_register(&self, dev: Device, isrc: Ref<SubClass<IrqSrc, T>>, flags: i32, fmt_str: &CStr, arg0: &CStr, arg1: u32, arg2: u32) -> Result<()> {
+    fn isrc_register(
+        &self,
+        dev: Device,
+        isrc: Ref<SubClass<IrqSrc, T>>,
+        flags: i32,
+        fmt_str: &CStr,
+        arg0: &CStr,
+        arg1: u32,
+        arg2: u32,
+    ) -> Result<()> {
         let res = unsafe {
-            bindings::intr_isrc_register(SubClass::get_base_ptr(&isrc), dev.as_ptr(), flags as u32, fmt_str.as_ptr(), arg0.as_ptr(), arg1, arg2)
+            bindings::intr_isrc_register(
+                SubClass::get_base_ptr(&isrc).as_ptr(),
+                dev.as_ptr(),
+                flags as u32,
+                fmt_str.as_ptr(),
+                arg0.as_ptr(),
+                arg1,
+                arg2,
+            )
         };
         if res != 0 {
             Err(ErrCode::from(res))
@@ -99,7 +111,13 @@ pub trait PicIf<T> {
             Ok(())
         }
     }
-    fn pic_setup_intr(&self, dev: Device, isrc: &mut SubClass<IrqSrc, T>, res: Resource, data: MapData) -> Result<()>;
+    fn pic_setup_intr(
+        &self,
+        dev: Device,
+        isrc: &mut SubClass<IrqSrc, T>,
+        res: Resource,
+        data: MapData,
+    ) -> Result<()>;
     fn pic_map_intr(&self, dev: Device, data: MapData, isrcp: &mut *mut IrqSrc) -> Result<()>;
     //fn pic_teardown_intr(&self, dev: Device, isrc: Ptr<IrqSrc<T>>, res: Resource, data: MapData) -> Result<()>;
 
@@ -122,9 +140,7 @@ pub enum MapData {
 
 impl Ref<intr_map_data_fdt> {
     pub fn cells(&self) -> &[pcell_t] {
-        unsafe {
-            self.cells.as_slice(self.ncells as usize)
-        }
+        unsafe { self.cells.as_slice(self.ncells as usize) }
     }
 }
 
@@ -136,9 +152,7 @@ impl MapData {
             bindings::INTR_MAP_DATA_FDT => {
                 let fdt_data_ptr = unsafe { Ptr::new(map_data_ptr.cast()) };
                 // this should be fine if the C side doesn't touch the fdt data for the lifetime of the Ref
-                let fdt_data_ref = unsafe {
-                    fdt_data_ptr.allows_ref()
-                };
+                let fdt_data_ref = unsafe { fdt_data_ptr.allows_ref() };
                 Self::FDT(fdt_data_ref)
             }
             bindings::INTR_MAP_DATA_GPIO => Self::GPIO,
@@ -181,7 +195,7 @@ impl Device {
 }
 
 type RawFilter = unsafe extern "C" fn(*mut c_void) -> i32;
-type Filter<T> = extern "C" fn(T) -> FilterRes;
+type Filter<P> = extern "C" fn(P) -> FilterRes;
 
 impl Pic {
     pub fn claim_root<SC, P: PointsTo<SC>>(
