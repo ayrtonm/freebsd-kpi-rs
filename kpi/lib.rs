@@ -47,6 +47,7 @@ pub mod intr;
 pub mod ofw;
 mod panic;
 pub mod ptr;
+pub mod sleep;
 pub mod sync;
 pub mod taskq;
 pub mod tty;
@@ -189,6 +190,8 @@ pub mod prelude {
     pub use crate::intr::FilterRes::*;
     pub use crate::intr::IntrRoot::*;
     pub use crate::{dprint, dprintln, print, println};
+
+    pub use crate::sleep::{wakeup, tsleep, tsleep_in_hz};
 
     pub use crate::GetSoftc;
 }
