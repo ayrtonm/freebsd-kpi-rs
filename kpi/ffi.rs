@@ -129,34 +129,27 @@ impl<T> OutPtr<Claimable<T>> {
     fn get_state(&self) -> &State {
         unsafe { get_field!(self, state).as_ptr().as_ref().unwrap() }
     }
-}
 
-impl<T> OutPtr<Claimable<MaybeUninit<T>>> {
     pub fn init(self, initial_value: T) -> Result<()> {
         // Try switching from UNINIT to INITIALIZING
         self.get_state().try_init()?;
 
-        let mut data_ref = unsafe { get_field!(self, data).assume_init().allows_mut_ref() };
-        *data_ref = MaybeUninit::new(initial_value);
+        unsafe { get_field!(self, data).write(initial_value) };
 
         // Switch to AVAILABLE to mark end of initialization
         self.get_state().0.store(State::AVAILABLE, Ordering::Relaxed);
         Ok(())
     }
 
-    pub fn get(self) -> Result<Ptr<T>> {
-        if self.get_state().0.load(Ordering::Relaxed) != State::AVAILABLE {
-            return Err(EDOOFUS)
-        }
-        let data_ptr = unsafe { get_field!(self, data).flatten().assume_init() };
-        Ok(data_ptr)
+    pub fn get(self) -> OutPtr<T> {
+        get_field!(self, data)
     }
 
     pub fn claim(self) -> Result<RefMut<T>> {
         // Try switching from AVAILABLE to CLAIMED
         self.get_state().try_claim()?;
         // SAFETY: If the transition above was successful then data must have been initialized
-        let ptr = unsafe { get_field!(self, data).flatten().assume_init() };
+        let ptr = unsafe { get_field!(self, data).assume_init() };
         Ok(unsafe { ptr.allows_mut_ref() })
     }
 
@@ -170,29 +163,8 @@ impl<T> OutPtr<Claimable<MaybeUninit<T>>> {
     pub fn share(self) -> Result<Ref<T>> {
         // Try switching from AVAILABLE to SHARED
         self.get_state().try_share()?;
-        let ptr = unsafe { get_field!(self, data).flatten().assume_init() };
+        let ptr = unsafe { get_field!(self, data).assume_init() };
         Ok(unsafe { ptr.allows_ref() })
-    }
-}
-
-impl<T> Ptr<Claimable<T>> {
-    // This very specific method should not be considered part of the public API. It's just here to
-    // avoid code duplication
-    fn as_out_ptr(self) -> OutPtr<Claimable<MaybeUninit<T>>> {
-        // SAFETY: We started with a Ptr so going to an OutPtr is fine. Also Claimable<T> has the
-        // same memory layout as Claimable<MaybeUninit<T>>
-        unsafe {
-            OutPtr::new(self.as_ptr().cast())
-        }
-    }
-    pub fn claim(self) -> Result<RefMut<T>> {
-        self.as_out_ptr().claim()
-    }
-    pub fn release(self, prev_claim: RefMut<T>) -> Result<()> {
-        self.as_out_ptr().release(prev_claim)
-    }
-    pub fn share(self) -> Result<Ref<T>> {
-        self.as_out_ptr().share()
     }
 }
 

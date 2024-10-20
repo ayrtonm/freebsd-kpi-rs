@@ -96,12 +96,6 @@ impl<T> OutPtr<T> {
     }
 }
 
-impl<T> OutPtr<MaybeUninit<T>> {
-    pub fn flatten(self) -> OutPtr<T> {
-        OutPtr(self.0.cast())
-    }
-}
-
 /// A pointer received from the C KPI with the extra assumption that the pointee is initialized.
 ///
 /// The pointee may have other pointers.
@@ -133,13 +127,12 @@ impl<T> Ptr<T> {
     }
 
     // TODO: the safety condition here is just synchronizing with other pointers to the pointee, but
-    // this must not break the first two properties about FreeBSD KPI pointers mentioned above. That
-    // means calling `write` on a Ptr<Ptr<T>> with any value other than its current value is not
-    // allowed. I might be able to impl this for T: !PointsTo but I'm not sure it's worth the
-    // complexity given the lack of uses so far.
-    //pub unsafe fn write(&mut self, t: T) {
-    //    *self.0 = t;
-    //}
+    // this also must not break the first two properties about FreeBSD KPI pointers mentioned above.
+    // That means calling `write` on a Ptr<Ptr<T>> with any value other than its current value is
+    // not allowed. Ideally there would be a way to catch this w/o using specialization
+    pub unsafe fn write(&mut self, t: T) {
+        *self.0 = t;
+    }
 
     pub unsafe fn read(&self) -> T {
         core::ptr::read(self.0 as *const T)
@@ -159,6 +152,10 @@ impl<T> Ptr<T> {
         F: FnOnce(*mut T) -> *mut U,
     {
         Ptr(f(self.0))
+    }
+
+    pub fn as_out_ptr(self) -> OutPtr<T> {
+        OutPtr(self.0)
     }
 }
 

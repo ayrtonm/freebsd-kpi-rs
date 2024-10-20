@@ -71,7 +71,7 @@ macro_rules! count {
 }
 
 // TODO: justify things that only hold for lifetime of the driver
-pub type CSoftc<T> = Claimable<MaybeUninit<T>>;
+pub type CSoftc<T> = Claimable<T>;
 
 // SAFETY: This trait assumes Self is CSoftc<SC> so it may only be implemented for that type
 pub unsafe trait GetSoftc<SC> {
@@ -80,7 +80,7 @@ pub unsafe trait GetSoftc<SC> {
         sc.init(initial_value)
     }
 
-    fn get_softc(&self, dev: Device) -> Result<Ptr<SC>> {
+    fn get_softc(&self, dev: Device) -> OutPtr<SC> {
         let sc = dev.get_softc::<CSoftc<SC>>();
         sc.get()
     }
