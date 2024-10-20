@@ -77,7 +77,12 @@ pub type CSoftc<T> = Claimable<MaybeUninit<T>>;
 pub unsafe trait GetSoftc<SC> {
     fn init_softc(&self, dev: Device, initial_value: SC) -> Result<()> {
         let sc = dev.get_softc::<CSoftc<SC>>();
-        sc.try_init(initial_value)
+        sc.init(initial_value)
+    }
+
+    fn get_softc(&self, dev: Device) -> Result<Ptr<SC>> {
+        let sc = dev.get_softc::<CSoftc<SC>>();
+        sc.get()
     }
 
     fn claim_softc(&self, dev: Device) -> Result<RefMut<SC>> {

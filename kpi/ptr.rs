@@ -96,6 +96,12 @@ impl<T> OutPtr<T> {
     }
 }
 
+impl<T> OutPtr<MaybeUninit<T>> {
+    pub fn flatten(self) -> OutPtr<T> {
+        OutPtr(self.0.cast())
+    }
+}
+
 /// A pointer received from the C KPI with the extra assumption that the pointee is initialized.
 ///
 /// The pointee may have other pointers.
@@ -153,16 +159,6 @@ impl<T> Ptr<T> {
         F: FnOnce(*mut T) -> *mut U,
     {
         Ptr(f(self.0))
-    }
-}
-
-impl<T> Ptr<MaybeUninit<T>> {
-    pub fn flatten(self) -> Ptr<T> {
-        // SAFETY: `Ptr`'s assumes its pointee is initialized and `T` and `MaybeUninit<T>` have the
-        // same memory layout
-        unsafe {
-            Ptr::new(self.0.cast())
-        }
     }
 }
 
