@@ -71,37 +71,6 @@ macro_rules! count {
     };
 }
 
-// TODO: justify things that only hold for lifetime of the driver
-pub type CSoftc<T> = Claimable<T>;
-
-// SAFETY: This trait assumes Self is CSoftc<SC> so it may only be implemented for that type
-pub unsafe trait GetSoftc<SC> {
-    fn init_softc(&self, dev: Device, initial_value: SC) -> Result<()> {
-        let sc = dev.get_softc::<CSoftc<SC>>();
-        sc.init(initial_value)
-    }
-
-    fn get_softc(&self, dev: Device) -> OutPtr<SC> {
-        let sc = dev.get_softc::<CSoftc<SC>>();
-        sc.get()
-    }
-
-    fn claim_softc(&self, dev: Device) -> Result<RefMut<SC>> {
-        let sc = dev.get_softc::<CSoftc<SC>>();
-        sc.claim()
-    }
-
-    fn release_softc(&self, dev: Device, prev_claim: RefMut<SC>) -> Result<()> {
-        let sc = dev.get_softc::<CSoftc<SC>>();
-        sc.release(prev_claim)
-    }
-
-    fn share_softc(&self, dev: Device) -> Result<Ref<SC>> {
-        let sc = dev.get_softc::<CSoftc<SC>>();
-        sc.share()
-    }
-}
-
 // this only needs to define the two statics in the consumer (driver) crate. Driver is also good to
 // define in the consumer to avoid orphan rule issues around implementing the interface traits i.e.
 // impl Driver for DeviceIf
@@ -115,14 +84,16 @@ macro_rules! driver {
         #[repr(C)]
         pub struct Driver(core::cell::UnsafeCell<$crate::bindings::kobj_class>);
         unsafe impl Sync for Driver {}
-        unsafe impl $crate::GetSoftc<$sc> for Driver {}
+        impl $crate::device::Softc for Driver {
+            type BASE = $sc;
+        }
 
         #[no_mangle]
         pub static $cdriver: Driver = Driver(
             core::cell::UnsafeCell::new($crate::bindings::kobj_class {
                 name: $cname.as_ptr(),
                 methods: core::ptr::addr_of!($methods).cast(),
-                size: core::mem::size_of::<$crate::CSoftc<$sc>>(),
+                size: core::mem::size_of::<$crate::ffi::BorrowCk<$sc>>(),
                 baseclasses: core::ptr::null_mut(),
                 refs: 0,
                 ops: core::ptr::null_mut(),
@@ -174,11 +145,12 @@ pub type Box<T, A = KernelAllocator> = alloc::boxed::Box<T, A>;
 mod kpi_prelude {
     pub use crate::bindings;
     pub use crate::err_codes::*;
-    pub use crate::ffi::{AsCType, AsRustType, Claimable, FFICell, SubClass};
+    pub use crate::ffi::{AsCType, AsRustType, BorrowCk, FFICell, SubClass, DropBehavior};
     pub use crate::ptr::{OutPtr, PointsTo, Ptr, Ref, RefMut};
     pub use crate::ErrCode;
     pub use crate::Result;
     pub use crate::Box;
+    pub use crate::println;
 }
 
 pub mod prelude {
@@ -187,13 +159,12 @@ pub mod prelude {
     pub use crate::allocator::{NOWAIT, WAITOK};
     pub use crate::bus::SysRes::*;
     pub use crate::device::ProbeRes::*;
+    pub use crate::device::DetachRes;
     pub use crate::intr::FilterRes::*;
     pub use crate::intr::IntrRoot::*;
     pub use crate::{dprint, dprintln, print, println};
 
     pub use crate::sleep::{wakeup, tsleep, tsleep_in_hz};
-
-    pub use crate::GetSoftc;
 }
 
 macro_rules! err_codes {
@@ -209,10 +180,13 @@ macro_rules! err_codes {
             use crate::{bindings, ErrCode};
 
             const _: () = {
+                // out of an abundance of caution justify the new_unchecked below
+                $(assert!(bindings::$name != 0);)*
                 $(assert!(bindings::$name != i32::MIN);)*
                 $(assert!(bindings::$name != i32::MIN + 1);)*
             };
             $(pub const $name: ErrCode = ErrCode(unsafe { NonZeroI32::new_unchecked(bindings::$name) });)*
+            // TODO: make overlap checking less error-prone before adding more KPI crate errors
             pub const ENULLPTR: ErrCode = ErrCode(unsafe { NonZeroI32::new_unchecked(i32::MIN) });
             pub const EBADFFI: ErrCode = ErrCode(unsafe { NonZeroI32::new_unchecked(i32::MIN + 1) });
         }

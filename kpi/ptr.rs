@@ -227,14 +227,6 @@ impl<T> Ref<T> {
     }
 }
 
-impl<T> Clone for Ref<T> {
-    fn clone(&self) -> Self {
-        Self(self.0)
-    }
-}
-
-impl<T> Copy for Ref<T> {}
-
 impl<T> PointsTo<T> for Ref<T> {
     fn as_ptr(&self) -> *mut T {
         self.0

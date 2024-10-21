@@ -29,6 +29,7 @@
 use crate::bindings::_device;
 use crate::kpi_prelude::*;
 use core::ffi::{c_int, CStr};
+use core::ptr::drop_in_place;
 
 enum_c_macros! {
     #[repr(i32)]
@@ -45,9 +46,27 @@ enum_c_macros! {
     }
 }
 
+pub struct DetachRes<SC>(OutPtr<BorrowCk<SC>>, DropBehavior);
+
 impl AsCType<c_int> for ProbeRes {
     fn as_c_type(self) -> c_int {
         self as c_int
+    }
+}
+
+impl<SC> AsCType<c_int> for DetachRes<SC> {
+    fn as_c_type(self) -> c_int {
+        unsafe {
+            self.0.set_drop_behavior(self.1);
+        }
+        // This recursively checks that all BorrowCk'ed fields are available by trying to claim them
+        // If a field has outstanding references this will panic. This also drops softc fields that
+        // manage memory they allocated (e.g. Vec). Drop is a no-op for most other types and the C
+        // KPI is in charge of freeing the memory allocated for the BorrowCk<SC> itself
+        unsafe {
+            drop_in_place(self.0.as_ptr());
+        }
+        0
     }
 }
 
@@ -57,10 +76,60 @@ impl AsRustType<Device> for *mut _device {
     }
 }
 
-pub trait DeviceIf {
+pub trait Softc {
+    type BASE;
+}
+
+pub trait DeviceIf: Softc {
+    fn init_softc(&self, dev: Device, initial_value: Self::BASE) -> Result<()> {
+        let sc = self.get_borrowck_softc(dev);
+        sc.init(initial_value)
+    }
+
+    fn get_softc(&self, dev: Device) -> OutPtr<Self::BASE> {
+        let sc = self.get_borrowck_softc(dev);
+        sc.get()
+    }
+
+    fn claim_softc(&self, dev: Device) -> Result<RefMut<Self::BASE>> {
+        let sc = self.get_borrowck_softc(dev);
+        sc.claim()
+    }
+
+    fn release_softc(&self, dev: Device, prev_claim: RefMut<Self::BASE>) -> Result<()> {
+        let sc = self.get_borrowck_softc(dev);
+        sc.release(prev_claim)
+    }
+
+    fn share_softc(&self, dev: Device) -> Result<Ref<Self::BASE>> {
+        let sc = self.get_borrowck_softc(dev);
+        sc.share()
+    }
+
+    #[doc(hidden)]
+    fn get_borrowck_softc(&self, dev: Device) -> OutPtr<BorrowCk<Self::BASE>> {
+        unsafe {
+            dev.get_softc::<BorrowCk<Self::BASE>>()
+        }
+    }
+
+    fn borrowck_softc(&self, dev: Device) -> DetachRes<Self::BASE> {
+        self.drop_softc(dev, DropBehavior::PanicOnDrop)
+    }
+
+    /// Sets the behavior of dynamically borrow-checking the softc if panic! is not desired.
+    /// BorrowCk fields embedded in the softc must have their drop behavior set separately.
+    fn drop_softc(&self, dev: Device, behavior: DropBehavior) -> DetachRes<Self::BASE> {
+        DetachRes(self.get_borrowck_softc(dev), behavior)
+    }
+
     fn device_probe(&self, dev: Device) -> Result<ProbeRes>;
     fn device_attach(&self, dev: Device) -> Result<()>;
-    fn device_detach(&self, dev: Device) -> Result<()>;
+
+    /// Clean up before detaching the device. The return value is used to determine the behavior of
+    /// a failed softc borrow check and can be created with the `borrowck_softc` or `drop_softc`
+    /// methods.
+    fn device_detach(&self, dev: Device) -> Result<DetachRes<Self::BASE>>;
 }
 
 pub type Device = Ptr<_device>;
@@ -88,7 +157,7 @@ impl Device {
         unsafe { CStr::from_ptr(name) }
     }
 
-    pub fn get_softc<SC>(&self) -> OutPtr<SC> {
+    pub unsafe fn get_softc<SC>(&self) -> OutPtr<SC> {
         let dev_ptr = self.as_ptr();
         let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
         let sc_ptr = sc_void_ptr.cast::<SC>();
