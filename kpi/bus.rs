@@ -95,7 +95,7 @@ impl ResourceSpec {
     }
 }
 
-impl Device {
+impl<S> Device<S> {
     pub fn bus_alloc_resource(&mut self, ty: SysRes, mut rid: c_int) -> Result<Resource> {
         let dev_ptr = self.as_ptr();
         // TODO: as u32 needed because bindgen flag makes macros default to signed, but RF_ACTIVE is

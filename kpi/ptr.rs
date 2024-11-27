@@ -68,6 +68,7 @@
 use core::ffi::c_void;
 use core::mem::MaybeUninit;
 use core::ops::{Deref, DerefMut};
+use core::marker::PhantomData;
 
 pub trait PointsTo<T> {
     fn as_ptr(&self) -> *mut T;
@@ -112,7 +113,7 @@ impl<T> OutPtr<T> {
 
     // SAFETY: The caller must ensure the pointee has a valid value for `T` before calling this.
     pub unsafe fn assume_init(self) -> Ptr<T> {
-        Ptr(self.0)
+        Ptr::new(self.0)
     }
 
     #[doc(hidden)]
@@ -129,29 +130,31 @@ impl<T> OutPtr<T> {
 /// The pointee may have other pointers.
 #[derive(Debug)]
 #[repr(transparent)]
-pub struct Ptr<T>(*mut T);
+pub struct Ptr<T, S = ()>(*mut T, PhantomData<S>);
 
-impl<T> Clone for Ptr<T> {
+impl<T, S> Clone for Ptr<T, S> {
     fn clone(&self) -> Self {
-        Self(self.0)
+        unsafe {
+            Self::new(self.0)
+        }
     }
 }
 
-impl<T> Copy for Ptr<T> {}
+impl<T, S> Copy for Ptr<T, S> {}
 
-impl<T> PointsTo<T> for Ptr<T> {
+impl<T, S> PointsTo<T> for Ptr<T, S> {
     fn as_ptr(&self) -> *mut T {
         self.0
     }
 }
 
-impl<T> Ptr<T> {
+impl<T, S> Ptr<T, S> {
     // SAFETY: The caller must ensure `ptr` came directly from the C KPI to ensure the size and
     // alignment requirements of the pointee. The caller must also ensure that the C KPI this came
     // from does not use NULL as an error condition. Additionally the pointee must be initialized to
     // a valid value.
     pub unsafe fn new(ptr: *mut T) -> Self {
-        Self(ptr)
+        Self(ptr, PhantomData)
     }
 
     // TODO: the safety condition here is just synchronizing with other pointers to the pointee, but
@@ -179,7 +182,10 @@ impl<T> Ptr<T> {
     where
         F: FnOnce(*mut T) -> *mut U,
     {
-        Ptr(f(self.0))
+        // SAFETY: This is really only safe for field projection
+        unsafe {
+            Ptr::new(f(self.0))
+        }
     }
 
     pub fn as_out_ptr(self) -> OutPtr<T> {

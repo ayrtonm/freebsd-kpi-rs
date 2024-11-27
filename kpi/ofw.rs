@@ -86,7 +86,7 @@ pub struct Node(pub(crate) phandle_t);
 #[derive(Copy, Clone, Debug)]
 pub struct XRef(pub(crate) phandle_t);
 
-impl Device {
+impl<S> Device<S> {
     pub fn ofw_bus_status_okay(&self) -> bool {
         let dev_ptr = self.as_ptr();
         unsafe { bindings::ofw_bus_status_okay(dev_ptr) != 0 }
@@ -128,9 +128,7 @@ impl Device {
         let node = unsafe { bindings::rust_bindings_ofw_bus_get_node(dev_ptr) };
         Node(node)
     }
-}
 
-impl Device {
     // TODO: this will break if OF_device_register_xref ever changes to return non-zero
     pub fn register_xref(&mut self, xref: XRef) {
         let dev_ptr = self.as_ptr();

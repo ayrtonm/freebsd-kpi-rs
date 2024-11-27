@@ -27,7 +27,7 @@
  */
 
 #![no_std]
-#![feature(allocator_api, concat_idents)]
+#![feature(allocator_api, concat_idents, associated_type_defaults)]
 #![deny(improper_ctypes, unused_must_use, unreachable_patterns)]
 
 extern crate alloc;
@@ -41,6 +41,7 @@ pub mod bindings;
 pub mod allocator;
 pub mod arm64;
 pub mod bus;
+pub mod cell;
 pub mod device;
 pub mod ffi;
 pub mod intr;
@@ -53,7 +54,6 @@ pub mod taskq;
 pub mod tty;
 
 use crate::allocator::KernelAllocator;
-use crate::device::Device;
 use crate::kpi_prelude::*;
 use alloc::collections::TryReserveError;
 use core::ffi::c_int;
@@ -84,16 +84,17 @@ macro_rules! driver {
         #[repr(C)]
         pub struct Driver(core::cell::UnsafeCell<$crate::bindings::kobj_class>);
         unsafe impl Sync for Driver {}
-        impl $crate::device::Softc for Driver {
-            type BASE = $sc;
-        }
+        //impl $crate::device::Softc for Driver {
+        //    type BASE = $sc;
+        //}
 
         #[no_mangle]
         pub static $cdriver: Driver = Driver(
             core::cell::UnsafeCell::new($crate::bindings::kobj_class {
                 name: $cname.as_ptr(),
                 methods: core::ptr::addr_of!($methods).cast(),
-                size: core::mem::size_of::<$crate::ffi::BorrowCk<$sc>>(),
+                //size: core::mem::size_of::<$crate::ffi::BorrowCk<$sc>>(),
+                size: core::mem::size_of::<<Driver as $crate::device::Softc>::BASE>(),
                 baseclasses: core::ptr::null_mut(),
                 refs: 0,
                 ops: core::ptr::null_mut(),
@@ -159,7 +160,8 @@ pub mod prelude {
     pub use crate::allocator::{NOWAIT, WAITOK};
     pub use crate::bus::SysRes::*;
     pub use crate::device::ProbeRes::*;
-    pub use crate::device::DetachRes;
+    pub use crate::device::Softc;
+    pub use crate::device::{Device, Probe, Attach, Detach};
     pub use crate::intr::FilterRes::*;
     pub use crate::intr::IntrRoot::*;
     pub use crate::{dprint, dprintln, print, println};

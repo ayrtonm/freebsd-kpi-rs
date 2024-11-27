@@ -150,7 +150,7 @@ impl MapData {
         match ty {
             bindings::INTR_MAP_DATA_ACPI => Self::ACPI,
             bindings::INTR_MAP_DATA_FDT => {
-                let fdt_data_ptr = unsafe { Ptr::new(map_data_ptr.cast()) };
+                let fdt_data_ptr = unsafe { Ptr::<_, ()>::new(map_data_ptr.cast()) };
                 // this should be fine if the C side doesn't touch the fdt data for the lifetime of the Ref
                 let fdt_data_ref = unsafe { fdt_data_ptr.allows_ref() };
                 Self::FDT(fdt_data_ref)
