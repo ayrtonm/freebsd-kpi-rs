@@ -65,7 +65,7 @@ impl<S> AsRustType<Device<S>> for *mut _device {
     }
 }
 
-// This trait may not be implemented for Attach or Probe or ()
+// This trait may not be implemented for Attach or Probe
 pub trait SoftcInit {}
 impl SoftcInit for Detach {}
 impl SoftcInit for () {}
@@ -90,7 +90,7 @@ pub trait ManagesSoftc {
         unsafe { sc_ptr.as_ref().unwrap() }
     }
 
-    fn get_softc_mut<S: SoftcInit>(dev: &mut Device<S>) -> &Self::Softc<S> {
+    fn get_softc_with_state<S: SoftcInit>(dev: &mut Device<S>) -> &Self::Softc<S> {
         let dev_ptr = dev.as_ptr();
         let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
         let sc_ptr = sc_void_ptr.cast::<Self::Softc<S>>();

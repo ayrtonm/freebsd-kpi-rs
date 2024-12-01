@@ -157,6 +157,7 @@ mod kpi_prelude {
 
     pub use crate::device::{DeviceIf, ManagesSoftc, SoftcInit};
     pub use crate::bus::BusIfWrappers;
+    pub use crate::sync::{Mutex, SpinLock};
 }
 
 pub mod prelude {
