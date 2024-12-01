@@ -48,8 +48,8 @@ enum_c_macros! {
 type RawFilter = Option<unsafe extern "C" fn(*mut c_void) -> i32>;
 type RawHandler = Option<unsafe extern "C" fn(*mut c_void)>;
 
-type Filter<S> = Option<extern "C" fn(Device<S>) -> FilterRes>;
-type Handler<S> = Option<extern "C" fn(Device<S>)>;
+type Filter<T> = Option<extern "C" fn(&T) -> FilterRes>;
+type Handler<T> = Option<extern "C" fn(&T)>;
 
 impl AsRustType<Resource> for *mut resource {
     fn as_rust_type(self) -> Resource {
@@ -92,6 +92,53 @@ pub struct ResourceSpec {
 impl ResourceSpec {
     pub const fn new(ty: SysRes, rid: c_int) -> Self {
         Self { ty, rid }
+    }
+}
+
+impl<D: DeviceIf> BusIfWrappers for D {}
+
+fn bus_setup_intr_internal<S>(
+    dev: &Device<S>,
+    irq: Resource,
+    flags: u32,
+    filter: RawFilter,
+    handler: RawHandler,
+    arg: *mut c_void,
+    intrhand: *mut *mut c_void,
+) -> Result<()> {
+    let dev_ptr = dev.as_ptr();
+    let res_ptr = irq.res;
+    let res = unsafe {
+        bindings::bus_setup_intr(
+            dev_ptr,
+            res_ptr,
+            flags as c_int,
+            filter,
+            handler,
+            arg,
+            intrhand,
+        )
+    };
+    if res != 0 {
+        Err(ErrCode::from(res))
+    } else {
+        Ok(())
+    }
+}
+
+pub trait BusIfWrappers: ManagesSoftc {
+    fn bus_setup_intr<S: SoftcInit, T: SoftcInit>(
+        dev: &mut Device<S>,
+        irq: Resource,
+        flags: u32,
+        filter: Filter<Self::Softc<T>>,
+        handler: Handler<Self::Softc<T>>,
+        intrhand: *mut *mut c_void,
+    ) -> Result<()> {
+        let filter = unsafe { transmute(filter) };
+        let handler = unsafe { transmute(handler) };
+        let sc = Self::get_softc(dev) as *const Self::Softc<()> as *const c_void as *mut c_void;
+        bus_setup_intr_internal(dev, irq, flags, filter, handler, sc, intrhand)
     }
 }
 
@@ -164,49 +211,6 @@ impl<S> Device<S> {
             }
             Ok(ret)
         }
-    }
-
-    fn bus_setup_intr_internal(
-        &mut self,
-        irq: Resource,
-        flags: u32,
-        filter: RawFilter,
-        handler: RawHandler,
-        arg: *mut c_void,
-        intrhand: *mut *mut c_void,
-    ) -> Result<()> {
-        let dev_ptr = self.as_ptr();
-        let res_ptr = irq.res;
-        let res = unsafe {
-            bindings::bus_setup_intr(
-                dev_ptr,
-                res_ptr,
-                flags as c_int,
-                filter,
-                handler,
-                arg,
-                intrhand,
-            )
-        };
-        if res != 0 {
-            Err(ErrCode::from(res))
-        } else {
-            Ok(())
-        }
-    }
-
-    pub fn bus_setup_intr<U>(
-        &mut self,
-        irq: Resource,
-        flags: u32,
-        filter: Filter<U>,
-        handler: Handler<U>,
-        intrhand: *mut *mut c_void,
-    ) -> Result<()> {
-        let filter = unsafe { transmute(filter) };
-        let handler = unsafe { transmute(handler) };
-        let dev = self.as_ptr().cast();
-        self.bus_setup_intr_internal(irq, flags, filter, handler, dev, intrhand)
     }
 }
 

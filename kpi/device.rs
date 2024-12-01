@@ -52,21 +52,6 @@ enum_c_macros! {
 
 #[derive(Debug)]
 pub struct AttachRes(());
-//pub struct AttachRes<'a, T>(&'a mut T);
-
-//impl<T> Deref for AttachRes<'_, T> {
-//    type Target = T;
-//
-//    fn deref(&self) -> &Self::Target {
-//        self.0
-//    }
-//}
-//
-//impl<T> DerefMut for AttachRes<'_, T> {
-//    fn deref_mut(&mut self) -> &mut Self::Target {
-//        self.0
-//    }
-//}
 
 impl AsCType<c_int> for ProbeRes {
     fn as_c_type(self) -> c_int {
@@ -95,20 +80,8 @@ unsafe impl UniqueOwner for Detach {}
 
 impl !UniqueOwner for () {}
 
-pub trait DeviceIf {
-    type Softc<S>;//: Sync;
-    // Are 'static only for TypeId::of
-    type Probe: 'static = ();
-    type Attach: 'static = ();
-    type Detach: 'static = ();
-
-    fn init_softc(dev: &Device<Self::Attach>, sc: Self::Softc<Self::Attach>) -> AttachRes {
-        let dev_ptr = dev.as_ptr();
-        let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
-        let sc_ptr = sc_void_ptr.cast::<Self::Softc<Self::Attach>>();
-        unsafe { *sc_ptr = sc };
-        AttachRes(())
-    }
+pub trait ManagesSoftc {
+    type Softc<S>;// : Sync
 
     fn get_softc<S: SoftcInit>(dev: &Device<S>) -> &Self::Softc<()> {
         let dev_ptr = dev.as_ptr();
@@ -122,6 +95,21 @@ pub trait DeviceIf {
         let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
         let sc_ptr = sc_void_ptr.cast::<Self::Softc<S>>();
         unsafe { sc_ptr.as_ref().unwrap() }
+    }
+}
+
+pub trait DeviceIf: ManagesSoftc {
+    // Are 'static only for TypeId::of
+    type Probe: 'static = ();
+    type Attach: 'static = ();
+    type Detach: 'static = ();
+
+    fn init_softc(dev: &Device<Self::Attach>, sc: Self::Softc<Self::Attach>) -> AttachRes {
+        let dev_ptr = dev.as_ptr();
+        let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
+        let sc_ptr = sc_void_ptr.cast::<Self::Softc<Self::Attach>>();
+        unsafe { *sc_ptr = sc };
+        AttachRes(())
     }
 
     fn device_probe_glue(&self, dev: Device<Self::Probe>) -> Result<ProbeRes> {

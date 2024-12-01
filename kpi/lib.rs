@@ -73,7 +73,7 @@ macro_rules! count {
 // impl Driver for DeviceIf
 #[macro_export]
 macro_rules! driver {
-    ($cdriver:ident, $cname:expr, $methods:ident, $sc:ty,
+    ($cdriver:ident, $cname:expr, $methods:ident,
         $($if_fn:ident $impl:ident $(,)?)*
     ) => {
         use $crate::prelude::*;
@@ -90,7 +90,7 @@ macro_rules! driver {
                 methods: core::ptr::addr_of!($methods).cast(),
                 // TODO: Assert that Softc parameter does not change size of struct
                 // TODO: ensure alignment of softc memory supports Softc
-                size: core::mem::size_of::<<Driver as $crate::device::DeviceIf>::Softc<()>>(),
+                size: core::mem::size_of::<<Driver as $crate::device::ManagesSoftc>::Softc<()>>(),
                 baseclasses: core::ptr::null_mut(),
                 refs: 0,
                 ops: core::ptr::null_mut(),
@@ -154,6 +154,9 @@ mod kpi_prelude {
     pub use crate::cell::{FFICell, SubClass, UniqueCell, UniqueOwner};
     pub use crate::println;
     pub use crate::{AsCType, AsRustType, Box, ErrCode, Result};
+
+    pub use crate::device::{DeviceIf, ManagesSoftc, SoftcInit};
+    pub use crate::bus::BusIfWrappers;
 }
 
 pub mod prelude {
@@ -163,8 +166,7 @@ pub mod prelude {
     pub use crate::bus::SysRes::*;
     pub use crate::device::ProbeRes::*;
     pub use crate::device::AttachRes;
-    pub use crate::device::SoftcInit;
-    pub use crate::device::{Attach, Detach, Device, Probe, DeviceIf};
+    pub use crate::device::{Attach, Detach, Device, Probe};
     pub use crate::intr::FilterRes::*;
     pub use crate::intr::IntrRoot::*;
     pub use crate::{dprint, dprintln, print, println};
