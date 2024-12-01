@@ -30,51 +30,55 @@ use crate::bindings::{ofw_compat_data, phandle_t};
 use crate::device::Device;
 use crate::kpi_prelude::*;
 use core::cell::LazyCell;
-use core::ffi::{c_int, CStr};
+use core::ffi::{c_int, CStr, c_char};
 use core::marker::PhantomData;
-use core::mem::{size_of, MaybeUninit};
+use core::mem::{size_of, MaybeUninit, align_of, offset_of};
 use core::ptr::null;
 
 #[repr(C)]
 #[derive(Debug)]
-pub struct CompatData<T, const N: usize, F = fn() -> [CompatEntry<T>; N]>(
-    pub LazyCell<[CompatEntry<T>; N], F>,
-);
-
-impl<T, const N: usize, F: FnOnce() -> [CompatEntry<T>; N]> CompatData<T, N, F> {
-    pub const fn new(f: F) -> Self {
-        Self(LazyCell::new(f))
-    }
+struct OfwCompatEntry<T> {
+    name: *const c_char,
+    data: *const T,
 }
 
-unsafe impl<T: Sync, const N: usize, F: FnOnce() -> [CompatEntry<T>; N]> Sync
-    for CompatData<T, N, F>
-{
+unsafe impl<T: Sync, const N: usize> Sync for OfwCompatData<T, N> {}
+
+impl<T> OfwCompatEntry<T> {
+    const fn null() -> Self {
+        Self {
+            name: null(),
+            data: null(),
+        }
+    }
+
+    const fn new(compat: &'static CStr, data: &'static T) -> Self {
+        Self {
+            name: compat.as_ptr(),
+            data: data as *const T,
+        }
+    }
 }
 
 #[repr(C)]
 #[derive(Debug)]
-pub struct CompatEntry<T>(ofw_compat_data, PhantomData<T>);
+pub struct OfwCompatData<T, const N: usize>([OfwCompatEntry<T>; N], OfwCompatEntry<T>);
 
-impl<T> CompatEntry<T> {
-    pub const fn null() -> Self {
-        Self(
-            ofw_compat_data {
-                ocd_str: null(),
-                ocd_data: 0,
-            },
-            PhantomData,
-        )
-    }
-
-    pub fn new(compat: &'static CStr, data: &'static T) -> Self {
-        Self(
-            ofw_compat_data {
-                ocd_str: compat.as_ptr(),
-                ocd_data: data as *const T as usize,
-            },
-            PhantomData,
-        )
+impl<T, const N: usize> OfwCompatData<T, N> {
+    pub const fn new(data: [(&'static CStr, &'static T); N]) -> Self {
+        let _: () = {
+            assert!(size_of::<OfwCompatEntry<T>>() == size_of::<ofw_compat_data>());
+            assert!(align_of::<OfwCompatEntry<T>>() == align_of::<ofw_compat_data>());
+            assert!(offset_of!(OfwCompatEntry<T>, name) == offset_of!(ofw_compat_data, ocd_str));
+            assert!(offset_of!(OfwCompatEntry<T>, data) == offset_of!(ofw_compat_data, ocd_data));
+        };
+        let mut entries = [const { OfwCompatEntry::null() }; N];
+        let mut i = 0;
+        while i < N {
+            entries[i] = OfwCompatEntry::new(data[i].0, data[i].1);
+            i += 1;
+        }
+        Self(entries, OfwCompatEntry::null())
     }
 }
 
@@ -101,15 +105,15 @@ pub mod wrappers {
         res == 1
     }
 
-    pub fn ofw_bus_search_compatible<T, S>(
+    pub fn ofw_bus_search_compatible<T, S, const N: usize>(
         dev: &Device<S>,
-        compat: &[CompatEntry<T>],
+        compat: &OfwCompatData<T, N>,
     ) -> Result<&'static T> {
         let dev_ptr = dev.as_ptr();
         let compat_ptr = unsafe {
             bindings::ofw_bus_search_compatible(
                 dev_ptr,
-                compat.as_ptr() as *const CompatEntry<T> as *const ofw_compat_data,
+                compat as *const OfwCompatData<T, N> as *const OfwCompatEntry<T> as *const ofw_compat_data,
             )
         };
         let compat_ref = unsafe {
