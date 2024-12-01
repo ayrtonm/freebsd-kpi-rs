@@ -43,6 +43,8 @@ pub struct Mutex<T, const SPINS: bool = false> {
 
 pub type SpinLock<T> = Mutex<T, true>;
 
+unsafe impl<T, const SPINS: bool> Sync for Mutex<T, SPINS> {}
+
 pub struct MutexGuard<'a, T, const SPINS: bool> {
     lock: &'a Mutex<T, SPINS>,
 }

@@ -90,7 +90,7 @@ macro_rules! driver {
                 methods: core::ptr::addr_of!($methods).cast(),
                 // TODO: Assert that Softc parameter does not change size of struct
                 // TODO: ensure alignment of softc memory supports Softc
-                size: core::mem::size_of::<<Driver as $crate::device::ManagesSoftc>::Softc<()>>(),
+                size: core::mem::size_of::<<Driver as $crate::device::DeviceIf>::Softc<()>>(),
                 baseclasses: core::ptr::null_mut(),
                 refs: 0,
                 ops: core::ptr::null_mut(),
@@ -150,13 +150,13 @@ pub trait AsRustType<T> {
 mod kpi_prelude {
     pub use crate::allocator::KernelAllocator;
     pub use crate::bindings;
-    pub use crate::err_codes::*;
     pub use crate::cell::{FFICell, SubClass, UniqueCell, UniqueOwner};
+    pub use crate::err_codes::*;
     pub use crate::println;
     pub use crate::{AsCType, AsRustType, Box, ErrCode, Result};
 
-    pub use crate::device::{DeviceIf, ManagesSoftc, SoftcInit};
     pub use crate::bus::BusIfWrappers;
+    pub use crate::device::{DeviceIf, SoftcInit};
     pub use crate::sync::{Mutex, SpinLock};
 }
 
@@ -164,12 +164,15 @@ pub mod prelude {
     pub use crate::kpi_prelude::*;
 
     pub use crate::allocator::{NOWAIT, WAITOK};
+    pub use crate::bus::wrappers::*;
     pub use crate::bus::SysRes::*;
-    pub use crate::device::ProbeRes::*;
+    pub use crate::device::wrappers::*;
     pub use crate::device::AttachRes;
+    pub use crate::device::ProbeRes::*;
     pub use crate::device::{Attach, Detach, Device, Probe};
     pub use crate::intr::FilterRes::*;
     pub use crate::intr::IntrRoot::*;
+    pub use crate::ofw::wrappers::*;
     pub use crate::{dprint, dprintln, print, println};
 
     pub use crate::sleep::Sleepable;

@@ -86,21 +86,26 @@ pub struct Node(pub(crate) phandle_t);
 #[derive(Copy, Clone, Debug)]
 pub struct XRef(pub(crate) phandle_t);
 
-impl<S> Device<S> {
-    pub fn ofw_bus_status_okay(&self) -> bool {
-        let dev_ptr = self.as_ptr();
+pub mod wrappers {
+    use super::*;
+
+    pub fn ofw_bus_status_okay<S>(dev: &Device<S>) -> bool {
+        let dev_ptr = dev.as_ptr();
         unsafe { bindings::ofw_bus_status_okay(dev_ptr) != 0 }
     }
 
-    pub fn ofw_bus_is_compatible(&self, compat: &CStr) -> bool {
-        let dev_ptr = self.as_ptr();
+    pub fn ofw_bus_is_compatible<S>(dev: &Device<S>, compat: &CStr) -> bool {
+        let dev_ptr = dev.as_ptr();
         let compat_ptr = compat.as_ptr();
         let res = unsafe { bindings::ofw_bus_is_compatible(dev_ptr, compat_ptr) };
         res == 1
     }
 
-    pub fn ofw_bus_search_compatible<T>(&self, compat: &[CompatEntry<T>]) -> Result<&'static T> {
-        let dev_ptr = self.as_ptr();
+    pub fn ofw_bus_search_compatible<T, S>(
+        dev: &Device<S>,
+        compat: &[CompatEntry<T>],
+    ) -> Result<&'static T> {
+        let dev_ptr = dev.as_ptr();
         let compat_ptr = unsafe {
             bindings::ofw_bus_search_compatible(
                 dev_ptr,
@@ -123,32 +128,30 @@ impl<S> Device<S> {
         found.ok_or(ENULLPTR)
     }
 
-    pub fn ofw_bus_get_node(&self) -> Node {
-        let dev_ptr = self.as_ptr();
+    pub fn ofw_bus_get_node<S>(dev: &Device<S>) -> Node {
+        let dev_ptr = dev.as_ptr();
         let node = unsafe { bindings::rust_bindings_ofw_bus_get_node(dev_ptr) };
         Node(node)
     }
 
     // TODO: this will break if OF_device_register_xref ever changes to return non-zero
-    pub fn register_xref(&mut self, xref: XRef) {
-        let dev_ptr = self.as_ptr();
+    pub fn OF_device_register_xref<S>(dev: &mut Device<S>, xref: XRef) {
+        let dev_ptr = dev.as_ptr();
         unsafe {
             bindings::OF_device_register_xref(xref.0, dev_ptr);
         }
     }
-}
 
-impl Node {
-    pub fn xref_from_node(&self) -> XRef {
-        XRef(unsafe { bindings::OF_xref_from_node(self.0) })
+    pub fn OF_xref_from_node(node: Node) -> XRef {
+        XRef(unsafe { bindings::OF_xref_from_node(node.0) })
     }
 
-    pub fn ofw_bus_find_string_index(&self, list_name: &CStr, name: &CStr) -> Result<c_int> {
+    pub fn ofw_bus_find_string_index(node: Node, list_name: &CStr, name: &CStr) -> Result<c_int> {
         let list_name_ptr = list_name.as_ptr();
         let name_ptr = name.as_ptr();
         let mut idx = 0;
         let res = unsafe {
-            bindings::ofw_bus_find_string_index(self.0, list_name_ptr, name_ptr, &mut idx)
+            bindings::ofw_bus_find_string_index(node.0, list_name_ptr, name_ptr, &mut idx)
         };
         if res != 0 {
             Err(ErrCode::from(res))
@@ -157,12 +160,12 @@ impl Node {
         }
     }
 
-    pub fn getencprop<T>(&self, propname: &CStr) -> Result<T> {
+    pub unsafe fn OF_getencprop<T>(node: Node, propname: &CStr) -> Result<T> {
         let mut t = MaybeUninit::uninit();
         let propname_ptr = propname.as_ptr();
         let res = unsafe {
             bindings::OF_getencprop(
-                self.0,
+                node.0,
                 propname_ptr,
                 t.as_mut_ptr() as *mut u32,
                 size_of::<T>(),
@@ -176,14 +179,12 @@ impl Node {
         }
     }
 
-    pub fn get_xref_prop(&self, propname: &CStr) -> Result<XRef> {
-        self.getencprop(propname)
+    pub fn OF_getencprop_as_xref(node: Node, propname: &CStr) -> Result<XRef> {
+        unsafe { OF_getencprop(node, propname) }
     }
-}
 
-impl XRef {
-    pub fn device_from_xref(&self) -> Result<Device> {
-        let res = unsafe { bindings::OF_device_from_xref(self.0) };
+    pub fn OF_device_from_xref(xref: XRef) -> Result<Device> {
+        let res = unsafe { bindings::OF_device_from_xref(xref.0) };
         if res.is_null() {
             Err(ENULLPTR)
         } else {

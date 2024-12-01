@@ -80,6 +80,8 @@ impl<T, O: UniqueOwner> UniqueCell<T, O, O> {
 #[repr(transparent)]
 pub struct FFICell<T>(UnsafeCell<MaybeUninit<T>>);
 
+unsafe impl<T> Sync for FFICell<T> {}
+
 impl<T> FFICell<T> {
     pub const fn zeroed() -> Self {
         Self(UnsafeCell::new(MaybeUninit::zeroed()))

@@ -95,11 +95,9 @@ impl ResourceSpec {
     }
 }
 
-impl<D: DeviceIf> BusIfWrappers for D {}
-
 fn bus_setup_intr_internal<S>(
     dev: &Device<S>,
-    irq: Resource,
+    irq: &mut Resource,
     flags: u32,
     filter: RawFilter,
     handler: RawHandler,
@@ -126,10 +124,13 @@ fn bus_setup_intr_internal<S>(
     }
 }
 
-pub trait BusIfWrappers: ManagesSoftc {
+impl<D: DeviceIf> BusIfWrappers for D {}
+
+pub trait BusIfWrappers: DeviceIf {
     fn bus_setup_intr<S: SoftcInit, T: SoftcInit>(
+        &self,
         dev: &mut Device<S>,
-        irq: Resource,
+        irq: &mut Resource,
         flags: u32,
         filter: Filter<Self::Softc<T>>,
         handler: Handler<Self::Softc<T>>,
@@ -137,14 +138,21 @@ pub trait BusIfWrappers: ManagesSoftc {
     ) -> Result<()> {
         let filter = unsafe { transmute(filter) };
         let handler = unsafe { transmute(handler) };
-        let sc = Self::get_softc(dev) as *const Self::Softc<()> as *const c_void as *mut c_void;
+        let sc =
+            self.device_get_softc(dev) as *const Self::Softc<()> as *const c_void as *mut c_void;
         bus_setup_intr_internal(dev, irq, flags, filter, handler, sc, intrhand)
     }
 }
 
-impl<S> Device<S> {
-    pub fn bus_alloc_resource(&mut self, ty: SysRes, mut rid: c_int) -> Result<Resource> {
-        let dev_ptr = self.as_ptr();
+pub mod wrappers {
+    use super::*;
+
+    pub fn bus_alloc_resource<S>(
+        dev: &mut Device<S>,
+        ty: SysRes,
+        mut rid: c_int,
+    ) -> Result<Resource> {
+        let dev_ptr = dev.as_ptr();
         // TODO: as u32 needed because bindgen flag makes macros default to signed, but RF_ACTIVE is
         // a bitfield. Ideally there'd be a heuristic for choosing signedness in cases like this
         let res = unsafe {
@@ -169,11 +177,11 @@ impl<S> Device<S> {
         }
     }
 
-    pub fn bus_alloc_resources<const N: usize>(
-        &mut self,
+    pub fn bus_alloc_resources<S, const N: usize>(
+        dev: &mut Device<S>,
         spec: [ResourceSpec; N],
     ) -> Result<[Resource; N]> {
-        let dev_ptr = self.as_ptr();
+        let dev_ptr = dev.as_ptr();
 
         #[repr(C)]
         struct NullTerminated<const N: usize> {
@@ -214,7 +222,6 @@ impl<S> Device<S> {
     }
 }
 
-// TODO: these should take &mut Resource to avoid races with shared mmio
 impl Resource {
     pub fn whole_register(self) -> Register {
         Register { res: self.res }
