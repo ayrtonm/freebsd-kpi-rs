@@ -73,24 +73,24 @@ macro_rules! count {
 // impl Driver for DeviceIf
 #[macro_export]
 macro_rules! driver {
-    ($cdriver:ident, $cname:expr, $methods:ident,
+    ($cdriver:ident, $cname:expr, $driver:ident, $methods:ident,
         $($if_fn:ident $impl:ident $(,)?)*
     ) => {
         use $crate::prelude::*;
 
         #[repr(C)]
         #[derive(Debug)]
-        pub struct Driver(core::cell::UnsafeCell<$crate::bindings::kobj_class>);
-        unsafe impl Sync for Driver {}
+        pub struct $driver(core::cell::UnsafeCell<$crate::bindings::kobj_class>);
+        unsafe impl Sync for $driver {}
 
         #[no_mangle]
-        pub static $cdriver: Driver = Driver(
+        pub static $cdriver: $driver = $driver(
             core::cell::UnsafeCell::new($crate::bindings::kobj_class {
                 name: $cname.as_ptr(),
                 methods: core::ptr::addr_of!($methods).cast(),
                 // TODO: Assert that Softc parameter does not change size of struct
                 // TODO: ensure alignment of softc memory supports Softc
-                size: core::mem::size_of::<<Driver as $crate::device::DeviceIf>::Softc<()>>(),
+                size: core::mem::size_of::<<$driver as $crate::device::DeviceIf>::Softc<()>>(),
                 baseclasses: core::ptr::null_mut(),
                 refs: 0,
                 ops: core::ptr::null_mut(),
@@ -169,7 +169,7 @@ pub mod prelude {
     pub use crate::device::wrappers::*;
     pub use crate::device::AttachRes;
     pub use crate::device::ProbeRes::*;
-    pub use crate::device::{Attach, Detach, Device, Probe};
+    pub use crate::device::{Attach, Detach, Device, Driver, Probe};
     pub use crate::intr::FilterRes::*;
     pub use crate::intr::IntrRoot::*;
     pub use crate::ofw::wrappers::*;

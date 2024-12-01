@@ -80,7 +80,13 @@ unsafe impl UniqueOwner for Detach {}
 
 impl !UniqueOwner for () {}
 
-pub trait DeviceIf {
+#[derive(Debug)]
+pub struct Driver<'a, D: DeviceIf, S = ()> {
+    driver: &'a D,
+    dev: &'a Device<S>,
+}
+
+pub trait DeviceIf: Sized {
     type Softc<S>: Sync;
     // Are 'static only for TypeId::of
     type Probe: 'static = ();
@@ -111,6 +117,13 @@ pub trait DeviceIf {
         let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
         let sc_ptr = sc_void_ptr.cast::<Self::Softc<S>>();
         unsafe { sc_ptr.as_ref().unwrap() }
+    }
+
+    fn device_get_driver<'a, S>(&'a self, dev: &'a Device<S>) -> Driver<Self, S> {
+        Driver {
+            driver: self,
+            dev,
+        }
     }
 
     fn device_probe_glue(&self, dev: Device<Self::Probe>) -> Result<ProbeRes> {
