@@ -32,10 +32,12 @@ use core::cell::UnsafeCell;
 use core::ffi::CStr;
 use core::ops::{Deref, DerefMut};
 use core::ptr::null_mut;
+use core::mem::MaybeUninit;
 
 #[derive(Debug)]
 pub struct Mutex<T, const SPINS: bool = false> {
-    inner: FFICell<mtx>,
+    inner_ptr: *mut mtx,
+    allocator: KernelAllocator,
     data: UnsafeCell<T>,
 }
 
@@ -60,45 +62,34 @@ impl<T, const SPINS: bool> DerefMut for MutexGuard<'_, T, SPINS> {
 }
 
 impl<T, const SPINS: bool> Mutex<T, SPINS> {
-    pub fn uninit(t: T) -> Self {
-        Self {
-            inner: FFICell::zeroed(),
-            data: UnsafeCell::new(t),
-        }
-    }
-}
-
-impl<T, const SPINS: bool> RefMut<Mutex<T, SPINS>> {
-    pub fn init(&mut self, name: &CStr, kind: Option<&CStr>) {
+    pub fn new(t: T, name: &CStr, kind: Option<&CStr>, flags: KernelAllocator) -> Self {
         let name_ptr = name.as_ptr();
         let kind_ptr = match kind {
             Some(k) => k.as_ptr(),
             None => null_mut(),
         };
-        let inner_ptr = self.inner.get_out_ptr();
-        let inner_lock_ptr = get_field!(inner_ptr, mtx_lock).as_ptr();
+        let inner = Box::new_in(MaybeUninit::<mtx>::zeroed(), flags);
+
+        let (inner_ptr, allocator) = Box::into_raw_with_allocator(inner);
+
+        let inner_ptr = inner_ptr as *mut mtx;
 
         let variant = if SPINS { MTX_SPIN } else { MTX_DEF };
-        unsafe { bindings::_mtx_init(inner_lock_ptr, name_ptr, kind_ptr, variant) }
-    }
-}
+        unsafe {
+            let inner_lock_ptr = &raw mut (*inner_ptr).mtx_lock;
+            bindings::_mtx_init(inner_lock_ptr, name_ptr, kind_ptr, variant);
+        }
 
-impl<T, const SPINS: bool> Mutex<T, SPINS> {
-    pub fn is_init(&self) -> bool {
-        let inner_ptr = self.inner.get_out_ptr();
-        let lock_obj_ptr = get_field!(inner_ptr, lock_object);
-        let lo_flags_ptr = unsafe { get_field!(lock_obj_ptr, lo_flags).assume_init() };
-        let lo_flags = unsafe { lo_flags_ptr.read() };
-        (lo_flags & LO_INITIALIZED as u32) != 0
+        Self {
+            inner_ptr,
+            allocator,
+            data: UnsafeCell::new(t),
+        }
     }
 
     #[track_caller]
-    pub fn lock(&self) -> Result<MutexGuard<'_, T, SPINS>> {
-        if !self.is_init() {
-            return Err(EDOOFUS);
-        }
-        let inner_ptr = self.inner.get_out_ptr();
-        let inner_lock_ptr = get_field!(inner_ptr, mtx_lock).as_ptr();
+    pub fn lock(&self) -> MutexGuard<'_, T, SPINS> {
+        let inner_lock_ptr = unsafe { &raw mut (*self.inner_ptr).mtx_lock };
         if SPINS {
             unsafe {
                 bindings::__mtx_lock_spin_flags(inner_lock_ptr, 0, c"".as_ptr(), 0);
@@ -108,14 +99,13 @@ impl<T, const SPINS: bool> Mutex<T, SPINS> {
                 bindings::__mtx_lock_flags(inner_lock_ptr, 0, c"".as_ptr(), 0);
             }
         }
-        Ok(MutexGuard { lock: self })
+        MutexGuard { lock: self }
     }
 }
 
-impl<T, const SPINS: bool> Drop for MutexGuard<'_, T, SPINS> {
-    fn drop(&mut self) {
-        let inner_ptr = self.lock.inner.get_out_ptr();
-        let inner_lock_ptr = get_field!(inner_ptr, mtx_lock).as_ptr();
+impl<T, const SPINS: bool> MutexGuard<'_, T, SPINS> {
+    pub fn unlock(self) {
+        let inner_lock_ptr = unsafe { &raw mut (*self.lock.inner_ptr).mtx_lock };
         if SPINS {
             unsafe {
                 bindings::__mtx_unlock_spin_flags(inner_lock_ptr, 0, c"".as_ptr(), 0);
@@ -125,5 +115,26 @@ impl<T, const SPINS: bool> Drop for MutexGuard<'_, T, SPINS> {
                 bindings::__mtx_unlock_flags(inner_lock_ptr, 0, c"".as_ptr(), 0);
             }
         }
+    }
+}
+impl<T, const SPINS: bool> Drop for MutexGuard<'_, T, SPINS> {
+    fn drop(&mut self) {
+        let inner_lock_ptr = unsafe { &raw mut (*self.lock.inner_ptr).mtx_lock };
+        if SPINS {
+            unsafe {
+                bindings::__mtx_unlock_spin_flags(inner_lock_ptr, 0, c"".as_ptr(), 0);
+            }
+        } else {
+            unsafe {
+                bindings::__mtx_unlock_flags(inner_lock_ptr, 0, c"".as_ptr(), 0);
+            }
+        }
+    }
+}
+
+impl<T, const SPINS: bool> Drop for Mutex<T, SPINS> {
+    fn drop(&mut self) {
+        let inner = unsafe { Box::from_raw_in(self.inner_ptr, self.allocator) };
+        core::mem::drop(inner);
     }
 }

@@ -187,7 +187,7 @@ impl XRef {
         if res.is_null() {
             Err(ENULLPTR)
         } else {
-            Ok(unsafe { Device::new(res) })
+            Ok(Device::new(res))
         }
     }
 }

@@ -27,10 +27,13 @@
  */
 
 use crate::bindings::_device;
-use crate::cell::UniqueState;
+use crate::cell::UniqueOwner;
 use crate::kpi_prelude::*;
 use core::ffi::{c_int, CStr};
 use core::ptr::drop_in_place;
+use core::any::TypeId;
+use core::marker::PhantomData;
+use core::ops::{Deref, DerefMut};
 
 enum_c_macros! {
     #[repr(i32)]
@@ -47,6 +50,24 @@ enum_c_macros! {
     }
 }
 
+#[derive(Debug)]
+pub struct AttachRes(());
+//pub struct AttachRes<'a, T>(&'a mut T);
+
+//impl<T> Deref for AttachRes<'_, T> {
+//    type Target = T;
+//
+//    fn deref(&self) -> &Self::Target {
+//        self.0
+//    }
+//}
+//
+//impl<T> DerefMut for AttachRes<'_, T> {
+//    fn deref_mut(&mut self) -> &mut Self::Target {
+//        self.0
+//    }
+//}
+
 impl AsCType<c_int> for ProbeRes {
     fn as_c_type(self) -> c_int {
         self as c_int
@@ -55,71 +76,121 @@ impl AsCType<c_int> for ProbeRes {
 
 impl<S> AsRustType<Device<S>> for *mut _device {
     fn as_rust_type(self) -> Device<S> {
-        unsafe { Device::<S>::new(self) }
+        unsafe { Device::new(self).assume_state() }
     }
 }
 
-pub trait Softc {
-    type BASE; // TODO: add this bound : Sync;
-
-    //fn init_softc(&self, dev: Device) -> Result<Self::BASE>;
-
-    //fn init_softc(&self, dev: &'a mut Device<S>) -> &'a mut Self::BASE {
-    //fn get_softc<'a, S>(&'a self, dev: &'a Device<S>) -> &'a Self::BASE {
-    //    let dev_ptr = dev.as_ptr();
-    //    let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
-    //    let sc_ptr = sc_void_ptr.cast::<Self::BASE>();
-    //    unsafe { sc_ptr.as_ref().unwrap() }
-    //}
-
-    //unsafe fn get_softc_mut<S>(&self, dev: Device<S>) -> &mut Self::BASE {
-    //    let dev_ptr = dev.as_ptr();
-    //    let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
-    //    let sc_ptr = sc_void_ptr.cast::<Self::BASE>();
-    //    unsafe { sc_ptr.as_mut().unwrap() }
-    //}
-}
-
+// This trait may not be implemented for Attach or Probe or ()
+pub trait SoftcInit {}
+impl SoftcInit for Detach {}
+impl SoftcInit for () {}
+#[derive(Debug)]
 pub struct Probe(());
-pub type Attach = ();
-//pub struct Attach(());
+#[derive(Debug)]
+pub struct Attach(());
+#[derive(Debug)]
 pub struct Detach(());
-unsafe impl UniqueState for Device<Probe> {}
-unsafe impl UniqueState for Device<Attach> {}
-unsafe impl UniqueState for Device<Detach> {}
+unsafe impl UniqueOwner for Attach {}
+unsafe impl UniqueOwner for Detach {}
 
-pub trait DeviceIf: Softc {
-    fn device_probe_glue(&self, dev: Device<Probe>) -> Result<ProbeRes> {
-        self.device_probe(dev)
+impl !UniqueOwner for () {}
+
+pub trait DeviceIf {
+    type Softc<S>;//: Sync;
+    // Are 'static only for TypeId::of
+    type Probe: 'static = ();
+    type Attach: 'static = ();
+    type Detach: 'static = ();
+
+    fn init_softc(dev: &Device<Self::Attach>, sc: Self::Softc<Self::Attach>) -> AttachRes {
+        let dev_ptr = dev.as_ptr();
+        let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
+        let sc_ptr = sc_void_ptr.cast::<Self::Softc<Self::Attach>>();
+        unsafe { *sc_ptr = sc };
+        AttachRes(())
     }
-    fn device_attach_glue(&self, dev: Device<Attach>) -> Result<()> {
-        //let sc = self.init_softc(dev)?;
-        //unsafe {
-        //    *self.get_softc_mut(dev) = sc;
-        //}
-        self.device_attach(dev)
+
+    fn get_softc<S: SoftcInit>(dev: &Device<S>) -> &Self::Softc<()> {
+        let dev_ptr = dev.as_ptr();
+        let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
+        let sc_ptr = sc_void_ptr.cast::<Self::Softc<()>>();
+        unsafe { sc_ptr.as_ref().unwrap() }
     }
-    fn device_detach_glue(&self, dev: Device<Detach>) -> Result<()> {
-        self.device_detach(dev)?;
-        //let sc_ptr = self.get_softc(dev) as *const Self::BASE as *mut Self::BASE;
-        //unsafe { drop_in_place(sc_ptr) }
+
+    fn get_softc_mut<S: SoftcInit>(dev: &mut Device<S>) -> &Self::Softc<S> {
+        let dev_ptr = dev.as_ptr();
+        let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
+        let sc_ptr = sc_void_ptr.cast::<Self::Softc<S>>();
+        unsafe { sc_ptr.as_ref().unwrap() }
+    }
+
+    fn device_probe_glue(&self, dev: Device<Self::Probe>) -> Result<ProbeRes> {
+        // TODO: Make this const. blocked on https://github.com/rust-lang/rust/issues/77125
+        let probe = TypeId::of::<Self::Probe>();
+        let attach = TypeId::of::<Self::Attach>();
+        let detach = TypeId::of::<Self::Attach>();
+        let dflt = TypeId::of::<()>();
+        if probe != dflt {
+            assert!(probe != attach);
+            assert!(probe != detach);
+        }
+        if attach != dflt {
+            assert!(attach != probe);
+            assert!(attach != detach);
+        }
+        if detach != dflt {
+            assert!(detach != probe);
+            assert!(detach != attach);
+        }
+        Self::device_probe(&dev)
+    }
+    fn device_attach_glue(&self, mut dev: Device<Self::Attach>) -> Result<()> {
+        Self::device_attach(&mut dev)?;
         Ok(())
     }
-    fn device_probe(&self, dev: Device<Probe>) -> Result<ProbeRes>;
-    fn device_attach(&self, dev: Device<Attach>) -> Result<()>;
-    fn device_detach(&self, dev: Device<Detach>) -> Result<()>;
+    fn device_detach_glue(&self, mut dev: Device<Self::Detach>) -> Result<()> {
+        Self::device_detach(&mut dev)?;
+        let dev_ptr = dev.as_ptr();
+        let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
+        let sc_ptr = sc_void_ptr.cast::<Self::Softc<Self::Detach>>();
+        unsafe { drop_in_place(sc_ptr) }
+        Ok(())
+    }
+    fn device_probe(dev: &Device<Self::Probe>) -> Result<ProbeRes>;
+    fn device_attach(dev: &mut Device<Self::Attach>) -> Result<AttachRes>;
+    fn device_detach(dev: &mut Device<Self::Detach>) -> Result<()>;
 }
 
-pub type Device<S = ()> = Ptr<_device, S>;
+#[derive(Debug)]
+pub struct Device<S = ()>(*mut _device, PhantomData<S>);
 
+unsafe impl<S> Sync for Device<S> {}
+
+impl Device {
+    pub fn new(ptr: *mut _device) -> Self {
+        Self(ptr, PhantomData)
+    }
+}
 impl<S> Device<S> {
+    pub fn copy_ptr(&self) -> Device {
+        Device(self.0, PhantomData)
+    }
+
+    pub unsafe fn assume_state<U>(self) -> Device<U> {
+        Device(self.0, PhantomData)
+    }
+
+    pub fn as_ptr(&self) -> *mut _device {
+        self.0
+    }
+
     pub fn get_parent(&self) -> Result<Device<()>> {
         let dev_ptr = self.as_ptr();
         let res = unsafe { bindings::device_get_parent(dev_ptr) };
         if res.is_null() {
             Err(ENULLPTR)
         } else {
-            Ok(unsafe { Device::new(res) })
+            Ok(Device::new(res))
         }
     }
 

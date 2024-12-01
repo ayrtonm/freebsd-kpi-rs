@@ -48,13 +48,13 @@ enum_c_macros! {
 type RawFilter = Option<unsafe extern "C" fn(*mut c_void) -> i32>;
 type RawHandler = Option<unsafe extern "C" fn(*mut c_void)>;
 
-type Filter<P> = Option<extern "C" fn(P) -> FilterRes>;
-type Handler<P> = Option<extern "C" fn(P)>;
+type Filter<S> = Option<extern "C" fn(Device<S>) -> FilterRes>;
+type Handler<S> = Option<extern "C" fn(Device<S>)>;
 
 impl AsRustType<Resource> for *mut resource {
     fn as_rust_type(self) -> Resource {
         Resource {
-            res: unsafe { Ptr::new(self) },
+            res: self,
             rid: None,
             claimed_windows: Vec::new(),
         }
@@ -63,7 +63,7 @@ impl AsRustType<Resource> for *mut resource {
 
 #[derive(Debug)]
 pub struct Resource {
-    res: Ptr<resource>,
+    res: *mut resource,
     // bus_alloc_resouce writes rid out to a pointer so let's make this public
     // TODO: it's currently Option for the PicIf interface
     pub rid: Option<c_int>,
@@ -79,7 +79,7 @@ struct Window {
 
 #[derive(Debug)]
 pub struct Register<const START: bus_size_t = 0, const SIZE: bus_size_t = { bus_size_t::MAX }> {
-    res: Ptr<resource>,
+    res: *mut resource,
 }
 
 #[derive(Debug)]
@@ -114,7 +114,6 @@ impl<S> Device<S> {
         if res.is_null() {
             Err(ENULLPTR)
         } else {
-            let res = unsafe { Ptr::new(res) };
             Ok(Resource {
                 res,
                 rid: Some(rid),
@@ -156,7 +155,7 @@ impl<S> Device<S> {
             Err(ErrCode::from(res))
         } else {
             let mut ret: [Resource; N] = resp.map(|r| Resource {
-                res: unsafe { Ptr::new(r) },
+                res: r,
                 rid: None,
                 claimed_windows: Vec::new(),
             });
@@ -167,7 +166,7 @@ impl<S> Device<S> {
         }
     }
 
-    pub fn bus_setup_intr_internal(
+    fn bus_setup_intr_internal(
         &mut self,
         irq: Resource,
         flags: u32,
@@ -177,7 +176,7 @@ impl<S> Device<S> {
         intrhand: *mut *mut c_void,
     ) -> Result<()> {
         let dev_ptr = self.as_ptr();
-        let res_ptr = irq.res.as_ptr();
+        let res_ptr = irq.res;
         let res = unsafe {
             bindings::bus_setup_intr(
                 dev_ptr,
@@ -196,19 +195,18 @@ impl<S> Device<S> {
         }
     }
 
-    pub fn bus_setup_intr<SC, P: PointsTo<SC>>(
+    pub fn bus_setup_intr<U>(
         &mut self,
         irq: Resource,
         flags: u32,
-        filter: Filter<P>,
-        handler: Handler<P>,
-        arg: P,
+        filter: Filter<U>,
+        handler: Handler<U>,
         intrhand: *mut *mut c_void,
     ) -> Result<()> {
         let filter = unsafe { transmute(filter) };
         let handler = unsafe { transmute(handler) };
-        let arg = arg.as_ptr().cast();
-        self.bus_setup_intr_internal(irq, flags, filter, handler, arg, intrhand)
+        let dev = self.as_ptr().cast();
+        self.bus_setup_intr_internal(irq, flags, filter, handler, dev, intrhand)
     }
 }
 
@@ -240,9 +238,9 @@ impl<const START: bus_size_t, const SIZE: bus_size_t> Register<START, SIZE> {
 
     pub fn read_4(&mut self, offset: bus_size_t) -> u32 {
         Self::assert_precond(offset);
-        let tag = unsafe { get_field!(self.res, r_bustag).read() };
-        let handle = unsafe { get_field!(self.res, r_bushandle).read() };
         unsafe {
+            let tag = (*self.res).r_bustag;
+            let handle = (*self.res).r_bushandle;
             let f = (*tag).bs_r_4.unwrap();
             f((*tag).bs_cookie, handle, offset)
         }
@@ -250,9 +248,9 @@ impl<const START: bus_size_t, const SIZE: bus_size_t> Register<START, SIZE> {
 
     pub fn write_4(&mut self, offset: bus_size_t, value: u32) {
         Self::assert_precond(offset);
-        let tag = unsafe { get_field!(self.res, r_bustag).read() };
-        let handle = unsafe { get_field!(self.res, r_bushandle).read() };
         unsafe {
+            let tag = (*self.res).r_bustag;
+            let handle = (*self.res).r_bushandle;
             let f = (*tag).bs_w_4.unwrap();
             f((*tag).bs_cookie, handle, offset, value)
         }
@@ -260,9 +258,9 @@ impl<const START: bus_size_t, const SIZE: bus_size_t> Register<START, SIZE> {
 
     pub fn read_8(&mut self, offset: bus_size_t) -> u64 {
         Self::assert_precond(offset);
-        let tag = unsafe { get_field!(self.res, r_bustag).read() };
-        let handle = unsafe { get_field!(self.res, r_bushandle).read() };
         unsafe {
+            let tag = (*self.res).r_bustag;
+            let handle = (*self.res).r_bushandle;
             let f = (*tag).bs_r_8.unwrap();
             f((*tag).bs_cookie, handle, offset)
         }
@@ -270,9 +268,9 @@ impl<const START: bus_size_t, const SIZE: bus_size_t> Register<START, SIZE> {
 
     pub fn write_8(&mut self, offset: bus_size_t, value: u64) {
         Self::assert_precond(offset);
-        let tag = unsafe { get_field!(self.res, r_bustag).read() };
-        let handle = unsafe { get_field!(self.res, r_bushandle).read() };
         unsafe {
+            let tag = (*self.res).r_bustag;
+            let handle = (*self.res).r_bushandle;
             let f = (*tag).bs_w_8.unwrap();
             f((*tag).bs_cookie, handle, offset, value)
         }

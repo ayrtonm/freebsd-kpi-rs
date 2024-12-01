@@ -51,17 +51,3 @@ macro_rules! enum_c_macros {
         }
     };
 }
-
-#[macro_export]
-macro_rules! get_field {
-    ($ptr:expr, $field:ident) => {
-        $ptr.get_field_helper(|ptr| {
-            // SAFETY: $ptr's construction guarantees that a field points to properly aligned memory
-            // with a valid size
-            #[allow(unused_unsafe)]
-            unsafe {
-                &raw mut (*ptr).$field
-            }
-        })
-    };
-}

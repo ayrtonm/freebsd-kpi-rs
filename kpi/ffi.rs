@@ -26,82 +26,8 @@
  * SUCH DAMAGE.
  */
 
-use crate::kpi_prelude::*;
-use core::cell::UnsafeCell;
-use core::mem::{offset_of, MaybeUninit};
-use core::ops::{Deref, DerefMut, Drop};
-use core::sync::atomic::{AtomicU32, Ordering};
 
-pub trait AsCType<T> {
-    fn as_c_type(self) -> T;
-}
-
-pub trait AsRustType<T> {
-    fn as_rust_type(self) -> T;
-}
-
-/// Rust's view of a variable of type T that has its address shared with C.
-///
-/// This opts out of Rust's requirements that &T must be immutable and T always have a valid value.
-/// While creating a &mut FFICell<T> is perfectly fine, it may not be used to get a &mut T.
-#[derive(Debug)]
-#[repr(transparent)]
-pub struct FFICell<T>(UnsafeCell<MaybeUninit<T>>);
-
-impl<T> FFICell<T> {
-    pub const fn zeroed() -> Self {
-        Self(UnsafeCell::new(MaybeUninit::zeroed()))
-    }
-
-    pub fn get_out_ptr(&self) -> OutPtr<T> {
-        unsafe { OutPtr::new(self.0.get().cast()) }
-    }
-}
-
-/// A struct containing a base class B and extra fields F.
-///
-/// The definition assumes that the base class is shared between Rust and C but places no
-/// restriction on the extra fields so it may be possible to create references to them.
-#[derive(Debug)]
-pub struct SubClass<B, F> {
-    base: FFICell<B>,
-    pub sub: F,
-}
-
-impl<B, F> SubClass<B, F> {
-    pub const fn new(sub: F) -> Self {
-        Self {
-            base: FFICell::zeroed(),
-            sub,
-        }
-    }
-
-    // This could take `&self` but since `SubClass` `Deref`s to its subclass `F` that would
-    // introduce behavior that's hard to analyze if `F` had another method named `get_base_ptr`.
-    pub fn get_base_ptr(sub: &Self) -> OutPtr<B> {
-        sub.base.get_out_ptr()
-    }
-
-    pub unsafe fn from_base<'a>(ptr: *mut B) -> &'a mut Self {
-        let super_ptr = ptr.byte_sub(offset_of!(Self, base)).cast::<Self>();
-        super_ptr.as_mut().unwrap()
-    }
-}
-
-impl<B, F> Deref for SubClass<B, F> {
-    type Target = F;
-
-    fn deref(&self) -> &Self::Target {
-        &self.sub
-    }
-}
-
-impl<B, F> DerefMut for SubClass<B, F> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.sub
-    }
-}
-
+/*
 #[repr(transparent)]
 #[derive(Debug)]
 struct State(AtomicU32);
@@ -167,67 +93,67 @@ pub struct BorrowCk<T> {
     drop_behavior: DropBehavior,
 }
 
-impl<T> OutPtr<BorrowCk<T>> {
-    fn get_state(&self) -> &State {
-        unsafe { get_field!(self, state).as_ptr().as_ref().unwrap() }
-    }
-
-    pub fn init(self, initial_value: T) -> Result<()> {
-        // Try switching from UNINIT to INITIALIZING
-        self.get_state().try_init()?;
-
-        unsafe { get_field!(self, data).write(initial_value) };
-
-        // Switch to AVAILABLE to mark end of initialization
-        self.get_state().0.store(State::AVAILABLE, Ordering::Relaxed);
-        Ok(())
-    }
-
-    pub fn get(self) -> OutPtr<T> {
-        get_field!(self, data)
-    }
-
-    pub fn claim(self) -> Result<RefMut<T>> {
-        // Try switching from AVAILABLE to CLAIMED
-        self.get_state().try_claim()?;
-        // SAFETY: If the transition above was successful then data must have been initialized
-        let ptr = unsafe { get_field!(self, data).assume_init() };
-        Ok(unsafe { ptr.allows_mut_ref() })
-    }
-
-    pub fn release(self, prev_claim: RefMut<T>) -> Result<()> {
-        if prev_claim.as_ptr().cast() != get_field!(self, data).as_ptr() {
-            return Err(EDOOFUS)
-        }
-        self.get_state().try_release()
-    }
-
-    pub fn share(self) -> Result<Ref<T>> {
-        // Try switching from AVAILABLE to SHARED
-        self.get_state().try_share()?;
-        let ptr = unsafe { get_field!(self, data).assume_init() };
-        Ok(unsafe { ptr.allows_ref() })
-    }
-
-    //pub fn panic_on_drop(self) {
-    //    self.set_drop_behavior(DropBehavior::PanicOnDrop)
-    //}
-
-    //pub unsafe fn warn_on_drop(self) {
-    //    self.set_drop_behavior(DropBehavior::WarnOnDrop)
-    //}
-
-    //pub unsafe fn ignore_on_drop(self) {
-    //    self.set_drop_behavior(DropBehavior::Nothing)
-    //}
-
-    // SAFETY: this is a racy write and anything besides PanicOnDrop is a bad idea if we're
-    // expecting to call back into rust code that uses Ref/RefMut derived from this BorrowCk.
-    // Basically that means the only safe place to call this is at the end of device_detach.
-    pub unsafe fn set_drop_behavior(self, behavior: DropBehavior) {
-        get_field!(self, drop_behavior).write(behavior);
-    }
-}
+//impl<T> OutPtr<BorrowCk<T>> {
+//    fn get_state(&self) -> &State {
+//        unsafe { get_field!(self, state).as_ptr().as_ref().unwrap() }
+//    }
+//
+//    pub fn init(self, initial_value: T) -> Result<()> {
+//        // Try switching from UNINIT to INITIALIZING
+//        self.get_state().try_init()?;
+//
+//        unsafe { get_field!(self, data).write(initial_value) };
+//
+//        // Switch to AVAILABLE to mark end of initialization
+//        self.get_state().0.store(State::AVAILABLE, Ordering::Relaxed);
+//        Ok(())
+//    }
+//
+//    pub fn get(self) -> OutPtr<T> {
+//        get_field!(self, data)
+//    }
+//
+//    pub fn claim(self) -> Result<RefMut<T>> {
+//        // Try switching from AVAILABLE to CLAIMED
+//        self.get_state().try_claim()?;
+//        // SAFETY: If the transition above was successful then data must have been initialized
+//        let ptr = unsafe { get_field!(self, data).assume_init() };
+//        Ok(unsafe { ptr.allows_mut_ref() })
+//    }
+//
+//    pub fn release(self, prev_claim: RefMut<T>) -> Result<()> {
+//        if prev_claim.as_ptr().cast() != get_field!(self, data).as_ptr() {
+//            return Err(EDOOFUS)
+//        }
+//        self.get_state().try_release()
+//    }
+//
+//    pub fn share(self) -> Result<Ref<T>> {
+//        // Try switching from AVAILABLE to SHARED
+//        self.get_state().try_share()?;
+//        let ptr = unsafe { get_field!(self, data).assume_init() };
+//        Ok(unsafe { ptr.allows_ref() })
+//    }
+//
+//    //pub fn panic_on_drop(self) {
+//    //    self.set_drop_behavior(DropBehavior::PanicOnDrop)
+//    //}
+//
+//    //pub unsafe fn warn_on_drop(self) {
+//    //    self.set_drop_behavior(DropBehavior::WarnOnDrop)
+//    //}
+//
+//    //pub unsafe fn ignore_on_drop(self) {
+//    //    self.set_drop_behavior(DropBehavior::Nothing)
+//    //}
+//
+//    // SAFETY: this is a racy write and anything besides PanicOnDrop is a bad idea if we're
+//    // expecting to call back into rust code that uses Ref/RefMut derived from this BorrowCk.
+//    // Basically that means the only safe place to call this is at the end of device_detach.
+//    pub unsafe fn set_drop_behavior(self, behavior: DropBehavior) {
+//        get_field!(self, drop_behavior).write(behavior);
+//    }
+//}
 
 impl<T> BorrowCk<T> {
     pub fn new(data: T) -> Self {
@@ -265,42 +191,43 @@ impl<T> BorrowCk<T> {
         self.drop_behavior = behavior;
     }
 
-    pub fn claim(&self) -> Result<RefMut<T>> {
-        self.state.try_claim()?;
-        let ptr = &raw const self.data;
-        Ok(unsafe { RefMut::new(ptr as *mut T) })
-    }
+    //pub fn claim(&self) -> Result<RefMut<T>> {
+    //    self.state.try_claim()?;
+    //    let ptr = &raw const self.data;
+    //    Ok(unsafe { RefMut::new(ptr as *mut T) })
+    //}
 
-    pub fn release(&self, prev_claim: RefMut<T>) -> Result<()> {
-        if prev_claim.as_ptr() != &raw const self.data as *mut T {
-            return Err(EDOOFUS);
-        }
-        self.state.try_release()?;
-        Ok(())
-    }
+    //pub fn release(&self, prev_claim: RefMut<T>) -> Result<()> {
+    //    if prev_claim.as_ptr() != &raw const self.data as *mut T {
+    //        return Err(EDOOFUS);
+    //    }
+    //    self.state.try_release()?;
+    //    Ok(())
+    //}
 
-    pub fn share(&self) -> Result<Ref<T>> {
-        self.state.try_share()?;
-        let ptr = &raw const self.data;
-        Ok(unsafe { Ref::new(ptr as *mut T) })
-    }
+    //pub fn share(&self) -> Result<Ref<T>> {
+    //    self.state.try_share()?;
+    //    let ptr = &raw const self.data;
+    //    Ok(unsafe { Ref::new(ptr as *mut T) })
+    //}
 }
 
-impl<T> Drop for BorrowCk<T> {
-    fn drop(&mut self) {
-        match self.drop_behavior {
-            DropBehavior::PanicOnDrop => {
-                // There's no good way to bubble up errors so just panic. There's not much we can do to
-                // recover if a driver was not refcounting references to the softc in the first place
-                // and tried to detach with outstanding references.
-                self.claim().unwrap();
-            },
-            DropBehavior::WarnOnDrop => {
-                if self.state.try_claim().is_err() {
-                    println!("WARNING: dropping dynamically borrow-checked value at {:p} in state {:?}", self, self.state);
-                }
-            },
-            DropBehavior::Nothing => (),
-        }
-    }
-}
+//impl<T> Drop for BorrowCk<T> {
+//    fn drop(&mut self) {
+//        match self.drop_behavior {
+//            DropBehavior::PanicOnDrop => {
+//                // There's no good way to bubble up errors so just panic. There's not much we can do to
+//                // recover if a driver was not refcounting references to the softc in the first place
+//                // and tried to detach with outstanding references.
+//                self.claim().unwrap();
+//            },
+//            DropBehavior::WarnOnDrop => {
+//                if self.state.try_claim().is_err() {
+//                    println!("WARNING: dropping dynamically borrow-checked value at {:p} in state {:?}", self, self.state);
+//                }
+//            },
+//            DropBehavior::Nothing => (),
+//        }
+//    }
+//}
+*/

@@ -27,7 +27,7 @@
  */
 
 use crate::device::Device;
-use crate::{bindings, PointsTo};
+use crate::bindings;
 use alloc::ffi::CString;
 use core::fmt;
 

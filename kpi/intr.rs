@@ -79,7 +79,7 @@ pub type IrqSrc = intr_irqsrc;
 
 impl<T> SubClass<IrqSrc, T> {
     pub fn isrc_dispatch(&self, tf: *mut trapframe) -> c_int {
-        unsafe { bindings::intr_isrc_dispatch(SubClass::get_base_ptr(self).as_ptr(), tf) }
+        unsafe { bindings::intr_isrc_dispatch(SubClass::get_base_ptr(self), tf) }
     }
 }
 
@@ -87,7 +87,7 @@ pub trait PicIf<T> {
     fn isrc_register(
         &self,
         dev: Device,
-        isrc: Ref<SubClass<IrqSrc, T>>,
+        isrc: &SubClass<IrqSrc, T>,
         flags: i32,
         fmt_str: &CStr,
         arg0: &CStr,
@@ -96,7 +96,7 @@ pub trait PicIf<T> {
     ) -> Result<()> {
         let res = unsafe {
             bindings::intr_isrc_register(
-                SubClass::get_base_ptr(&isrc).as_ptr(),
+                SubClass::get_base_ptr(&isrc),
                 dev.as_ptr(),
                 flags as u32,
                 fmt_str.as_ptr(),
@@ -132,15 +132,19 @@ pub trait PicIf<T> {
 #[derive(Debug)]
 pub enum MapData {
     ACPI,
-    FDT(Ref<intr_map_data_fdt>),
+    FDT(MapDataFDT),
     GPIO,
     MSI,
     Unknown,
 }
 
-impl Ref<intr_map_data_fdt> {
+#[derive(Debug)]
+pub struct MapDataFDT(*const intr_map_data_fdt);
+
+impl MapDataFDT {
     pub fn cells(&self) -> &[pcell_t] {
-        unsafe { self.cells.as_slice(self.ncells as usize) }
+        let fdt_data_ref = unsafe { self.0.as_ref().unwrap() };
+        unsafe { fdt_data_ref.cells.as_slice(fdt_data_ref.ncells as usize) }
     }
 }
 
@@ -150,10 +154,8 @@ impl MapData {
         match ty {
             bindings::INTR_MAP_DATA_ACPI => Self::ACPI,
             bindings::INTR_MAP_DATA_FDT => {
-                let fdt_data_ptr = unsafe { Ptr::<_, ()>::new(map_data_ptr.cast()) };
-                // this should be fine if the C side doesn't touch the fdt data for the lifetime of the Ref
-                let fdt_data_ref = unsafe { fdt_data_ptr.allows_ref() };
-                Self::FDT(fdt_data_ref)
+                let fdt_data_ptr = map_data_ptr as *const intr_map_data_fdt;
+                Self::FDT(MapDataFDT(fdt_data_ptr))
             }
             bindings::INTR_MAP_DATA_GPIO => Self::GPIO,
             bindings::INTR_MAP_DATA_MSI => Self::MSI,
@@ -169,19 +171,19 @@ pub struct Pic {
 }
 
 impl Device {
-    pub fn pic_register(&self, xref: XRef) -> Result<Pic> {
-        let dev_ptr = self.as_ptr();
-        let pic = unsafe { bindings::intr_pic_register(dev_ptr, xref.0 as _) };
-        if pic.is_null() {
-            Err(ENULLPTR)
-        } else {
-            Ok(Pic {
-                dev: *self,
-                xref,
-                pic,
-            })
-        }
-    }
+    //pub fn pic_register(&self, xref: XRef) -> Result<Pic> {
+    //    let dev_ptr = self.as_ptr();
+    //    let pic = unsafe { bindings::intr_pic_register(dev_ptr, xref.0 as _) };
+    //    if pic.is_null() {
+    //        Err(ENULLPTR)
+    //    } else {
+    //        Ok(Pic {
+    //            dev: *self,
+    //            xref,
+    //            pic,
+    //        })
+    //    }
+    //}
 
     pub fn ipi_pic_register(&self, priority: u32) -> Result<()> {
         let dev_ptr = self.as_ptr();
@@ -198,14 +200,15 @@ type RawFilter = unsafe extern "C" fn(*mut c_void) -> i32;
 type Filter<P> = extern "C" fn(P) -> FilterRes;
 
 impl Pic {
-    pub fn claim_root<SC, P: PointsTo<SC>>(
+    // TODO: Pin pointer
+    pub fn claim_root<SC>(
         &mut self,
-        filter: Filter<P>,
-        arg: P,
+        filter: Filter<*mut SC>,
+        arg: *mut SC,
         root: IntrRoot,
     ) -> Result<()> {
         let filter = unsafe { transmute(filter) };
-        let arg = arg.as_ptr().cast();
+        let arg = arg.cast();
         self.claim_root_internal(filter, arg, root)
     }
 

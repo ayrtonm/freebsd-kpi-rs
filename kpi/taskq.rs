@@ -43,6 +43,7 @@ pub type TaskFn<F> = extern "C" fn(context: Box<SubClass<Task, F>>, pending: c_i
 
 impl<F> SubClass<Task, F> {
     pub fn enqueue_with_self(self: Box<Self>, callback: TaskFn<F>, queue: TaskQueue) -> Result<()> {
+        /*
         let callback = unsafe { transmute(callback) };
         let task = SubClass::get_base_ptr(self.as_ref());
         let ctx = Box::into_raw(self).cast::<c_void>();
@@ -67,5 +68,7 @@ impl<F> SubClass<Task, F> {
             return Err(ErrCode::from(res));
         }
         Ok(())
+        */
+        todo!("")
     }
 }

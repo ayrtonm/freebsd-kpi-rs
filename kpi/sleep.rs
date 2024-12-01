@@ -29,33 +29,55 @@
 use core::ptr::null_mut;
 use crate::kpi_prelude::*;
 use core::ffi::{c_void, CStr};
+use core::ops::{Deref, DerefMut};
 
-pub fn wakeup<T, P: PointsTo<T>>(chan: P) {
-    let chan = chan.as_ptr().cast();
-    wakeup_internal(chan)
+// This is mostly a convenience struct to avoid silly mistakes. Since wakeup and tsleep should not
+// make accesses using the chan pointer, address stability does not need to be enforced by Sleepable
+// (unlike e.g. Mutex which boxes the locked data).
+#[derive(Debug)]
+pub struct Sleepable<T> {
+    t: T,
 }
 
-fn wakeup_internal(chan: *const c_void) {
-    unsafe {
-        bindings::wakeup(chan)
+impl<T> Sleepable<T> {
+    pub fn new(t: T) -> Self {
+        Self {
+            t
+        }
+    }
+
+    pub fn tsleep_in_hz(&self, priority: i32, wmesg: &CStr, timo: i32) -> Result<()> {
+        self.tsleep(priority, wmesg, timo * unsafe { bindings::hz })
+    }
+
+    pub fn tsleep(&self, priority: i32, wmesg: &CStr, timo: i32) -> Result<()> {
+        let chan_ptr = &self.t as *const T as *const c_void;
+        let wmesg_ptr = wmesg.as_ptr();
+        let res = unsafe { bindings::_sleep(chan_ptr, null_mut(), priority, wmesg_ptr, bindings::tick_sbt * timo as i64, 0, bindings::C_HARDCLOCK) };
+        if res != 0 {
+            return Err(ErrCode::from(res));
+        }
+        Ok(())
+    }
+
+    pub fn wakeup(&self) {
+        let chan_ptr = &self.t as *const T as *const c_void;
+        unsafe {
+            bindings::wakeup(chan_ptr)
+        }
     }
 }
 
-// convenience method since bindgen turns hz into a static mut
-pub fn tsleep_in_hz<T, P: PointsTo<T>>(chan: P, priority: i32, wmesg: &CStr, timo: i32) -> Result<()> {
-    tsleep(chan, priority, wmesg, timo * unsafe { bindings::hz })
-}
+impl<T> Deref for Sleepable<T> {
+    type Target = T;
 
-pub fn tsleep<T, P: PointsTo<T>>(chan: P, priority: i32, wmesg: &CStr, timo: i32) -> Result<()> {
-    let chan_ptr = chan.as_ptr().cast();
-    tsleep_internal(chan_ptr, priority, wmesg, timo)
-}
-
-fn tsleep_internal(chan: *mut c_void, priority: i32, wmesg: &CStr, timo: i32) -> Result<()> {
-    let wmesg_ptr = wmesg.as_ptr();
-    let res = unsafe { bindings::_sleep(chan, null_mut(), priority, wmesg_ptr, bindings::tick_sbt * timo as i64, 0, bindings::C_HARDCLOCK) };
-    if res != 0 {
-        return Err(ErrCode::from(res));
+    fn deref(&self) -> &T {
+        &self.t
     }
-    Ok(())
+}
+
+impl<T> DerefMut for Sleepable<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.t
+    }
 }
