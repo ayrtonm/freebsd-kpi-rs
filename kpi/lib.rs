@@ -169,7 +169,7 @@ pub mod prelude {
     pub use crate::device::wrappers::*;
     pub use crate::device::AttachRes;
     pub use crate::device::ProbeRes::*;
-    pub use crate::device::{Attach, Detach, Device, Driver, Probe};
+    pub use crate::device::{Attach, Detach, Device, Probe};
     pub use crate::intr::FilterRes::*;
     pub use crate::intr::IntrRoot::*;
     pub use crate::ofw::wrappers::*;

@@ -136,6 +136,7 @@ pub trait BusIfWrappers: DeviceIf {
         handler: Handler<Self::Softc<T>>,
         intrhand: *mut *mut c_void,
     ) -> Result<()> {
+        assert!(self as *const Self as *const bindings::driver_t == dev.get_driver());
         let filter = unsafe { transmute(filter) };
         let handler = unsafe { transmute(handler) };
         let sc =

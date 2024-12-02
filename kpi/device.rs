@@ -80,12 +80,6 @@ unsafe impl UniqueOwner for Detach {}
 
 impl !UniqueOwner for () {}
 
-#[derive(Debug)]
-pub struct Driver<'a, D: DeviceIf, S = ()> {
-    driver: &'a D,
-    dev: &'a Device<S>,
-}
-
 pub trait DeviceIf: Sized {
     type Softc<S>: Sync;
     // Are 'static only for TypeId::of
@@ -98,6 +92,7 @@ pub trait DeviceIf: Sized {
         dev: &Device<Self::Attach>,
         sc: Self::Softc<Self::Attach>,
     ) -> AttachRes {
+        assert!(self as *const Self as *const bindings::driver_t == dev.driver);
         let dev_ptr = dev.as_ptr();
         let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
         let sc_ptr = sc_void_ptr.cast::<Self::Softc<Self::Attach>>();
@@ -106,6 +101,7 @@ pub trait DeviceIf: Sized {
     }
 
     fn device_get_softc<S: SoftcInit>(&self, dev: &Device<S>) -> &Self::Softc<()> {
+        assert!(self as *const Self as *const bindings::driver_t == dev.driver);
         let dev_ptr = dev.as_ptr();
         let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
         let sc_ptr = sc_void_ptr.cast::<Self::Softc<()>>();
@@ -113,21 +109,16 @@ pub trait DeviceIf: Sized {
     }
 
     fn device_get_softc_with_state<S: SoftcInit>(&self, dev: &mut Device<S>) -> &Self::Softc<S> {
+        assert!(self as *const Self as *const bindings::driver_t == dev.driver);
         let dev_ptr = dev.as_ptr();
         let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
         let sc_ptr = sc_void_ptr.cast::<Self::Softc<S>>();
         unsafe { sc_ptr.as_ref().unwrap() }
     }
 
-    fn device_get_driver<'a, S>(&'a self, dev: &'a Device<S>) -> Driver<Self, S> {
-        Driver {
-            driver: self,
-            dev,
-        }
-    }
-
     fn device_probe_glue(&self, dev: Device<Self::Probe>) -> Result<ProbeRes> {
         // TODO: Make this const. blocked on https://github.com/rust-lang/rust/issues/77125
+        // TODO: take into account other interfaces
         let probe = TypeId::of::<Self::Probe>();
         let attach = TypeId::of::<Self::Attach>();
         let detach = TypeId::of::<Self::Attach>();
@@ -165,6 +156,7 @@ pub trait DeviceIf: Sized {
 
 pub mod wrappers {
     use super::*;
+
     pub fn device_get_parent<S>(dev: &Device<S>) -> Result<Device<()>> {
         let dev_ptr = dev.as_ptr();
         let res = unsafe { bindings::device_get_parent(dev_ptr) };
@@ -186,28 +178,56 @@ pub mod wrappers {
         let name = unsafe { bindings::device_get_nameunit(dev_ptr) };
         unsafe { CStr::from_ptr(name) }
     }
+
+    pub fn device_get_driver<S>(dev: &Device<S>) -> *mut bindings::driver_t {
+        dev.driver
+    }
+
 }
 
 #[derive(Debug)]
-pub struct Device<S = ()>(*mut _device, PhantomData<S>);
+pub struct Device<S = ()> {
+    dev: *mut _device,
+    driver: *mut bindings::driver_t,
+    state: PhantomData<S>,
+}
 
 unsafe impl<S> Sync for Device<S> {}
 
 impl Device {
-    pub fn new(ptr: *mut _device) -> Self {
-        Self(ptr, PhantomData)
+    pub fn new(dev: *mut _device) -> Self {
+        let driver = unsafe {
+            bindings::device_get_driver(dev)
+        };
+        Self {
+            dev,
+            driver,
+            state: PhantomData,
+        }
     }
 }
 impl<S> Device<S> {
     pub fn copy_ptr(&self) -> Device {
-        Device(self.0, PhantomData)
+        Device {
+            dev: self.dev,
+            driver: self.driver,
+            state: PhantomData,
+        }
     }
 
     pub unsafe fn assume_state<U>(self) -> Device<U> {
-        Device(self.0, PhantomData)
+        Device {
+            dev: self.dev,
+            driver: self.driver,
+            state: PhantomData,
+        }
     }
 
     pub fn as_ptr(&self) -> *mut _device {
-        self.0
+        self.dev
+    }
+
+    pub fn get_driver(&self) -> *mut bindings::driver_t {
+        self.driver
     }
 }
