@@ -83,6 +83,10 @@ macro_rules! driver {
         pub struct $driver(core::cell::UnsafeCell<$crate::bindings::kobj_class>);
         unsafe impl Sync for $driver {}
 
+        struct Softc {
+            global_softc: <$driver as $crate::device::DeviceIf>::Softc<()>,
+            detach_softc: <$driver as $crate::device::DeviceIf>::DetachSoftc,
+        }
         #[no_mangle]
         pub static $cdriver: $driver = $driver(
             core::cell::UnsafeCell::new($crate::bindings::kobj_class {
@@ -90,7 +94,7 @@ macro_rules! driver {
                 methods: core::ptr::addr_of!($methods).cast(),
                 // TODO: Assert that Softc parameter does not change size of struct
                 // TODO: ensure alignment of softc memory supports Softc
-                size: core::mem::size_of::<<$driver as $crate::device::DeviceIf>::Softc<()>>(),
+                size: core::mem::size_of::<Softc>(),
                 baseclasses: core::ptr::null_mut(),
                 refs: 0,
                 ops: core::ptr::null_mut(),

@@ -87,6 +87,8 @@ pub trait DeviceIf: Sized {
     type Attach: 'static = ();
     type Detach: 'static = ();
 
+    type DetachSoftc: Sync = ();
+
     fn device_init_softc(
         &self,
         dev: &Device<Self::Attach>,
