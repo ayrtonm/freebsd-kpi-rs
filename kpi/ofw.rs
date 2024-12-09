@@ -93,12 +93,12 @@ pub struct XRef(pub(crate) phandle_t);
 pub mod wrappers {
     use super::*;
 
-    pub fn ofw_bus_status_okay<S>(dev: &Device<S>) -> bool {
+    pub fn ofw_bus_status_okay(dev: &Device) -> bool {
         let dev_ptr = dev.as_ptr();
         unsafe { bindings::ofw_bus_status_okay(dev_ptr) != 0 }
     }
 
-    pub fn ofw_bus_is_compatible<S>(dev: &Device<S>, compat: &CStr) -> bool {
+    pub fn ofw_bus_is_compatible(dev: &Device, compat: &CStr) -> bool {
         let dev_ptr = dev.as_ptr();
         let compat_ptr = compat.as_ptr();
         let res = unsafe { bindings::ofw_bus_is_compatible(dev_ptr, compat_ptr) };
@@ -106,7 +106,7 @@ pub mod wrappers {
     }
 
     pub fn ofw_bus_search_compatible<T, S, const N: usize>(
-        dev: &Device<S>,
+        dev: &Device,
         compat: &OfwCompatData<T, N>,
     ) -> Result<&'static T> {
         let dev_ptr = dev.as_ptr();
@@ -132,14 +132,14 @@ pub mod wrappers {
         found.ok_or(ENULLPTR)
     }
 
-    pub fn ofw_bus_get_node<S>(dev: &Device<S>) -> Node {
+    pub fn ofw_bus_get_node(dev: &Device) -> Node {
         let dev_ptr = dev.as_ptr();
         let node = unsafe { bindings::rust_bindings_ofw_bus_get_node(dev_ptr) };
         Node(node)
     }
 
     // TODO: this will break if OF_device_register_xref ever changes to return non-zero
-    pub fn OF_device_register_xref<S>(dev: &mut Device<S>, xref: XRef) {
+    pub fn OF_device_register_xref(dev: &mut Device, xref: XRef) {
         let dev_ptr = dev.as_ptr();
         unsafe {
             bindings::OF_device_register_xref(xref.0, dev_ptr);

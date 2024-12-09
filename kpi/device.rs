@@ -27,7 +27,6 @@
  */
 
 use crate::bindings::_device;
-use crate::cell::UniqueOwner;
 use crate::kpi_prelude::*;
 use core::any::TypeId;
 use core::ffi::{c_int, CStr};
@@ -59,107 +58,81 @@ impl AsCType<c_int> for ProbeRes {
     }
 }
 
-impl<S> AsRustType<Device<S>> for *mut _device {
-    fn as_rust_type(self) -> Device<S> {
-        unsafe { Device::new(self).assume_state() }
+impl AsRustType<Device> for *mut _device {
+    fn as_rust_type(self) -> Device {
+        Device::new(self)
     }
 }
 
-// This trait may not be implemented for Attach or Probe
-pub trait SoftcInit {}
-impl SoftcInit for Detach {}
-impl SoftcInit for () {}
-#[derive(Debug)]
-pub struct Probe(());
-#[derive(Debug)]
-pub struct Attach(());
-#[derive(Debug)]
-pub struct Detach(());
-unsafe impl UniqueOwner for Attach {}
-unsafe impl UniqueOwner for Detach {}
+macro_rules! get_local_softc {
+    ($self:expr, $dev:expr) => {
+        assert!($self as *const Self as *const bindings::driver_t == $dev.driver);
+        let dev_ptr = $dev.as_ptr();
+        let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
+        let sc_ptr = sc_void_ptr.byte_add($dev.local_softc).cast();
+        unsafe { sc_ptr.as_mut().unwrap() }
+    };
+}
 
-impl !UniqueOwner for () {}
+pub trait DriverIf: Sized {
+    type GlobalSoftc;
+}
 
-pub trait DeviceIf: Sized {
-    type Softc<S>: Sync;
-    // Are 'static only for TypeId::of
-    type Probe: 'static = ();
-    type Attach: 'static = ();
-    type Detach: 'static = ();
+pub trait DeviceIf: DriverIf {
+    type Softc: Sync = ();
+    // device_probe and device_attach are not used
+    type device_probe = ();
+    type device_attach = ();
+    type device_detach = ();
 
-    type DetachSoftc: Sync = ();
-
-    fn device_init_softc(
+    fn init_softc(
         &self,
-        dev: &Device<Self::Attach>,
-        sc: Self::Softc<Self::Attach>,
+        dev: &mut Device,
+        sc: Self::Softc,
     ) -> AttachRes {
         assert!(self as *const Self as *const bindings::driver_t == dev.driver);
         let dev_ptr = dev.as_ptr();
         let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
-        let sc_ptr = sc_void_ptr.cast::<Self::Softc<Self::Attach>>();
+        let sc_ptr = sc_void_ptr.cast::<Self::Softc>();
         unsafe { *sc_ptr = sc };
         AttachRes(())
     }
 
-    fn device_get_softc<S: SoftcInit>(&self, dev: &Device<S>) -> &Self::Softc<()> {
+    fn get_softc(&self, dev: &Device) -> &Self::Softc {
         assert!(self as *const Self as *const bindings::driver_t == dev.driver);
         let dev_ptr = dev.as_ptr();
         let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
-        let sc_ptr = sc_void_ptr.cast::<Self::Softc<()>>();
+        let sc_ptr = sc_void_ptr.cast::<Self::Softc>();
         unsafe { sc_ptr.as_ref().unwrap() }
     }
 
-    fn device_get_softc_with_state<S: SoftcInit>(&self, dev: &mut Device<S>) -> &Self::Softc<S> {
-        assert!(self as *const Self as *const bindings::driver_t == dev.driver);
-        let dev_ptr = dev.as_ptr();
-        let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
-        let sc_ptr = sc_void_ptr.cast::<Self::Softc<S>>();
-        unsafe { sc_ptr.as_ref().unwrap() }
-    }
+    //fn get_local_softc<T>(&self, dev: &mut Device) -> &mut T {
+    //}
 
-    fn device_probe_glue(&self, dev: Device<Self::Probe>) -> Result<ProbeRes> {
-        // TODO: Make this const. blocked on https://github.com/rust-lang/rust/issues/77125
-        // TODO: take into account other interfaces
-        let probe = TypeId::of::<Self::Probe>();
-        let attach = TypeId::of::<Self::Attach>();
-        let detach = TypeId::of::<Self::Attach>();
-        let dflt = TypeId::of::<()>();
-        if probe != dflt {
-            assert!(probe != attach);
-            assert!(probe != detach);
-        }
-        if attach != dflt {
-            assert!(attach != probe);
-            assert!(attach != detach);
-        }
-        if detach != dflt {
-            assert!(detach != probe);
-            assert!(detach != attach);
-        }
+    fn device_probe_glue(&self, dev: Device) -> Result<ProbeRes> {
         self.device_probe(&dev)
     }
-    fn device_attach_glue(&self, mut dev: Device<Self::Attach>) -> Result<()> {
+    fn device_attach_glue(&self, mut dev: Device) -> Result<()> {
         self.device_attach(&mut dev)?;
         Ok(())
     }
-    fn device_detach_glue(&self, mut dev: Device<Self::Detach>) -> Result<()> {
+    fn device_detach_glue(&self, mut dev: Device) -> Result<()> {
         self.device_detach(&mut dev)?;
         let dev_ptr = dev.as_ptr();
         let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
-        let sc_ptr = sc_void_ptr.cast::<Self::Softc<Self::Detach>>();
+        let sc_ptr = sc_void_ptr.cast::<Self::Softc>();
         unsafe { drop_in_place(sc_ptr) }
         Ok(())
     }
-    fn device_probe(&self, dev: &Device<Self::Probe>) -> Result<ProbeRes>;
-    fn device_attach(&self, dev: &mut Device<Self::Attach>) -> Result<AttachRes>;
-    fn device_detach(&self, dev: &mut Device<Self::Detach>) -> Result<()>;
+    fn device_probe(&self, dev: &Device) -> Result<ProbeRes>;
+    fn device_attach(&self, dev: &mut Device) -> Result<AttachRes>;
+    fn device_detach(&self, dev: &mut Device) -> Result<()>;
 }
 
 pub mod wrappers {
     use super::*;
 
-    pub fn device_get_parent<S>(dev: &Device<S>) -> Result<Device<()>> {
+    pub fn device_get_parent(dev: &Device) -> Result<Device> {
         let dev_ptr = dev.as_ptr();
         let res = unsafe { bindings::device_get_parent(dev_ptr) };
         if res.is_null() {
@@ -169,62 +142,57 @@ pub mod wrappers {
         }
     }
 
-    pub fn device_set_desc<S>(dev: &Device<S>, desc: &'static CStr) {
+    pub fn device_set_desc(dev: &Device, desc: &'static CStr) {
         let dev_ptr = dev.as_ptr();
         let desc_ptr = desc.as_ptr();
         unsafe { bindings::device_set_desc(dev_ptr, desc_ptr) }
     }
 
-    pub fn device_get_nameunit<S>(dev: &Device<S>) -> &CStr {
+    pub fn device_get_nameunit(dev: &Device) -> &CStr {
         let dev_ptr = dev.as_ptr();
         let name = unsafe { bindings::device_get_nameunit(dev_ptr) };
         unsafe { CStr::from_ptr(name) }
     }
 
-    pub fn device_get_driver<S>(dev: &Device<S>) -> *mut bindings::driver_t {
+    pub fn device_get_driver(dev: &Device) -> *mut bindings::driver_t {
         dev.driver
     }
 
 }
 
 #[derive(Debug)]
-pub struct Device<S = ()> {
+pub struct Device {
     dev: *mut _device,
     driver: *mut bindings::driver_t,
-    state: PhantomData<S>,
+    //local_softc: usize,
 }
 
-unsafe impl<S> Sync for Device<S> {}
+impl Clone for Device {
+    fn clone(&self) -> Self {
+        Device {
+            dev: self.dev,
+            driver: self.driver,
+            //local_softc: DO NOT CLONE THIS FIELD!
+        }
+    }
+}
+
+unsafe impl Sync for Device {}
 
 impl Device {
     pub fn new(dev: *mut _device) -> Self {
+        // This is called here rather than as-needed based on the assumption
+        // that cross-langugage inlining is not available.
         let driver = unsafe {
             bindings::device_get_driver(dev)
         };
         Self {
             dev,
             driver,
-            state: PhantomData,
         }
     }
 }
-impl<S> Device<S> {
-    pub fn copy_ptr(&self) -> Device {
-        Device {
-            dev: self.dev,
-            driver: self.driver,
-            state: PhantomData,
-        }
-    }
-
-    pub unsafe fn assume_state<U>(self) -> Device<U> {
-        Device {
-            dev: self.dev,
-            driver: self.driver,
-            state: PhantomData,
-        }
-    }
-
+impl Device {
     pub fn as_ptr(&self) -> *mut _device {
         self.dev
     }

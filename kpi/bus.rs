@@ -95,8 +95,8 @@ impl ResourceSpec {
     }
 }
 
-fn bus_setup_intr_internal<S>(
-    dev: &Device<S>,
+fn bus_setup_intr_internal(
+    dev: &Device,
     irq: &mut Resource,
     flags: u32,
     filter: RawFilter,
@@ -127,20 +127,20 @@ fn bus_setup_intr_internal<S>(
 impl<D: DeviceIf> BusIfWrappers for D {}
 
 pub trait BusIfWrappers: DeviceIf {
-    fn bus_setup_intr<S: SoftcInit, T: SoftcInit>(
+    fn bus_setup_intr(
         &self,
-        dev: &mut Device<S>,
+        dev: &mut Device,
         irq: &mut Resource,
         flags: u32,
-        filter: Filter<Self::Softc<T>>,
-        handler: Handler<Self::Softc<T>>,
+        filter: Filter<Self::Softc>,
+        handler: Handler<Self::Softc>,
         intrhand: *mut *mut c_void,
     ) -> Result<()> {
         assert!(self as *const Self as *const bindings::driver_t == dev.get_driver());
         let filter = unsafe { transmute(filter) };
         let handler = unsafe { transmute(handler) };
         let sc =
-            self.device_get_softc(dev) as *const Self::Softc<()> as *const c_void as *mut c_void;
+            self.get_softc(dev) as *const Self::Softc as *const c_void as *mut c_void;
         bus_setup_intr_internal(dev, irq, flags, filter, handler, sc, intrhand)
     }
 }
@@ -148,8 +148,8 @@ pub trait BusIfWrappers: DeviceIf {
 pub mod wrappers {
     use super::*;
 
-    pub fn bus_alloc_resource<S>(
-        dev: &mut Device<S>,
+    pub fn bus_alloc_resource(
+        dev: &mut Device,
         ty: SysRes,
         mut rid: c_int,
     ) -> Result<Resource> {
@@ -178,8 +178,8 @@ pub mod wrappers {
         }
     }
 
-    pub fn bus_alloc_resources<S, const N: usize>(
-        dev: &mut Device<S>,
+    pub fn bus_alloc_resources<const N: usize>(
+        dev: &mut Device,
         spec: [ResourceSpec; N],
     ) -> Result<[Resource; N]> {
         let dev_ptr = dev.as_ptr();

@@ -33,23 +33,17 @@ use core::sync::atomic::{AtomicU32, Ordering};
 use core::cell::UnsafeCell;
 use core::marker::PhantomData;
 
-pub unsafe trait UniqueOwner {}
-
 #[derive(Debug)]
-pub struct UniqueCell<T, O: UniqueOwner, S> {
+pub struct UniqueCell<T> {
     t: UnsafeCell<T>,
-    owner: PhantomData<O>,
-    state: PhantomData<S>,
 }
 
-unsafe impl<T, O: UniqueOwner, S> Sync for UniqueCell<T, O, S> {}
+unsafe impl<T> Sync for UniqueCell<T> {}
 
-impl<T, O: UniqueOwner, S> UniqueCell<T, O, S> {
+impl<T> UniqueCell<T> {
     pub fn new(t: T) -> Self {
         Self {
             t: UnsafeCell::new(t),
-            owner: PhantomData,
-            state: PhantomData,
         }
     }
 
@@ -58,7 +52,7 @@ impl<T, O: UniqueOwner, S> UniqueCell<T, O, S> {
     }
 }
 
-impl<T, O: UniqueOwner> UniqueCell<T, O, O> {
+impl<T> UniqueCell<T> {
     pub fn get(&self) -> &T {
         unsafe {
             self.t.get().as_ref().unwrap()

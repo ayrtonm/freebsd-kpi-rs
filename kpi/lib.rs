@@ -83,18 +83,31 @@ macro_rules! driver {
         pub struct $driver(core::cell::UnsafeCell<$crate::bindings::kobj_class>);
         unsafe impl Sync for $driver {}
 
-        struct Softc {
-            global_softc: <$driver as $crate::device::DeviceIf>::Softc<()>,
-            detach_softc: <$driver as $crate::device::DeviceIf>::DetachSoftc,
+        impl DriverIf for $driver {
+            type GlobalSoftc = DriverGlobalSoftc;
         }
+
+        pub struct DriverGlobalSoftc {
+            shared_softc: <$driver as $crate::device::DeviceIf>::Softc,
+            $($if_fn: <$driver as $crate::device::DeviceIf>::$if_fn,)*
+        }
+
+        impl DriverGlobalSoftc {
+            const fn shared_softc(&self) -> usize {
+                core::mem::offset_of!(Self, shared_softc)
+            }
+            $(const fn $if_fn(&self) -> usize {
+                core::mem::offset_of!(Self, $if_fn)
+            })*
+        }
+
         #[no_mangle]
         pub static $cdriver: $driver = $driver(
             core::cell::UnsafeCell::new($crate::bindings::kobj_class {
                 name: $cname.as_ptr(),
                 methods: core::ptr::addr_of!($methods).cast(),
-                // TODO: Assert that Softc parameter does not change size of struct
                 // TODO: ensure alignment of softc memory supports Softc
-                size: core::mem::size_of::<Softc>(),
+                size: core::mem::size_of::<<$driver as DriverIf>::GlobalSoftc>(),
                 baseclasses: core::ptr::null_mut(),
                 refs: 0,
                 ops: core::ptr::null_mut(),
@@ -154,13 +167,13 @@ pub trait AsRustType<T> {
 mod kpi_prelude {
     pub use crate::allocator::KernelAllocator;
     pub use crate::bindings;
-    pub use crate::cell::{FFICell, SubClass, UniqueCell, UniqueOwner};
+    pub use crate::cell::{FFICell, SubClass, UniqueCell};
     pub use crate::err_codes::*;
     pub use crate::println;
     pub use crate::{AsCType, AsRustType, Box, ErrCode, Result};
 
     pub use crate::bus::BusIfWrappers;
-    pub use crate::device::{DeviceIf, SoftcInit};
+    pub use crate::device::{DeviceIf, DriverIf};
     pub use crate::sync::{Mutex, SpinLock};
 }
 
@@ -173,7 +186,7 @@ pub mod prelude {
     pub use crate::device::wrappers::*;
     pub use crate::device::AttachRes;
     pub use crate::device::ProbeRes::*;
-    pub use crate::device::{Attach, Detach, Device, Probe};
+    pub use crate::device::{Device};
     pub use crate::intr::FilterRes::*;
     pub use crate::intr::IntrRoot::*;
     pub use crate::ofw::wrappers::*;
