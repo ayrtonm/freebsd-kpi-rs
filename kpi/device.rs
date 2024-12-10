@@ -28,7 +28,7 @@
 
 use crate::bindings::_device;
 use crate::kpi_prelude::*;
-use core::any::TypeId;
+use core::any::{type_name, TypeId};
 use core::ffi::{c_int, CStr};
 use core::marker::PhantomData;
 use core::ops::{Deref, DerefMut};
@@ -64,16 +64,6 @@ impl AsRustType<Device> for *mut _device {
     }
 }
 
-macro_rules! get_local_softc {
-    ($self:expr, $dev:expr) => {
-        assert!($self as *const Self as *const bindings::driver_t == $dev.driver);
-        let dev_ptr = $dev.as_ptr();
-        let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
-        let sc_ptr = sc_void_ptr.byte_add($dev.local_softc).cast();
-        unsafe { sc_ptr.as_mut().unwrap() }
-    };
-}
-
 pub trait DriverIf: Sized {
     type GlobalSoftc;
 }
@@ -85,11 +75,7 @@ pub trait DeviceIf: DriverIf {
     type device_attach = ();
     type device_detach = ();
 
-    fn init_softc(
-        &self,
-        dev: &mut Device,
-        sc: Self::Softc,
-    ) -> AttachRes {
+    fn init_softc(&self, dev: &mut Device, sc: Self::Softc) -> AttachRes {
         assert!(self as *const Self as *const bindings::driver_t == dev.driver);
         let dev_ptr = dev.as_ptr();
         let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
@@ -106,9 +92,6 @@ pub trait DeviceIf: DriverIf {
         unsafe { sc_ptr.as_ref().unwrap() }
     }
 
-    //fn get_local_softc<T>(&self, dev: &mut Device) -> &mut T {
-    //}
-
     fn device_probe_glue(&self, dev: Device) -> Result<ProbeRes> {
         self.device_probe(&dev)
     }
@@ -117,16 +100,39 @@ pub trait DeviceIf: DriverIf {
         Ok(())
     }
     fn device_detach_glue(&self, mut dev: Device) -> Result<()> {
-        self.device_detach(&mut dev)?;
         let dev_ptr = dev.as_ptr();
         let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
         let sc_ptr = sc_void_ptr.cast::<Self::Softc>();
+
+        let ctx_ptr = sc_ptr.byte_add(N).cast::<Self::device_detach>();
+        let ctx = unsafe { ctx_ptr.as_mut().unwrap() };
+
+        if TypeId::of::<Self::device_detach>() == TypeId::of::<()>() {
+            self.device_detach(&mut dev)?;
+        } else {
+            self.device_detach_with_ctx(&mut dev, ctx)?;
+        }
         unsafe { drop_in_place(sc_ptr) }
         Ok(())
     }
     fn device_probe(&self, dev: &Device) -> Result<ProbeRes>;
     fn device_attach(&self, dev: &mut Device) -> Result<AttachRes>;
-    fn device_detach(&self, dev: &mut Device) -> Result<()>;
+    fn device_detach(&self, dev: &mut Device) -> Result<()> {
+        todo!(
+            "device_detach implementation missing for {}",
+            type_name::<Self>()
+        )
+    }
+    fn device_detach_with_ctx(
+        &self,
+        dev: &mut Device,
+        ctx: &mut Self::device_detach,
+    ) -> Result<()> {
+        todo!(
+            "device_detach_with_ctx implementation missing for {}",
+            type_name::<Self>()
+        )
+    }
 }
 
 pub mod wrappers {
@@ -157,7 +163,6 @@ pub mod wrappers {
     pub fn device_get_driver(dev: &Device) -> *mut bindings::driver_t {
         dev.driver
     }
-
 }
 
 #[derive(Debug)]
@@ -183,13 +188,8 @@ impl Device {
     pub fn new(dev: *mut _device) -> Self {
         // This is called here rather than as-needed based on the assumption
         // that cross-langugage inlining is not available.
-        let driver = unsafe {
-            bindings::device_get_driver(dev)
-        };
-        Self {
-            dev,
-            driver,
-        }
+        let driver = unsafe { bindings::device_get_driver(dev) };
+        Self { dev, driver }
     }
 }
 impl Device {
