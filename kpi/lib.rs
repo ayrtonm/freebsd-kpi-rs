@@ -83,10 +83,6 @@ macro_rules! driver {
         pub struct $driver(core::cell::UnsafeCell<$crate::bindings::kobj_class>);
         unsafe impl Sync for $driver {}
 
-        impl DriverIf for $driver {
-            type GlobalSoftc = DriverGlobalSoftc;
-        }
-
         pub struct DriverGlobalSoftc {
             shared_softc: <$driver as $crate::device::DeviceIf>::Softc,
             $($if_fn: <$driver as $crate::device::DeviceIf>::$if_fn,)*
@@ -107,7 +103,8 @@ macro_rules! driver {
                 name: $cname.as_ptr(),
                 methods: core::ptr::addr_of!($methods).cast(),
                 // TODO: ensure alignment of softc memory supports Softc
-                size: core::mem::size_of::<<$driver as DriverIf>::GlobalSoftc>(),
+                size: core::mem::size_of::<DriverGlobalSoftc>(),
+                //size: core::mem::size_of::<<$driver as DriverIf>::GlobalSoftc>(),
                 baseclasses: core::ptr::null_mut(),
                 refs: 0,
                 ops: core::ptr::null_mut(),
@@ -173,7 +170,7 @@ mod kpi_prelude {
     pub use crate::{AsCType, AsRustType, Box, ErrCode, Result};
 
     pub use crate::bus::BusIfWrappers;
-    pub use crate::device::{DeviceIf, DriverIf};
+    pub use crate::device::DeviceIf;
     pub use crate::sync::{Mutex, SpinLock};
 }
 

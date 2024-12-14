@@ -64,16 +64,12 @@ impl AsRustType<Device> for *mut _device {
     }
 }
 
-pub trait DriverIf: Sized {
-    type GlobalSoftc;
-}
-
-pub trait DeviceIf: DriverIf {
+pub trait DeviceIf: Sized {
     type Softc: Sync = ();
     // device_probe and device_attach are not used
     type device_probe = ();
     type device_attach = ();
-    type device_detach = ();
+    type device_detach: 'static = ();
 
     fn init_softc(&self, dev: &mut Device, sc: Self::Softc) -> AttachRes {
         assert!(self as *const Self as *const bindings::driver_t == dev.driver);
@@ -104,13 +100,14 @@ pub trait DeviceIf: DriverIf {
         let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
         let sc_ptr = sc_void_ptr.cast::<Self::Softc>();
 
-        let ctx_ptr = sc_ptr.byte_add(N).cast::<Self::device_detach>();
-        let ctx = unsafe { ctx_ptr.as_mut().unwrap() };
+        //let ctx_ptr = sc_ptr.byte_add(N).cast::<Self::device_detach>();
+        //let ctx = unsafe { ctx_ptr.as_mut().unwrap() };
+        let ctx = todo!("");
 
         if TypeId::of::<Self::device_detach>() == TypeId::of::<()>() {
             self.device_detach(&mut dev)?;
         } else {
-            self.device_detach_with_ctx(&mut dev, ctx)?;
+            self.device_detach_with_softc(&mut dev, ctx)?;
         }
         unsafe { drop_in_place(sc_ptr) }
         Ok(())
@@ -123,13 +120,13 @@ pub trait DeviceIf: DriverIf {
             type_name::<Self>()
         )
     }
-    fn device_detach_with_ctx(
+    fn device_detach_with_softc(
         &self,
         dev: &mut Device,
-        ctx: &mut Self::device_detach,
+        sc: &mut Self::device_detach,
     ) -> Result<()> {
         todo!(
-            "device_detach_with_ctx implementation missing for {}",
+            "device_detach_with_softc implementation missing for {}",
             type_name::<Self>()
         )
     }
