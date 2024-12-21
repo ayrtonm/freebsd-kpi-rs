@@ -83,51 +83,54 @@ impl<T> SubClass<IrqSrc, T> {
     }
 }
 
-pub trait PicIf<T> {
-    fn isrc_register(
-        &self,
-        dev: Device,
-        isrc: &SubClass<IrqSrc, T>,
-        flags: i32,
-        fmt_str: &CStr,
-        arg0: &CStr,
-        arg1: u32,
-        arg2: u32,
-    ) -> Result<()> {
-        let res = unsafe {
-            bindings::intr_isrc_register(
-                SubClass::get_base_ptr(&isrc),
-                dev.as_ptr(),
-                flags as u32,
-                fmt_str.as_ptr(),
-                arg0.as_ptr(),
-                arg1,
-                arg2,
-            )
-        };
-        if res != 0 {
-            Err(ErrCode::from(res))
-        } else {
-            Ok(())
-        }
-    }
+pub trait PicIf: DriverIf {
+    type Irq;
+
     fn pic_setup_intr(
         &self,
         dev: Device,
-        isrc: &mut SubClass<IrqSrc, T>,
+        isrc: &mut SubClass<IrqSrc, Self::Irq>,
         res: Resource,
         data: MapData,
     ) -> Result<()>;
     fn pic_map_intr(&self, dev: Device, data: MapData, isrcp: &mut *mut IrqSrc) -> Result<()>;
-    //fn pic_teardown_intr(&self, dev: Device, isrc: Ptr<IrqSrc<T>>, res: Resource, data: MapData) -> Result<()>;
+    fn pic_teardown_intr(&self, dev: Device, isrc: &SubClass<IrqSrc, Self::Irq>, res: Resource, data: MapData) -> Result<()>;
 
-    fn pic_disable_intr(&self, dev: Device, isrc: &SubClass<IrqSrc, T>);
-    fn pic_enable_intr(&self, dev: Device, isrc: &SubClass<IrqSrc, T>);
+    fn pic_disable_intr(&self, dev: Device, isrc: &SubClass<IrqSrc, Self::Irq>);
+    fn pic_enable_intr(&self, dev: Device, isrc: &SubClass<IrqSrc, Self::Irq>);
 
-    fn pic_post_filter(&self, dev: Device, isrc: &SubClass<IrqSrc, T>);
-    fn pic_pre_ithread(&self, dev: Device, isrc: &SubClass<IrqSrc, T>);
-    fn pic_post_ithread(&self, dev: Device, isrc: &SubClass<IrqSrc, T>);
+    fn pic_post_filter(&self, dev: Device, isrc: &SubClass<IrqSrc, Self::Irq>);
+    fn pic_pre_ithread(&self, dev: Device, isrc: &SubClass<IrqSrc, Self::Irq>);
+    fn pic_post_ithread(&self, dev: Device, isrc: &SubClass<IrqSrc, Self::Irq>);
 }
+
+    //fn isrc_register(
+    //    &self,
+    //    dev: Device,
+    //    isrc: &SubClass<IrqSrc, Self::Irq>,
+    //    flags: i32,
+    //    fmt_str: &CStr,
+    //    arg0: &CStr,
+    //    arg1: u32,
+    //    arg2: u32,
+    //) -> Result<()> {
+    //    let res = unsafe {
+    //        bindings::intr_isrc_register(
+    //            SubClass::get_base_ptr(&isrc),
+    //            dev.as_ptr(),
+    //            flags as u32,
+    //            fmt_str.as_ptr(),
+    //            arg0.as_ptr(),
+    //            arg1,
+    //            arg2,
+    //        )
+    //    };
+    //    if res != 0 {
+    //        Err(ErrCode::from(res))
+    //    } else {
+    //        Ok(())
+    //    }
+    //}
 
 #[derive(Debug)]
 pub enum MapData {

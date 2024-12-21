@@ -96,7 +96,7 @@ impl ResourceSpec {
 }
 
 fn bus_setup_intr_internal(
-    dev: &Device,
+    dev: Device,
     irq: &mut Resource,
     flags: u32,
     filter: RawFilter,
@@ -124,12 +124,12 @@ fn bus_setup_intr_internal(
     }
 }
 
-impl<D: DeviceIf> BusIfWrappers for D {}
+impl<D: DriverIf> BusIfWrappers for D {}
 
-pub trait BusIfWrappers: DeviceIf {
+pub trait BusIfWrappers: DriverIf {
     fn bus_setup_intr(
         &self,
-        dev: &mut Device,
+        dev: Device,
         irq: &mut Resource,
         flags: u32,
         filter: Filter<Self::Softc>,
@@ -149,7 +149,7 @@ pub mod wrappers {
     use super::*;
 
     pub fn bus_alloc_resource(
-        dev: &mut Device,
+        dev: Device,
         ty: SysRes,
         mut rid: c_int,
     ) -> Result<Resource> {
@@ -179,7 +179,7 @@ pub mod wrappers {
     }
 
     pub fn bus_alloc_resources<const N: usize>(
-        dev: &mut Device,
+        dev: Device,
         spec: [ResourceSpec; N],
     ) -> Result<[Resource; N]> {
         let dev_ptr = dev.as_ptr();

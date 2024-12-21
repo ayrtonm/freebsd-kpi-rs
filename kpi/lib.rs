@@ -68,34 +68,72 @@ macro_rules! count {
     };
 }
 
+#[macro_export]
+macro_rules! export_function {
+    ($cdriver:ident device_probe $impl:ident) => {
+        $crate::export_function! {
+            $cdriver int $impl(device_t dev)
+        }
+    };
+    ($cdriver:ident device_attach $impl:ident) => {
+        $crate::export_function! {
+            $cdriver int $impl(device_t dev)
+        }
+    };
+    ($cdriver:ident device_detach $impl:ident) => {
+        $crate::export_function! {
+            $cdriver int $impl(device_t dev)
+            {
+                use $crate::device::DriverIf;
+                let sc = $cdriver.get_softc_as_mut(dev);
+                unsafe { core::ptr::drop_in_place(sc) }
+            }
+        }
+    };
+    (
+    $cdriver:ident
+    $ret:ident $fn_name:ident($($arg:ident $arg_name:ident$(,)?)*)
+    $({ $($drop_glue:tt)* })?
+    ) => {
+        // TODO: type check
+        //const _TYPE_CHECK: unsafe extern "C" fn($($arg,)*) -> $ret = $crate::bindings::$fn_name;
+        #[no_mangle]
+        pub unsafe extern "C" fn $fn_name($($arg_name: $arg,)*) -> $ret {
+            $(let mut $arg_name = $arg_name.as_rust_type();)*
+            let res = $cdriver.$fn_name($($arg_name,)*);
+            $($($drop_glue)*)*;
+            match res {
+                Ok(r) => r.as_c_type(),
+                Err(e) => e.as_c_type(),
+            }
+        }
+    };
+}
+
 // this only needs to define the two statics in the consumer (driver) crate. Driver is also good to
 // define in the consumer to avoid orphan rule issues around implementing the interface traits i.e.
 // impl Driver for DeviceIf
 #[macro_export]
 macro_rules! driver {
+    //(@device_detach) => {
+    //    compile_error!("needs special glue")
+    //};
     ($cdriver:ident, $cname:expr, $driver:ident, $methods:ident,
-        $($if_fn:ident $impl:ident $(,)?)*
+        $($if_fn:ident $impl:ident,)*
+        $(
+        {
+            $($ret:ident $fn_name:ident($($arg:ident $arg_name:ident$(,)?)*);)*
+        }
+        )?
     ) => {
+        // Using this macro pulls in KPI prelude for convenience
         use $crate::prelude::*;
 
+        // These structs are not defined in the KPI crate to allow inherent impls in drivers
         #[repr(C)]
         #[derive(Debug)]
         pub struct $driver(core::cell::UnsafeCell<$crate::bindings::kobj_class>);
         unsafe impl Sync for $driver {}
-
-        pub struct DriverGlobalSoftc {
-            shared_softc: <$driver as $crate::device::DeviceIf>::Softc,
-            $($if_fn: <$driver as $crate::device::DeviceIf>::$if_fn,)*
-        }
-
-        impl DriverGlobalSoftc {
-            const fn shared_softc(&self) -> usize {
-                core::mem::offset_of!(Self, shared_softc)
-            }
-            $(const fn $if_fn(&self) -> usize {
-                core::mem::offset_of!(Self, $if_fn)
-            })*
-        }
 
         #[no_mangle]
         pub static $cdriver: $driver = $driver(
@@ -103,47 +141,51 @@ macro_rules! driver {
                 name: $cname.as_ptr(),
                 methods: core::ptr::addr_of!($methods).cast(),
                 // TODO: ensure alignment of softc memory supports Softc
-                size: core::mem::size_of::<DriverGlobalSoftc>(),
-                //size: core::mem::size_of::<<$driver as DriverIf>::GlobalSoftc>(),
+                size: core::mem::size_of::<<$driver as DriverIf>::Softc>(),
                 baseclasses: core::ptr::null_mut(),
                 refs: 0,
                 ops: core::ptr::null_mut(),
             })
         );
 
-        #[repr(C)]
-        #[derive(Debug)]
-        pub struct DeviceMethod($crate::bindings::kobj_method_t);
-
-        impl DeviceMethod {
-            pub const fn null() -> Self {
-                Self($crate::bindings::kobj_method_t {
-                    desc: core::ptr::null_mut(),
-                    func: None,
-                })
-            }
-        }
-
-        unsafe impl Sync for DeviceMethod { }
-
         #[no_mangle]
-        static $methods: [DeviceMethod; $crate::count!($($impl)*) + 1] = [
+        static $methods: [$crate::device::DeviceMethod; $crate::count!($($impl)*) + 1] = [
             $(
                 {
                     let desc = {
                         use $crate::bindings::*;
-                        core::ptr::addr_of_mut!(concat_idents!($if_fn, _desc))
+                        &raw mut concat_idents!($if_fn, _desc)
                     };
-                    let func = Some(unsafe {
-                        core::mem::transmute($impl as *const ())
-                    });
-                    DeviceMethod($crate::bindings::kobj_method_t { desc, func })
+                    $crate::device::DeviceMethod::new(desc, $cdriver::$impl as *const ())
                 },
             )*
-            DeviceMethod::null(),
+            $crate::device::DeviceMethod::null(),
         ];
 
-        $($crate::$if_fn!($impl, $cdriver);)*
+        mod $cdriver {
+            use super::{$cdriver, $driver};
+            use $crate::bindings::*;
+            use $crate::{AsRustType, AsCType};
+            use $crate::export_function;
+            $(export_function!($cdriver $if_fn $impl);)*
+
+            $(
+                $(
+                    #[no_mangle]
+                    unsafe extern "C" fn $fn_name($($arg_name: $arg,)*) -> $ret {
+
+                        const _TYPE_CHECK: unsafe extern "C" fn($($arg,)*) -> $ret = $crate::bindings::$fn_name;
+
+                        $(let mut $arg_name = $arg_name.as_rust_type();)*
+                        let res = $cdriver.$fn_name($($arg_name,)*);
+                        match res {
+                            Ok(r) => r.as_c_type(),
+                            Err(e) => e.as_c_type(),
+                        }
+                    }
+                )*
+            )*
+        }
     };
 }
 
@@ -160,6 +202,10 @@ pub trait AsRustType<T> {
     fn as_rust_type(self) -> T;
 }
 
+impl<T> AsRustType<T> for T {
+    fn as_rust_type(self) -> T { self }
+}
+
 // Internal prelude module for commonly used imports in the KPI crate
 mod kpi_prelude {
     pub use crate::allocator::KernelAllocator;
@@ -170,7 +216,7 @@ mod kpi_prelude {
     pub use crate::{AsCType, AsRustType, Box, ErrCode, Result};
 
     pub use crate::bus::BusIfWrappers;
-    pub use crate::device::DeviceIf;
+    pub use crate::device::{DriverIf};
     pub use crate::sync::{Mutex, SpinLock};
 }
 

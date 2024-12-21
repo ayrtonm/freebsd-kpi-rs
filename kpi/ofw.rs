@@ -90,15 +90,27 @@ pub struct Node(pub(crate) phandle_t);
 #[derive(Copy, Clone, Debug)]
 pub struct XRef(pub(crate) phandle_t);
 
+impl AsRustType<XRef> for phandle_t {
+    fn as_rust_type(self) -> XRef {
+        XRef(self)
+    }
+}
+
+impl AsRustType<Node> for phandle_t {
+    fn as_rust_type(self) -> Node {
+        Node(self)
+    }
+}
+
 pub mod wrappers {
     use super::*;
 
-    pub fn ofw_bus_status_okay(dev: &Device) -> bool {
+    pub fn ofw_bus_status_okay(dev: Device) -> bool {
         let dev_ptr = dev.as_ptr();
         unsafe { bindings::ofw_bus_status_okay(dev_ptr) != 0 }
     }
 
-    pub fn ofw_bus_is_compatible(dev: &Device, compat: &CStr) -> bool {
+    pub fn ofw_bus_is_compatible(dev: Device, compat: &CStr) -> bool {
         let dev_ptr = dev.as_ptr();
         let compat_ptr = compat.as_ptr();
         let res = unsafe { bindings::ofw_bus_is_compatible(dev_ptr, compat_ptr) };
@@ -106,7 +118,7 @@ pub mod wrappers {
     }
 
     pub fn ofw_bus_search_compatible<T, S, const N: usize>(
-        dev: &Device,
+        dev: Device,
         compat: &OfwCompatData<T, N>,
     ) -> Result<&'static T> {
         let dev_ptr = dev.as_ptr();
@@ -132,14 +144,14 @@ pub mod wrappers {
         found.ok_or(ENULLPTR)
     }
 
-    pub fn ofw_bus_get_node(dev: &Device) -> Node {
+    pub fn ofw_bus_get_node(dev: Device) -> Node {
         let dev_ptr = dev.as_ptr();
         let node = unsafe { bindings::rust_bindings_ofw_bus_get_node(dev_ptr) };
         Node(node)
     }
 
     // TODO: this will break if OF_device_register_xref ever changes to return non-zero
-    pub fn OF_device_register_xref(dev: &mut Device, xref: XRef) {
+    pub fn OF_device_register_xref(dev: Device, xref: XRef) {
         let dev_ptr = dev.as_ptr();
         unsafe {
             bindings::OF_device_register_xref(xref.0, dev_ptr);
