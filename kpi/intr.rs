@@ -85,7 +85,7 @@ impl<T> SubClass<IrqSrc, T> {
     }
 }
 
-pub trait PicIf: DriverIf {
+pub trait PicIf {
     type Irq;
 
     fn pic_setup_intr(

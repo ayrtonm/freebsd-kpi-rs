@@ -26,15 +26,10 @@
  * SUCH DAMAGE.
  */
 
+use crate::bindings::{_device, kobj_method_t, kobjop_desc};
 use crate::prelude::*;
-use crate::bindings::{_device, kobj_class, kobj_method_t, kobjop_desc};
-use core::cell::UnsafeCell;
-use core::any::{type_name, TypeId};
-use core::mem::{size_of, offset_of};
 use core::ffi::{c_int, CStr};
-use core::marker::PhantomData;
-use core::ops::{Deref, DerefMut};
-use core::ptr::{null_mut, drop_in_place};
+use core::ptr::null_mut;
 
 enum_c_macros! {
     #[repr(i32)]
@@ -66,7 +61,6 @@ impl AsCType<c_int> for SoftcInit {
     }
 }
 
-
 impl AsRustType<Device> for *mut _device {
     fn as_rust_type(self) -> Device {
         Device::new(self)
@@ -79,28 +73,22 @@ pub struct DeviceMethod(kobj_method_t);
 
 impl DeviceMethod {
     pub const fn new(desc: *mut kobjop_desc, func: *const ()) -> Self {
-        Self(
-            kobj_method_t {
-                desc,
-                func: Some(unsafe { core::mem::transmute(func) }),
-            }
-        )
+        Self(kobj_method_t {
+            desc,
+            func: Some(unsafe { core::mem::transmute(func) }),
+        })
     }
     pub const fn null() -> Self {
-        Self(
-            kobj_method_t {
-                desc: null_mut(),
-                func: None,
-            }
-        )
+        Self(kobj_method_t {
+            desc: null_mut(),
+            func: None,
+        })
     }
 }
 
 unsafe impl Sync for DeviceMethod {}
 
-pub trait DriverIf: Sized {
-    type Softc: Sync = ();
-
+pub trait HasSoftc: DeviceIf {
     fn init_softc(&self, dev: Device, sc: Self::Softc) -> SoftcInit {
         assert!(self as *const Self as *const bindings::driver_t == dev.driver);
         let dev_ptr = dev.as_ptr();
@@ -125,6 +113,16 @@ pub trait DriverIf: Sized {
         let sc_ptr = sc_void_ptr.cast::<Self::Softc>();
         sc_ptr
     }
+}
+
+impl<T: DeviceIf> HasSoftc for T {}
+
+pub trait DeviceIf {
+    type Softc: Sync;
+
+    fn device_probe(&self, dev: Device) -> Result<BusProbe>;
+    fn device_attach(&self, dev: Device) -> Result<SoftcInit>;
+    fn device_detach(&self, dev: Device) -> Result<()>;
 }
 
 pub mod wrappers {

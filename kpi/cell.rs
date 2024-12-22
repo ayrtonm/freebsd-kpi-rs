@@ -26,12 +26,10 @@
  * SUCH DAMAGE.
  */
 
-use crate::prelude::*;
 use core::mem::{offset_of, MaybeUninit};
 use core::ops::{Deref, DerefMut, Drop};
 use core::sync::atomic::{AtomicU32, Ordering};
 use core::cell::UnsafeCell;
-use core::marker::PhantomData;
 
 #[derive(Debug)]
 struct BorrowState(AtomicU32);

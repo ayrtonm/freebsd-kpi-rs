@@ -28,9 +28,9 @@
 
 use crate::prelude::*;
 use crate::ErrCode;
-use core::ptr::null_mut;
 use core::ffi::{c_void, CStr};
 use core::ops::{Deref, DerefMut};
+use core::ptr::null_mut;
 
 // This is mostly a convenience struct to avoid silly mistakes. Since wakeup and tsleep should not
 // make accesses using the chan pointer, address stability does not need to be enforced by Sleepable
@@ -42,9 +42,7 @@ pub struct Sleepable<T> {
 
 impl<T> Sleepable<T> {
     pub fn new(t: T) -> Self {
-        Self {
-            t
-        }
+        Self { t }
     }
 
     pub fn tsleep_in_hz(&self, priority: i32, wmesg: &CStr, timo: i32) -> Result<()> {
@@ -54,7 +52,17 @@ impl<T> Sleepable<T> {
     pub fn tsleep(&self, priority: i32, wmesg: &CStr, timo: i32) -> Result<()> {
         let chan_ptr = &self.t as *const T as *const c_void;
         let wmesg_ptr = wmesg.as_ptr();
-        let res = unsafe { bindings::_sleep(chan_ptr, null_mut(), priority, wmesg_ptr, bindings::tick_sbt * timo as i64, 0, bindings::C_HARDCLOCK) };
+        let res = unsafe {
+            bindings::_sleep(
+                chan_ptr,
+                null_mut(),
+                priority,
+                wmesg_ptr,
+                bindings::tick_sbt * timo as i64,
+                0,
+                bindings::C_HARDCLOCK,
+            )
+        };
         if res != 0 {
             return Err(ErrCode::from(res));
         }
@@ -63,9 +71,7 @@ impl<T> Sleepable<T> {
 
     pub fn wakeup(&self) {
         let chan_ptr = &self.t as *const T as *const c_void;
-        unsafe {
-            bindings::wakeup(chan_ptr)
-        }
+        unsafe { bindings::wakeup(chan_ptr) }
     }
 }
 

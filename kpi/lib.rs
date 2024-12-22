@@ -92,7 +92,7 @@ pub mod prelude {
     pub use crate::device::wrappers::*;
     pub use crate::ofw::wrappers::*;
 
-    pub use crate::device::DriverIf;
+    pub use crate::device::{HasSoftc, DeviceIf};
     pub use crate::bus::BusIfWrappers;
 
     // These are implemented widely throughout the KPI crate
@@ -113,40 +113,40 @@ macro_rules! count {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! export_function {
-    ($cdriver:ident device_probe $impl:ident) => {
+    ($cdriver:ident $impl:ident device_probe) => {
         $crate::export_function! {
-            $cdriver device_probe
-            int $impl(device_t dev)
+            $cdriver $impl
+            int device_probe(device_t dev)
             result is $crate::device::BusProbe
         }
     };
-    ($cdriver:ident device_attach $impl:ident) => {
+    ($cdriver:ident $impl:ident device_attach) => {
         $crate::export_function! {
-            $cdriver device_attach
-            int $impl(device_t dev)
+            $cdriver $impl
+            int device_attach(device_t dev)
             result is $crate::device::SoftcInit
         }
     };
-    ($cdriver:ident device_detach $impl:ident) => {
+    ($cdriver:ident $impl:ident device_detach) => {
         $crate::export_function! {
-            $cdriver device_detach
-            int $impl(device_t dev)
+            $cdriver $impl
+            int device_detach(device_t dev)
             with drop glue {
-                use $crate::device::DriverIf;
+                use $crate::device::HasSoftc;
                 let sc = $cdriver.get_softc_as_mut(dev);
                 unsafe { core::ptr::drop_in_place(sc) }
             }
         }
     };
     (
-        $cdriver:ident $fn_decl:ident
+        $cdriver:ident $impl:ident
         void $fn_name:ident($($arg:ident $arg_name:ident$(,)?)*)
         $(with drop glue { $($drop_glue:tt)* })?
     ) => {
         #[no_mangle]
-        pub unsafe extern "C" fn $fn_name($($arg_name: $arg,)*) {
+        pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) {
             // Checks that this extern "C" function matches the declaration in bindings.h
-            const _TYPES_MATCH: unsafe extern "C" fn($($arg,)*) = $crate::bindings::$fn_decl;
+            const _TYPES_MATCH: unsafe extern "C" fn($($arg,)*) = $crate::bindings::$fn_name;
 
             // Convert all arguments from C types to rust types
             $(let mut $arg_name = $arg_name.as_rust_type();)*
@@ -159,15 +159,15 @@ macro_rules! export_function {
         }
     };
     (
-        $cdriver:ident $fn_decl:ident
+        $cdriver:ident $impl:ident
         $ret:ident $fn_name:ident($($arg:ident $arg_name:ident$(,)?)*)
         $(with drop glue { $($drop_glue:tt)* })?
         $(result is $ret_as_rust_ty:ty)?
     ) => {
         #[no_mangle]
-        pub unsafe extern "C" fn $fn_name($($arg_name: $arg,)*) -> $ret {
+        pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) -> $ret {
             // Checks that this extern "C" function matches the declaration in bindings.h
-            const _TYPES_MATCH: unsafe extern "C" fn($($arg,)*) -> $ret = $crate::bindings::$fn_decl;
+            const _TYPES_MATCH: unsafe extern "C" fn($($arg,)*) -> $ret = $crate::bindings::$fn_name;
 
             // Convert all arguments from C types to rust types
             $(let mut $arg_name = $arg_name.as_rust_type();)*
@@ -209,7 +209,7 @@ macro_rules! driver {
                 name: $cname.as_ptr(),
                 methods: core::ptr::addr_of!($methods).cast(),
                 // TODO: ensure alignment of softc memory supports Softc
-                size: core::mem::size_of::<<$driver as DriverIf>::Softc>(),
+                size: core::mem::size_of::<<$driver as DeviceIf>::Softc>(),
                 baseclasses: core::ptr::null_mut(),
                 refs: 0,
                 ops: core::ptr::null_mut(),
@@ -235,8 +235,9 @@ macro_rules! driver {
             use super::{$cdriver, $driver};
             use $crate::bindings::*;
             use $crate::{AsRustType, AsCType};
+            use $crate::device::DeviceIf;
             use $crate::export_function;
-            $(export_function!($cdriver $if_fn $impl);)*
+            $(export_function!($cdriver $impl $if_fn);)*
             $($(export_function!($cdriver $fn_name $ret $fn_name($($arg $arg_name,)*));)*)*
         }
     };

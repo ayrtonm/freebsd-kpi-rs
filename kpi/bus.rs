@@ -72,6 +72,8 @@ pub struct Resource {
     claimed_windows: Vec<Window>,
 }
 
+unsafe impl Sync for Resource {}
+
 #[derive(Debug)]
 struct Window {
     start: bus_size_t,
@@ -98,7 +100,7 @@ impl ResourceSpec {
 
 fn bus_setup_intr_internal(
     dev: Device,
-    irq: &mut Resource,
+    irq: &Resource,
     flags: u32,
     filter: RawFilterFn,
     handler: RawHandler,
@@ -125,13 +127,13 @@ fn bus_setup_intr_internal(
     }
 }
 
-impl<D: DriverIf> BusIfWrappers for D {}
+impl<D: HasSoftc> BusIfWrappers for D {}
 
-pub trait BusIfWrappers: DriverIf {
+pub trait BusIfWrappers: HasSoftc {
     fn bus_setup_intr(
         &self,
         dev: Device,
-        irq: &mut Resource,
+        irq: &Resource,
         flags: u32,
         filter: FilterFn<Self::Softc>,
         handler: Handler<Self::Softc>,

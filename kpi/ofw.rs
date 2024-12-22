@@ -30,9 +30,7 @@ use crate::prelude::*;
 use crate::ErrCode;
 use crate::bindings::{ofw_compat_data, phandle_t};
 use crate::device::Device;
-use core::cell::LazyCell;
 use core::ffi::{c_int, CStr, c_char};
-use core::marker::PhantomData;
 use core::mem::{size_of, MaybeUninit, align_of, offset_of};
 use core::ptr::null;
 
