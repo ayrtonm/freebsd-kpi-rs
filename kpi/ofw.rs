@@ -26,9 +26,10 @@
  * SUCH DAMAGE.
  */
 
+use crate::prelude::*;
+use crate::ErrCode;
 use crate::bindings::{ofw_compat_data, phandle_t};
 use crate::device::Device;
-use crate::kpi_prelude::*;
 use core::cell::LazyCell;
 use core::ffi::{c_int, CStr, c_char};
 use core::marker::PhantomData;
@@ -102,6 +103,7 @@ impl AsRustType<Node> for phandle_t {
     }
 }
 
+#[allow(non_snake_case)]
 pub mod wrappers {
     use super::*;
 

@@ -26,8 +26,8 @@
  * SUCH DAMAGE.
  */
 
+use crate::prelude::*;
 use crate::bindings::{_device, kobj_class, kobj_method_t, kobjop_desc};
-use crate::kpi_prelude::*;
 use core::cell::UnsafeCell;
 use core::any::{type_name, TypeId};
 use core::mem::{size_of, offset_of};
@@ -40,7 +40,7 @@ enum_c_macros! {
     #[repr(i32)]
     #[derive(Copy, Clone, Debug)]
     #[allow(nonstandard_style)]
-    pub enum ProbeRes {
+    pub enum BusProbe {
         BUS_PROBE_SPECIFIC,
         BUS_PROBE_VENDOR,
         BUS_PROBE_DEFAULT,
@@ -52,15 +52,15 @@ enum_c_macros! {
 }
 
 #[derive(Debug)]
-pub struct AttachRes(());
+pub struct SoftcInit(());
 
-impl AsCType<c_int> for ProbeRes {
+impl AsCType<c_int> for BusProbe {
     fn as_c_type(self) -> c_int {
         self as c_int
     }
 }
 
-impl AsCType<c_int> for AttachRes {
+impl AsCType<c_int> for SoftcInit {
     fn as_c_type(self) -> c_int {
         0
     }
@@ -101,13 +101,13 @@ unsafe impl Sync for DeviceMethod {}
 pub trait DriverIf: Sized {
     type Softc: Sync = ();
 
-    fn init_softc(&self, dev: Device, sc: Self::Softc) -> AttachRes {
+    fn init_softc(&self, dev: Device, sc: Self::Softc) -> SoftcInit {
         assert!(self as *const Self as *const bindings::driver_t == dev.driver);
         let dev_ptr = dev.as_ptr();
         let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
         let sc_ptr = sc_void_ptr.cast::<Self::Softc>();
         unsafe { *sc_ptr = sc };
-        AttachRes(())
+        SoftcInit(())
     }
 
     fn get_softc(&self, dev: Device) -> &Self::Softc {
@@ -172,8 +172,7 @@ impl Device {
         let driver = unsafe { bindings::device_get_driver(dev) };
         Self { dev, driver }
     }
-}
-impl Device {
+
     pub fn as_ptr(&self) -> *mut _device {
         self.dev
     }

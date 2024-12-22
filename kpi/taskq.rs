@@ -26,8 +26,9 @@
  * SUCH DAMAGE.
  */
 
+use crate::prelude::*;
 use crate::bindings::{task, taskqueue};
-use crate::kpi_prelude::*;
+use crate::cell::SubClass;
 use core::ffi::{c_int, c_void};
 use core::mem::transmute;
 

@@ -26,8 +26,9 @@
  * SUCH DAMAGE.
  */
 
+use crate::prelude::*;
+use crate::ErrCode;
 use core::ptr::null_mut;
-use crate::kpi_prelude::*;
 use core::ffi::{c_void, CStr};
 use core::ops::{Deref, DerefMut};
 

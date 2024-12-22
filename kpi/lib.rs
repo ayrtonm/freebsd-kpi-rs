@@ -35,11 +35,9 @@ extern crate alloc;
 #[macro_use]
 mod macros;
 
-#[macro_use]
-pub mod bindings;
-
 pub mod allocator;
 pub mod arm64;
+pub mod bindings;
 pub mod bus;
 pub mod cell;
 pub mod device;
@@ -51,13 +49,57 @@ pub mod sync;
 pub mod taskq;
 pub mod tty;
 
-use crate::kpi_prelude::*;
-use alloc::collections::TryReserveError;
-use core::ffi::c_int;
-use core::fmt;
-use core::fmt::{Debug, Formatter};
-use core::mem::MaybeUninit;
+use crate::allocator::KernelAllocator;
 
+pub type Result<T> = core::result::Result<T, ErrCode>;
+// Making `A = KernelAllocator` a param gives nicer errors than just aliasing to
+// `Box<T, KernelAllocator>` when the global allocator is used in unexpected places
+pub type Box<T, A = KernelAllocator> = alloc::boxed::Box<T, A>;
+
+pub trait AsCType<T> {
+    fn as_c_type(self) -> T;
+}
+
+pub trait AsRustType<T> {
+    fn as_rust_type(self) -> T;
+}
+
+impl<T> AsRustType<T> for T {
+    fn as_rust_type(self) -> T {
+        self
+    }
+}
+
+pub mod prelude {
+    pub use crate::{Box, Result};
+    pub use crate::bindings;
+    pub use crate::{print, println, dprint, dprintln};
+    pub use crate::{pcpu_get, pcpu_ptr, curthread, read_reg, write_reg};
+    pub use crate::allocator::{WAITOK, NOWAIT};
+
+    // Error code macros
+    pub use crate::err_codes::*;
+    // SYS_RES_* macros
+    pub use crate::bus::SysRes::*;
+    // BUS_PROBE_* macros
+    pub use crate::device::BusProbe::*;
+    // INTR_ROOT_* macros
+    pub use crate::intr::IntrRoot::*;
+    // FILTER_* macros
+    pub use crate::intr::Filter::*;
+
+    pub use crate::bus::wrappers::*;
+    pub use crate::device::wrappers::*;
+    pub use crate::ofw::wrappers::*;
+
+    pub use crate::device::DriverIf;
+    pub use crate::bus::BusIfWrappers;
+
+    // These are implemented widely throughout the KPI crate
+    pub use crate::{AsRustType, AsCType};
+}
+
+#[doc(hidden)]
 #[macro_export]
 macro_rules! count {
     ($x:ident) => {
@@ -68,22 +110,28 @@ macro_rules! count {
     };
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! export_function {
     ($cdriver:ident device_probe $impl:ident) => {
         $crate::export_function! {
-            $cdriver int $impl(device_t dev)
+            $cdriver device_probe
+            int $impl(device_t dev)
+            result is $crate::device::BusProbe
         }
     };
     ($cdriver:ident device_attach $impl:ident) => {
         $crate::export_function! {
-            $cdriver int $impl(device_t dev)
+            $cdriver device_attach
+            int $impl(device_t dev)
+            result is $crate::device::SoftcInit
         }
     };
     ($cdriver:ident device_detach $impl:ident) => {
         $crate::export_function! {
-            $cdriver int $impl(device_t dev)
-            {
+            $cdriver device_detach
+            int $impl(device_t dev)
+            with drop glue {
                 use $crate::device::DriverIf;
                 let sc = $cdriver.get_softc_as_mut(dev);
                 unsafe { core::ptr::drop_in_place(sc) }
@@ -91,17 +139,46 @@ macro_rules! export_function {
         }
     };
     (
-    $cdriver:ident
-    $ret:ident $fn_name:ident($($arg:ident $arg_name:ident$(,)?)*)
-    $({ $($drop_glue:tt)* })?
+        $cdriver:ident $fn_decl:ident
+        void $fn_name:ident($($arg:ident $arg_name:ident$(,)?)*)
+        $(with drop glue { $($drop_glue:tt)* })?
     ) => {
-        // TODO: type check
-        //const _TYPE_CHECK: unsafe extern "C" fn($($arg,)*) -> $ret = $crate::bindings::$fn_name;
+        #[no_mangle]
+        pub unsafe extern "C" fn $fn_name($($arg_name: $arg,)*) {
+            // Checks that this extern "C" function matches the declaration in bindings.h
+            const _TYPES_MATCH: unsafe extern "C" fn($($arg,)*) = $crate::bindings::$fn_decl;
+
+            // Convert all arguments from C types to rust types
+            $(let mut $arg_name = $arg_name.as_rust_type();)*
+
+            // Call the rust implementation
+            $cdriver.$fn_name($($arg_name,)*);
+
+            // Call drop glue if any
+            $($($drop_glue)*)*;
+        }
+    };
+    (
+        $cdriver:ident $fn_decl:ident
+        $ret:ident $fn_name:ident($($arg:ident $arg_name:ident$(,)?)*)
+        $(with drop glue { $($drop_glue:tt)* })?
+        $(result is $ret_as_rust_ty:ty)?
+    ) => {
         #[no_mangle]
         pub unsafe extern "C" fn $fn_name($($arg_name: $arg,)*) -> $ret {
+            // Checks that this extern "C" function matches the declaration in bindings.h
+            const _TYPES_MATCH: unsafe extern "C" fn($($arg,)*) -> $ret = $crate::bindings::$fn_decl;
+
+            // Convert all arguments from C types to rust types
             $(let mut $arg_name = $arg_name.as_rust_type();)*
-            let res = $cdriver.$fn_name($($arg_name,)*);
+
+            // Call the rust implementation, coercing to the result type if specified
+            let res$(: $crate::Result<$ret_as_rust_ty>)* = $cdriver.$fn_name($($arg_name,)*);
+
+            // Call drop glue if any
             $($($drop_glue)*)*;
+
+            // Convert return value from rust type to a C type
             match res {
                 Ok(r) => r.as_c_type(),
                 Err(e) => e.as_c_type(),
@@ -110,23 +187,14 @@ macro_rules! export_function {
     };
 }
 
-// this only needs to define the two statics in the consumer (driver) crate. Driver is also good to
-// define in the consumer to avoid orphan rule issues around implementing the interface traits i.e.
-// impl Driver for DeviceIf
 #[macro_export]
 macro_rules! driver {
-    //(@device_detach) => {
-    //    compile_error!("needs special glue")
-    //};
     ($cdriver:ident, $cname:expr, $driver:ident, $methods:ident,
         $($if_fn:ident $impl:ident,)*
-        $(
-        {
+        $({
             $($ret:ident $fn_name:ident($($arg:ident $arg_name:ident$(,)?)*);)*
-        }
-        )?
+        })?
     ) => {
-        // Using this macro pulls in KPI prelude for convenience
         use $crate::prelude::*;
 
         // These structs are not defined in the KPI crate to allow inherent impls in drivers
@@ -162,84 +230,24 @@ macro_rules! driver {
             $crate::device::DeviceMethod::null(),
         ];
 
+        // Create a module to glob import bindings and allow C types in function declaration
         mod $cdriver {
             use super::{$cdriver, $driver};
             use $crate::bindings::*;
             use $crate::{AsRustType, AsCType};
             use $crate::export_function;
             $(export_function!($cdriver $if_fn $impl);)*
-
-            $(
-                $(
-                    #[no_mangle]
-                    unsafe extern "C" fn $fn_name($($arg_name: $arg,)*) -> $ret {
-
-                        const _TYPE_CHECK: unsafe extern "C" fn($($arg,)*) -> $ret = $crate::bindings::$fn_name;
-
-                        $(let mut $arg_name = $arg_name.as_rust_type();)*
-                        let res = $cdriver.$fn_name($($arg_name,)*);
-                        match res {
-                            Ok(r) => r.as_c_type(),
-                            Err(e) => e.as_c_type(),
-                        }
-                    }
-                )*
-            )*
+            $($(export_function!($cdriver $fn_name $ret $fn_name($($arg $arg_name,)*));)*)*
         }
     };
 }
 
-pub type Result<T> = core::result::Result<T, ErrCode>;
-// Making `A = KernelAllocator` a param gives nicer errors than just aliasing to
-// `Box<T, KernelAllocator>` when the global allocator is used in unexpected places
-pub type Box<T, A = KernelAllocator> = alloc::boxed::Box<T, A>;
-
-pub trait AsCType<T> {
-    fn as_c_type(self) -> T;
-}
-
-pub trait AsRustType<T> {
-    fn as_rust_type(self) -> T;
-}
-
-impl<T> AsRustType<T> for T {
-    fn as_rust_type(self) -> T { self }
-}
-
-// Internal prelude module for commonly used imports in the KPI crate
-mod kpi_prelude {
-    pub use crate::allocator::KernelAllocator;
-    pub use crate::bindings;
-    pub use crate::cell::{FFICell, SubClass, UniqueCell};
-    pub use crate::err_codes::*;
-    pub use crate::println;
-    pub use crate::{AsCType, AsRustType, Box, ErrCode, Result};
-
-    pub use crate::bus::BusIfWrappers;
-    pub use crate::device::{DriverIf};
-    pub use crate::sync::{Mutex, SpinLock};
-}
-
-pub mod prelude {
-    pub use crate::kpi_prelude::*;
-
-    pub use crate::allocator::{NOWAIT, WAITOK};
-    pub use crate::bus::wrappers::*;
-    pub use crate::bus::SysRes::*;
-    pub use crate::device::wrappers::*;
-    pub use crate::device::AttachRes;
-    pub use crate::device::ProbeRes::*;
-    pub use crate::device::{Device};
-    pub use crate::intr::FilterRes::*;
-    pub use crate::intr::IntrRoot::*;
-    pub use crate::ofw::wrappers::*;
-    pub use crate::{dprint, dprintln, print, println};
-
-    pub use crate::sleep::Sleepable;
-}
-
 macro_rules! err_codes {
     ($($name:ident, $desc:literal,)+) => {
+        use alloc::collections::TryReserveError;
+        use core::ffi::c_int;
+        use core::fmt;
+        use core::fmt::{Debug, Formatter};
         use core::num::NonZeroI32;
 
         // This is effectively an extensible enum with some overlapping variants
@@ -296,7 +304,7 @@ macro_rules! err_codes {
             fn from(val: c_int) -> Self {
                 match val {
                     // Map KPI error code values to the respective enum variants
-                    $(bindings::$name => $name,)*
+                    $(bindings::$name => err_codes::$name,)*
                     // Map ENULLPTR to itself in case an error code gets round-tripped
                     i32::MIN => err_codes::ENULLPTR,
                     // Map anything else to EBADFFI

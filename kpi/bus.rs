@@ -26,10 +26,11 @@
  * SUCH DAMAGE.
  */
 
+use crate::prelude::*;
+use crate::ErrCode;
 use crate::bindings::{bus_size_t, resource, resource_spec, RF_ACTIVE};
 use crate::device::Device;
-use crate::intr::FilterRes;
-use crate::kpi_prelude::*;
+use crate::intr::Filter;
 use alloc::vec::Vec;
 use core::ffi::{c_int, c_void};
 use core::mem::transmute;
@@ -45,10 +46,10 @@ enum_c_macros! {
     }
 }
 
-type RawFilter = Option<unsafe extern "C" fn(*mut c_void) -> i32>;
+type RawFilterFn = Option<unsafe extern "C" fn(*mut c_void) -> i32>;
 type RawHandler = Option<unsafe extern "C" fn(*mut c_void)>;
 
-type Filter<T> = Option<extern "C" fn(&T) -> FilterRes>;
+type FilterFn<T> = Option<extern "C" fn(&T) -> Filter>;
 type Handler<T> = Option<extern "C" fn(&T)>;
 
 impl AsRustType<Resource> for *mut resource {
@@ -99,7 +100,7 @@ fn bus_setup_intr_internal(
     dev: Device,
     irq: &mut Resource,
     flags: u32,
-    filter: RawFilter,
+    filter: RawFilterFn,
     handler: RawHandler,
     arg: *mut c_void,
     intrhand: *mut *mut c_void,
@@ -132,7 +133,7 @@ pub trait BusIfWrappers: DriverIf {
         dev: Device,
         irq: &mut Resource,
         flags: u32,
-        filter: Filter<Self::Softc>,
+        filter: FilterFn<Self::Softc>,
         handler: Handler<Self::Softc>,
         intrhand: *mut *mut c_void,
     ) -> Result<()> {

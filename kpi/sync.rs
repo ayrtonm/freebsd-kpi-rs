@@ -26,8 +26,9 @@
  * SUCH DAMAGE.
  */
 
+use crate::prelude::*;
 use crate::bindings::{mtx, LO_INITIALIZED, MTX_DEF, MTX_SPIN};
-use crate::kpi_prelude::*;
+use crate::allocator::KernelAllocator;
 use core::cell::UnsafeCell;
 use core::ffi::CStr;
 use core::ops::{Deref, DerefMut};

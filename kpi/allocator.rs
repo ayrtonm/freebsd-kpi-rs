@@ -44,6 +44,7 @@ impl KernelAllocator {
     }
 }
 
+// TODO: Support malloc_type other than M_DEVBUF ergonomically
 #[global_allocator]
 pub static WAITOK: KernelAllocator = KernelAllocator {
     ty: addr_of_mut!(M_DEVBUF) as *mut malloc_type,

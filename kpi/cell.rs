@@ -26,7 +26,7 @@
  * SUCH DAMAGE.
  */
 
-use crate::kpi_prelude::*;
+use crate::prelude::*;
 use core::mem::{offset_of, MaybeUninit};
 use core::ops::{Deref, DerefMut, Drop};
 use core::sync::atomic::{AtomicU32, Ordering};
@@ -34,35 +34,112 @@ use core::cell::UnsafeCell;
 use core::marker::PhantomData;
 
 #[derive(Debug)]
-pub struct UniqueCell<T> {
-    t: UnsafeCell<T>,
+struct BorrowState(AtomicU32);
+
+impl BorrowState {
+    const AVAILABLE: u32 = 0;
+    const BORROWED: u32 = 1;
+    const MUTABLY_BORROWED: u32 = 2;
+
+    pub fn new() -> Self {
+        Self(AtomicU32::new(Self::AVAILABLE))
+    }
+
+    pub fn do_transition(&self, init: u32, end: u32) -> bool {
+        self.0.compare_exchange(init, end, Ordering::Acquire, Ordering::Relaxed).is_ok()
+    }
+
+    pub fn borrow(&self) {
+        if !self.do_transition(Self::AVAILABLE, Self::BORROWED) {
+            panic!("already borrowed");
+        }
+    }
+
+    pub fn borrow_mut(&self) {
+        if !self.do_transition(Self::AVAILABLE, Self::MUTABLY_BORROWED) {
+            panic!("already borrowed");
+        }
+    }
+
+    pub fn release(&self) {
+        self.0.store(Self::AVAILABLE, Ordering::Relaxed);
+    }
 }
 
-unsafe impl<T> Sync for UniqueCell<T> {}
+#[derive(Debug)]
+pub struct Mutable<T> {
+    t: UnsafeCell<T>,
+    state: BorrowState,
+}
 
-impl<T> UniqueCell<T> {
+unsafe impl<T> Sync for Mutable<T> {}
+
+impl<T> Mutable<T> {
     pub fn new(t: T) -> Self {
         Self {
             t: UnsafeCell::new(t),
+            state: BorrowState::new(),
         }
     }
 
-    pub const fn as_ptr(&self) -> *mut T {
-        self.t.get()
+    pub fn get(&self) -> Ref<'_, T> {
+        self.state.borrow();
+        Ref {
+            value: self.t.get(),
+            state: &self.state,
+        }
+    }
+
+    pub fn get_mut(&self) -> RefMut<'_, T> {
+        self.state.borrow_mut();
+        RefMut {
+            value: self.t.get(),
+            state: &self.state,
+        }
     }
 }
 
-impl<T> UniqueCell<T> {
-    pub fn get(&self) -> &T {
-        unsafe {
-            self.t.get().as_ref().unwrap()
-        }
+pub struct Ref<'b, T: 'b + ?Sized> {
+    value: *mut T,
+    state: &'b BorrowState,
+}
+
+pub struct RefMut<'b, T: 'b + ?Sized> {
+    value: *mut T,
+    state: &'b BorrowState,
+}
+
+impl<T: ?Sized> Deref for Ref<'_, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { self.value.as_ref().unwrap() }
     }
-    // TODO: This by itself is unsound so impl UniqueOwner must require that only a single instance
-    pub fn get_mut(&self) -> &mut T {
-        unsafe {
-            self.t.get().as_mut().unwrap()
-        }
+}
+
+impl<T: ?Sized> Drop for Ref<'_, T> {
+    fn drop(&mut self) {
+        self.state.release();
+    }
+}
+
+impl<T: ?Sized> Deref for RefMut<'_, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { self.value.as_ref().unwrap() }
+    }
+}
+
+impl<T: ?Sized> DerefMut for RefMut<'_, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { self.value.as_mut().unwrap() }
+    }
+}
+
+impl<T: ?Sized> Drop for RefMut<'_, T> {
+    fn drop(&mut self) {
+        self.state.release();
     }
 }
 

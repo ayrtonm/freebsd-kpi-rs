@@ -26,12 +26,14 @@
  * SUCH DAMAGE.
  */
 
+use crate::prelude::*;
 use crate::bindings::{
     intr_irqsrc, intr_map_data, intr_map_data_fdt, intr_pic, pcell_t, trapframe,
 };
+use crate::ErrCode;
 use crate::bus::Resource;
+use crate::cell::SubClass;
 use crate::device::Device;
-use crate::kpi_prelude::*;
 use crate::ofw::XRef;
 use core::ffi::{c_int, c_void, CStr};
 use core::mem::transmute;
@@ -50,7 +52,7 @@ enum_c_macros! {
     #[repr(i32)]
     #[derive(Copy, Clone, Debug)]
     #[allow(nonstandard_style)]
-    pub enum FilterRes {
+    pub enum Filter {
         FILTER_STRAY,
         FILTER_HANDLED,
         FILTER_SCHEDULE_THREAD,
@@ -199,14 +201,14 @@ impl Device {
     }
 }
 
-type RawFilter = unsafe extern "C" fn(*mut c_void) -> i32;
-type Filter<P> = extern "C" fn(P) -> FilterRes;
+type RawFilterFn = unsafe extern "C" fn(*mut c_void) -> i32;
+type FilterFn<P> = extern "C" fn(P) -> Filter;
 
 impl Pic {
     // TODO: Pin pointer
     pub fn claim_root<SC>(
         &mut self,
-        filter: Filter<*mut SC>,
+        filter: FilterFn<*mut SC>,
         arg: *mut SC,
         root: IntrRoot,
     ) -> Result<()> {
@@ -217,7 +219,7 @@ impl Pic {
 
     pub fn claim_root_internal(
         &mut self,
-        filter: RawFilter,
+        filter: RawFilterFn,
         arg: *mut c_void,
         root: IntrRoot,
     ) -> Result<()> {

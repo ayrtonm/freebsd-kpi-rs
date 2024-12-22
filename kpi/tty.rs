@@ -37,8 +37,8 @@ impl fmt::Write for TTY<'_> {
     fn write_str(&mut self, msg: &str) -> fmt::Result {
         let cmsg = CString::new(msg).unwrap();
         match &self.0 {
-            Some(dev_ptr) => unsafe {
-                bindings::device_printf(dev_ptr.as_ptr(), cmsg.as_c_str().as_ptr());
+            Some(dev) => unsafe {
+                bindings::device_printf(dev.as_ptr(), cmsg.as_c_str().as_ptr());
             },
             None => unsafe {
                 bindings::printf(cmsg.as_c_str().as_ptr());
