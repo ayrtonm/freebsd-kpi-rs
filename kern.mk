@@ -59,7 +59,7 @@ bindings.rs: $S/rust/bindings.c bindings.o
 
 # TODO: OUT_DIR env var used to include! bindings.rs in the idiomatic way. Maybe there's an existing
 # env var to anchor the path
-libkpi.rlib: ${KPI_CRATE_FILES} bindings.rs ${MFILES:T:S/.m$/.rs/g}
+libkpi.rlib: ${KPI_CRATE_FILES} bindings.rs ${MFILES:T:S/.m$/.h/g}
 	OUT_DIR=$(PWD) ${NORMAL_RS} $S/rust/kpi/lib.rs
 
 .for _rsf in ${RSFILES:N$S/rust/kpi/lib.rs}
