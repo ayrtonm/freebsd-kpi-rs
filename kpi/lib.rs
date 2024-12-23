@@ -27,7 +27,7 @@
  */
 
 #![no_std]
-#![feature(allocator_api, concat_idents, associated_type_defaults, negative_impls)]
+#![feature(allocator_api, concat_idents)]
 #![deny(improper_ctypes, unused_must_use, unreachable_patterns)]
 
 extern crate alloc;
@@ -91,6 +91,8 @@ pub mod prelude {
     pub use crate::bus::wrappers::*;
     pub use crate::device::wrappers::*;
     pub use crate::ofw::wrappers::*;
+    pub use crate::taskq::wrappers::*;
+    pub use crate::sleep::wrappers::*;
 
     pub use crate::device::{HasSoftc, DeviceIf};
     pub use crate::bus::BusIfWrappers;

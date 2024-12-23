@@ -44,13 +44,27 @@ impl<T> Sleepable<T> {
     pub fn new(t: T) -> Self {
         Self { t }
     }
+}
 
-    pub fn tsleep_in_hz(&self, priority: i32, wmesg: &CStr, timo: i32) -> Result<()> {
-        self.tsleep(priority, wmesg, timo * unsafe { bindings::hz })
+impl<T> Deref for Sleepable<T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        &self.t
     }
+}
 
-    pub fn tsleep(&self, priority: i32, wmesg: &CStr, timo: i32) -> Result<()> {
-        let chan_ptr = &self.t as *const T as *const c_void;
+impl<T> DerefMut for Sleepable<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.t
+    }
+}
+
+pub mod wrappers {
+    use super::*;
+
+    pub fn tsleep<T>(chan: &Sleepable<T>, priority: i32, wmesg: &CStr, timo: i32) -> Result<()> {
+        let chan_ptr = &chan.t as *const T as *const c_void;
         let wmesg_ptr = wmesg.as_ptr();
         let res = unsafe {
             bindings::_sleep(
@@ -69,22 +83,8 @@ impl<T> Sleepable<T> {
         Ok(())
     }
 
-    pub fn wakeup(&self) {
-        let chan_ptr = &self.t as *const T as *const c_void;
+    pub fn wakeup<T>(chan: &Sleepable<T>) {
+        let chan_ptr = &chan.t as *const T as *const c_void;
         unsafe { bindings::wakeup(chan_ptr) }
-    }
-}
-
-impl<T> Deref for Sleepable<T> {
-    type Target = T;
-
-    fn deref(&self) -> &T {
-        &self.t
-    }
-}
-
-impl<T> DerefMut for Sleepable<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.t
     }
 }

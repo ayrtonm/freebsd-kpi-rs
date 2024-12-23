@@ -162,6 +162,7 @@ pub struct Device {
 }
 
 unsafe impl Sync for Device {}
+unsafe impl Send for Device {}
 
 impl Device {
     pub fn new(dev: *mut _device) -> Self {

@@ -38,33 +38,40 @@ pub type Task<T> = SubClass<task, T>;
 pub struct Taskqueue(*mut taskqueue);
 
 // TODO: type check with task_fn_t modulo the unsafe/Option
-pub type TaskFn<T> = extern "C" fn(context: Task<T>, pending: c_int);
+pub type TaskFn<T> = extern "C" fn(context: Box<Task<T>>, pending: c_int);
 
-impl Taskqueue {
-    pub fn thread() -> Self {
-        // Needs unsafe since bindgen generates a static mut but the pointer shouldn't change after
-        // initialization
-        let ptr = unsafe { bindings::taskqueue_thread };
-        Self(ptr)
-    }
-}
-
-impl<T> Task<T> {
-    pub fn enqueue(self: Box<Self>, callback: TaskFn<T>, queue: Taskqueue) -> (Result<()>, Option<Box<Self>>) {
+impl<T: 'static + Send> Task<T> {
+    pub fn init(&mut self, callback: TaskFn<T>) {
         let callback = unsafe { transmute(callback) };
         let task_ptr = SubClass::get_base_ptr(&self);
         unsafe {
             (*task_ptr).ta_func = Some(callback);
+        }
+    }
+}
+pub mod wrappers {
+    use super::*;
+
+    pub fn taskqueue_thread() -> Taskqueue {
+        // Needs unsafe since bindgen generates a static mut but the pointer shouldn't change after
+        // initialization
+        let ptr = unsafe { bindings::taskqueue_thread };
+        Taskqueue(ptr)
+    }
+
+    pub fn taskqueue_enqueue<T: 'static + Send>(queue: Taskqueue, task: Box<Task<T>>) -> Result<()> {
+        let task_ptr = SubClass::get_base_ptr(&task);
+        unsafe {
             (*task_ptr).ta_context = task_ptr as *mut c_void;
         }
         let res = unsafe { bindings::taskqueue_enqueue(queue.0, task_ptr) };
         if res != 0 {
             // If we could not enqueue the task return ownership of self to the callee
-            return (Err(ErrCode::from(res)), Some(self));
+            return Err(ErrCode::from(res));
         }
         // If we enqueued the task and context skip running self's destructor at the end of this function
         // The destructor will instead run at the end of the enqueued task's callback
-        forget(self);
-        (Ok(()), None)
+        forget(task);
+        Ok(())
     }
 }
