@@ -75,7 +75,6 @@ pub mod prelude {
     pub use crate::bindings;
     pub use crate::{print, println, dprint, dprintln};
     pub use crate::{pcpu_get, pcpu_ptr, curthread, read_reg, write_reg};
-    pub use crate::allocator::{WAITOK, NOWAIT};
 
     // Error code macros
     pub use crate::err_codes::*;
@@ -87,6 +86,8 @@ pub mod prelude {
     pub use crate::intr::IntrRoot::*;
     // FILTER_* macros
     pub use crate::intr::Filter::*;
+    // M_* macros
+    pub use crate::allocator::wrappers::*;
 
     pub use crate::bus::wrappers::*;
     pub use crate::device::wrappers::*;

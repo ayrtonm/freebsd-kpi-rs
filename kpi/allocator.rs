@@ -27,10 +27,61 @@
  */
 
 use crate::bindings;
-use crate::bindings::{malloc_type, M_DEVBUF, M_NOWAIT, M_WAITOK, M_ZERO};
+use crate::bindings::{malloc_type};
 use core::alloc::{AllocError, Allocator, GlobalAlloc, Layout};
 use core::ffi::c_int;
 use core::ptr::{addr_of_mut, NonNull};
+use core::ops::BitOr;
+
+#[derive(Copy, Clone, Debug)]
+pub struct MallocFlags(c_int);
+
+#[derive(Copy, Clone, Debug)]
+pub struct MallocType(*mut malloc_type);
+
+unsafe impl Sync for MallocType {}
+
+pub mod wrappers {
+    use super::*;
+
+    pub static M_ZERO: MallocFlags = MallocFlags(bindings::M_ZERO);
+    pub static M_NODUMP: MallocFlags = MallocFlags(bindings::M_NODUMP);
+    pub static M_NOWAIT: MallocFlags = MallocFlags(bindings::M_NOWAIT);
+    pub static M_WAITOK: MallocFlags = MallocFlags(bindings::M_WAITOK);
+    pub static M_USE_RESERVE: MallocFlags = MallocFlags(bindings::M_USE_RESERVE);
+
+    pub static M_DEVBUF: MallocType = MallocType(&raw mut bindings::M_DEVBUF as *mut malloc_type);
+}
+
+impl BitOr<MallocFlags> for MallocFlags {
+    type Output = MallocFlags;
+
+    fn bitor(self, rhs: MallocFlags) -> MallocFlags {
+        Self(self.0 | rhs.0)
+    }
+}
+
+impl BitOr<MallocType> for MallocFlags {
+    type Output = KernelAllocator;
+
+    fn bitor(self, rhs: MallocType) -> KernelAllocator {
+        KernelAllocator {
+            ty: rhs.0,
+            flags: self.0,
+        }
+    }
+}
+
+impl BitOr<MallocFlags> for MallocType {
+    type Output = KernelAllocator;
+
+    fn bitor(self, rhs: MallocFlags) -> KernelAllocator {
+        KernelAllocator {
+            ty: self.0,
+            flags: rhs.0,
+        }
+    }
+}
 
 #[derive(Debug, Copy, Clone)]
 pub struct KernelAllocator {
@@ -44,16 +95,10 @@ impl KernelAllocator {
     }
 }
 
-// TODO: Support malloc_type other than M_DEVBUF ergonomically
 #[global_allocator]
-pub static WAITOK: KernelAllocator = KernelAllocator {
-    ty: addr_of_mut!(M_DEVBUF) as *mut malloc_type,
-    flags: M_WAITOK,
-};
-
-pub static NOWAIT: KernelAllocator = KernelAllocator {
-    ty: addr_of_mut!(M_DEVBUF) as *mut malloc_type,
-    flags: M_NOWAIT,
+static DEFAULT_ALLOCATOR: KernelAllocator = KernelAllocator {
+    ty: &raw mut bindings::M_DEVBUF as *mut malloc_type,
+    flags: bindings::M_NOWAIT,
 };
 
 unsafe impl Sync for KernelAllocator {}
@@ -66,7 +111,7 @@ unsafe impl GlobalAlloc for KernelAllocator {
         bindings::free(ptr.cast(), self.ty);
     }
     unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
-        self.malloc(layout, self.flags | M_ZERO)
+        self.malloc(layout, self.flags | bindings::M_ZERO)
     }
     unsafe fn realloc(&self, ptr: *mut u8, _layout: Layout, new_size: usize) -> *mut u8 {
         bindings::realloc(ptr.cast(), new_size, self.ty, self.flags).cast()
