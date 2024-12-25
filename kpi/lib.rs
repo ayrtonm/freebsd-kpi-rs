@@ -27,7 +27,7 @@
  */
 
 #![no_std]
-#![feature(allocator_api, concat_idents)]
+#![feature(allocator_api)]
 #![deny(improper_ctypes, unused_must_use, unreachable_patterns)]
 
 extern crate alloc;
@@ -111,6 +111,14 @@ macro_rules! count {
     ($x:ident $($y:ident)*) => {
         1 + $crate::count!($($y)*)
     };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! if_desc {
+    (device_probe) => { $crate::bindings::device_probe_desc };
+    (device_attach) => { $crate::bindings::device_attach_desc };
+    (device_detach) => { $crate::bindings::device_detach_desc };
 }
 
 #[doc(hidden)]
@@ -223,10 +231,7 @@ macro_rules! driver {
         static $methods: [$crate::device::DeviceMethod; $crate::count!($($impl)*) + 1] = [
             $(
                 {
-                    let desc = {
-                        use $crate::bindings::*;
-                        &raw mut concat_idents!($if_fn, _desc)
-                    };
+                    let desc = &raw mut $crate::if_desc!($if_fn);
                     $crate::device::DeviceMethod::new(desc, $cdriver::$impl as *const ())
                 },
             )*
