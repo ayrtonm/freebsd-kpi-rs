@@ -20,7 +20,7 @@ CRATES+= ${_rsf:T:S/.rs//}
 .endfor
 
 # TODO: Find a better way to handle multifile crates
-KPI_CRATE= lib.rs bus.rs cell.rs ofw.rs device.rs allocator.rs intr.rs arm64.rs macros.rs tty.rs sync.rs taskq.rs panic.rs sleep.rs
+KPI_CRATE= lib.rs bus.rs cell.rs ofw.rs device.rs malloc.rs boxed.rs intr.rs arm64.rs macros.rs tty.rs sync.rs taskq.rs panic.rs sleep.rs
 KPI_CRATE_FILES= ${KPI_CRATE:S/^/$S\/rust\/kpi\//g}
 
 # crate-independent build flags

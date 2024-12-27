@@ -27,20 +27,19 @@
  */
 
 #![no_std]
-#![feature(allocator_api)]
 #![deny(improper_ctypes, unused_must_use, unreachable_patterns)]
-
-extern crate alloc;
 
 #[macro_use]
 mod macros;
 
-pub mod allocator;
+pub mod malloc;
+pub mod boxed;
 pub mod arm64;
 pub mod bindings;
 pub mod bus;
 pub mod cell;
 pub mod device;
+pub mod ffi;
 pub mod intr;
 pub mod ofw;
 mod panic;
@@ -48,13 +47,10 @@ pub mod sleep;
 pub mod sync;
 pub mod taskq;
 pub mod tty;
-
-use crate::allocator::KernelAllocator;
+pub mod vec;
 
 pub type Result<T> = core::result::Result<T, ErrCode>;
-// Making `A = KernelAllocator` a param gives nicer errors than just aliasing to
-// `Box<T, KernelAllocator>` when the global allocator is used in unexpected places
-pub type Box<T, A = KernelAllocator> = alloc::boxed::Box<T, A>;
+pub type Box<T> = crate::boxed::Box<T>;
 
 pub trait AsCType<T> {
     fn as_c_type(self) -> T;
@@ -86,11 +82,11 @@ pub mod prelude {
     pub use crate::intr::IntrRoot::*;
     // FILTER_* macros
     pub use crate::intr::Filter::*;
-    // M_* macros
-    pub use crate::allocator::wrappers::*;
 
     pub use crate::bus::wrappers::*;
     pub use crate::device::wrappers::*;
+    // M_* macros
+    pub use crate::malloc::wrappers::*;
     pub use crate::ofw::wrappers::*;
     pub use crate::taskq::wrappers::*;
     pub use crate::sleep::wrappers::*;
@@ -253,7 +249,6 @@ macro_rules! driver {
 
 macro_rules! err_codes {
     ($($name:ident, $desc:literal,)+) => {
-        use alloc::collections::TryReserveError;
         use core::ffi::c_int;
         use core::fmt;
         use core::fmt::{Debug, Formatter};
@@ -319,13 +314,6 @@ macro_rules! err_codes {
                     // Map anything else to EBADFFI
                     _ => err_codes::EBADFFI,
                 }
-            }
-        }
-
-        impl From<TryReserveError> for ErrCode {
-            // TODO: this is a lossy conversion, maybe add a new rust error code?
-            fn from(_: TryReserveError) -> Self {
-                err_codes::ENOMEM
             }
         }
     };

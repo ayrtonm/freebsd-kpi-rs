@@ -31,7 +31,7 @@ use crate::ErrCode;
 use crate::bindings::{bus_size_t, resource, resource_spec, RF_ACTIVE};
 use crate::device::Device;
 use crate::intr::Filter;
-use alloc::vec::Vec;
+use crate::vec::Vec;
 use core::ffi::{c_int, c_void};
 use core::mem::transmute;
 use core::ptr::{addr_of_mut, null_mut};

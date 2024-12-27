@@ -28,7 +28,7 @@
 
 use crate::device::Device;
 use crate::bindings;
-use alloc::ffi::CString;
+use crate::ffi::CString;
 use core::fmt;
 
 pub struct TTY<'a>(pub Option<&'a Device>);

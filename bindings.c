@@ -10,7 +10,9 @@
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/param.h>
 #include <sys/proc.h>
+#include <sys/refcount.h>
 #include <sys/rman.h>
 #include <sys/smp.h>
 #include <sys/taskqueue.h>
