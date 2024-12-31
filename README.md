@@ -107,6 +107,9 @@ make -j8 buildkernel \
 	TARGET_ARCH=aarch64
 ```
 
+To build on a non-FreeBSD host the same environment variables with `src/tools/build/make.py` as
+described in this [wiki page](https://wiki.freebsd.org/BuildingOnNonFreeBSD).
+
 A successful build will produce `bindings.rs`, `libkpi.rlib`, `rustroot.rs` and `rustroot.a` in the
 same directory as the kernel. For each crate added as described below there will also be a
 `lib$CRATE_NAME.rlib` in the build directory. Rlibs are essentially static archives with additional
