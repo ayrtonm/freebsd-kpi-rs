@@ -74,9 +74,10 @@ impl<T, const SPINS: bool> Mutex<T, SPINS> {
         let inner = Box::new(zeroed_mtx, flags);
 
         let variant = if SPINS { MTX_SPIN } else { MTX_DEF };
+        // TODO: Casting inner_lock_ptr should not be necessary
         unsafe {
             let inner_lock_ptr = &raw mut (*inner.as_ptr()).mtx_lock;
-            bindings::_mtx_init(inner_lock_ptr, name_ptr, kind_ptr, variant);
+            bindings::_mtx_init(inner_lock_ptr.cast(), name_ptr, kind_ptr, variant);
         }
 
         Self {
@@ -90,11 +91,11 @@ impl<T, const SPINS: bool> Mutex<T, SPINS> {
         let inner_lock_ptr = unsafe { &raw mut (*self.inner.as_ptr()).mtx_lock };
         if SPINS {
             unsafe {
-                bindings::__mtx_lock_spin_flags(inner_lock_ptr, 0, c"".as_ptr(), 0);
+                bindings::__mtx_lock_spin_flags(inner_lock_ptr.cast(), 0, c"".as_ptr(), 0);
             }
         } else {
             unsafe {
-                bindings::__mtx_lock_flags(inner_lock_ptr, 0, c"".as_ptr(), 0);
+                bindings::__mtx_lock_flags(inner_lock_ptr.cast(), 0, c"".as_ptr(), 0);
             }
         }
         MutexGuard { lock: self }
@@ -106,11 +107,11 @@ impl<T, const SPINS: bool> MutexGuard<'_, T, SPINS> {
         let inner_lock_ptr = unsafe { &raw mut (*self.lock.inner.as_ptr()).mtx_lock };
         if SPINS {
             unsafe {
-                bindings::__mtx_unlock_spin_flags(inner_lock_ptr, 0, c"".as_ptr(), 0);
+                bindings::__mtx_unlock_spin_flags(inner_lock_ptr.cast(), 0, c"".as_ptr(), 0);
             }
         } else {
             unsafe {
-                bindings::__mtx_unlock_flags(inner_lock_ptr, 0, c"".as_ptr(), 0);
+                bindings::__mtx_unlock_flags(inner_lock_ptr.cast(), 0, c"".as_ptr(), 0);
             }
         }
     }
@@ -120,11 +121,11 @@ impl<T, const SPINS: bool> Drop for MutexGuard<'_, T, SPINS> {
         let inner_lock_ptr = unsafe { &raw mut (*self.lock.inner.as_ptr()).mtx_lock };
         if SPINS {
             unsafe {
-                bindings::__mtx_unlock_spin_flags(inner_lock_ptr, 0, c"".as_ptr(), 0);
+                bindings::__mtx_unlock_spin_flags(inner_lock_ptr.cast(), 0, c"".as_ptr(), 0);
             }
         } else {
             unsafe {
-                bindings::__mtx_unlock_flags(inner_lock_ptr, 0, c"".as_ptr(), 0);
+                bindings::__mtx_unlock_flags(inner_lock_ptr.cast(), 0, c"".as_ptr(), 0);
             }
         }
     }
