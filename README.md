@@ -3,12 +3,14 @@
 These are WIP bindings for writing FreeBSD kernel drivers in rust. They are intended for use with
 the latest version of FreeBSD and rust 2021 Edition. Note that since the FreeBSD KPI is a moving
 target this repository may be broken on the FreeBSD-src tip of tree. For a commit known to produce a
-working build see my [mk-rs branch](https://github.com/ayrtonm/freebsd-src/tree/mk-rs). For the
-latest use of the bindings see my [m2 branch](https://github.com/ayrtonm/freebsd-src/tree/m2). They
-are initially intended for [FreeBSD Tier 1 platforms](https://www.freebsd.org/platforms/) although
-currently only 64-bit ARM is supported and has been tested. The makefile in this repo also currently
-hardcodes ARM-specific things so the x86-64 instructions below assume that the kernel is being
-cross-compiled for ARM64.
+working build see my [mk-rs branch](https://github.com/ayrtonm/freebsd-src/tree/mk-rs).
+
+This repo is not ready for general developer use yet since it is currently missing a lot of
+functionality and proper documentation. It is primarily being used with my
+[m2 branch](https://github.com/ayrtonm/freebsd-src/tree/m2) and only tested on builtin drivers for
+Apple silicon. While the goal is to eventually support both FreeBSD Tier 1 platforms (ARM64 and
+x86-64), this repo's makefile currently hardcodes ARM-specific things so instructions below assume
+the kernel is being cross-compiled for ARM64.
 
 ## Installing rust and build tools
 
@@ -57,8 +59,12 @@ On Linux or MacOS after setting up rust run
 cargo install bindgen-cli
 ```
 
-Currently this repo is used with bindgen 0.71.1 though the exact version should not significantly
-affect the generated source code.
+### Tool versions
+
+Currently this repo is used with rustc 1.83 and bindgen 0.71.1. Since this repo's KPI crate does not
+use unstable features it does not require nightly rustc and should build with any rust compiler
+which supports Edition 2021.  Bindgen generates a .rs file from C headers and the exact version
+should not significantly affect the machine code that .rs file compiles down to.
 
 ## Patch FreeBSD src build system
 
@@ -82,6 +88,27 @@ compiler_builtins rlib. Ideally it should be added to avoid pitfalls with symbol
 C object file and the static archive. In practical terms this means that currently if C code defines
 a non-static global variable or function and an identically named variable in rust has the
 `#[no_mangle]` attribute, the rust definition will be silently dropped when linking the kernel.
+
+## Test the build
+
+After patching the build system the kernel can be built by defining environment variables pointing
+to `rustc`, `bindgen` and `rustfmt` and passing `buildkernel` to `make`.
+
+```
+RUSTC=`which rustc` \
+RUSTFMT=`which rustfmt` \
+BINDGEN=`which bindgen` \
+make -j8 buildkernel \
+	KERNCONF=GENERIC \
+	TARGET=arm64 \
+	TARGET_ARCH=aarch64
+```
+
+A successful build will produce `bindings.rs`, `libkpi.rlib`, `rustroot.rs` and `rustroot.a` in the
+same directory as the kernel. For each crate added as described below there will also be a
+`lib$CRATE_NAME.rlib` in the build directory. Rlibs are essentially static archives with additional
+rust-specific metadata. This means that tools like readelf/objdump/nm will work as usual. To
+demangle symbols these tools usually accept a `-C` flag.
 
 ## Adding a rust driver
 
