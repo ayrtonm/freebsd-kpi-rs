@@ -63,7 +63,8 @@ BINDGENFLAGS= \
     --blocklist-item '__va_list' \
     --blocklist-item 'mcontext_t' \
     --blocklist-item 'vfpstate' \
-    --blocklist-item 'pcb'
+    --blocklist-item 'pcb' \
+    --blocklist-item 'system_segment_descriptor' # blocked because bindgen cannot derive Debug trait
 
 # doesn't really depend on the .o that's only to get bindgen to depend on changes to headers
 bindings.rs: $S/rust/bindings.c bindings.o

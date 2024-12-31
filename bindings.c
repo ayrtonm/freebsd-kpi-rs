@@ -46,22 +46,35 @@
 
 #include <machine/_inttypes.h>
 #include <machine/bus.h>
+
+// FIXME: this is a hack to distinguish arm64 from x86
+#ifdef FDT
 #include <machine/intr.h>
 #include <machine/machdep.h>
+#endif
+
 #include <machine/resource.h>
 #ifdef SMP
 #include <machine/smp.h>
 #endif
 
+#ifdef FDT
 #include <dev/fdt/fdt_intr.h>
 
 #include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include "device_if.h"
 #include "ofw_bus_if.h"
+#endif
+
+#include "device_if.h"
+
+// FIXME: this is a hack to distinguish arm64 from x86
+#ifdef FDT
 #include "pic_if.h"
+#endif
+
 
 /*
  * inline functions defined in headers are not supported well by bindgen yet. We work around this by
@@ -69,6 +82,7 @@
  * by other translation units but they only need to be called from rust so we just add declarations
  * here for simplicity.
  */
+#ifdef FDT
 phandle_t rust_bindings_ofw_bus_get_node(device_t dev);
 
 phandle_t
@@ -76,6 +90,7 @@ rust_bindings_ofw_bus_get_node(device_t dev)
 {
 	return ofw_bus_get_node(dev);
 }
+#endif
 
 #if 0
 #include <dt-bindings/interrupt-controller/apple-aic.h>
