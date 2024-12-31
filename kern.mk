@@ -1,4 +1,7 @@
-RSFILES= $S/rust/kpi/lib.rs
+RSFILES= $S/rust/kpi/lib.rs \
+#	$S/arm64/apple/apple_mbox.rs \
+#	$S/arm64/apple/rtkit.rs \
+#	$S/arm64/apple/apple_rtkit.rs
 
 
 CRATES=
@@ -13,8 +16,23 @@ CRATES+= ${_rsf:T:S/.rs//}
 .endif
 .endfor
 
-# TODO: Find a better way to handle multifile crates
-KPI_CRATE= lib.rs bus.rs cell.rs ofw.rs device.rs malloc.rs boxed.rs intr.rs arm64.rs macros.rs tty.rs sync.rs taskq.rs panic.rs sleep.rs
+# TODO: Find a better way to handle multifile crate dependencies 
+KPI_CRATE= lib.rs \
+	arm64.rs \
+	boxed.rs \
+	bus.rs \
+	cell.rs \
+	device.rs \
+	intr.rs \
+	macros.rs \
+	malloc.rs \
+	ofw.rs \
+	panic.rs \
+	sleep.rs \
+	sync.rs \
+	taskq.rs \
+	tty.rs
+
 KPI_CRATE_FILES= ${KPI_CRATE:S/^/$S\/rust\/kpi\//g}
 
 # crate-independent build flags
