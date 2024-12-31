@@ -76,7 +76,6 @@ cd /path/to/freebsd/src
 # This is only needed to target ARM64 since libcore.rlib obtained via rustup won't have BTI
 git apply /path/to/this/repo/patches/aarch64_disable_bti.diff
 
-git apply /path/to/this/repo/patches/add_bindings_c.diff
 git apply /path/to/this/repo/patches/rust_mk_integration.diff
 ```
 
