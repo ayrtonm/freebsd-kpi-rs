@@ -32,13 +32,14 @@
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include <dt-bindings/interrupt-controller/apple-aic.h>
-#include <arm64/apple/apple_mbox.h>
-#include <arm64/apple/rtkit.h>
-
 #include "device_if.h"
 #include "ofw_bus_if.h"
 #include "pic_if.h"
+
+#if 0
+#include <dt-bindings/interrupt-controller/apple-aic.h>
+#include <arm64/apple/apple_mbox.h>
+#include <arm64/apple/rtkit.h>
 
 #if !defined(BINDINGS_AS_HEADER)
 phandle_t rust_bindings_ofw_bus_get_node(device_t dev);
@@ -102,3 +103,4 @@ struct rtkit_state {
 	bool				noalloc;
 };
 int rtkit_handle_mgmt(struct rtkit_state *state, struct apple_mbox_msg *msg);
+#endif
