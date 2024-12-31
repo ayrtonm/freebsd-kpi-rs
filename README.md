@@ -91,10 +91,13 @@ a non-static global variable or function and an identically named variable in ru
 
 ## Test the build
 
-After patching the build system the kernel can be built by defining environment variables pointing
-to `rustc`, `bindgen` and `rustfmt` and passing `buildkernel` to `make`.
+First this repo must be cloned into sys/rust under the FreeBSD src directory. Then after patching
+the build system the kernel can be built by defining environment variables pointing to `rustc`,
+`bindgen` and `rustfmt` and passing `buildkernel` to `make`.
 
 ```
+cd /path/to/src
+git clone https://github.com/ayrtonm/freebsd-kpi-rs sys/rust
 RUSTC=`which rustc` \
 RUSTFMT=`which rustfmt` \
 BINDGEN=`which bindgen` \
