@@ -25,14 +25,14 @@ index 428a2805768..934f6553dbe 100644
  security/audit/audit_arg.c	optional audit
  security/audit/audit_bsm.c	optional audit
 diff --git a/sys/conf/kern.post.mk b/sys/conf/kern.post.mk
-index 59e51c394a3..1280df96a87 100644
+index 59e51c394a3..7b26deb3586 100644
 --- a/sys/conf/kern.post.mk
 +++ b/sys/conf/kern.post.mk
 @@ -7,6 +7,8 @@
  # should be defined in the kern.pre.mk so that port makefiles can
  # override or augment them.
  
-+.include "../rust/kern.mk"
++.include "../rust/kern.rust.mk"
 +
  .if defined(DTS) || defined(DTSO) || defined(FDT_DTS_FILE)
  .include "dtb.build.mk"

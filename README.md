@@ -79,8 +79,8 @@ git apply /path/to/this/repo/patches/aarch64_disable_bti.diff
 git apply /path/to/this/repo/patches/rust_mk_integration.diff
 ```
 
-The main thing the patches do is link the kernel object files with `rustroot.a` generated
-[in kern.mk](https://github.com/ayrtonm/freebsd-kpi-rs/blob/main/kern.mk#L83).
+The main thing the patches do is link the kernel object files with `rustroot.a` generated in
+[kern.rust.mk](https://github.com/ayrtonm/freebsd-kpi-rs/blob/main/kern.rust.mk).
 
 Note that the patches currently do not add `-Wl,--whole-archive` due to an issue with the
 compiler_builtins rlib. Ideally it should be added to avoid pitfalls with symbols defined in both a
@@ -117,7 +117,7 @@ demangle symbols these tools usually accept a `-C` flag.
 
 ## Adding a rust driver
 
-TODO: clean up kern.mk, get m2 branch building again then document this better
+TODO: clean up kern.rust.mk, get m2 branch building again then document this better
 
 main points:
 - only single-file crates are supported
