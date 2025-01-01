@@ -34,13 +34,16 @@ mod macros;
 
 pub mod malloc;
 pub mod boxed;
+#[cfg(target_arch = "aarch64")]
 pub mod arm64;
 pub mod bindings;
 pub mod bus;
 pub mod cell;
 pub mod device;
 pub mod ffi;
+#[cfg(feature = "intrng")]
 pub mod intr;
+#[cfg(feature = "fdt")]
 pub mod ofw;
 mod panic;
 pub mod sleep;
@@ -70,6 +73,7 @@ pub mod prelude {
     pub use crate::{Box, Result};
     pub use crate::bindings;
     pub use crate::{print, println, dprint, dprintln};
+    #[cfg(target_arch = "aarch64")]
     pub use crate::{pcpu_get, pcpu_ptr, curthread, read_reg, write_reg};
 
     // Error code macros
@@ -79,14 +83,16 @@ pub mod prelude {
     // BUS_PROBE_* macros
     pub use crate::device::BusProbe::*;
     // INTR_ROOT_* macros
+    #[cfg(feature = "intrng")]
     pub use crate::intr::IntrRoot::*;
     // FILTER_* macros
-    pub use crate::intr::Filter::*;
+    pub use crate::bus::Filter::*;
 
     pub use crate::bus::wrappers::*;
     pub use crate::device::wrappers::*;
     // M_* macros
     pub use crate::malloc::wrappers::*;
+    #[cfg(feature = "fdt")]
     pub use crate::ofw::wrappers::*;
     pub use crate::taskq::wrappers::*;
     pub use crate::sleep::wrappers::*;

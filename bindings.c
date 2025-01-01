@@ -32,6 +32,9 @@
 
 #include <sys/param.h>
 #include <sys/bus.h>
+#ifdef INTRNG
+#include <sys/intr.h>
+#endif
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
@@ -49,7 +52,6 @@
 
 // FIXME: this is a hack to distinguish arm64 from x86
 #ifdef FDT
-#include <machine/intr.h>
 #include <machine/machdep.h>
 #endif
 

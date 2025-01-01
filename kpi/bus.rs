@@ -30,7 +30,6 @@ use crate::prelude::*;
 use crate::ErrCode;
 use crate::bindings::{bus_size_t, resource, resource_spec, RF_ACTIVE};
 use crate::device::Device;
-use crate::intr::Filter;
 use crate::vec::Vec;
 use core::ffi::{c_int, c_void};
 use core::mem::transmute;
@@ -43,6 +42,18 @@ enum_c_macros! {
     pub enum SysRes {
         SYS_RES_MEMORY,
         SYS_RES_IRQ,
+    }
+}
+
+// TODO: This belongs in intr.rs after sorting out the intrng feature
+enum_c_macros! {
+    #[repr(i32)]
+    #[derive(Copy, Clone, Debug)]
+    #[allow(nonstandard_style)]
+    pub enum Filter {
+        FILTER_STRAY,
+        FILTER_HANDLED,
+        FILTER_SCHEDULE_THREAD,
     }
 }
 
@@ -245,6 +256,7 @@ impl Resource {
     }
 }
 
+#[cfg(target_arch = "aarch64")]
 impl<const START: bus_size_t, const SIZE: bus_size_t> Register<START, SIZE> {
     fn assert_precond(offset: bus_size_t) {
         assert!(START <= offset);

@@ -35,8 +35,17 @@ KPI_CRATE= lib.rs \
 
 KPI_CRATE_FILES= ${KPI_CRATE:S/^/$S\/rust\/kpi\//g}
 
+.if ${TARGET_ARCH} == aarch64
+RUST_TARGET= aarch64-unknown-none-softfloat
+RUST_FEATURES= --cfg 'feature="intrng"' --cfg 'feature="fdt"'
+.elif ${TARGET_ARCH} == amd64
+RUST_TARGET= x86_64-unknown-none
+RUST_FEATURES=
+.else
+.error Unknown TARGET_ARCH: ${TARGET_ARCH}
+.endif
 # crate-independent build flags
-RUSTFLAGS= --target=aarch64-unknown-none-softfloat --edition 2021
+RUSTFLAGS= --target=${RUST_TARGET} ${RUST_FEATURES} --edition 2021
 
 # the rustc invocation for rlibs
 NORMAL_RS= ${RUSTC} ${RUSTFLAGS} -Cdebuginfo=full -Copt-level=3 --crate-type rlib -o ${.TARGET}
@@ -64,7 +73,10 @@ BINDGENFLAGS= \
     --blocklist-item 'mcontext_t' \
     --blocklist-item 'vfpstate' \
     --blocklist-item 'pcb' \
-    --blocklist-item 'system_segment_descriptor' # blocked because bindgen cannot derive Debug trait
+    --no-debug mdproc \
+    --no-debug pcpu
+
+    #--blocklist-item 'system_segment_descriptor' # blocked because bindgen cannot derive Debug trait
 
 # doesn't really depend on the .o that's only to get bindgen to depend on changes to headers
 bindings.rs: $S/rust/bindings.c bindings.o

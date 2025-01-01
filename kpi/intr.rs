@@ -31,7 +31,7 @@ use crate::bindings::{
     intr_irqsrc, intr_map_data, intr_map_data_fdt, intr_pic, pcell_t, trapframe,
 };
 use crate::ErrCode;
-use crate::bus::Resource;
+use crate::bus::{Filter, Resource};
 use crate::cell::SubClass;
 use crate::device::Device;
 use crate::ofw::XRef;
@@ -45,17 +45,6 @@ enum_c_macros! {
     pub enum IntrRoot {
         INTR_ROOT_IRQ,
         INTR_ROOT_FIQ,
-    }
-}
-
-enum_c_macros! {
-    #[repr(i32)]
-    #[derive(Copy, Clone, Debug)]
-    #[allow(nonstandard_style)]
-    pub enum Filter {
-        FILTER_STRAY,
-        FILTER_HANDLED,
-        FILTER_SCHEDULE_THREAD,
     }
 }
 
