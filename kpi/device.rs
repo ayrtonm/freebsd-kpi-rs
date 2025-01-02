@@ -29,7 +29,8 @@
 use crate::bindings::{_device, kobj_method_t, kobjop_desc};
 use crate::prelude::*;
 use core::ffi::{c_int, CStr};
-use core::ptr::null_mut;
+use core::ptr::{write, null_mut};
+use core::pin::Pin;
 
 enum_c_macros! {
     #[repr(i32)]
@@ -91,10 +92,11 @@ unsafe impl Sync for DeviceMethod {}
 pub trait HasSoftc: DeviceIf {
     fn init_softc(&self, dev: Device, sc: Self::Softc) -> SoftcInit {
         assert!(self as *const Self as *const bindings::driver_t == dev.driver);
+        // TODO: assert this device has not initialized its softc to make this sound
         let dev_ptr = dev.as_ptr();
         let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
         let sc_ptr = sc_void_ptr.cast::<Self::Softc>();
-        unsafe { *sc_ptr = sc };
+        unsafe { write(sc_ptr, sc) };
         SoftcInit(())
     }
 
@@ -106,7 +108,13 @@ pub trait HasSoftc: DeviceIf {
         unsafe { sc_ptr.as_ref().unwrap() }
     }
 
-    fn get_softc_as_mut(&self, dev: Device) -> *mut Self::Softc {
+    fn get_softc_pinned(&self, dev: Device) -> Pin<&Self::Softc> {
+        unsafe { Pin::new_unchecked(self.get_softc(dev)) }
+    }
+
+    // TODO: This is only used in driver!. Reconsider whether it actually belongs here
+    #[doc(hidden)]
+    fn get_softc_mut(&self, dev: Device) -> *mut Self::Softc {
         assert!(self as *const Self as *const bindings::driver_t == dev.driver);
         let dev_ptr = dev.as_ptr();
         let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };

@@ -27,12 +27,13 @@
  */
 
 use crate::bindings::{mtx, LO_INITIALIZED, MTX_DEF, MTX_SPIN};
-use crate::malloc::MallocFlags;
+use crate::malloc::{MallocFlags, MallocType};
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::ffi::CStr;
 use core::mem::MaybeUninit;
 use core::ops::{Deref, DerefMut};
+use core::marker::PhantomData;
 use core::ptr::{null_mut, NonNull};
 
 #[derive(Debug)]
@@ -132,7 +133,7 @@ impl<T, const SPINS: bool> Drop for MutexGuard<'_, T, SPINS> {
 }
 
 #[derive(Debug)]
-pub struct Arc<T>(NonNull<T>);
+pub struct Arc<T, M: MallocType = M_DEVBUF>(NonNull<T>, PhantomData<M>);
 
 impl<T> Arc<T> {
     pub fn new(t: T, flags: MallocFlags) -> Self {

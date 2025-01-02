@@ -34,6 +34,7 @@ use crate::vec::Vec;
 use core::ffi::{c_int, c_void};
 use core::mem::transmute;
 use core::ptr::{addr_of_mut, null_mut};
+use core::pin::Pin;
 
 enum_c_macros! {
     #[repr(i32)]
@@ -148,14 +149,14 @@ pub trait BusIfWrappers: HasSoftc {
         flags: u32,
         filter: FilterFn<Self::Softc>,
         handler: Handler<Self::Softc>,
+        arg: Pin<&Self::Softc>,
         intrhand: *mut *mut c_void,
     ) -> Result<()> {
         assert!(self as *const Self as *const bindings::driver_t == dev.get_driver());
         let filter = unsafe { transmute(filter) };
         let handler = unsafe { transmute(handler) };
-        let sc =
-            self.get_softc(dev) as *const Self::Softc as *const c_void as *mut c_void;
-        bus_setup_intr_internal(dev, irq, flags, filter, handler, sc, intrhand)
+        let arg = arg.get_ref() as *const Self::Softc as *const c_void as *mut c_void;
+        bus_setup_intr_internal(dev, irq, flags, filter, handler, arg, intrhand)
     }
 }
 

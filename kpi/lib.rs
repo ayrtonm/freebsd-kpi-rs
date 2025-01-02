@@ -146,7 +146,7 @@ macro_rules! export_function {
             int device_detach(device_t dev)
             with drop glue {
                 use $crate::device::HasSoftc;
-                let sc = $cdriver.get_softc_as_mut(dev);
+                let sc = $cdriver.get_softc_mut(dev);
                 unsafe { core::ptr::drop_in_place(sc) }
             }
         }
