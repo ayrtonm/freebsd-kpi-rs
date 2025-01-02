@@ -37,13 +37,18 @@ KPI_CRATE_FILES= ${KPI_CRATE:S/^/$S\/rust\/kpi\//g}
 
 .if ${TARGET_ARCH} == aarch64
 RUST_TARGET= aarch64-unknown-none-softfloat
-RUST_FEATURES= --cfg 'feature="intrng"' --cfg 'feature="fdt"'
+RUST_FEATURES= --cfg 'feature="intrng"'
 .elif ${TARGET_ARCH} == amd64
 RUST_TARGET= x86_64-unknown-none
 RUST_FEATURES=
 .else
 .error Unknown TARGET_ARCH: ${TARGET_ARCH}
 .endif
+
+.if ${MK_FDT} != "no"
+RUST_FEATURES+= --cfg 'feature="fdt"'
+.endif
+
 # crate-independent build flags
 RUSTFLAGS= --target=${RUST_TARGET} ${RUST_FEATURES} --edition 2021
 
