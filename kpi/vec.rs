@@ -29,6 +29,7 @@
 use crate::bindings;
 use crate::prelude::*;
 use crate::malloc::{MallocFlags, MallocType};
+use core::alloc::Layout;
 use core::mem::size_of;
 use core::ptr::NonNull;
 use core::marker::PhantomData;
@@ -44,7 +45,10 @@ pub struct Vec<T, M: MallocType = M_DEVBUF> {
 }
 
 impl<T, M: MallocType> Vec<T, M> {
-    pub fn new() -> Self {
+    /// Constructs an empty `Vec<T>`.
+    ///
+    /// The vector will not allocate unless a method takes a `MallocFlags` argument.
+    pub const fn new() -> Self {
         Self {
             ptr: NonNull::dangling(),
             len: 0,
@@ -53,14 +57,58 @@ impl<T, M: MallocType> Vec<T, M> {
         }
     }
 
-    pub fn push(&mut self, t: T) {
+    /// Constructs an empty `Vec<T>` with *exactly* the specified capacity.
+    pub fn with_capacity(capacity: usize, flags: MallocFlags) -> Result<Self> {
+        let layout = Layout::new::<T>();
+        let padded_layout = layout.pad_to_align();
+        let void_ptr = malloc(padded_layout.size(), M::TYPE, flags);
+        match NonNull::new(void_ptr) {
+            Some(nonnull_void_ptr) => {
+                let ptr = nonnull_void_ptr.cast::<T>();
+                Ok(Self {
+                    ptr,
+                    len: 0,
+                    capacity,
+                    _ty: PhantomData,
+                })
+            },
+            None => Err(ENOMEM),
+        }
+    }
+
+    /// Returns the total number of elements the vector can hold without reallocating.
+    pub fn capacity(&self) -> usize { self.capacity }
+
+    /// Returns the number of elements in the vector.
+    pub fn length(&self) -> usize { self.len }
+
+    /// Tries to reserve capacity for exactly `additional` more elements to be inserted in the given
+    /// `Vec<T>`. The collection will never speculatively reserve more space. After calling
+    /// `try_reserve`, the capacity will equal `self.len() + additional` if it returns `Ok(())`.
+    /// Does nothing if capacity is already sufficient.
+    pub fn reserve(&mut self, additional: usize, flags: MallocFlags) -> Result<()> {
+        if self.capacity >= self.len() + additional {
+            return Ok(())
+        }
+        todo!("call realloc")
+    }
+
+    pub fn pop(&mut self) -> Option<T> {
+        if self.len == 0 {
+            return None;
+        }
+        self.len -= 1;
+        todo!("")
+    }
+
+    pub fn push(&mut self, value: T, flags: MallocFlags) -> Option<T> {
         todo!("")
         //if self.len < self.capacity {
         //    self.len += 1;
         //}
     }
 
-    pub(crate) fn as_ptr(&self) -> *mut T {
+    pub fn as_mut_ptr(&self) -> *mut T {
         self.ptr.as_ptr()
     }
 }

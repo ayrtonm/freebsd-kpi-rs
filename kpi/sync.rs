@@ -144,7 +144,7 @@ pub mod wrappers {
         }
     }
 
-    pub fn mtx_init<M: HasMtx>(mut mutex: Pin<&mut M>, name: &'static CStr, kind: Option<&'static CStr>) {
+    pub fn mtx_init<M: HasMtx>(mutex: Pin<&mut M>, name: &'static CStr, kind: Option<&'static CStr>) {
         let name_ptr = name.as_ptr();
         let kind_ptr = match kind {
             Some(k) => k.as_ptr(),

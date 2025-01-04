@@ -19,10 +19,12 @@ CRATES+= ${_rsf:T:S/.rs//}
 # TODO: Find a better way to handle multifile crate dependencies 
 KPI_CRATE= lib.rs \
 	arm64.rs \
+	bindings.rs \
 	boxed.rs \
 	bus.rs \
 	cell.rs \
 	device.rs \
+	ffi.rs \
 	intr.rs \
 	macros.rs \
 	malloc.rs \
@@ -31,7 +33,8 @@ KPI_CRATE= lib.rs \
 	sleep.rs \
 	sync.rs \
 	taskq.rs \
-	tty.rs
+	tty.rs \
+	vec.rs
 
 KPI_CRATE_FILES= ${KPI_CRATE:S/^/$S\/rust\/kpi\//g}
 

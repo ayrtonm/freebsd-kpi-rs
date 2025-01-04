@@ -38,7 +38,7 @@ pub type Task<T> = SubClass<task, T>;
 pub struct Taskqueue(*mut taskqueue);
 
 // TODO: type check with task_fn_t modulo the unsafe/Option
-pub type TaskFn<T> = extern "C" fn(context: Box<Task<T>>, pending: c_int);
+pub type TaskFn<T> = extern "C" fn(context: Box<Task<T>, M_DEVBUF>, pending: c_int);
 
 impl<T: 'static + Send> Task<T> {
     pub fn init(&mut self, callback: TaskFn<T>) {
@@ -59,7 +59,7 @@ pub mod wrappers {
         Taskqueue(ptr)
     }
 
-    pub fn taskqueue_enqueue<T: 'static + Send>(queue: Taskqueue, task: Box<Task<T>>) -> Result<()> {
+    pub fn taskqueue_enqueue<T: 'static + Send>(queue: Taskqueue, task: Box<Task<T>, M_DEVBUF>) -> Result<()> {
         let task_ptr = SubClass::get_base_ptr(&task);
         unsafe {
             (*task_ptr).ta_context = task_ptr as *mut c_void;

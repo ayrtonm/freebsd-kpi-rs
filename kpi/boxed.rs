@@ -35,7 +35,7 @@ use core::marker::PhantomData;
 use core::ops::{Deref, DerefMut};
 
 #[derive(Debug)]
-pub struct Box<T, M: MallocType = M_DEVBUF>(NonNull<T>, PhantomData<M>);
+pub struct Box<T, M: MallocType>(NonNull<T>, PhantomData<M>);
 
 unsafe impl<T: Sync, M: MallocType> Sync for Box<T, M> {}
 
