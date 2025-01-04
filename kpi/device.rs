@@ -143,7 +143,7 @@ pub trait HasSoftc: DeviceIf {
 impl<T: DeviceIf> HasSoftc for T {}
 
 pub trait DeviceIf {
-    type Softc: Sync;
+    type Softc;
 
     fn device_probe(&self, dev: Device) -> Result<BusProbe>;
     fn device_attach(&self, dev: Device) -> Result<IsInit<Self::Softc>>;

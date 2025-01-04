@@ -69,7 +69,7 @@ impl AsRustType<Resource> for *mut resource {
         Resource {
             res: self,
             rid: None,
-            claimed_windows: Vec::new(),
+            ty: None,
         }
     }
 }
@@ -80,21 +80,21 @@ pub struct Resource {
     // bus_alloc_resouce writes rid out to a pointer so let's make this public
     // TODO: it's currently Option for the PicIf interface
     pub rid: Option<c_int>,
-    // TODO: Should this be fixed-size?
-    claimed_windows: Vec<Window>,
+    ty: Option<SysRes>,
 }
 
 unsafe impl Sync for Resource {}
 
 #[derive(Debug)]
-struct Window {
-    start: bus_size_t,
-    end: bus_size_t,
+pub struct Register<const START: bus_size_t = 0, const SIZE: bus_size_t = { bus_size_t::MAX }> {
+    res: *mut resource,
 }
 
 #[derive(Debug)]
-pub struct Register<const START: bus_size_t = 0, const SIZE: bus_size_t = { bus_size_t::MAX }> {
+pub struct VarRegister {
     res: *mut resource,
+    start: bus_size_t,
+    size: bus_size_t,
 }
 
 #[derive(Debug)]
@@ -188,7 +188,7 @@ pub mod wrappers {
             Ok(Resource {
                 res,
                 rid: Some(rid),
-                claimed_windows: Vec::new(),
+                ty: Some(ty),
             })
         }
     }
@@ -228,31 +228,84 @@ pub mod wrappers {
             let mut ret: [Resource; N] = resp.map(|r| Resource {
                 res: r,
                 rid: None,
-                claimed_windows: Vec::new(),
+                ty: None,
             });
             for n in 0..N {
                 ret[n].rid = Some(spec.list[n].rid);
+                ret[n].ty = spec.list[n].type_.try_into().ok();
             }
             Ok(ret)
         }
     }
 }
 
+struct Window {
+    start: bus_size_t,
+    end: bus_size_t,
+}
+
+
+pub struct RegisterBuilder<const N: usize> {
+    res: *mut resource,
+    claimed_windows: [Option<Window>; N],
+    claimed: usize,
+}
+
 impl Resource {
-    pub fn whole_register(self) -> Register {
-        Register { res: self.res }
+    pub fn split_resource<const N: usize>(self) -> Result<RegisterBuilder<N>> {
+        if self.ty != Some(SYS_RES_MEMORY) {
+            return Err(EDOOFUS);
+        }
+        Ok(RegisterBuilder {
+            res: self.res,
+            claimed_windows: [const { None }; N],
+            claimed: 0,
+        })
+    }
+
+    pub fn take_register(self) -> Result<Register> {
+        if self.ty != Some(SYS_RES_MEMORY) {
+            return Err(EDOOFUS);
+        }
+        Ok(Register { res: self.res })
+    }
+}
+
+impl<const N: usize> RegisterBuilder<N> {
+    fn is_claimed(&self, start: bus_size_t, size: bus_size_t) -> bool {
+        let end = start + size;
+        for claimed in &self.claimed_windows {
+            match claimed {
+                Some(window) => {
+                    if window.start <= end && start <= window.end {
+                        return true;
+                    }
+                },
+                None => return false,
+            }
+        }
+        panic!("Attempted to claim more than {N} registers")
+    }
+
+    pub fn take_var_register(&mut self, start: bus_size_t, size: bus_size_t) -> Result<VarRegister> {
+        if self.is_claimed(start, size) {
+            return Err(EDOOFUS);
+        }
+        let end = start + size;
+        self.claimed_windows[self.claimed] = Some(Window { start, end });
+        self.claimed += 1;
+        Ok(VarRegister { res: self.res, start, size })
     }
 
     pub fn take_register<const START: bus_size_t, const SIZE: bus_size_t>(
         &mut self,
     ) -> Result<Register<START, SIZE>> {
-        let end = START + SIZE;
-        for claimed in &mut self.claimed_windows {
-            if (end > claimed.start) || (START < claimed.end) {
-                return Err(EDOOFUS);
-            }
+        if self.is_claimed(START, SIZE) {
+            return Err(EDOOFUS);
         }
-        self.claimed_windows.push(Window { start: START, end });
+        let end = START + SIZE;
+        self.claimed_windows[self.claimed] = Some(Window { start: START, end });
+        self.claimed += 1;
         Ok(Register { res: self.res })
     }
 }
