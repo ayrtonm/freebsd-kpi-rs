@@ -31,6 +31,7 @@ use crate::prelude::*;
 use core::ffi::{c_int, CStr};
 use core::ptr::{write, null_mut};
 use core::pin::Pin;
+use core::ops::{Deref, DerefMut};
 
 enum_c_macros! {
     #[repr(i32)]
@@ -48,7 +49,23 @@ enum_c_macros! {
 }
 
 #[derive(Debug)]
-pub struct SoftcInit(());
+pub struct IsInit<'a, T> {
+    softc: Pin<&'a mut T>
+}
+
+impl<'a, T> Deref for IsInit<'a, T> {
+    type Target = Pin<&'a mut T>;
+    fn deref(&self) -> &Self::Target {
+        &self.softc
+    }
+}
+
+impl<'a, T> DerefMut for IsInit<'a, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.softc
+    }
+}
+
 
 impl AsCType<c_int> for BusProbe {
     fn as_c_type(self) -> c_int {
@@ -56,7 +73,7 @@ impl AsCType<c_int> for BusProbe {
     }
 }
 
-impl AsCType<c_int> for SoftcInit {
+impl<'a, T> AsCType<c_int> for IsInit<'a, T> {
     fn as_c_type(self) -> c_int {
         0
     }
@@ -90,36 +107,36 @@ impl DeviceMethod {
 unsafe impl Sync for DeviceMethod {}
 
 pub trait HasSoftc: DeviceIf {
-    fn init_softc(&self, dev: Device, sc: Self::Softc) -> SoftcInit {
+    fn device_init_softc(&self, dev: Device, sc: Self::Softc) -> IsInit<Self::Softc> {
         assert!(self as *const Self as *const bindings::driver_t == dev.driver);
         // TODO: assert this device has not initialized its softc to make this sound
         let dev_ptr = dev.as_ptr();
         let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
         let sc_ptr = sc_void_ptr.cast::<Self::Softc>();
         unsafe { write(sc_ptr, sc) };
-        SoftcInit(())
+        // TODO: the safety of this depends on the assertion mentioned above
+        let softc = unsafe { self.device_get_softc_mut(dev) };
+        IsInit {
+            softc
+        }
     }
 
-    fn get_softc(&self, dev: Device) -> &Self::Softc {
+    fn device_get_softc(&self, dev: Device) -> Pin<&Self::Softc> {
         assert!(self as *const Self as *const bindings::driver_t == dev.driver);
         let dev_ptr = dev.as_ptr();
         let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
         let sc_ptr = sc_void_ptr.cast::<Self::Softc>();
-        unsafe { sc_ptr.as_ref().unwrap() }
+        let sc_ref = unsafe { sc_ptr.as_ref().unwrap() };
+        unsafe { Pin::new_unchecked(sc_ref) }
     }
 
-    fn get_softc_pinned(&self, dev: Device) -> Pin<&Self::Softc> {
-        unsafe { Pin::new_unchecked(self.get_softc(dev)) }
-    }
-
-    // TODO: This is only used in driver!. Reconsider whether it actually belongs here
-    #[doc(hidden)]
-    fn get_softc_mut(&self, dev: Device) -> *mut Self::Softc {
+    unsafe fn device_get_softc_mut(&self, dev: Device) -> Pin<&mut Self::Softc> {
         assert!(self as *const Self as *const bindings::driver_t == dev.driver);
         let dev_ptr = dev.as_ptr();
         let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
         let sc_ptr = sc_void_ptr.cast::<Self::Softc>();
-        sc_ptr
+        let sc_mut_ref = unsafe { sc_ptr.as_mut().unwrap() };
+        unsafe { Pin::new_unchecked(sc_mut_ref) }
     }
 }
 
@@ -129,7 +146,7 @@ pub trait DeviceIf {
     type Softc: Sync;
 
     fn device_probe(&self, dev: Device) -> Result<BusProbe>;
-    fn device_attach(&self, dev: Device) -> Result<SoftcInit>;
+    fn device_attach(&self, dev: Device) -> Result<IsInit<Self::Softc>>;
     fn device_detach(&self, dev: Device) -> Result<()>;
 }
 

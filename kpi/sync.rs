@@ -31,104 +31,183 @@ use crate::malloc::{MallocFlags, MallocType};
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::ffi::CStr;
-use core::mem::MaybeUninit;
+use core::mem::{drop, MaybeUninit};
 use core::ops::{Deref, DerefMut};
 use core::marker::PhantomData;
 use core::ptr::{null_mut, NonNull};
+use core::pin::Pin;
 
 #[derive(Debug)]
-pub struct Mutex<T, const SPINS: bool = false> {
-    inner: Box<mtx>,
-    data: UnsafeCell<T>,
+struct MtxCommon {
+    inner: mtx,
+    init: bool,
 }
 
-pub type SpinLock<T> = Mutex<T, true>;
-
-unsafe impl<T, const SPINS: bool> Sync for Mutex<T, SPINS> {}
-
-pub struct MutexGuard<'a, T, const SPINS: bool> {
-    lock: &'a Mutex<T, SPINS>,
+pub struct MutexGuard<'a, T> {
+    lock: &'a Mutex<T>
 }
 
-impl<T, const SPINS: bool> Deref for MutexGuard<'_, T, SPINS> {
+impl<T> Deref for MutexGuard<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &T {
-        unsafe { &*self.lock.data.get() }
+        unsafe { self.lock.data.get().as_ref().unwrap() }
     }
 }
 
-impl<T, const SPINS: bool> DerefMut for MutexGuard<'_, T, SPINS> {
+impl<T> DerefMut for MutexGuard<'_, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { &mut *self.lock.data.get() }
+        unsafe { self.lock.data.get().as_mut().unwrap() }
     }
 }
 
-impl<T, const SPINS: bool> Mutex<T, SPINS> {
-    pub fn new(t: T, name: &CStr, kind: Option<&CStr>, flags: MallocFlags) -> Self {
+pub struct SpinLockGuard<'a, T> {
+    lock: &'a SpinLock<T>,
+}
+
+impl<T> Deref for SpinLockGuard<'_, T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        unsafe { self.lock.data.get().as_ref().unwrap() }
+    }
+}
+
+impl<T> DerefMut for SpinLockGuard<'_, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { self.lock.data.get().as_mut().unwrap() }
+    }
+}
+
+impl MtxCommon {
+    pub fn new() -> Self {
+        let inner = unsafe { MaybeUninit::<mtx>::zeroed().assume_init() };
+        Self {
+            inner,
+            init: false,
+        }
+    }
+}
+
+unsafe impl<T: Send> Sync for Mutex<T> {}
+
+unsafe impl<T: Send> Sync for SpinLock<T> {}
+
+
+#[derive(Debug)]
+pub struct Mutex<T> {
+    mtx_impl: MtxCommon,
+    data: UnsafeCell<T>,
+}
+
+impl<T> Mutex<T> {
+    pub fn new(t: T) -> Self {
+        Self {
+            mtx_impl: MtxCommon::new(),
+            data: UnsafeCell::new(t),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct SpinLock<T> {
+    mtx_impl: MtxCommon,
+    data: UnsafeCell<T>,
+}
+
+impl<T> SpinLock<T> {
+    pub fn new(t: T) -> Self {
+        Self {
+            mtx_impl: MtxCommon::new(),
+            data: UnsafeCell::new(t),
+        }
+    }
+}
+
+pub mod wrappers {
+    use super::*;
+
+    pub trait HasMtx {
+        const SPINS: bool;
+        fn get_impl_mut(&mut self) -> &mut MtxCommon;
+    }
+    impl<T> HasMtx for Mutex<T> {
+        const SPINS: bool = false;
+        fn get_impl_mut(&mut self) -> &mut MtxCommon {
+            &mut self.mtx_impl
+        }
+    }
+    impl<T> HasMtx for SpinLock<T> {
+        const SPINS: bool = true;
+        fn get_impl_mut(&mut self) -> &mut MtxCommon {
+            &mut self.mtx_impl
+        }
+    }
+
+    pub fn mtx_init<M: HasMtx>(mut mutex: Pin<&mut M>, name: &'static CStr, kind: Option<&'static CStr>) {
         let name_ptr = name.as_ptr();
         let kind_ptr = match kind {
             Some(k) => k.as_ptr(),
             None => null_mut(),
         };
-        let zeroed_mtx = unsafe { MaybeUninit::<mtx>::zeroed().assume_init() };
-        let inner = Box::new(zeroed_mtx, flags);
-
-        let variant = if SPINS { MTX_SPIN } else { MTX_DEF };
-        // TODO: Casting inner_lock_ptr should not be necessary
+        let variant = if M::SPINS { MTX_SPIN } else { MTX_DEF };
+        let mtx_ref: &mut M = unsafe { mutex.get_unchecked_mut() };
+        let mtx_impl = mtx_ref.get_impl_mut();
+        mtx_impl.init = true;
+        let inner_lock_ptr = &raw mut mtx_impl.inner.mtx_lock;
         unsafe {
-            let inner_lock_ptr = &raw mut (*inner.as_ptr()).mtx_lock;
-            bindings::_mtx_init(inner_lock_ptr.cast(), name_ptr, kind_ptr, variant);
-        }
-
-        Self {
-            inner,
-            data: UnsafeCell::new(t),
+            // TODO: The cast was added recently and should probably be fixed on the C side
+            bindings::_mtx_init(inner_lock_ptr.cast::<usize>(), name_ptr, kind_ptr, variant);
         }
     }
 
-    #[track_caller]
-    pub fn lock(&self) -> MutexGuard<'_, T, SPINS> {
-        let inner_lock_ptr = unsafe { &raw mut (*self.inner.as_ptr()).mtx_lock };
-        if SPINS {
-            unsafe {
-                bindings::__mtx_lock_spin_flags(inner_lock_ptr.cast(), 0, c"".as_ptr(), 0);
-            }
-        } else {
-            unsafe {
-                bindings::__mtx_lock_flags(inner_lock_ptr.cast(), 0, c"".as_ptr(), 0);
-            }
+    pub fn mtx_lock<T>(mutex: &Mutex<T>) -> MutexGuard<T> {
+        // This ensures that the Mutex was previously pinned
+        assert!(mutex.mtx_impl.init);
+        let inner_lock_ptr = &raw const mutex.mtx_impl.inner.mtx_lock;
+        unsafe {
+            bindings::__mtx_lock_flags(inner_lock_ptr.cast::<usize>().cast_mut(), 0, c"".as_ptr(), 0);
+        };
+        MutexGuard {
+            lock: mutex,
         }
-        MutexGuard { lock: self }
     }
-}
-
-impl<T, const SPINS: bool> MutexGuard<'_, T, SPINS> {
-    pub fn unlock(self) {
-        let inner_lock_ptr = unsafe { &raw mut (*self.lock.inner.as_ptr()).mtx_lock };
-        if SPINS {
-            unsafe {
-                bindings::__mtx_unlock_spin_flags(inner_lock_ptr.cast(), 0, c"".as_ptr(), 0);
-            }
-        } else {
-            unsafe {
-                bindings::__mtx_unlock_flags(inner_lock_ptr.cast(), 0, c"".as_ptr(), 0);
-            }
+    pub fn mtx_lock_spin<T>(mutex: &SpinLock<T>) -> SpinLockGuard<T> {
+        // This ensures that the Mutex was previously pinned
+        assert!(mutex.mtx_impl.init);
+        let inner_lock_ptr = &raw const mutex.mtx_impl.inner.mtx_lock;
+        unsafe {
+            bindings::__mtx_lock_spin_flags(inner_lock_ptr.cast::<usize>().cast_mut(), 0, c"".as_ptr(), 0);
+        };
+        SpinLockGuard {
+            lock: mutex,
         }
+    }
+
+    pub fn mtx_unlock<T>(guard: MutexGuard<T>) {
+        drop(guard)
+    }
+
+    pub fn mtx_unlock_spin<T>(guard: SpinLockGuard<T>) {
+        drop(guard)
     }
 }
-impl<T, const SPINS: bool> Drop for MutexGuard<'_, T, SPINS> {
+
+impl<T> Drop for MutexGuard<'_, T> {
     fn drop(&mut self) {
-        let inner_lock_ptr = unsafe { &raw mut (*self.lock.inner.as_ptr()).mtx_lock };
-        if SPINS {
-            unsafe {
-                bindings::__mtx_unlock_spin_flags(inner_lock_ptr.cast(), 0, c"".as_ptr(), 0);
-            }
-        } else {
-            unsafe {
-                bindings::__mtx_unlock_flags(inner_lock_ptr.cast(), 0, c"".as_ptr(), 0);
-            }
-        }
+        let inner_lock_ptr = &raw const self.lock.mtx_impl.inner.mtx_lock;
+        unsafe {
+            bindings::__mtx_unlock_flags(inner_lock_ptr.cast::<usize>().cast_mut(), 0, c"".as_ptr(), 0);
+        };
+    }
+}
+
+impl<T> Drop for SpinLockGuard<'_, T> {
+    fn drop(&mut self) {
+        let inner_lock_ptr = &raw const self.lock.mtx_impl.inner.mtx_lock;
+        unsafe {
+            bindings::__mtx_unlock_spin_flags(inner_lock_ptr.cast::<usize>().cast_mut(), 0, c"".as_ptr(), 0);
+        };
     }
 }
 

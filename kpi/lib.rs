@@ -53,7 +53,6 @@ pub mod tty;
 pub mod vec;
 
 pub type Result<T> = core::result::Result<T, ErrCode>;
-pub type Box<T> = crate::boxed::Box<T>;
 
 pub trait AsCType<T> {
     fn as_c_type(self) -> T;
@@ -70,8 +69,10 @@ impl<T> AsRustType<T> for T {
 }
 
 pub mod prelude {
-    pub use crate::{Box, Result};
+    pub use crate::Result;
     pub use crate::bindings;
+    pub use crate::boxed::Box;
+    pub use crate::{pin_field, pin_field_mut};
     pub use crate::{print, println, dprint, dprintln};
     #[cfg(target_arch = "aarch64")]
     pub use crate::{pcpu_get, pcpu_ptr, curthread, read_reg, write_reg};
@@ -96,6 +97,7 @@ pub mod prelude {
     pub use crate::ofw::wrappers::*;
     pub use crate::taskq::wrappers::*;
     pub use crate::sleep::wrappers::*;
+    pub use crate::sync::wrappers::*;
 
     pub use crate::device::{HasSoftc, DeviceIf};
     pub use crate::bus::BusIfWrappers;
@@ -137,7 +139,7 @@ macro_rules! export_function {
         $crate::export_function! {
             $cdriver $impl
             int device_attach(device_t dev)
-            result is $crate::device::SoftcInit
+            result is $crate::device::IsInit<_>
         }
     };
     ($cdriver:ident $impl:ident device_detach) => {
@@ -146,8 +148,8 @@ macro_rules! export_function {
             int device_detach(device_t dev)
             with drop glue {
                 use $crate::device::HasSoftc;
-                let sc = $cdriver.get_softc_mut(dev);
-                unsafe { core::ptr::drop_in_place(sc) }
+                let sc_ptr = core::ptr::from_ref($cdriver.device_get_softc(dev).get_ref());
+                unsafe { core::ptr::drop_in_place(sc_ptr.cast_mut()) }
             }
         }
     };

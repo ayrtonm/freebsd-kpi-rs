@@ -37,6 +37,8 @@ use core::ops::{Deref, DerefMut};
 #[derive(Debug)]
 pub struct Box<T, M: MallocType = M_DEVBUF>(NonNull<T>, PhantomData<M>);
 
+unsafe impl<T: Sync, M: MallocType> Sync for Box<T, M> {}
+
 impl<T, M: MallocType> Box<T, M> {
     pub fn try_new(t: T, flags: MallocFlags) -> Result<Self> {
         let void_ptr = malloc(size_of::<T>(), M::TYPE, flags);

@@ -51,3 +51,22 @@ macro_rules! enum_c_macros {
         }
     };
 }
+
+#[macro_export]
+macro_rules! pin_field {
+    ($struct:expr, $field:ident) => {
+        {
+            //let pinned_x: core::pin::Pin<_> = $struct.as_ref();
+            unsafe { $struct.map_unchecked(|x| &x.$field) }
+        }
+    }
+}
+#[macro_export]
+macro_rules! pin_field_mut {
+    ($struct:expr, $field:ident) => {
+        {
+            let pinned_x: core::pin::Pin<_> = $struct.as_mut();
+            unsafe { pinned_x.map_unchecked_mut(|x| &mut x.$field) }
+        }
+    }
+}
