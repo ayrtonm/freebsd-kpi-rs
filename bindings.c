@@ -94,6 +94,23 @@ rust_bindings_ofw_bus_get_node(device_t dev)
 }
 #endif
 
+#define BUS_N(n, ty) \
+    ty rust_bindings_bus_read_##n(struct resource *res, bus_size_t offset); \
+    ty \
+    rust_bindings_bus_read_##n(struct resource *res, bus_size_t offset) { \
+        return bus_read_##n(res, offset); \
+    } \
+    void rust_bindings_bus_write_##n(struct resource *res, bus_size_t offset, ty value); \
+    void \
+    rust_bindings_bus_write_##n(struct resource *res, bus_size_t offset, ty value) { \
+        return bus_write_##n(res, offset, value); \
+    }
+
+BUS_N(1, uint8_t);
+BUS_N(2, uint16_t);
+BUS_N(4, uint32_t);
+BUS_N(8, uint64_t);
+
 #if 0
 #include <dt-bindings/interrupt-controller/apple-aic.h>
 #include <arm64/apple/apple_mbox.h>

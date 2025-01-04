@@ -97,6 +97,13 @@ pub struct VarRegister {
     size: bus_size_t,
 }
 
+impl VarRegister {
+    fn assert_offset_allowed(&self, offset: bus_size_t) {
+        assert!(self.start <= offset);
+        assert!(offset < self.start + self.size);
+    }
+}
+
 #[derive(Debug)]
 pub struct ResourceSpec {
     ty: SysRes,
@@ -237,6 +244,52 @@ pub mod wrappers {
             Ok(ret)
         }
     }
+
+    pub trait IsRegister {
+        fn as_var_register(&self) -> VarRegister;
+    }
+    impl IsRegister for VarRegister {
+        fn as_var_register(&self) -> VarRegister {
+            VarRegister {
+                res: self.res,
+                start: self.start,
+                size: self.size,
+            }
+        }
+    }
+    impl<const START: bus_size_t, const SIZE: bus_size_t> IsRegister for Register<START, SIZE> {
+        fn as_var_register(&self) -> VarRegister {
+            VarRegister {
+                res: self.res,
+                start: START,
+                size: SIZE,
+            }
+        }
+    }
+
+    macro_rules! bus_n {
+        ($read_fn:ident, $read_impl:ident, $write_fn:ident, $write_impl:ident, $ty:ty) => {
+            pub fn $read_fn<R: IsRegister>(reg: &mut R, offset: bus_size_t) -> $ty {
+                let var_reg = reg.as_var_register();
+                var_reg.assert_offset_allowed(offset);
+                unsafe {
+                    bindings::$read_impl(var_reg.res, offset)
+                }
+            }
+
+            pub fn $write_fn<R: IsRegister>(reg: &mut R, offset: bus_size_t, value: $ty) {
+                let var_reg = reg.as_var_register();
+                var_reg.assert_offset_allowed(offset);
+                unsafe {
+                    bindings::$write_impl(var_reg.res, offset, value)
+                }
+            }
+        };
+    }
+    bus_n!(bus_read_1, rust_bindings_bus_read_1, bus_write_1, rust_bindings_bus_write_1, u8);
+    bus_n!(bus_read_2, rust_bindings_bus_read_2, bus_write_2, rust_bindings_bus_write_2, u16);
+    bus_n!(bus_read_4, rust_bindings_bus_read_4, bus_write_4, rust_bindings_bus_write_4, u32);
+    bus_n!(bus_read_8, rust_bindings_bus_read_8, bus_write_8, rust_bindings_bus_write_8, u64);
 }
 
 struct Window {
@@ -307,53 +360,5 @@ impl<const N: usize> RegisterBuilder<N> {
         self.claimed_windows[self.claimed] = Some(Window { start: START, end });
         self.claimed += 1;
         Ok(Register { res: self.res })
-    }
-}
-
-#[cfg(target_arch = "aarch64")]
-impl<const START: bus_size_t, const SIZE: bus_size_t> Register<START, SIZE> {
-    fn assert_precond(offset: bus_size_t) {
-        assert!(START <= offset);
-        assert!(offset < START + SIZE);
-    }
-
-    pub fn read_4(&mut self, offset: bus_size_t) -> u32 {
-        Self::assert_precond(offset);
-        unsafe {
-            let tag = (*self.res).r_bustag;
-            let handle = (*self.res).r_bushandle;
-            let f = (*tag).bs_r_4.unwrap();
-            f((*tag).bs_cookie, handle, offset)
-        }
-    }
-
-    pub fn write_4(&mut self, offset: bus_size_t, value: u32) {
-        Self::assert_precond(offset);
-        unsafe {
-            let tag = (*self.res).r_bustag;
-            let handle = (*self.res).r_bushandle;
-            let f = (*tag).bs_w_4.unwrap();
-            f((*tag).bs_cookie, handle, offset, value)
-        }
-    }
-
-    pub fn read_8(&mut self, offset: bus_size_t) -> u64 {
-        Self::assert_precond(offset);
-        unsafe {
-            let tag = (*self.res).r_bustag;
-            let handle = (*self.res).r_bushandle;
-            let f = (*tag).bs_r_8.unwrap();
-            f((*tag).bs_cookie, handle, offset)
-        }
-    }
-
-    pub fn write_8(&mut self, offset: bus_size_t, value: u64) {
-        Self::assert_precond(offset);
-        unsafe {
-            let tag = (*self.res).r_bustag;
-            let handle = (*self.res).r_bushandle;
-            let f = (*tag).bs_w_8.unwrap();
-            f((*tag).bs_cookie, handle, offset, value)
-        }
     }
 }
