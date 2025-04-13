@@ -86,21 +86,26 @@ unsafe impl Sync for DeviceMethod {}
 #[macro_export]
 macro_rules! device_init_softc {
     ($dev:expr, $sc:expr) => {{
-        assert!($dev.get_ptr_state() == $crate::device::DevicePointerState::Attaching);
+        use core::pin::Pin;
+        use core::ptr::write;
+        use $crate::bindings;
+        use $crate::device::DevicePointerState;
+
+        assert!($dev.get_ptr_state() == DevicePointerState::Attaching);
 
         let dev_ptr = $dev.as_ptr();
-        let sc_void_ptr = unsafe { $crate::bindings::device_get_softc(dev_ptr) };
+        let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
 
         let sc_ptr = sc_void_ptr.cast::<Self::Softc>();
 
-        unsafe { core::ptr::write(sc_ptr, $sc) };
+        unsafe { write(sc_ptr, $sc) };
 
         unsafe {
-            $dev.set_ptr_state($crate::device::DevicePointerState::Attached);
+            $dev.set_ptr_state(DevicePointerState::Attached);
         }
 
         let sc_mut_ref = unsafe { sc_ptr.as_mut().unwrap() };
-        unsafe { core::pin::Pin::new_unchecked(sc_mut_ref) }
+        unsafe { Pin::new_unchecked(sc_mut_ref) }
     }};
 }
 
@@ -110,30 +115,33 @@ macro_rules! device_get_softc {
         $crate::device_get_softc!($dev, Self)
     }};
     ($dev:expr, $driver_ty:ident) => {{
+        use core::any::TypeId;
+        use core::pin::Pin;
+        use $crate::bindings;
+        use $crate::device::wrappers::device_get_driver;
+        use $crate::device::{DeviceIf, DevicePointerState};
+
         // Check if the device pointer has a known softc type
         match $dev.get_softc_ty() {
             Some(sc_ty) => {
                 // If the device pointer had a softc type just check the TypeId of what we're
                 // casting to. This should usually get optimized out.
-                assert!(
-                    core::any::TypeId::of::<<$driver_ty as $crate::device::DeviceIf>::Softc>()
-                        == sc_ty
-                );
+                assert!(TypeId::of::<<$driver_ty as DeviceIf>::Softc>() == sc_ty);
             }
             None => {
                 // If the device pointer had no softc type fall back to checking the device's driver
-                let driver = $crate::device::wrappers::device_get_driver($dev);
+                let driver = device_get_driver($dev);
                 assert!($driver_ty::get_driver() == driver);
             }
         };
-        assert!($dev.get_ptr_state() == $crate::device::DevicePointerState::Attached);
+        assert!($dev.get_ptr_state() == DevicePointerState::Attached);
 
         let dev_ptr = $dev.as_ptr();
-        let sc_void_ptr = unsafe { $crate::bindings::device_get_softc(dev_ptr) };
-        let sc_ptr = sc_void_ptr.cast::<<$driver_ty as $crate::device::DeviceIf>::Softc>();
+        let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
+        let sc_ptr = sc_void_ptr.cast::<<$driver_ty as DeviceIf>::Softc>();
         let sc_ref = unsafe { sc_ptr.as_ref() };
         let sc_ref = unsafe { sc_ref.unwrap_unchecked() };
-        unsafe { core::pin::Pin::new_unchecked(sc_ref) }
+        unsafe { Pin::new_unchecked(sc_ref) }
     }};
 }
 
