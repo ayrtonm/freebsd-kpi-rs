@@ -26,99 +26,45 @@
  * SUCH DAMAGE.
  */
 
+use core::cell::UnsafeCell;
 use core::mem::{offset_of, MaybeUninit};
 use core::ops::{Deref, DerefMut, Drop};
-use core::sync::atomic::{AtomicU32, Ordering};
-use core::cell::UnsafeCell;
+use core::sync::atomic::{AtomicBool, Ordering};
 
 #[derive(Debug)]
-struct BorrowState(AtomicU32);
-
-impl BorrowState {
-    const AVAILABLE: u32 = 0;
-    const BORROWED: u32 = 1;
-    const MUTABLY_BORROWED: u32 = 2;
-
-    pub fn new() -> Self {
-        Self(AtomicU32::new(Self::AVAILABLE))
-    }
-
-    pub fn do_transition(&self, init: u32, end: u32) -> bool {
-        self.0.compare_exchange(init, end, Ordering::Acquire, Ordering::Relaxed).is_ok()
-    }
-
-    pub fn borrow(&self) {
-        if !self.do_transition(Self::AVAILABLE, Self::BORROWED) {
-            panic!("already borrowed");
-        }
-    }
-
-    pub fn borrow_mut(&self) {
-        if !self.do_transition(Self::AVAILABLE, Self::MUTABLY_BORROWED) {
-            panic!("already borrowed");
-        }
-    }
-
-    pub fn release(&self) {
-        self.0.store(Self::AVAILABLE, Ordering::Relaxed);
-    }
-}
-
-#[derive(Debug)]
-pub struct Mutable<T> {
+pub struct Checked<T> {
     t: UnsafeCell<T>,
-    state: BorrowState,
+    borrowed: AtomicBool,
 }
 
-unsafe impl<T> Sync for Mutable<T> {}
+unsafe impl<T> Sync for Checked<T> {}
 
-impl<T> Mutable<T> {
+impl<T> Checked<T> {
     pub fn new(t: T) -> Self {
         Self {
             t: UnsafeCell::new(t),
-            state: BorrowState::new(),
-        }
-    }
-
-    pub fn get(&self) -> Ref<'_, T> {
-        self.state.borrow();
-        Ref {
-            value: self.t.get(),
-            state: &self.state,
+            borrowed: AtomicBool::new(false),
         }
     }
 
     pub fn get_mut(&self) -> RefMut<'_, T> {
-        self.state.borrow_mut();
+        if !self
+            .borrowed
+            .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
+            .is_ok()
+        {
+            panic!("already borrowed");
+        }
         RefMut {
             value: self.t.get(),
-            state: &self.state,
+            borrowed: &self.borrowed,
         }
     }
 }
 
-pub struct Ref<'b, T: 'b + ?Sized> {
-    value: *mut T,
-    state: &'b BorrowState,
-}
-
 pub struct RefMut<'b, T: 'b + ?Sized> {
     value: *mut T,
-    state: &'b BorrowState,
-}
-
-impl<T: ?Sized> Deref for Ref<'_, T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        unsafe { self.value.as_ref().unwrap() }
-    }
-}
-
-impl<T: ?Sized> Drop for Ref<'_, T> {
-    fn drop(&mut self) {
-        self.state.release();
-    }
+    borrowed: &'b AtomicBool,
 }
 
 impl<T: ?Sized> Deref for RefMut<'_, T> {
@@ -137,7 +83,7 @@ impl<T: ?Sized> DerefMut for RefMut<'_, T> {
 
 impl<T: ?Sized> Drop for RefMut<'_, T> {
     fn drop(&mut self) {
-        self.state.release();
+        self.borrowed.store(false, Ordering::Relaxed);
     }
 }
 
