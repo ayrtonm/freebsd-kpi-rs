@@ -32,17 +32,17 @@
 #[macro_use]
 mod macros;
 
-pub mod malloc;
-pub mod boxed;
 #[cfg(target_arch = "aarch64")]
 pub mod arm64;
 pub mod bindings;
+pub mod boxed;
 pub mod bus;
 pub mod cell;
 pub mod device;
 pub mod ffi;
 #[cfg(feature = "intrng")]
 pub mod intr;
+pub mod malloc;
 #[cfg(feature = "fdt")]
 pub mod ofw;
 mod panic;
@@ -69,13 +69,14 @@ impl<T> AsRustType<T> for T {
 }
 
 pub mod prelude {
-    pub use crate::Result;
     pub use crate::bindings;
     pub use crate::boxed::Box;
-    pub use crate::{pin_field, pin_field_mut};
-    pub use crate::{print, println, dprint, dprintln};
+    pub use crate::Result;
     #[cfg(target_arch = "aarch64")]
-    pub use crate::{pcpu_get, pcpu_ptr, curthread, read_reg, write_reg};
+    pub use crate::{curthread, pcpu_get, pcpu_ptr, read_reg, write_reg};
+    pub use crate::{device_get_softc, device_init_softc};
+    pub use crate::{dprint, dprintln, print, println};
+    pub use crate::{pin_field, pin_field_mut};
 
     // Error code macros
     pub use crate::err_codes::*;
@@ -95,15 +96,15 @@ pub mod prelude {
     pub use crate::malloc::wrappers::*;
     #[cfg(feature = "fdt")]
     pub use crate::ofw::wrappers::*;
-    pub use crate::taskq::wrappers::*;
     pub use crate::sleep::wrappers::*;
     pub use crate::sync::wrappers::*;
+    pub use crate::taskq::wrappers::*;
 
-    pub use crate::device::{HasSoftc, DeviceIf};
     pub use crate::bus::BusIfWrappers;
+    pub use crate::device::{DeviceIf, IsDriver};
 
     // These are implemented widely throughout the KPI crate
-    pub use crate::{AsRustType, AsCType};
+    pub use crate::{AsCType, AsRustType};
 }
 
 #[doc(hidden)]
@@ -120,42 +121,24 @@ macro_rules! count {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! if_desc {
-    (device_probe) => { $crate::bindings::device_probe_desc };
-    (device_attach) => { $crate::bindings::device_attach_desc };
-    (device_detach) => { $crate::bindings::device_detach_desc };
+    (device_probe) => {
+        $crate::bindings::device_probe_desc
+    };
+    (device_attach) => {
+        $crate::bindings::device_attach_desc
+    };
+    (device_detach) => {
+        $crate::bindings::device_detach_desc
+    };
 }
 
 #[doc(hidden)]
 #[macro_export]
 macro_rules! export_function {
-    ($cdriver:ident $impl:ident device_probe) => {
-        $crate::export_function! {
-            $cdriver $impl
-            int device_probe(device_t dev)
-            result is $crate::device::BusProbe
-        }
-    };
-    ($cdriver:ident $impl:ident device_attach) => {
-        $crate::export_function! {
-            $cdriver $impl
-            int device_attach(device_t dev)
-            result is $crate::device::IsInit<_>
-        }
-    };
-    ($cdriver:ident $impl:ident device_detach) => {
-        $crate::export_function! {
-            $cdriver $impl
-            int device_detach(device_t dev)
-            with drop glue {
-                use $crate::device::HasSoftc;
-                let sc_ptr = core::ptr::from_ref($cdriver.device_get_softc(dev).get_ref());
-                unsafe { core::ptr::drop_in_place(sc_ptr.cast_mut()) }
-            }
-        }
-    };
     (
-        $cdriver:ident $impl:ident
+        $driver_ty:ident $impl:ident
         void $fn_name:ident($($arg:ident $arg_name:ident$(,)?)*)
+        $(with init glue { $($init_glue:tt)* })?
         $(with drop glue { $($drop_glue:tt)* })?
     ) => {
         #[no_mangle]
@@ -166,18 +149,22 @@ macro_rules! export_function {
             // Convert all arguments from C types to rust types
             $(let mut $arg_name = $arg_name.as_rust_type();)*
 
+            // Call init glue if any
+            $($($init_glue)*)*;
+
             // Call the rust implementation
-            $cdriver.$fn_name($($arg_name,)*);
+            $driver_ty::$fn_name($($arg_name,)*);
 
             // Call drop glue if any
             $($($drop_glue)*)*;
         }
     };
     (
-        $cdriver:ident $impl:ident
+        $driver_ty:ident $impl:ident
         $ret:ident $fn_name:ident($($arg:ident $arg_name:ident$(,)?)*)
+        $(with init glue { $($init_glue:tt)* })?
         $(with drop glue { $($drop_glue:tt)* })?
-        $(result is $ret_as_rust_ty:ty)?
+        $(rust returns $ret_as_rust_ty:ty)?
     ) => {
         #[no_mangle]
         pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) -> $ret {
@@ -187,8 +174,11 @@ macro_rules! export_function {
             // Convert all arguments from C types to rust types
             $(let mut $arg_name = $arg_name.as_rust_type();)*
 
+            // Call init glue if any
+            $($($init_glue)*)*;
+
             // Call the rust implementation, coercing to the result type if specified
-            let res$(: $crate::Result<$ret_as_rust_ty>)* = $cdriver.$fn_name($($arg_name,)*);
+            let res$(: $crate::Result<$ret_as_rust_ty>)* = $driver_ty::$fn_name($($arg_name,)*);
 
             // Call drop glue if any
             $($($drop_glue)*)*;
@@ -204,9 +194,11 @@ macro_rules! export_function {
 
 #[macro_export]
 macro_rules! driver {
-    ($cdriver:ident, $cname:expr, $driver:ident, $methods:ident,
-        $($if_fn:ident $impl:ident,)*
-        $({
+    ($driver_sym:ident, $driver_name:expr, $driver_ty:ident, $methods:ident,
+        INTERFACES {
+            $($if_fn:ident $impl:ident,)*
+        }$(,)?
+        $(EXPORTS {
             $($ret:ident $fn_name:ident($($arg:ident $arg_name:ident$(,)?)*);)*
         })?
     ) => {
@@ -215,16 +207,22 @@ macro_rules! driver {
         // These structs are not defined in the KPI crate to allow inherent impls in drivers
         #[repr(C)]
         #[derive(Debug)]
-        pub struct $driver(core::cell::UnsafeCell<$crate::bindings::kobj_class>);
-        unsafe impl Sync for $driver {}
+        pub struct $driver_ty(core::cell::UnsafeCell<$crate::bindings::kobj_class>);
+        unsafe impl Sync for $driver_ty {}
+        impl IsDriver for $driver_ty {
+            fn get_driver() -> *const $crate::bindings::kobj_class {
+                $driver_sym.0.get()
+            }
+        }
 
         #[no_mangle]
-        pub static $cdriver: $driver = $driver(
+        pub static $driver_sym: $driver_ty = $driver_ty(
             core::cell::UnsafeCell::new($crate::bindings::kobj_class {
-                name: $cname.as_ptr(),
+                // TODO: Ensure type is &'static CStr
+                name: $driver_name.as_ptr(),
                 methods: core::ptr::addr_of!($methods).cast(),
                 // TODO: ensure alignment of softc memory supports Softc
-                size: core::mem::size_of::<<$driver as DeviceIf>::Softc>(),
+                size: core::mem::size_of::<<$driver_ty as DeviceIf>::Softc>(),
                 baseclasses: core::ptr::null_mut(),
                 refs: 0,
                 ops: core::ptr::null_mut(),
@@ -236,21 +234,24 @@ macro_rules! driver {
             $(
                 {
                     let desc = &raw mut $crate::if_desc!($if_fn);
-                    $crate::device::DeviceMethod::new(desc, $cdriver::$impl as *const ())
+                    $crate::device::DeviceMethod::new(desc, $driver_sym::$impl as *const ())
                 },
             )*
             $crate::device::DeviceMethod::null(),
         ];
 
-        // Create a module to glob import bindings and allow C types in function declaration
-        mod $cdriver {
-            use super::{$cdriver, $driver};
+        // Create a module to glob import bindings and allow C types in function declaration without
+        // polluting the namespace driver! was invoked in. The module name is arbitrary so
+        // $driver_sym is used to ensure it is unique (which holds since it corresponds to an
+        // unmangled symbol name).
+        mod $driver_sym {
+            use super::$driver_ty;
             use $crate::bindings::*;
             use $crate::{AsRustType, AsCType};
             use $crate::device::DeviceIf;
             use $crate::export_function;
-            $(export_function!($cdriver $impl $if_fn);)*
-            $($(export_function!($cdriver $fn_name $ret $fn_name($($arg $arg_name,)*));)*)*
+            $($crate::$if_fn!($driver_ty $impl);)*
+            $($(export_function!($driver_ty $fn_name $ret $fn_name($($arg $arg_name,)*));)*)*
         }
     };
 }

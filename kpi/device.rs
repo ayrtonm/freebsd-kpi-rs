@@ -26,12 +26,14 @@
  * SUCH DAMAGE.
  */
 
-use crate::bindings::{_device, kobj_method_t, kobjop_desc};
+use crate::bindings::{device_t, driver_t, kobj_method_t, kobjop_desc};
 use crate::prelude::*;
+use core::any::TypeId;
 use core::ffi::{c_int, CStr};
-use core::ptr::{write, null_mut};
-use core::pin::Pin;
+use core::mem::{offset_of, size_of};
 use core::ops::{Deref, DerefMut};
+use core::pin::Pin;
+use core::ptr::{null_mut, write};
 
 enum_c_macros! {
     #[repr(i32)]
@@ -48,38 +50,13 @@ enum_c_macros! {
     }
 }
 
-#[derive(Debug)]
-pub struct IsInit<'a, T> {
-    softc: Pin<&'a mut T>
-}
-
-impl<'a, T> Deref for IsInit<'a, T> {
-    type Target = Pin<&'a mut T>;
-    fn deref(&self) -> &Self::Target {
-        &self.softc
-    }
-}
-
-impl<'a, T> DerefMut for IsInit<'a, T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.softc
-    }
-}
-
-
 impl AsCType<c_int> for BusProbe {
     fn as_c_type(self) -> c_int {
         self as c_int
     }
 }
 
-impl<'a, T> AsCType<c_int> for IsInit<'a, T> {
-    fn as_c_type(self) -> c_int {
-        0
-    }
-}
-
-impl AsRustType<Device> for *mut _device {
+impl AsRustType<Device> for device_t {
     fn as_rust_type(self) -> Device {
         Device::new(self)
     }
@@ -106,48 +83,131 @@ impl DeviceMethod {
 
 unsafe impl Sync for DeviceMethod {}
 
-pub trait HasSoftc: DeviceIf {
-    fn device_init_softc(&self, dev: Device, sc: Self::Softc) -> IsInit<Self::Softc> {
-        assert!(self as *const Self as *const bindings::driver_t == dev.driver);
-        // TODO: assert this device has not initialized its softc to make this sound
-        let dev_ptr = dev.as_ptr();
-        let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
+#[macro_export]
+macro_rules! device_init_softc {
+    ($dev:expr, $sc:expr) => {{
+        assert!($dev.get_ptr_state() == $crate::device::DevicePointerState::Attaching);
+
+        let dev_ptr = $dev.as_ptr();
+        let sc_void_ptr = unsafe { $crate::bindings::device_get_softc(dev_ptr) };
+
         let sc_ptr = sc_void_ptr.cast::<Self::Softc>();
-        unsafe { write(sc_ptr, sc) };
-        // TODO: the safety of this depends on the assertion mentioned above
-        let softc = unsafe { self.device_get_softc_mut(dev) };
-        IsInit {
-            softc
+
+        unsafe { core::ptr::write(sc_ptr, $sc) };
+
+        unsafe {
+            $dev.set_ptr_state($crate::device::DevicePointerState::Attached);
         }
-    }
 
-    fn device_get_softc(&self, dev: Device) -> Pin<&Self::Softc> {
-        assert!(self as *const Self as *const bindings::driver_t == dev.driver);
-        let dev_ptr = dev.as_ptr();
-        let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
-        let sc_ptr = sc_void_ptr.cast::<Self::Softc>();
-        let sc_ref = unsafe { sc_ptr.as_ref().unwrap() };
-        unsafe { Pin::new_unchecked(sc_ref) }
-    }
-
-    unsafe fn device_get_softc_mut(&self, dev: Device) -> Pin<&mut Self::Softc> {
-        assert!(self as *const Self as *const bindings::driver_t == dev.driver);
-        let dev_ptr = dev.as_ptr();
-        let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
-        let sc_ptr = sc_void_ptr.cast::<Self::Softc>();
         let sc_mut_ref = unsafe { sc_ptr.as_mut().unwrap() };
-        unsafe { Pin::new_unchecked(sc_mut_ref) }
-    }
+        unsafe { core::pin::Pin::new_unchecked(sc_mut_ref) }
+    }};
 }
 
-impl<T: DeviceIf> HasSoftc for T {}
+#[macro_export]
+macro_rules! device_get_softc {
+    ($dev:expr) => {{
+        $crate::device_get_softc!($dev, Self)
+    }};
+    ($dev:expr, $driver_ty:ident) => {{
+        // Check if the device pointer has a known softc type
+        match $dev.get_softc_ty() {
+            Some(sc_ty) => {
+                // If the device pointer had a softc type just check the TypeId of what we're
+                // casting to. This should usually get optimized out.
+                assert!(
+                    core::any::TypeId::of::<<$driver_ty as $crate::device::DeviceIf>::Softc>()
+                        == sc_ty
+                );
+            }
+            None => {
+                // If the device pointer had no softc type fall back to checking the device's driver
+                let driver = $crate::device::wrappers::device_get_driver($dev);
+                assert!($driver_ty::get_driver() == driver);
+            }
+        };
+        assert!($dev.get_ptr_state() == $crate::device::DevicePointerState::Attached);
+
+        let dev_ptr = $dev.as_ptr();
+        let sc_void_ptr = unsafe { $crate::bindings::device_get_softc(dev_ptr) };
+        let sc_ptr = sc_void_ptr.cast::<<$driver_ty as $crate::device::DeviceIf>::Softc>();
+        let sc_ref = unsafe { sc_ptr.as_ref() };
+        let sc_ref = unsafe { sc_ref.unwrap_unchecked() };
+        unsafe { core::pin::Pin::new_unchecked(sc_ref) }
+    }};
+}
+
+#[macro_export]
+macro_rules! device_probe {
+    ($driver_ty:ident $impl_fn_name:ident) => {
+        $crate::export_function! {
+            $driver_ty $impl_fn_name
+            int device_probe(device_t dev)
+            with init glue {
+                use $crate::device::{Device, DevicePointerState};
+
+                Device::set_ptr_state(&mut dev, DevicePointerState::Unknown);
+                // This glue could set the softc ty but a pointer in the probing state can't
+                // transition out of that state in rust alone so there's no benefit to setting the
+                // type since we can't do anything useful with it.
+            }
+            rust returns $crate::device::BusProbe
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! device_attach {
+    ($driver_ty:ident $impl_fn_name:ident) => {
+        $crate::export_function! {
+            $driver_ty $impl_fn_name
+            int device_attach(device_t dev)
+            with init glue {
+                use $crate::device::{Device, DeviceIf};
+                use core::any::TypeId;
+
+                Device::set_ptr_state(&mut dev, $crate::device::DevicePointerState::Attaching);
+                Device::set_softc_ty(&mut dev, TypeId::of::<<$driver_ty as DeviceIf>::Softc>());
+            }
+            with drop glue {
+                assert!(dev.get_ptr_state() == $crate::device::DevicePointerState::Attached);
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! device_detach {
+    ($driver_ty:ident $impl_fn_name:ident) => {
+        $crate::export_function! {
+            $driver_ty $impl_fn_name
+            int device_detach(device_t dev)
+            with init glue {
+                use $crate::device::{Device, DeviceIf, DevicePointerState};
+                use core::any::TypeId;
+
+                Device::set_ptr_state(&mut dev, DevicePointerState::Attached);
+                Device::set_softc_ty(&mut dev, TypeId::of::<<$driver_ty as DeviceIf>::Softc>());
+            }
+            with drop glue {
+                use $crate::device::IsDriver;
+                let sc_ptr = core::ptr::from_ref($crate::device_get_softc!(dev, $driver_ty).get_ref());
+                unsafe { core::ptr::drop_in_place(sc_ptr.cast_mut()) }
+            }
+        }
+    };
+}
+
+pub trait IsDriver: DeviceIf {
+    fn get_driver() -> *const bindings::kobj_class;
+}
 
 pub trait DeviceIf {
-    type Softc;
+    type Softc: 'static;
 
-    fn device_probe(&self, dev: Device) -> Result<BusProbe>;
-    fn device_attach(&self, dev: Device) -> Result<IsInit<Self::Softc>>;
-    fn device_detach(&self, dev: Device) -> Result<()>;
+    fn device_probe(dev: Device) -> Result<BusProbe>;
+    fn device_attach(dev: Device) -> Result<()>;
+    fn device_detach(dev: Device) -> Result<()>;
 }
 
 pub mod wrappers {
@@ -175,33 +235,56 @@ pub mod wrappers {
         unsafe { CStr::from_ptr(name) }
     }
 
-    pub fn device_get_driver(dev: Device) -> *mut bindings::driver_t {
-        dev.driver
+    pub fn device_get_driver(dev: Device) -> *mut driver_t {
+        let dev_ptr = dev.as_ptr();
+        unsafe { bindings::device_get_driver(dev_ptr) }
     }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum DevicePointerState {
+    Unknown,
+    Attaching,
+    Attached,
 }
 
 #[derive(Debug, Copy, Clone)]
 pub struct Device {
-    dev: *mut _device,
-    driver: *mut bindings::driver_t,
+    dev_ptr: device_t,
+    ptr_state: DevicePointerState,
+    softc_ty: Option<TypeId>,
 }
 
 unsafe impl Sync for Device {}
 unsafe impl Send for Device {}
 
 impl Device {
-    pub fn new(dev: *mut _device) -> Self {
-        // This is called here rather than as-needed based on the assumption
-        // that cross-langugage inlining is not available.
-        let driver = unsafe { bindings::device_get_driver(dev) };
-        Self { dev, driver }
+    // Creates a Device wrapper from a device_t
+    pub fn new(dev_ptr: device_t) -> Self {
+        Self {
+            dev_ptr,
+            ptr_state: DevicePointerState::Unknown,
+            softc_ty: None,
+        }
     }
 
-    pub fn as_ptr(&self) -> *mut _device {
-        self.dev
+    pub fn get_ptr_state(&self) -> DevicePointerState {
+        self.ptr_state
     }
 
-    pub fn get_driver(&self) -> *mut bindings::driver_t {
-        self.driver
+    pub unsafe fn set_ptr_state(&mut self, ptr_state: DevicePointerState) {
+        self.ptr_state = ptr_state;
+    }
+
+    pub fn get_softc_ty(&self) -> Option<TypeId> {
+        self.softc_ty
+    }
+
+    pub fn set_softc_ty(&mut self, ty: TypeId) {
+        self.softc_ty = Some(ty);
+    }
+
+    pub fn as_ptr(&self) -> device_t {
+        self.dev_ptr
     }
 }
