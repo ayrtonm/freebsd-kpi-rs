@@ -85,22 +85,26 @@ pub struct Resource {
 
 unsafe impl Sync for Resource {}
 
-#[derive(Debug)]
-pub struct Register<const START: bus_size_t = 0, const SIZE: bus_size_t = { bus_size_t::MAX }> {
-    res: *mut resource,
-}
+unsafe impl Sync for Register {}
 
-#[derive(Debug)]
-pub struct VarRegister {
-    res: *mut resource,
+#[derive(Copy, Clone, Debug)]
+struct Bounds {
     start: bus_size_t,
-    size: bus_size_t,
+    end: bus_size_t,
 }
 
-impl VarRegister {
-    fn assert_offset_allowed(&self, offset: bus_size_t) {
-        assert!(self.start <= offset);
-        assert!(offset < self.start + self.size);
+#[derive(Debug)]
+pub struct Register {
+    res: *mut resource,
+    bounds: Option<Bounds>,
+}
+
+impl Register {
+    fn assert_allowed(&self, offset: bus_size_t) {
+        if let Some(bounds) = self.bounds {
+            assert!(bounds.start <= offset);
+            assert!(offset < bounds.end);
+        }
     }
 }
 
@@ -146,9 +150,9 @@ fn bus_setup_intr_internal(
     }
 }
 
-impl<D: HasSoftc> BusIfWrappers for D {}
+impl<D: IsDriver> BusIfWrappers for D {}
 
-pub trait BusIfWrappers: HasSoftc {
+pub trait BusIfWrappers: IsDriver {
     fn bus_setup_intr(
         &self,
         dev: Device,
@@ -159,11 +163,73 @@ pub trait BusIfWrappers: HasSoftc {
         arg: Pin<&Self::Softc>,
         intrhand: *mut *mut c_void,
     ) -> Result<()> {
-        assert!(self as *const Self as *const bindings::driver_t == dev.get_driver());
+        let driver = device_get_driver(dev);
+        assert!(self as *const Self as *const bindings::driver_t == driver);
         let filter = unsafe { transmute(filter) };
         let handler = unsafe { transmute(handler) };
         let arg = arg.get_ref() as *const Self::Softc as *const c_void as *mut c_void;
         bus_setup_intr_internal(dev, irq, flags, filter, handler, arg, intrhand)
+    }
+}
+
+pub struct RegisterBuilder<const N: usize> {
+    res: *mut resource,
+    claimed_windows: [Option<Bounds>; N],
+    num_claimed: usize,
+}
+
+impl Resource {
+    pub fn split_resource<const N: usize>(self) -> Result<RegisterBuilder<N>> {
+        if self.ty != Some(SYS_RES_MEMORY) {
+            return Err(EDOOFUS);
+        }
+        Ok(RegisterBuilder {
+            res: self.res,
+            claimed_windows: [const { None }; N],
+            num_claimed: 0,
+        })
+    }
+
+    pub fn take_register(self) -> Result<Register> {
+        if self.ty != Some(SYS_RES_MEMORY) {
+            return Err(EDOOFUS);
+        }
+        Ok(Register { res: self.res, bounds: None })
+    }
+}
+
+impl<const N: usize> RegisterBuilder<N> {
+    fn is_claimed(&self, start: bus_size_t, size: bus_size_t) -> bool {
+        // TODO: check overflow behavior
+        let end = start + size;
+        for claimed in &self.claimed_windows {
+            match claimed {
+                Some(window) => {
+                    // Check if an existing window overlaps with the arguments. This assumes that
+                    // bounds are well-formed which they must be since we calculate end from the
+                    // window size
+                    if window.start <= end && start <= window.end {
+                        return true;
+                    }
+                },
+                None => {
+                    // When we hit an empty slot we know there bounds are not claimed
+                    return false
+                },
+            }
+        }
+        panic!("Attempted to claim more than {N} registers")
+    }
+
+    pub fn take_register(&mut self, start: bus_size_t, size: bus_size_t) -> Result<Register> {
+        if self.is_claimed(start, size) {
+            return Err(EDOOFUS);
+        }
+        let end = start + size;
+        let bounds = Some(Bounds { start, end });
+        self.claimed_windows[self.num_claimed] = bounds;
+        self.num_claimed += 1;
+        Ok(Register { res: self.res, bounds })
     }
 }
 
@@ -245,43 +311,19 @@ pub mod wrappers {
         }
     }
 
-    pub trait IsRegister {
-        fn as_var_register(&self) -> VarRegister;
-    }
-    impl IsRegister for VarRegister {
-        fn as_var_register(&self) -> VarRegister {
-            VarRegister {
-                res: self.res,
-                start: self.start,
-                size: self.size,
-            }
-        }
-    }
-    impl<const START: bus_size_t, const SIZE: bus_size_t> IsRegister for Register<START, SIZE> {
-        fn as_var_register(&self) -> VarRegister {
-            VarRegister {
-                res: self.res,
-                start: START,
-                size: SIZE,
-            }
-        }
-    }
-
     macro_rules! bus_n {
         ($read_fn:ident, $read_impl:ident, $write_fn:ident, $write_impl:ident, $ty:ty) => {
-            pub fn $read_fn<R: IsRegister>(reg: &mut R, offset: bus_size_t) -> $ty {
-                let var_reg = reg.as_var_register();
-                var_reg.assert_offset_allowed(offset);
+            pub fn $read_fn(reg: &mut Register, offset: bus_size_t) -> $ty {
+                reg.assert_allowed(offset);
                 unsafe {
-                    bindings::$read_impl(var_reg.res, offset)
+                    bindings::$read_impl(reg.res, offset)
                 }
             }
 
-            pub fn $write_fn<R: IsRegister>(reg: &mut R, offset: bus_size_t, value: $ty) {
-                let var_reg = reg.as_var_register();
-                var_reg.assert_offset_allowed(offset);
+            pub fn $write_fn(reg: &mut Register, offset: bus_size_t, value: $ty) {
+                reg.assert_allowed(offset);
                 unsafe {
-                    bindings::$write_impl(var_reg.res, offset, value)
+                    bindings::$write_impl(reg.res, offset, value)
                 }
             }
         };
@@ -292,73 +334,3 @@ pub mod wrappers {
     bus_n!(bus_read_8, rust_bindings_bus_read_8, bus_write_8, rust_bindings_bus_write_8, u64);
 }
 
-struct Window {
-    start: bus_size_t,
-    end: bus_size_t,
-}
-
-
-pub struct RegisterBuilder<const N: usize> {
-    res: *mut resource,
-    claimed_windows: [Option<Window>; N],
-    claimed: usize,
-}
-
-impl Resource {
-    pub fn split_resource<const N: usize>(self) -> Result<RegisterBuilder<N>> {
-        if self.ty != Some(SYS_RES_MEMORY) {
-            return Err(EDOOFUS);
-        }
-        Ok(RegisterBuilder {
-            res: self.res,
-            claimed_windows: [const { None }; N],
-            claimed: 0,
-        })
-    }
-
-    pub fn take_register(self) -> Result<Register> {
-        if self.ty != Some(SYS_RES_MEMORY) {
-            return Err(EDOOFUS);
-        }
-        Ok(Register { res: self.res })
-    }
-}
-
-impl<const N: usize> RegisterBuilder<N> {
-    fn is_claimed(&self, start: bus_size_t, size: bus_size_t) -> bool {
-        let end = start + size;
-        for claimed in &self.claimed_windows {
-            match claimed {
-                Some(window) => {
-                    if window.start <= end && start <= window.end {
-                        return true;
-                    }
-                },
-                None => return false,
-            }
-        }
-        panic!("Attempted to claim more than {N} registers")
-    }
-
-    pub fn take_var_register(&mut self, start: bus_size_t, size: bus_size_t) -> Result<VarRegister> {
-        if self.is_claimed(start, size) {
-            return Err(EDOOFUS);
-        }
-        let end = start + size;
-        self.claimed_windows[self.claimed] = Some(Window { start, end });
-        self.claimed += 1;
-        Ok(VarRegister { res: self.res, start, size })
-    }
-
-    pub fn take_register<const START: bus_size_t, const SIZE: bus_size_t>(
-        &mut self,
-    ) -> Result<Register<START, SIZE>> {
-        if self.is_claimed(START, SIZE) {
-            return Err(EDOOFUS);
-        }
-        let end = START + SIZE;
-        self.claimed_windows[self.claimed] = Some(Window { start: START, end });
-        self.claimed += 1;
-        Ok(Register { res: self.res })
-    }
-}
