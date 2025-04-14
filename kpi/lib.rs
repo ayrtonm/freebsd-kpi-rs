@@ -222,7 +222,7 @@ macro_rules! driver {
                 name: $driver_name.as_ptr(),
                 methods: core::ptr::addr_of!($methods).cast(),
                 // TODO: ensure alignment of softc memory supports Softc
-                size: core::mem::size_of::<<$driver_ty as DeviceIf>::Softc>(),
+                size: core::mem::size_of::<Option<<$driver_ty as DeviceIf>::Softc>>(),
                 baseclasses: core::ptr::null_mut(),
                 refs: 0,
                 ops: core::ptr::null_mut(),
