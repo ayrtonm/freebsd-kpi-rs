@@ -42,4 +42,9 @@ struct mcontext_t(());
 struct pcb(());
 #[repr(C)]
 struct vfpstate(());
+
+#[cfg(not(test))]
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+
+#[cfg(test)]
+include!("../bindings.rs");

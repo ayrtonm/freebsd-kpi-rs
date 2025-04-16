@@ -85,50 +85,49 @@ unsafe impl Sync for DeviceMethod {}
 
 #[macro_export]
 macro_rules! device_init_softc {
-    ($dev:expr, $sc:expr) => {
-        {
-            use $crate::bindings;
-            use $crate::device::{DeviceState, DeviceIf};
-            use core::pin::Pin;
+    ($dev:expr, $sc:expr) => {{
+        use core::pin::Pin;
+        use $crate::bindings;
+        use $crate::device::{DeviceIf, DeviceState};
 
-            let state = $dev.get_state();
-            assert!(state == DeviceState::Attaching);
+        let state = $dev.get_state();
+        assert!(state == DeviceState::Attaching);
 
-            let dev_ptr = $dev.as_ptr();
-            let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
-            let sc_ptr = sc_void_ptr.cast::<Option<<Self as DeviceIf>::Softc>>();
-            let sc_mut_ref = unsafe { sc_ptr.as_mut().unwrap_unchecked() };
-            assert!(sc_mut_ref.is_none());
-            *sc_mut_ref = Some($sc);
-            unsafe { Pin::new_unchecked(sc_mut_ref.as_mut().unwrap()) }
-        }
-    };
+        let dev_ptr = $dev.as_ptr();
+        let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
+        let sc_ptr = sc_void_ptr.cast::<Option<<Self as DeviceIf>::Softc>>();
+        let sc_mut_ref = unsafe { sc_ptr.as_mut().unwrap_unchecked() };
+        assert!(sc_mut_ref.is_none());
+        *sc_mut_ref = Some($sc);
+        unsafe { Pin::new_unchecked(sc_mut_ref.as_mut().unwrap()) }
+    }};
 }
 
 #[macro_export]
 macro_rules! device_get_softc {
-    ($dev:expr) => {
-        {
-            use core::pin::Pin;
-            use $crate::bindings;
-            use $crate::bindings::device_t;
-            use $crate::device::{DeviceState, DeviceIf};
+    ($dev:expr) => {{
+        use core::pin::Pin;
+        use $crate::bindings;
+        use $crate::bindings::device_t;
+        use $crate::device::{DeviceIf, DeviceState};
 
-            let state = $dev.get_state();
-            let dev_ptr = $dev.as_ptr();
-            let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
-            let sc_ptr = sc_void_ptr.cast::<Option<<Self as DeviceIf>::Softc>>();
-            // Omit a check since the pointer returned by C's device_get_softc should never be NULL
-            let sc_ref: &Option<<Self as DeviceIf>::Softc> = unsafe { sc_ptr.as_ref().unwrap_unchecked() };
+        let state = $dev.get_state();
+        let dev_ptr = $dev.as_ptr();
+        let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
+        let sc_ptr = sc_void_ptr.cast::<Option<<Self as DeviceIf>::Softc>>();
+        // Omit a check since the pointer returned by C's device_get_softc should never be NULL
+        let sc_ref: &Option<<Self as DeviceIf>::Softc> =
+            unsafe { sc_ptr.as_ref().unwrap_unchecked() };
 
-            let init_sc_ref = match state {
-                DeviceState::Unknown => unreachable!("cannot call device_get_softc! in device_probe"),
-                DeviceState::Attaching => sc_ref.as_ref().unwrap(),
-                DeviceState::Attached => unsafe { sc_ref.as_ref().unwrap_unchecked() },
-            };
-            unsafe { Pin::new_unchecked(init_sc_ref) }
-        }
-    };
+        let init_sc_ref = match state {
+            DeviceState::Unknown => unreachable!("cannot call device_get_softc! in device_probe"),
+            DeviceState::Attaching => sc_ref
+                .as_ref()
+                .expect("must initialize softc using device_init_softc!"),
+            DeviceState::Attached => unsafe { sc_ref.as_ref().unwrap_unchecked() },
+        };
+        unsafe { Pin::new_unchecked(init_sc_ref) }
+    }};
 }
 
 #[macro_export]
@@ -297,10 +296,56 @@ impl Device {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use crate::driver;
+    use core::ffi::c_void;
+    use core::mem::MaybeUninit;
     use core::ptr::null_mut;
 
+    pub struct MySoftc {
+        dev: Device,
+        x: u32,
+    }
+    #[no_mangle]
+    extern "C" fn device_get_softc(_dev_ptr: device_t) -> *mut c_void {
+        static mut SOFTC: MaybeUninit<MySoftc> = MaybeUninit::uninit();
+        let ptr = &raw mut SOFTC;
+        ptr.cast::<c_void>()
+    }
+
+    driver!(my_driver, c"mydriver", MyDriver, my_driver_methods,
+    INTERFACES {
+        device_probe my_driver_probe,
+        device_attach my_driver_attach,
+        device_detach my_driver_detach,
+    });
+
     #[test]
-    fn make_device() {
-        let dev = Device::new(null_mut());
+    fn get_softc() {
+        impl DeviceIf for MyDriver {
+            type Softc = MySoftc;
+            fn device_probe(dev: Device) -> Result<BusProbe> {
+                Ok(BUS_PROBE_DEFAULT)
+            }
+            fn device_attach(dev: Device) -> Result<()> {
+                let x = 42;
+                device_init_softc!(dev, MySoftc { dev, x });
+                Ok(())
+            }
+            fn device_detach(dev: Device) -> Result<()> {
+                let sc = device_get_softc!(dev);
+                assert_eq!(sc.x, 42);
+                Ok(())
+            }
+        }
+        let mut dev = null_mut();
+        extern "C" {
+            fn my_driver_probe(dev: device_t) -> i32;
+            fn my_driver_attach(dev: device_t) -> i32;
+            fn my_driver_detach(dev: device_t) -> i32;
+        }
+        assert_eq!(unsafe { my_driver_probe(dev) }, bindings::BUS_PROBE_DEFAULT);
+        assert_eq!(unsafe { my_driver_attach(dev) }, 0);
+        assert_eq!(unsafe { my_driver_detach(dev) }, 0);
     }
 }
