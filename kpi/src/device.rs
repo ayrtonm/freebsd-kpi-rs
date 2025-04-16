@@ -294,3 +294,13 @@ impl Device {
         self.dev_ptr
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use core::ptr::null_mut;
+
+    #[test]
+    fn make_device() {
+        let dev = Device::new(null_mut());
+    }
+}

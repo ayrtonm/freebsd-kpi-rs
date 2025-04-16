@@ -1,4 +1,4 @@
-RSFILES= $S/rust/kpi/lib.rs \
+RSFILES= $S/rust/kpi/src/lib.rs \
 #	$S/arm64/apple/apple_mbox.rs \
 #	$S/arm64/apple/rtkit.rs \
 #	$S/arm64/apple/apple_rtkit.rs
@@ -7,9 +7,9 @@ RSFILES= $S/rust/kpi/lib.rs \
 CRATES=
 # Turn .rs filenames into crate names
 .for _rsf in ${RSFILES}
-# If the crate a lib.rs use the directory as the crate name
+# If the crate a lib.rs go up to directories to find the crate name
 .if ${_rsf:T} == lib.rs
-CRATES+= ${_rsf:S/\/lib.rs//:T}
+CRATES+= ${_rsf:S/\/src\/lib.rs//:T}
 # Otherwise use the filename as the crate name
 .else
 CRATES+= ${_rsf:T:S/.rs//}
@@ -36,7 +36,7 @@ KPI_CRATE= lib.rs \
 	tty.rs \
 	vec.rs
 
-KPI_CRATE_FILES= ${KPI_CRATE:S/^/$S\/rust\/kpi\//g}
+KPI_CRATE_FILES= ${KPI_CRATE:S/^/$S\/rust\/kpi\/src\//g}
 
 .if ${TARGET_ARCH} == aarch64
 RUST_TARGET= aarch64-unknown-none-softfloat
@@ -93,9 +93,9 @@ bindings.rs: $S/rust/bindings.c bindings.o
 # TODO: OUT_DIR env var used to include! bindings.rs in the idiomatic way. Maybe there's an existing
 # env var to anchor the path
 libkpi.rlib: ${KPI_CRATE_FILES} bindings.rs ${MFILES:T:S/.m$/.h/g}
-	OUT_DIR=$(PWD) ${NORMAL_RS} $S/rust/kpi/lib.rs
+	OUT_DIR=$(PWD) ${NORMAL_RS} $S/rust/kpi/src/lib.rs
 
-.for _rsf in ${RSFILES:N$S/rust/kpi/lib.rs}
+.for _rsf in ${RSFILES:N$S/rust/kpi/src/lib.rs}
 _crate= ${_rsf:T:S/.rs//}
 .if ${_crate} == rtkit
 _crate_deps= kpi apple_mbox
