@@ -29,6 +29,7 @@
 use crate::{bindings, println};
 use core::panic::PanicInfo;
 
+#[cfg(not(test))]
 #[allow(unreachable_code)]
 #[panic_handler]
 fn rust_panic(info: &PanicInfo) -> ! {
