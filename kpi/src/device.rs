@@ -219,10 +219,32 @@ pub trait IsDriver: DeviceIf {
 
 pub trait DeviceIf {
     type Softc: 'static;
+    type State: 'static = ();
 
-    fn device_probe(dev: Device) -> Result<BusProbe>;
-    fn device_attach(dev: Device) -> Result<()>;
-    fn device_detach(dev: Device) -> Result<()>;
+    fn device_probe(dev: Device) -> Result<BusProbe> {
+        unimplemented!()
+    }
+    fn device_attach(dev: Device) -> Result<()> {
+        unimplemented!()
+    }
+    fn device_detach(dev: Device) -> Result<()> {
+        unimplemented!()
+    }
+    fn device_shutdown(dev: Device) -> Result<()> {
+        unimplemented!()
+    }
+    fn device_suspend(dev: Device) -> Result<()> {
+        unimplemented!()
+    }
+    fn device_resume(dev: Device) -> Result<()> {
+        unimplemented!()
+    }
+    fn device_quiesce(dev: Device) -> Result<()> {
+        unimplemented!()
+    }
+    fn device_register(dev: Device) -> Result<&'static Self::State> {
+        unimplemented!()
+    }
 }
 
 pub mod wrappers {
