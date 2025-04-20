@@ -29,6 +29,9 @@
 #![no_std]
 #![deny(improper_ctypes, unused_must_use, unreachable_patterns)]
 
+#[cfg(feature = "std")]
+extern crate std;
+
 #[macro_use]
 mod macros;
 
@@ -45,10 +48,12 @@ pub mod intr;
 pub mod malloc;
 #[cfg(feature = "fdt")]
 pub mod ofw;
+#[cfg(not(feature = "std"))]
 mod panic;
 pub mod sleep;
 pub mod sync;
 pub mod taskq;
+#[cfg(not(feature = "std"))]
 pub mod tty;
 pub mod vec;
 
@@ -75,6 +80,7 @@ pub mod prelude {
     #[cfg(target_arch = "aarch64")]
     pub use crate::{curthread, pcpu_get, pcpu_ptr, read_reg, write_reg};
     pub use crate::{device_get_softc, device_init_softc};
+    #[cfg(not(feature = "std"))]
     pub use crate::{dprint, dprintln, print, println};
     pub use crate::{pin_field, pin_field_mut};
 

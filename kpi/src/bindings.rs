@@ -43,8 +43,8 @@ struct pcb(());
 #[repr(C)]
 struct vfpstate(());
 
-#[cfg(not(test))]
+#[cfg(not(feature = "std"))]
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
-#[cfg(test)]
+#[cfg(feature = "std")]
 include!("../bindings.rs");
