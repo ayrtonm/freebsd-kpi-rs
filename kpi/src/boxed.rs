@@ -34,6 +34,7 @@ use core::ptr::NonNull;
 use core::marker::PhantomData;
 use core::ops::{Deref, DerefMut};
 
+#[repr(C)]
 #[derive(Debug)]
 pub struct Box<T, M: MallocType>(NonNull<T>, PhantomData<M>);
 
