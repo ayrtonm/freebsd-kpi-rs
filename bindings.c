@@ -50,8 +50,7 @@
 #include <machine/_inttypes.h>
 #include <machine/bus.h>
 
-// FIXME: this is a hack to distinguish arm64 from x86
-#ifdef FDT
+#if !defined(__x86_64__)
 #include <machine/machdep.h>
 #endif
 
@@ -72,8 +71,7 @@
 
 #include "device_if.h"
 
-// FIXME: this is a hack to distinguish arm64 from x86
-#ifdef FDT
+#if !defined(__x86_64__)
 #include "pic_if.h"
 #endif
 
@@ -84,15 +82,38 @@
  * by other translation units but they only need to be called from rust so we just add declarations
  * here for simplicity.
  */
+#define INLINE(...) __VA_ARGS__;__VA_ARGS__
 #ifdef FDT
-phandle_t rust_bindings_ofw_bus_get_node(device_t dev);
-
+INLINE(
 phandle_t
-rust_bindings_ofw_bus_get_node(device_t dev)
+rust_bindings_ofw_bus_get_node(device_t dev))
 {
 	return ofw_bus_get_node(dev);
 }
 #endif
+
+INLINE(
+void
+rust_bindings_refcount_init(volatile u_int *count, u_int value)) {
+    return refcount_init(count, value);
+}
+
+INLINE(
+u_int
+rust_bindings_refcount_load(volatile u_int *count)) {
+    return refcount_load(count);
+}
+
+INLINE(
+u_int
+rust_bindings_refcount_acquire(volatile u_int *count)) {
+    return refcount_acquire(count);
+}
+INLINE(
+bool
+rust_bindings_refcount_release(volatile u_int *count)) {
+    return refcount_release(count);
+}
 
 #define BUS_N(n, ty) \
     ty rust_bindings_bus_read_##n(struct resource *res, bus_size_t offset); \
@@ -111,7 +132,7 @@ BUS_N(2, uint16_t);
 BUS_N(4, uint32_t);
 BUS_N(8, uint64_t);
 
-#if 0
+#if 1
 #include <dt-bindings/interrupt-controller/apple-aic.h>
 #include <arm64/apple/apple_mbox.h>
 #include <arm64/apple/rtkit.h>

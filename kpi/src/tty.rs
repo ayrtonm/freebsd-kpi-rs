@@ -75,7 +75,7 @@ macro_rules! println {
 }
 
 #[macro_export]
-macro_rules! dprint {
+macro_rules! device_print {
     ($dev:expr, $($args:tt)*) => {
         {
             <$crate::tty::TTY as core::fmt::Write>::write_fmt(
@@ -87,7 +87,7 @@ macro_rules! dprint {
 }
 
 #[macro_export]
-macro_rules! dprintln {
+macro_rules! device_println {
     ($dev:expr, $($args:tt)*) => {
         {
             <$crate::tty::TTY as core::fmt::Write>::write_fmt(

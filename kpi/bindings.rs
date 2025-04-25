@@ -375,12 +375,12 @@ pub const __FP_FAST_FMA: i32 = 1;
 pub const __FP_FAST_FMAF: i32 = 1;
 pub const __STDC__: i32 = 1;
 pub const __STDC_HOSTED__: i32 = 0;
-pub const __STDC_VERSION__: i32 = 199901;
+pub const __STDC_VERSION__: i32 = 201710;
 pub const __STDC_UTF_16__: i32 = 1;
 pub const __STDC_UTF_32__: i32 = 1;
 pub const _KERNEL: i32 = 1;
 pub const HAVE_KERNEL_OPTION_HEADERS: i32 = 1;
-pub const LINUX_DTS_VERSION: &[u8; 4] = b"6.8\0";
+pub const LINUX_DTS_VERSION: &[u8; 5] = b"6.12\0";
 pub const BINDGEN: i32 = 1;
 pub const __GCC_HAVE_DWARF2_CFI_ASM: i32 = 1;
 pub const BUF_TRACKING: i32 = 1;
@@ -429,7 +429,7 @@ pub const __EXT1_VISIBLE: i32 = 1;
 pub const BSD: i32 = 199506;
 pub const BSD4_3: i32 = 1;
 pub const BSD4_4: i32 = 1;
-pub const __FreeBSD_version: i32 = 1500029;
+pub const __FreeBSD_version: i32 = 1500037;
 pub const P_OSREL_SIGWAIT: i32 = 700000;
 pub const P_OSREL_SIGSEGV: i32 = 700004;
 pub const P_OSREL_MAP_ANON: i32 = 800104;
@@ -1025,6 +1025,11 @@ pub const CPACR_EL12_CRn: i32 = 1;
 pub const CPACR_EL12_CRm: i32 = 0;
 pub const CPACR_EL12_op2: i32 = 2;
 pub const CSSELR_InD: i32 = 1;
+pub const CTR_EL0_op0: i32 = 3;
+pub const CTR_EL0_op1: i32 = 3;
+pub const CTR_EL0_CRn: i32 = 0;
+pub const CTR_EL0_CRm: i32 = 0;
+pub const CTR_EL0_op2: i32 = 1;
 pub const CTR_RES1: i64 = 2147483648;
 pub const CTR_TminLine_SHIFT: i32 = 32;
 pub const CTR_DIC_SHIFT: i32 = 29;
@@ -1359,6 +1364,12 @@ pub const ID_AA64DFR1_EL1_op1: i32 = 0;
 pub const ID_AA64DFR1_EL1_CRn: i32 = 0;
 pub const ID_AA64DFR1_EL1_CRm: i32 = 5;
 pub const ID_AA64DFR1_EL1_op2: i32 = 1;
+pub const ID_AA64DFR1_SPMU_SHIFT: i32 = 32;
+pub const ID_AA64DFR1_SPMU_WIDTH: i32 = 4;
+pub const ID_AA64DFR1_PMICNTR_SHIFT: i32 = 36;
+pub const ID_AA64DFR1_PMICNTR_WIDTH: i32 = 4;
+pub const ID_AA64DFR1_DPFZS_SHIFT: i32 = 52;
+pub const ID_AA64DFR1_DPFZS_WIDTH: i32 = 4;
 pub const ID_AA64ISAR0_EL1_op0: i32 = 3;
 pub const ID_AA64ISAR0_EL1_op1: i32 = 0;
 pub const ID_AA64ISAR0_EL1_CRn: i32 = 0;
@@ -1448,8 +1459,18 @@ pub const ID_AA64ISAR2_MOPS_SHIFT: i32 = 16;
 pub const ID_AA64ISAR2_MOPS_WIDTH: i32 = 4;
 pub const ID_AA64ISAR2_BC_SHIFT: i32 = 20;
 pub const ID_AA64ISAR2_BC_WIDTH: i32 = 4;
-pub const ID_AA64ISAR2_PAC_frac_SHIFT: i32 = 28;
+pub const ID_AA64ISAR2_PAC_frac_SHIFT: i32 = 24;
 pub const ID_AA64ISAR2_PAC_frac_WIDTH: i32 = 4;
+pub const ID_AA64ISAR2_CLRBHB_SHIFT: i32 = 28;
+pub const ID_AA64ISAR2_CLRBHB_WIDTH: i32 = 4;
+pub const ID_AA64ISAR2_PRFMSLC_SHIFT: i32 = 40;
+pub const ID_AA64ISAR2_PRFMSLC_WIDTH: i32 = 4;
+pub const ID_AA64ISAR2_RPRFM_SHIFT: i32 = 48;
+pub const ID_AA64ISAR2_RPRFM_WIDTH: i32 = 4;
+pub const ID_AA64ISAR2_CSSC_SHIFT: i32 = 52;
+pub const ID_AA64ISAR2_CSSC_WIDTH: i32 = 4;
+pub const ID_AA64ISAR2_ATS1A_SHIFT: i32 = 60;
+pub const ID_AA64ISAR2_ATS1A_WIDTH: i32 = 4;
 pub const ID_AA64MMFR0_EL1_op0: i32 = 3;
 pub const ID_AA64MMFR0_EL1_op1: i32 = 0;
 pub const ID_AA64MMFR0_EL1_CRn: i32 = 0;
@@ -1518,6 +1539,8 @@ pub const ID_AA64MMFR1_TIDCP1_SHIFT: i32 = 52;
 pub const ID_AA64MMFR1_TIDCP1_WIDTH: i32 = 4;
 pub const ID_AA64MMFR1_CMOVW_SHIFT: i32 = 56;
 pub const ID_AA64MMFR1_CMOVW_WIDTH: i32 = 4;
+pub const ID_AA64MMFR1_ECBHB_SHIFT: i32 = 60;
+pub const ID_AA64MMFR1_ECBHB_WIDTH: i32 = 4;
 pub const ID_AA64MMFR2_EL1_op0: i32 = 3;
 pub const ID_AA64MMFR2_EL1_op1: i32 = 0;
 pub const ID_AA64MMFR2_EL1_CRn: i32 = 0;
@@ -1562,8 +1585,26 @@ pub const ID_AA64MMFR3_TCRX_SHIFT: i32 = 0;
 pub const ID_AA64MMFR3_TCRX_WIDTH: i32 = 4;
 pub const ID_AA64MMFR3_SCTLRX_SHIFT: i32 = 4;
 pub const ID_AA64MMFR3_SCTLRX_WIDTH: i32 = 4;
+pub const ID_AA64MMFR3_S1PIE_SHIFT: i32 = 8;
+pub const ID_AA64MMFR3_S1PIE_WIDTH: i32 = 4;
+pub const ID_AA64MMFR3_S2PIE_SHIFT: i32 = 12;
+pub const ID_AA64MMFR3_S2PIE_WIDTH: i32 = 4;
+pub const ID_AA64MMFR3_S1POE_SHIFT: i32 = 16;
+pub const ID_AA64MMFR3_S1POE_WIDTH: i32 = 4;
+pub const ID_AA64MMFR3_S2POE_SHIFT: i32 = 20;
+pub const ID_AA64MMFR3_S2POE_WIDTH: i32 = 4;
+pub const ID_AA64MMFR3_AIE_SHIFT: i32 = 24;
+pub const ID_AA64MMFR3_AIE_WIDTH: i32 = 4;
 pub const ID_AA64MMFR3_MEC_SHIFT: i32 = 28;
 pub const ID_AA64MMFR3_MEC_WIDTH: i32 = 4;
+pub const ID_AA64MMFR3_SNERR_SHIFT: i32 = 40;
+pub const ID_AA64MMFR3_SNERR_WIDTH: i32 = 4;
+pub const ID_AA64MMFR3_ANERR_SHIFT: i32 = 44;
+pub const ID_AA64MMFR3_ANERR_WIDTH: i32 = 4;
+pub const ID_AA64MMFR3_SDERR_SHIFT: i32 = 52;
+pub const ID_AA64MMFR3_SDERR_WIDTH: i32 = 4;
+pub const ID_AA64MMFR3_ADERR_SHIFT: i32 = 56;
+pub const ID_AA64MMFR3_ADERR_WIDTH: i32 = 4;
 pub const ID_AA64MMFR3_Spec_FPACC_SHIFT: i32 = 60;
 pub const ID_AA64MMFR3_Spec_FPACC_WIDTH: i32 = 4;
 pub const ID_AA64MMFR4_EL1_op0: i32 = 3;
@@ -1632,6 +1673,16 @@ pub const ID_AA64PFR1_CSV2_frac_SHIFT: i32 = 32;
 pub const ID_AA64PFR1_CSV2_frac_WIDTH: i32 = 4;
 pub const ID_AA64PFR1_NMI_SHIFT: i32 = 36;
 pub const ID_AA64PFR1_NMI_WIDTH: i32 = 4;
+pub const ID_AA64PFR1_MTE_frac_SHIFT: i32 = 40;
+pub const ID_AA64PFR1_MTE_frac_WIDTH: i32 = 4;
+pub const ID_AA64PFR1_THE_SHIFT: i32 = 48;
+pub const ID_AA64PFR1_THE_WIDTH: i32 = 4;
+pub const ID_AA64PFR1_MTEX_SHIFT: i32 = 52;
+pub const ID_AA64PFR1_MTEX_WIDTH: i32 = 4;
+pub const ID_AA64PFR1_DF2_SHIFT: i32 = 56;
+pub const ID_AA64PFR1_DF2_WIDTH: i32 = 4;
+pub const ID_AA64PFR1_PFAR_SHIFT: i32 = 60;
+pub const ID_AA64PFR1_PFAR_WIDTH: i32 = 4;
 pub const ID_AA64PFR2_EL1_op0: i32 = 3;
 pub const ID_AA64PFR2_EL1_op1: i32 = 0;
 pub const ID_AA64PFR2_EL1_CRn: i32 = 0;
@@ -1788,7 +1839,7 @@ pub const PAR_SH_MASK: i32 = 384;
 pub const PAR_NS_SHIFT: i32 = 9;
 pub const PAR_NS_MASK: i32 = 1536;
 pub const PAR_PA_SHIFT: i32 = 12;
-pub const PAR_PA_MASK: i64 = 281474976706560;
+pub const PAR_PA_MASK: i64 = 4503599627366400;
 pub const PAR_ATTR_SHIFT: i32 = 56;
 pub const PAR_ATTR_MASK: i64 = -72057594037927936;
 pub const PAR_FST_SHIFT: i32 = 1;
@@ -2178,11 +2229,11 @@ pub const VBAR_EL12_op1: i32 = 5;
 pub const VBAR_EL12_CRn: i32 = 12;
 pub const VBAR_EL12_CRm: i32 = 0;
 pub const VBAR_EL12_op2: i32 = 0;
-pub const ZCR_EL1_REG_op0: i32 = 3;
-pub const ZCR_EL1_REG_op1: i32 = 0;
-pub const ZCR_EL1_REG_CRn: i32 = 1;
-pub const ZCR_EL1_REG_CRm: i32 = 2;
-pub const ZCR_EL1_REG_op2: i32 = 0;
+pub const ZCR_EL1_op0: i32 = 3;
+pub const ZCR_EL1_op1: i32 = 0;
+pub const ZCR_EL1_CRn: i32 = 1;
+pub const ZCR_EL1_CRm: i32 = 2;
+pub const ZCR_EL1_op2: i32 = 0;
 pub const ZCR_LEN_SHIFT: i32 = 0;
 pub const ZCR_LEN_MASK: i32 = 15;
 pub const CPU_SETSIZE: i32 = 1024;
@@ -2514,10 +2565,10 @@ pub const OFW_STD_REAL: &[u8; 9] = b"ofw_real\0";
 pub const OFW_STD_32BIT: &[u8; 10] = b"ofw_32bit\0";
 pub const OFW_FDT: &[u8; 8] = b"ofw_fdt\0";
 pub const NIRQ: i32 = 16384;
-pub const INTR_ROOT_FIQ: i32 = 1;
-pub const INTR_ROOT_NUM: i32 = 2;
-pub const INTR_IRQ_INVALID: i64 = 4294967295;
 pub const INTR_ROOT_IRQ: i32 = 0;
+pub const INTR_ROOT_FIQ: i32 = 1;
+pub const INTR_ROOT_COUNT: i32 = 2;
+pub const INTR_IRQ_INVALID: i64 = 4294967295;
 pub const INTR_ISRC_NAMELEN: i32 = 20;
 pub const INTR_ISRCF_IPI: i32 = 1;
 pub const INTR_ISRCF_PPI: i32 = 2;
@@ -2831,10 +2882,19 @@ pub const AU_FS_MINFREE: i32 = 20;
 pub const AU_IPv4: i32 = 4;
 pub const AU_IPv6: i32 = 16;
 pub const EVNAMEMAP_NAME_SIZE: i32 = 64;
-pub const XU_NGROUPS: i32 = 16;
-pub const CRED_SMALLGROUPS_NB: i32 = 16;
 pub const CRED_FLAG_CAPMODE: i32 = 1;
+pub const CRED_SMALLGROUPS_NB: i32 = 16;
+pub const XU_NGROUPS: i32 = 16;
 pub const XUCRED_VERSION: i32 = 0;
+pub const SETCREDF_UID: i32 = 1;
+pub const SETCREDF_RUID: i32 = 2;
+pub const SETCREDF_SVUID: i32 = 4;
+pub const SETCREDF_GID: i32 = 8;
+pub const SETCREDF_RGID: i32 = 16;
+pub const SETCREDF_SVGID: i32 = 32;
+pub const SETCREDF_SUPP_GROUPS: i32 = 64;
+pub const SETCREDF_MAC_LABEL: i32 = 128;
+pub const SETCREDF_MASK: i32 = 255;
 pub const DOMAINSET_SETSIZE: i32 = 8;
 pub const DOMAINSET_MAXSIZE: i32 = 256;
 pub const KINFO_PROC_SIZE: i32 = 1088;
@@ -2989,6 +3049,8 @@ pub const P2_REAPKILLED: i32 = 524288;
 pub const P2_MEMBAR_PRIVE: i32 = 1048576;
 pub const P2_MEMBAR_PRIVE_SYNCORE: i32 = 2097152;
 pub const P2_MEMBAR_GLOBE: i32 = 4194304;
+pub const P2_LOGSIGEXIT_ENABLE: i32 = 8388608;
+pub const P2_LOGSIGEXIT_CTL: i32 = 16777216;
 pub const P_TREE_ORPHANED: i32 = 1;
 pub const P_TREE_FIRST_ORPHAN: i32 = 2;
 pub const P_TREE_REAPER: i32 = 4;
@@ -3251,6 +3313,7 @@ pub const SCNxMAX: &[u8; 3] = b"jx\0";
 pub const SCNxPTR: &[u8; 3] = b"lx\0";
 pub const BUS_SPACE_MAXADDR_24BIT: i32 = 16777215;
 pub const BUS_SPACE_MAXADDR_32BIT: i64 = 4294967295;
+pub const BUS_SPACE_MAXADDR_36BIT: i64 = 68719476735;
 pub const BUS_SPACE_MAXADDR_40BIT: i64 = 1099511627775;
 pub const BUS_SPACE_MAXSIZE_24BIT: i32 = 16777215;
 pub const BUS_SPACE_MAXSIZE_32BIT: i64 = 4294967295;
@@ -4602,6 +4665,7 @@ pub const INTR_TYPE_AV: intr_type = 64;
 pub const INTR_EXCL: intr_type = 256;
 pub const INTR_MPSAFE: intr_type = 512;
 pub const INTR_ENTROPY: intr_type = 1024;
+pub const INTR_SLEEPABLE: intr_type = 2048;
 pub const INTR_MD1: intr_type = 4096;
 pub const INTR_MD2: intr_type = 8192;
 pub const INTR_MD3: intr_type = 16384;
@@ -4621,18 +4685,6 @@ pub const LOCAL_CPUS: cpu_sets = 0;
 pub const INTR_CPUS: cpu_sets = 1;
 #[doc = " CPU sets supported by bus_get_cpus().  Note that not all sets may be\n supported for a given device.  If a request is not supported by a\n device (or its parents), then bus_get_cpus() will fail with EINVAL."]
 pub type cpu_sets = ::core::ffi::c_uint;
-pub type devop_t = ::core::option::Option<unsafe extern "C" fn() -> ::core::ffi::c_int>;
-#[doc = " @brief This structure is deprecated.\n\n Use the kobj(9) macro DEFINE_CLASS to\n declare classes which implement device drivers."]
-#[repr(C)]
-#[derive(Debug)]
-pub struct driver {
-    pub name: *const ::core::ffi::c_char,
-    pub methods: *const kobj_method,
-    pub size: usize,
-    pub baseclasses: *mut kobj_class_t,
-    pub refs: u_int,
-    pub ops: kobj_ops_t,
-}
 #[doc = " @brief A resource mapping."]
 #[repr(C)]
 #[derive(Debug)]
@@ -5244,7 +5296,6 @@ pub struct intr_irqsrc {
 pub type intr_ipi_handler_t =
     ::core::option::Option<unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void)>;
 pub const SI_SUB_DUMMY: sysinit_sub_id = 0;
-pub const SI_SUB_DONE: sysinit_sub_id = 1;
 pub const SI_SUB_TUNABLES: sysinit_sub_id = 7340032;
 pub const SI_SUB_COPYRIGHT: sysinit_sub_id = 8388609;
 pub const SI_SUB_VM: sysinit_sub_id = 16777216;
@@ -5689,6 +5740,11 @@ pub struct knlist {
 }
 #[repr(C)]
 #[derive(Debug)]
+pub struct kinfo_knote {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug)]
 pub struct filterops {
     pub f_isfd: ::core::ffi::c_int,
     pub f_attach:
@@ -5699,6 +5755,13 @@ pub struct filterops {
     >,
     pub f_touch: ::core::option::Option<
         unsafe extern "C" fn(kn: *mut knote, kev: *mut kevent, type_: u_long),
+    >,
+    pub f_userdump: ::core::option::Option<
+        unsafe extern "C" fn(
+            p: *mut proc_,
+            kn: *mut knote,
+            kin: *mut kinfo_knote,
+        ) -> ::core::ffi::c_int,
     >,
 }
 #[repr(C)]
@@ -6026,7 +6089,22 @@ pub struct au_evname_map {
 pub type au_evname_map_t = au_evname_map;
 #[repr(C)]
 #[derive(Debug)]
+pub struct label {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug)]
 pub struct loginclass {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct prison {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct uidinfo {
     _unused: [u8; 0],
 }
 #[repr(C)]
@@ -6069,10 +6147,43 @@ pub struct xucred__bindgen_ty_1 {
 }
 #[repr(C)]
 #[derive(Debug)]
+pub struct mac {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct setcred {
+    pub sc_uid: uid_t,
+    pub sc_ruid: uid_t,
+    pub sc_svuid: uid_t,
+    pub sc_gid: gid_t,
+    pub sc_rgid: gid_t,
+    pub sc_svgid: gid_t,
+    pub sc_pad: u_int,
+    pub sc_supp_groups_nb: u_int,
+    pub sc_supp_groups: *mut gid_t,
+    pub sc_label: *mut mac,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct setcred32 {
+    pub sc_uid: uid_t,
+    pub sc_ruid: uid_t,
+    pub sc_svuid: uid_t,
+    pub sc_gid: gid_t,
+    pub sc_rgid: gid_t,
+    pub sc_svgid: gid_t,
+    pub sc_pad: u_int,
+    pub sc_supp_groups_nb: u_int,
+    pub sc_supp_groups: u32,
+    pub sc_label: u32,
+}
+#[repr(C)]
+#[derive(Debug)]
 pub struct credbatch {
     pub cred: *mut ucred,
-    pub users: ::core::ffi::c_int,
-    pub ref_: ::core::ffi::c_int,
+    pub users: u_int,
+    pub ref_: ::core::ffi::c_long,
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -6466,14 +6577,14 @@ pub const TDA_GEOM: _bindgen_ty_1 = 9;
 pub const TDA_KQUEUE: _bindgen_ty_1 = 10;
 pub const TDA_RACCT: _bindgen_ty_1 = 11;
 pub const TDA_MOD1: _bindgen_ty_1 = 12;
-pub const TAD_MOD2: _bindgen_ty_1 = 13;
+pub const TDA_MOD2: _bindgen_ty_1 = 13;
 pub const TDA_PSELECT: _bindgen_ty_1 = 14;
 pub const TDA_SIG: _bindgen_ty_1 = 15;
 pub const TDA_KTRACE: _bindgen_ty_1 = 16;
 pub const TDA_SUSPEND: _bindgen_ty_1 = 17;
 pub const TDA_SIGSUSPEND: _bindgen_ty_1 = 18;
 pub const TDA_MOD3: _bindgen_ty_1 = 19;
-pub const TAD_MOD4: _bindgen_ty_1 = 20;
+pub const TDA_MOD4: _bindgen_ty_1 = 20;
 pub const TDA_MAX: _bindgen_ty_1 = 21;
 pub type _bindgen_ty_1 = ::core::ffi::c_uint;
 #[repr(C)]
@@ -6803,11 +6914,6 @@ pub struct cpuset__bindgen_ty_1 {
 pub struct cpuset__bindgen_ty_2 {
     pub le_next: *mut cpuset,
     pub le_prev: *mut *mut cpuset,
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct prison {
-    _unused: [u8; 0],
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -8101,16 +8207,6 @@ pub struct aioliojob {
 }
 #[repr(C)]
 #[derive(Debug)]
-pub struct uidinfo {
-    pub _address: u8,
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct label {
-    pub _address: u8,
-}
-#[repr(C)]
-#[derive(Debug)]
 pub struct vnode {
     pub _address: u8,
 }
@@ -8278,7 +8374,6 @@ unsafe extern "C" {
     pub fn panic(arg1: *const ::core::ffi::c_char, ...) -> !;
     pub fn vpanic(arg1: *const ::core::ffi::c_char, arg2: __va_list) -> !;
     pub static mut lse_supported: bool;
-    pub fn pan_enable();
     pub static mut icache_aliasing: bool_;
     pub static mut icache_vmid: bool_;
     pub static mut dcache_line_size: i64;
@@ -9127,7 +9222,6 @@ unsafe extern "C" {
         size: usize,
         type_: device_property_type_t,
     ) -> isize;
-    pub fn bus_generic_get_resource_list(arg1: device_t, arg2: device_t) -> *mut resource_list;
     pub fn bus_generic_map_resource(
         dev: device_t,
         child: device_t,
@@ -9858,7 +9952,7 @@ unsafe extern "C" {
     pub static mut vm_ndomains: ::core::ffi::c_int;
     pub static mut vm_overcommit: ::core::ffi::c_int;
     pub static mut M_OFWPROP: [malloc_type; 1usize];
-    pub fn OF_install(name: *mut ::core::ffi::c_char, prio: ::core::ffi::c_int) -> boolean_t;
+    pub fn OF_install(name: *mut ::core::ffi::c_char, prio: ::core::ffi::c_int) -> bool_;
     pub fn OF_init(cookie: *mut ::core::ffi::c_void) -> ::core::ffi::c_int;
     pub fn OF_test(name: *const ::core::ffi::c_char) -> ::core::ffi::c_int;
     pub fn OF_printf(fmt: *const ::core::ffi::c_char, ...);
@@ -9938,7 +10032,7 @@ unsafe extern "C" {
     pub fn OF_device_from_xref(xref: phandle_t) -> device_t;
     pub fn OF_xref_from_device(dev: device_t) -> phandle_t;
     pub fn OF_device_register_xref(xref: phandle_t, dev: device_t) -> ::core::ffi::c_int;
-    pub fn OF_device_unregister_xref(xref: phandle_t, dev: device_t) -> ::core::ffi::c_int;
+    pub fn OF_device_unregister_xref(xref: phandle_t, dev: device_t);
     pub fn OF_open(path: *const ::core::ffi::c_char) -> ihandle_t;
     pub fn OF_close(instance: ihandle_t);
     pub fn OF_read(instance: ihandle_t, buf: *mut ::core::ffi::c_void, len: usize) -> isize;
@@ -10100,6 +10194,7 @@ unsafe extern "C" {
     pub static mut profhz: ::core::ffi::c_int;
     pub static mut profprocs: ::core::ffi::c_int;
     pub static mut ticks: ::core::ffi::c_int;
+    pub static mut ticksl: ::core::ffi::c_long;
     pub fn sysinit_add(set: *mut *mut sysinit, set_end: *mut *mut sysinit);
     pub fn tunable_int_init(arg1: *mut ::core::ffi::c_void);
     pub fn tunable_long_init(arg1: *mut ::core::ffi::c_void);
@@ -10455,7 +10550,7 @@ unsafe extern "C" {
     pub fn osd_register(
         type_: u_int,
         destructor: osd_destructor_t,
-        methods: *mut osd_method_t,
+        methods: *const osd_method_t,
     ) -> ::core::ffi::c_int;
     pub fn osd_deregister(type_: u_int, slot: u_int);
     pub fn osd_set(
@@ -10561,6 +10656,13 @@ unsafe extern "C" {
     pub fn tdsigcleanup(td: *mut thread);
     pub fn tdsignal(td: *mut thread, sig: ::core::ffi::c_int);
     pub fn trapsignal(td: *mut thread, ksi: *mut ksiginfo_t);
+    pub fn user_setcred(
+        td: *mut thread,
+        flags: u_int,
+        uwcred: *const ::core::ffi::c_void,
+        size: usize,
+        is_32bit: bool_,
+    ) -> ::core::ffi::c_int;
     pub fn credbatch_add(crb: *mut credbatch, td: *mut thread);
     pub fn credbatch_final(crb: *mut credbatch);
     pub fn change_egid(newcred: *mut ucred, egid: gid_t);
@@ -10573,8 +10675,9 @@ unsafe extern "C" {
     pub fn crcopysafe(p: *mut proc_, cr: *mut ucred) -> *mut ucred;
     pub fn crdup(cr: *mut ucred) -> *mut ucred;
     pub fn crextend(cr: *mut ucred, n: ::core::ffi::c_int);
-    pub fn proc_set_cred(p: *mut proc_, cr: *mut ucred);
-    pub fn proc_unset_cred(p: *mut proc_);
+    pub fn proc_set_cred(p: *mut proc_, newcred: *mut ucred);
+    pub fn proc_set_cred_enforce_proc_lim(p: *mut proc_, newcred: *mut ucred) -> bool_;
+    pub fn proc_unset_cred(p: *mut proc_, decrement_proc_count: bool_);
     pub fn crfree(cr: *mut ucred);
     pub fn crcowsync() -> *mut ucred;
     pub fn crget() -> *mut ucred;
@@ -10695,6 +10798,7 @@ unsafe extern "C" {
     pub fn pargs_alloc(len: ::core::ffi::c_int) -> *mut pargs;
     pub fn pargs_drop(pa: *mut pargs);
     pub fn pargs_hold(pa: *mut pargs);
+    pub fn pgrp_calc_jobc(pgrp: *mut pgrp) -> ::core::ffi::c_int;
     pub fn proc_add_orphan(child: *mut proc_, parent: *mut proc_);
     pub fn proc_get_binpath(
         p: *mut proc_,
@@ -10752,6 +10856,7 @@ unsafe extern "C" {
     pub fn cpu_switch(arg1: *mut thread, arg2: *mut thread, arg3: *mut mtx);
     pub fn cpu_sync_core();
     pub fn cpu_throw(arg1: *mut thread, arg2: *mut thread) -> !;
+    pub fn cpu_update_pcb(arg1: *mut thread);
     pub fn curproc_sigkilled() -> bool_;
     pub fn userret(arg1: *mut thread, arg2: *mut trapframe);
     pub fn cpu_exit(arg1: *mut thread);
@@ -11125,6 +11230,7 @@ unsafe extern "C" {
         enqueue: taskqueue_enqueue_fn,
         context: *mut ::core::ffi::c_void,
     ) -> *mut taskqueue;
+    pub static mut taskqueue_bus: *mut taskqueue;
     pub fn busdma_lock_mutex(arg: *mut ::core::ffi::c_void, op: bus_dma_lock_op_t);
     pub fn _busdma_dflt_lock(arg: *mut ::core::ffi::c_void, op: bus_dma_lock_op_t);
     pub fn bus_dma_tag_create(
@@ -11483,6 +11589,10 @@ unsafe extern "C" {
     #[doc = " @brief Unique descriptor for the PIC_IPI_SETUP() method"]
     pub static mut pic_ipi_setup_desc: kobjop_desc;
     pub fn rust_bindings_ofw_bus_get_node(dev: device_t) -> phandle_t;
+    pub fn rust_bindings_refcount_init(count: *mut u_int, value: u_int);
+    pub fn rust_bindings_refcount_load(count: *mut u_int) -> u_int;
+    pub fn rust_bindings_refcount_acquire(count: *mut u_int) -> u_int;
+    pub fn rust_bindings_refcount_release(count: *mut u_int) -> bool_;
     pub fn rust_bindings_bus_read_1(res: *mut resource, offset: bus_size_t) -> u8;
     pub fn rust_bindings_bus_write_1(res: *mut resource, offset: bus_size_t, value: u8);
     pub fn rust_bindings_bus_read_2(res: *mut resource, offset: bus_size_t) -> u16;
@@ -11503,7 +11613,7 @@ unsafe extern "C" {
     );
     pub fn apple_sart_map(arg1: u32, arg2: bus_addr_t, arg3: bus_size_t) -> ::core::ffi::c_int;
     pub fn rtkit_set_ap_pwrstate(arg1: *mut rtkit_state, arg2: u16) -> ::core::ffi::c_int;
-    pub fn apple_rtkit_boot(arg1: phandle_t) -> ::core::ffi::c_int;
+    pub fn apple_rtkit_boot(client: device_t, arg1: phandle_t) -> ::core::ffi::c_int;
     pub fn rtkit_start_endpoint(
         arg1: *mut rtkit_state,
         arg2: u32,

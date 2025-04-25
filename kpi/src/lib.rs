@@ -76,12 +76,15 @@ impl<T> AsRustType<T> for T {
 pub mod prelude {
     pub use crate::bindings;
     pub use crate::boxed::Box;
+    pub use crate::vec::Vec;
     pub use crate::Result;
     #[cfg(target_arch = "aarch64")]
     pub use crate::{curthread, pcpu_get, pcpu_ptr, read_reg, write_reg};
     pub use crate::{device_get_softc, device_init_softc};
     #[cfg(not(feature = "std"))]
-    pub use crate::{dprint, dprintln, print, println};
+    pub use crate::{device_print, device_println, print, println};
+    #[cfg(feature = "std")]
+    pub use std::{print, println};
     pub use crate::{pin_field, pin_field_mut};
 
     // Error code macros
@@ -266,7 +269,7 @@ macro_rules! err_codes {
     ($($name:ident, $desc:literal,)+) => {
         use core::ffi::c_int;
         use core::fmt;
-        use core::fmt::{Debug, Formatter};
+        use core::fmt::{Debug, Display, Formatter};
         use core::num::NonZeroI32;
 
         // This is effectively an extensible enum with some overlapping variants
@@ -302,6 +305,21 @@ macro_rules! err_codes {
         }
 
         impl Debug for ErrCode {
+            // EWOULDBLOCK/EAGAIN and ENOTSUP/EOPNOTSUPP have identical values on the C side so
+            // this match statement must have unreachable patterns
+            #[allow(unreachable_patterns)]
+            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+                let msg = match *self {
+                    $(err_codes::$name => $desc,)*
+                    err_codes::ENULLPTR => "Received a NULL pointer as an error code",
+                    err_codes::EBADFFI => "Error at the FFI boundary",
+                    _ => "Unknown error code",
+                };
+                f.write_str(msg)
+            }
+        }
+
+        impl Display for ErrCode {
             // EWOULDBLOCK/EAGAIN and ENOTSUP/EOPNOTSUPP have identical values on the C side so
             // this match statement must have unreachable patterns
             #[allow(unreachable_patterns)]

@@ -217,9 +217,8 @@ pub trait IsDriver: DeviceIf {
     fn get_driver() -> *const bindings::kobj_class;
 }
 
-pub trait DeviceIf {
+pub trait DeviceIf<State = ()> {
     type Softc: 'static;
-    type State: 'static = ();
 
     fn device_probe(dev: Device) -> Result<BusProbe> {
         unimplemented!()
@@ -242,7 +241,7 @@ pub trait DeviceIf {
     fn device_quiesce(dev: Device) -> Result<()> {
         unimplemented!()
     }
-    fn device_register(dev: Device) -> Result<&'static Self::State> {
+    fn device_register(dev: Device) -> Result<&'static State> {
         unimplemented!()
     }
 }
@@ -266,6 +265,8 @@ pub mod wrappers {
         unsafe { bindings::device_set_desc(dev_ptr, desc_ptr) }
     }
 
+    // TODO: The return value lifetime is safe but not particularly useful.
+    // It should be something like &'driver CStr but not &'static CStr
     pub fn device_get_nameunit(dev: &Device) -> &CStr {
         let dev_ptr = dev.as_ptr();
         let name = unsafe { bindings::device_get_nameunit(dev_ptr) };
@@ -319,11 +320,61 @@ impl Device {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::println;
+    use std::sync::Mutex;
+    use std::vec::Vec;
+    use std::ffi::CStr;
     use crate::driver;
     use core::ffi::c_void;
     use core::mem::MaybeUninit;
     use core::ptr::null_mut;
 
+    unsafe impl Send for TestKernel {}
+    unsafe impl Sync for TestKernel {}
+    trait TestDriver {
+        fn probe(&self) -> unsafe extern "C" fn(device_t) -> i32;
+        fn attach(&self) -> unsafe extern "C" fn(device_t) -> i32;
+        fn detach(&self) -> unsafe extern "C" fn(device_t) -> i32;
+    }
+    struct TestDevice {
+        id: usize,
+        driver: usize,
+        softc: *mut c_void,
+    }
+    struct TestKernel {
+        devices: Vec<TestDevice>,
+        drivers: Vec<&'static dyn TestDriver>,
+    }
+    impl TestKernel {
+        const fn new() -> Self {
+            TestKernel {
+                devices: Vec::new(),
+                drivers: Vec::new(),
+            }
+        }
+        fn new_device(&mut self, driver: usize) -> device_t {
+            let id = self.devices.len();
+            let softc = null_mut();
+            let test_dev = TestDevice {
+                id, softc, driver
+            };
+            self.devices.push(test_dev);
+            id as device_t
+        }
+        fn register_driver(&mut self, driver: &'static dyn TestDriver) -> usize {
+            let id = self.drivers.len();
+            self.drivers.push(driver);
+            id
+        }
+        fn device_test(&mut self, dev_ptr: device_t) {
+            let dev = &self.devices[dev_ptr as usize];
+            let driver = self.drivers[dev.driver];
+            assert_eq!(unsafe { driver.probe()(dev_ptr) }, bindings::BUS_PROBE_DEFAULT);
+            assert_eq!(unsafe { driver.attach()(dev_ptr) }, 0);
+            assert_eq!(unsafe { driver.detach()(dev_ptr) }, 0);
+        }
+    }
+    static TEST_KERNEL: Mutex<TestKernel> = Mutex::new(TestKernel::new());
     pub struct MySoftc {
         dev: Device,
         x: u32,
@@ -341,33 +392,51 @@ mod tests {
         device_attach my_driver_attach,
         device_detach my_driver_detach,
     });
+    impl DeviceIf for MyDriver {
+        type Softc = MySoftc;
+        fn device_probe(dev: Device) -> Result<BusProbe> {
+            Ok(BUS_PROBE_DEFAULT)
+        }
+        fn device_attach(dev: Device) -> Result<()> {
+            let x = 42;
+            println!("{:p}", dev.as_ptr());
+            device_init_softc!(dev, MySoftc { dev, x });
+            Ok(())
+        }
+        fn device_detach(dev: Device) -> Result<()> {
+            let sc = device_get_softc!(dev);
+            assert_eq!(sc.x, 42);
+            Ok(())
+        }
+    }
+    impl TestDriver for MyDriver {
+        fn probe(&self) -> unsafe extern "C" fn(device_t) -> i32 {
+            my_driver_probe
+        }
+        fn attach(&self) -> unsafe extern "C" fn(device_t) -> i32 {
+            my_driver_attach
+        }
+        fn detach(&self) -> unsafe extern "C" fn(device_t) -> i32 {
+            my_driver_detach
+        }
+    }
+    extern "C" {
+        fn my_driver_probe(dev: device_t) -> i32;
+        fn my_driver_attach(dev: device_t) -> i32;
+        fn my_driver_detach(dev: device_t) -> i32;
+    }
+    #[no_mangle]
+    static device_probe_desc: &'static CStr = c"foo";
+    #[no_mangle]
+    static device_attach_desc: &'static CStr = c"foo";
+    #[no_mangle]
+    static device_detach_desc: &'static CStr = c"foo";
 
     #[test]
     fn get_softc() {
-        impl DeviceIf for MyDriver {
-            type Softc = MySoftc;
-            fn device_probe(dev: Device) -> Result<BusProbe> {
-                Ok(BUS_PROBE_DEFAULT)
-            }
-            fn device_attach(dev: Device) -> Result<()> {
-                let x = 42;
-                device_init_softc!(dev, MySoftc { dev, x });
-                Ok(())
-            }
-            fn device_detach(dev: Device) -> Result<()> {
-                let sc = device_get_softc!(dev);
-                assert_eq!(sc.x, 42);
-                Ok(())
-            }
-        }
-        let mut dev = null_mut();
-        extern "C" {
-            fn my_driver_probe(dev: device_t) -> i32;
-            fn my_driver_attach(dev: device_t) -> i32;
-            fn my_driver_detach(dev: device_t) -> i32;
-        }
-        assert_eq!(unsafe { my_driver_probe(dev) }, bindings::BUS_PROBE_DEFAULT);
-        assert_eq!(unsafe { my_driver_attach(dev) }, 0);
-        assert_eq!(unsafe { my_driver_detach(dev) }, 0);
+        let mut test_kernel = TEST_KERNEL.lock().unwrap();
+        let driver = test_kernel.register_driver(&my_driver);
+        let mut dev = test_kernel.new_device(driver);
+        test_kernel.device_test(dev);
     }
 }

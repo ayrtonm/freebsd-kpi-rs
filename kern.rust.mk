@@ -1,7 +1,8 @@
 RSFILES= $S/rust/kpi/src/lib.rs \
-#	$S/arm64/apple/apple_mbox.rs \
-#	$S/arm64/apple/rtkit.rs \
-#	$S/arm64/apple/apple_rtkit.rs
+	$S/arm64/apple/apple_aic.rs \
+	$S/arm64/apple/apple_mbox.rs \
+	$S/arm64/apple/rtkit.rs \
+	$S/arm64/apple/apple_rtkit.rs
 
 
 CRATES=

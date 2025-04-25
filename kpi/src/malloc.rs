@@ -34,11 +34,6 @@ use core::ffi::{c_int, c_void};
 #[derive(Copy, Clone, Debug)]
 pub struct MallocFlags(c_int);
 
-//#[derive(Copy, Clone, Debug)]
-//pub struct MallocType(*mut malloc_type);
-
-//unsafe impl Sync for MallocType {}
-
 #[allow(non_camel_case_types)]
 pub mod wrappers {
     use super::*;
@@ -56,9 +51,15 @@ pub mod wrappers {
         const TYPE: *mut malloc_type = &raw mut bindings::M_DEVBUF as *mut malloc_type;
     }
 
-    pub fn malloc(size: usize, ty: *mut malloc_type, flags: MallocFlags) -> *mut c_void {
+    pub(crate) fn malloc(size: usize, ty: *mut malloc_type, flags: MallocFlags) -> *mut c_void {
         unsafe {
             bindings::malloc(size, ty, flags.0)
+        }
+    }
+
+    pub(crate) fn free(ptr: *mut c_void, ty: *mut malloc_type) {
+        unsafe {
+            bindings::free(ptr, ty)
         }
     }
 }

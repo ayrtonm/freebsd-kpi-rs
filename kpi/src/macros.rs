@@ -53,6 +53,13 @@ macro_rules! enum_c_macros {
 }
 
 #[macro_export]
+macro_rules! typesafe_c_macros {
+    ($new_ty:ident, $($macro_name:ident$(,)?)*) => {
+        $(pub static $macro_name: $new_ty = $new_ty(bindings::$macro_name);)*
+    };
+}
+
+#[macro_export]
 macro_rules! pin_field {
     ($struct:expr, $field:ident) => {
         {

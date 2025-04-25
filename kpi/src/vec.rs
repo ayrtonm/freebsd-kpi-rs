@@ -58,7 +58,7 @@ impl<T, M: MallocType> Vec<T, M> {
     }
 
     /// Constructs an empty `Vec<T>` with *exactly* the specified capacity.
-    pub fn with_capacity(capacity: usize, flags: MallocFlags) -> Result<Self> {
+    pub fn try_with_capacity(capacity: usize, flags: MallocFlags) -> Result<Self> {
         let layout = Layout::new::<T>();
         let padded_layout = layout.pad_to_align();
         let void_ptr = malloc(padded_layout.size(), M::TYPE, flags);
@@ -101,15 +101,19 @@ impl<T, M: MallocType> Vec<T, M> {
         todo!("")
     }
 
-    pub fn push(&mut self, value: T, flags: MallocFlags) -> Option<T> {
+    pub fn try_push(&mut self, value: T) -> Option<T> {
         todo!("")
         //if self.len < self.capacity {
         //    self.len += 1;
         //}
     }
 
-    pub fn as_mut_ptr(&self) -> *mut T {
+    pub(crate) fn as_ptr(&self) -> *mut T {
         self.ptr.as_ptr()
+    }
+
+    pub fn into_boxed_slice(self) -> Box<[T], M> {
+        todo!("")
     }
 }
 

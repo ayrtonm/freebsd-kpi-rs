@@ -117,7 +117,7 @@ pub mod wrappers {
         res == 1
     }
 
-    pub fn ofw_bus_search_compatible<T, S, const N: usize>(
+    pub fn ofw_bus_search_compatible<T, const N: usize>(
         dev: Device,
         compat: &OfwCompatData<T, N>,
     ) -> Result<&'static T> {

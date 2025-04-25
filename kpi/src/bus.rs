@@ -30,11 +30,11 @@ use crate::prelude::*;
 use crate::ErrCode;
 use crate::bindings::{bus_size_t, resource, resource_spec, RF_ACTIVE};
 use crate::device::Device;
-use crate::vec::Vec;
 use core::ffi::{c_int, c_void};
 use core::mem::transmute;
 use core::ptr::{addr_of_mut, null_mut};
 use core::pin::Pin;
+use core::ops::BitOr;
 
 enum_c_macros! {
     #[repr(i32)]
@@ -55,6 +55,18 @@ enum_c_macros! {
         FILTER_STRAY,
         FILTER_HANDLED,
         FILTER_SCHEDULE_THREAD,
+    }
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub struct ResFlags(i32);
+
+impl BitOr<ResFlags> for ResFlags {
+    type Output = ResFlags;
+
+    fn bitor(self, rhs: ResFlags) -> ResFlags {
+        Self(self.0 | rhs.0)
     }
 }
 
@@ -100,7 +112,18 @@ pub struct Register {
 }
 
 impl Register {
-    fn assert_allowed(&self, offset: bus_size_t) {
+    pub fn new(res: Resource) -> Result<Self> {
+        if res.ty != Some(SYS_RES_MEMORY) {
+            return Err(EDOOFUS);
+        }
+        Ok(Register { res: res.res, bounds: None })
+    }
+
+    pub fn as_ptr(&self) -> *mut resource {
+        self.res
+    }
+
+    pub fn assert_allowed(&self, offset: bus_size_t) {
         if let Some(bounds) = self.bounds {
             assert!(bounds.start <= offset);
             assert!(offset < bounds.end);
@@ -179,7 +202,7 @@ pub struct RegisterBuilder<const N: usize> {
 }
 
 impl Resource {
-    pub fn split_resource<const N: usize>(self) -> Result<RegisterBuilder<N>> {
+    pub fn split_registers<const N: usize>(self) -> Result<RegisterBuilder<N>> {
         if self.ty != Some(SYS_RES_MEMORY) {
             return Err(EDOOFUS);
         }
@@ -188,13 +211,6 @@ impl Resource {
             claimed_windows: [const { None }; N],
             num_claimed: 0,
         })
-    }
-
-    pub fn take_register(self) -> Result<Register> {
-        if self.ty != Some(SYS_RES_MEMORY) {
-            return Err(EDOOFUS);
-        }
-        Ok(Register { res: self.res, bounds: None })
     }
 }
 
@@ -235,11 +251,18 @@ impl<const N: usize> RegisterBuilder<N> {
 
 pub mod wrappers {
     use super::*;
+    use core::ops::DerefMut;
+
+    typesafe_c_macros! {
+        ResFlags,
+        RF_ACTIVE
+    }
 
     pub fn bus_alloc_resource(
         dev: Device,
         ty: SysRes,
         mut rid: c_int,
+        flags: ResFlags,
     ) -> Result<Resource> {
         let dev_ptr = dev.as_ptr();
         // TODO: as u32 needed because bindgen flag makes macros default to signed, but RF_ACTIVE is
@@ -252,7 +275,7 @@ pub mod wrappers {
                 0,
                 !0, /* this is bitwise neg */
                 1,
-                RF_ACTIVE as u32,
+                flags.0 as u32,
             )
         };
         if res.is_null() {
@@ -281,7 +304,7 @@ pub mod wrappers {
         let list = spec.map(|s| resource_spec {
             type_: s.ty as c_int,
             rid: s.rid,
-            flags: RF_ACTIVE,
+            flags: RF_ACTIVE.0,
         });
         let mut spec = NullTerminated {
             list,
@@ -313,19 +336,38 @@ pub mod wrappers {
 
     macro_rules! bus_n {
         ($read_fn:ident, $read_impl:ident, $write_fn:ident, $write_impl:ident, $ty:ty) => {
-            pub fn $read_fn(reg: &mut Register, offset: bus_size_t) -> $ty {
-                reg.assert_allowed(offset);
-                unsafe {
-                    bindings::$read_impl(reg.res, offset)
-                }
+            #[macro_export]
+            macro_rules! $read_fn {
+                ($reg:expr, $offset:expr) => {
+                    {
+                        use core::any::{Any, TypeId};
+                        let _: $crate::bindings::bus_size_t = $offset;
+                        let reg_ref = &mut $reg;
+                        reg_ref.assert_allowed($offset);
+                        unsafe {
+                            $crate::bindings::$read_impl(reg_ref.as_ptr(), $offset)
+                        }
+                    }
+                };
             }
-
-            pub fn $write_fn(reg: &mut Register, offset: bus_size_t, value: $ty) {
-                reg.assert_allowed(offset);
-                unsafe {
-                    bindings::$write_impl(reg.res, offset, value)
-                }
+            #[macro_export]
+            macro_rules! $write_fn {
+                ($reg:expr, $offset:expr, $value:expr) => {
+                    {
+                        let _: $crate::bindings::bus_size_t = $offset;
+                        let _: $ty = $value;
+                        let reg_ref = &mut $reg;
+                        reg_ref.assert_allowed($offset);
+                        unsafe {
+                            $crate::bindings::$write_impl(reg_ref.as_ptr(), $offset, $value)
+                        }
+                    }
+                };
             }
+            // Needed because macro_export expanded from macro cannot be referenced by full-path in
+            // prelude module
+            pub use $read_fn;
+            pub use $write_fn;
         };
     }
     bus_n!(bus_read_1, rust_bindings_bus_read_1, bus_write_1, rust_bindings_bus_write_1, u8);

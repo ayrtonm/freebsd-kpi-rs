@@ -27,18 +27,41 @@
  */
 
 use crate::bindings;
-use crate::prelude::*;
 use crate::malloc::{MallocFlags, MallocType};
-use core::mem::size_of;
-use core::ptr::NonNull;
+use crate::prelude::*;
+use core::cmp::PartialEq;
+use core::ffi::c_void;
+use core::fmt;
+use core::fmt::{Debug, Formatter};
 use core::marker::PhantomData;
+use core::mem::size_of;
 use core::ops::{Deref, DerefMut};
+use core::ptr::NonNull;
 
 #[repr(C)]
-#[derive(Debug)]
-pub struct Box<T, M: MallocType>(NonNull<T>, PhantomData<M>);
+pub struct Box<T: ?Sized, M: MallocType>(NonNull<T>, PhantomData<M>);
+
+impl<T: Debug + ?Sized, M: MallocType> Debug for Box<T, M> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Debug::fmt(self.deref(), f)
+    }
+}
+
+impl<T: PartialEq, M: MallocType> PartialEq for Box<T, M> {
+    fn eq(&self, other: &Self) -> bool {
+        PartialEq::eq(self.deref(), other)
+    }
+}
+
+impl<T: Eq, M: MallocType> Eq for Box<T, M> {}
 
 unsafe impl<T: Sync, M: MallocType> Sync for Box<T, M> {}
+
+impl<T: ?Sized, M: MallocType> Drop for Box<T, M> {
+    fn drop(&mut self) {
+        free(self.as_ptr().cast::<c_void>(), M::TYPE)
+    }
+}
 
 impl<T, M: MallocType> Box<T, M> {
     pub fn try_new(t: T, flags: MallocFlags) -> Result<Self> {
@@ -46,38 +69,62 @@ impl<T, M: MallocType> Box<T, M> {
         match NonNull::new(void_ptr) {
             Some(nonnull_void_ptr) => {
                 let t_ptr = nonnull_void_ptr.cast::<T>();
-                unsafe {
-                    t_ptr.write(t)
-                };
+                unsafe { t_ptr.write(t) };
                 Ok(Self(t_ptr, PhantomData))
             }
             None => Err(ENOMEM),
         }
     }
+}
 
-    pub fn new(t: T, flags: MallocFlags) -> Self {
-        Self::try_new(t, flags).unwrap()
-    }
-
+impl<T: ?Sized, M: MallocType> Box<T, M> {
     pub(crate) fn as_ptr(&self) -> *mut T {
         self.0.as_ptr()
     }
 }
 
-impl<T, M: MallocType> Deref for Box<T, M> {
+impl<T: ?Sized, M: MallocType> Deref for Box<T, M> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        unsafe {
-            self.0.as_ref()
-        }
+        unsafe { self.0.as_ref() }
     }
 }
 
 impl<T, M: MallocType> DerefMut for Box<T, M> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe {
-            self.0.as_mut()
-        }
+        unsafe { self.0.as_mut() }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::bindings::malloc_type;
+    use std::vec::Vec;
+
+    #[no_mangle]
+    static mut M_DEVBUF: () = ();
+
+    // FIXME: current test uses system malloc/free which ignores all args except first. Create a
+    // wrapper to interpose these and check other args
+    //#[no_mangle]
+    //fn malloc(size: usize, ty: *mut malloc_type, flags: MallocFlags) -> *mut c_void {
+    //    let buf = Vec::<u8>::with_capacity(size).leak();
+    //    buf.as_mut_ptr().cast::<c_void>()
+    //}
+    //#[no_mangle]
+    //fn free(ptr: *mut c_void, ty: *mut malloc_type) {
+    //}
+
+    #[test]
+    fn boxed() {
+        let value = 42;
+        let x: Box<u32, M_DEVBUF> = Box::try_new(value, M_NOWAIT /* ignored in tests */).unwrap();
+        let mut y: Box<u32, M_DEVBUF> =
+            Box::try_new(value, M_NOWAIT /* ignored in tests */).unwrap();
+        assert_eq!(x, y);
+        *y += 1;
+        assert_ne!(x, y);
     }
 }

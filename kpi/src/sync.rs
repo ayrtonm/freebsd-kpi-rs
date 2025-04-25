@@ -26,15 +26,15 @@
  * SUCH DAMAGE.
  */
 
-use crate::bindings::{mtx, LO_INITIALIZED, MTX_DEF, MTX_SPIN};
+use crate::bindings::{mtx, LO_INITIALIZED, MTX_DEF, MTX_SPIN, u_int};
 use crate::malloc::{MallocFlags, MallocType};
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::ffi::CStr;
-use core::mem::{drop, MaybeUninit};
+use core::mem::{drop, forget, MaybeUninit};
 use core::ops::{Deref, DerefMut};
 use core::marker::PhantomData;
-use core::ptr::{null_mut, NonNull};
+use core::ptr::{null_mut, drop_in_place, NonNull};
 use core::pin::Pin;
 
 #[derive(Debug)]
@@ -211,27 +211,125 @@ impl<T> Drop for SpinLockGuard<'_, T> {
     }
 }
 
-#[derive(Debug)]
-pub struct Arc<T, M: MallocType = M_DEVBUF>(NonNull<T>, PhantomData<M>);
+#[repr(C)]
+struct InternalArc<T> {
+    count: u_int,
+    t: T,
+}
 
-impl<T> Arc<T> {
-    pub fn new(t: T, flags: MallocFlags) -> Self {
-        todo!("")
+#[repr(C)]
+#[derive(Debug)]
+pub struct Arc<T, M: MallocType>(NonNull<InternalArc<T>>, PhantomData<M>);
+
+impl<T, M: MallocType> Arc<T, M> {
+    pub fn try_new(t: T, flags: MallocFlags) -> Result<Self> {
+        let count = 0;
+        let internal_arc = InternalArc { count, t };
+        let mut boxed_arc: Box<InternalArc<T>, M> = Box::try_new(internal_arc, flags)?;
+        let ptr = NonNull::new(boxed_arc.as_ptr()).unwrap();
+        let count_ptr = &raw mut boxed_arc.count;
+        unsafe {
+            bindings::rust_bindings_refcount_init(count_ptr, 1)
+        };
+        forget(boxed_arc);
+        Ok(Self(ptr, PhantomData))
     }
 
-    pub fn clone(&self) -> Self {
-        todo!("")
+    fn get_count_ptr(&self) -> *mut u_int {
+        self.0.as_ptr().cast::<u_int>()
+    }
+
+    fn snapshot_refcount(&self) -> u_int {
+        let count_ptr = self.get_count_ptr();
+        unsafe {
+            bindings::rust_bindings_refcount_load(count_ptr)
+        }
     }
 }
 
-unsafe impl<T: Sync + Send> Send for Arc<T> {}
-unsafe impl<T: Sync + Send> Sync for Arc<T> {}
+impl<T, M: MallocType> Clone for Arc<T, M> {
+    fn clone(&self) -> Self {
+        let count_ptr = self.get_count_ptr();
+        unsafe {
+            bindings::rust_bindings_refcount_acquire(count_ptr)
+        };
+        Self(self.0, PhantomData)
+    }
+}
 
-impl<T> Deref for Arc<T> {
+unsafe impl<T: Sync + Send, M: MallocType> Send for Arc<T, M> {}
+unsafe impl<T: Sync + Send, M: MallocType> Sync for Arc<T, M> {}
+
+impl<T, M: MallocType> Deref for Arc<T, M> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
         unsafe {
-            self.0.as_ref()
+            &self.0.as_ref().t
         }
+    }
+}
+
+impl<T, M: MallocType> Drop for Arc<T, M> {
+    fn drop(&mut self) {
+        let count_ptr = self.get_count_ptr();
+        let last = unsafe {
+            bindings::rust_bindings_refcount_release(count_ptr)
+        };
+        if last {
+            let ptr = &raw mut self.0;
+            unsafe {
+                drop_in_place::<Box<InternalArc<T>, M>>(ptr.cast());
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // FIXME: These are totally thread-unsafe functions which are only used for tests
+    #[no_mangle]
+    fn rust_bindings_refcount_init(count: *mut u_int, value: u_int) {
+        unsafe {
+            *count = value;
+        }
+    }
+    #[no_mangle]
+    fn rust_bindings_refcount_load(count: *mut u_int) -> u_int {
+        unsafe {
+            *count
+        }
+    }
+    #[no_mangle]
+    fn rust_bindings_refcount_acquire(count: *mut u_int) -> u_int {
+        unsafe {
+            let old = *count;
+            *count += 1;
+            old
+        }
+    }
+    #[no_mangle]
+    fn rust_bindings_refcount_release(count: *mut u_int) -> bool {
+        unsafe {
+            *count -= 1;
+            *count == 0
+        }
+    }
+    #[test]
+    fn arc() {
+        let x: Arc<u32, M_DEVBUF> = Arc::try_new(42, M_NOWAIT).unwrap();
+        assert_eq!(x.snapshot_refcount(), 1);
+        {
+            let y = x.clone();
+            assert_eq!(y.snapshot_refcount(), 2);
+            assert_eq!(x.snapshot_refcount(), 2);
+        }
+        assert_eq!(x.snapshot_refcount(), 1);
+        let z = x.clone();
+        assert_eq!(z.snapshot_refcount(), 2);
+        assert_eq!(x.snapshot_refcount(), 2);
+        drop(x);
+        assert_eq!(z.snapshot_refcount(), 1);
     }
 }
