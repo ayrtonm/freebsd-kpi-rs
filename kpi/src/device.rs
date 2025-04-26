@@ -96,7 +96,7 @@ macro_rules! device_init_softc {
         let dev_ptr = $dev.as_ptr();
         let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
         let sc_ptr = sc_void_ptr.cast::<Option<<Self as DeviceIf>::Softc>>();
-        let sc_mut_ref = unsafe { sc_ptr.as_mut().unwrap_unchecked() };
+        let sc_mut_ref = unsafe { sc_ptr.as_mut().unwrap() };
         assert!(sc_mut_ref.is_none());
         *sc_mut_ref = Some($sc);
         unsafe { Pin::new_unchecked(sc_mut_ref.as_mut().unwrap()) }
@@ -117,14 +117,14 @@ macro_rules! device_get_softc {
         let sc_ptr = sc_void_ptr.cast::<Option<<Self as DeviceIf>::Softc>>();
         // Omit a check since the pointer returned by C's device_get_softc should never be NULL
         let sc_ref: &Option<<Self as DeviceIf>::Softc> =
-            unsafe { sc_ptr.as_ref().unwrap_unchecked() };
+            unsafe { sc_ptr.as_ref().unwrap() };
 
         let init_sc_ref = match state {
             DeviceState::Unknown => unreachable!("cannot call device_get_softc! in device_probe"),
             DeviceState::Attaching => sc_ref
                 .as_ref()
                 .expect("must initialize softc using device_init_softc!"),
-            DeviceState::Attached => unsafe { sc_ref.as_ref().unwrap_unchecked() },
+            DeviceState::Attached => unsafe { sc_ref.as_ref().unwrap() },
         };
         unsafe { Pin::new_unchecked(init_sc_ref) }
     }};
@@ -175,7 +175,7 @@ macro_rules! device_attach {
                     let dev_ptr = dev.as_ptr();
                     let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
                     let sc_ptr = sc_void_ptr.cast::<Option<<$driver_ty as DeviceIf>::Softc>>();
-                    assert!(unsafe { sc_ptr.as_ref().unwrap_unchecked().is_some() });
+                    assert!(unsafe { sc_ptr.as_ref().unwrap().is_some() });
                 }
             }
         }
