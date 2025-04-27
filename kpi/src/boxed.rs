@@ -37,6 +37,7 @@ use core::marker::PhantomData;
 use core::mem::size_of;
 use core::ops::{Deref, DerefMut};
 use core::ptr::NonNull;
+use core::slice;
 
 // Fields are pub(crate) for easy conversion from Vec
 #[repr(C)]
@@ -92,9 +93,18 @@ impl<T: ?Sized, M: MallocType> Deref for Box<T, M> {
     }
 }
 
-impl<T, M: MallocType> DerefMut for Box<T, M> {
+impl<T: ?Sized, M: MallocType> DerefMut for Box<T, M> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { self.0.as_mut() }
+    }
+}
+
+impl<'a, T, M: MallocType> IntoIterator for &'a mut Box<[T], M> {
+    type Item = &'a mut T;
+    type IntoIter = slice::IterMut<'a, T>;
+    fn into_iter(self) -> <&'a mut Box<[T], M> as IntoIterator>::IntoIter {
+        // Rely on DerefMut<[T]> to use core::slice impl
+        self.iter_mut()
     }
 }
 
