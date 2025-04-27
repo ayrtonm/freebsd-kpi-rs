@@ -97,20 +97,19 @@ BINDGENFLAGS= \
 bindings.rs: $S/rust/bindings.c bindings.o
 	${BINDGEN} ${BINDGENFLAGS} $S/rust/bindings.c -- ${CFLAGS} -DBINDGEN > bindings.rs
 
-libcore.rlib:
-	mkdir -p ${RUST_LIBDIR}; \
+${RUST_LIBDIR}/libcore.rlib:
 	${RUSTC} ${RUSTFLAGS} --crate-name core $S/rust/compiler/library/core/src/lib.rs \
 		--crate-type rlib --out-dir ${RUST_LIBDIR} \
 		-Cstrip=debuginfo -Cembed-bitcode=no -Zforce-unstable-if-unmarked
 
-libcompiler_builtins.rlib: libcore.rlib
+${RUST_LIBDIR}/libcompiler_builtins.rlib: ${RUST_LIBDIR}/libcore.rlib
 	${RUSTC} ${RUSTFLAGS} $S/rust/compiler_builtins.rs --crate-type rlib \
 		--extern core=${RUST_LIBDIR}/libcore.rlib \
 		-o ${RUST_LIBDIR}/libcompiler_builtins.rlib
 
 # TODO: OUT_DIR env var used to include! bindings.rs in the idiomatic way. Maybe there's an existing
 # env var to anchor the path
-libkpi.rlib: ${KPI_CRATE_FILES} bindings.rs ${MFILES:T:S/.m$/.h/g} libcompiler_builtins.rlib
+libkpi.rlib: ${KPI_CRATE_FILES} bindings.rs ${MFILES:T:S/.m$/.h/g} ${RUST_LIBDIR}/libcompiler_builtins.rlib
 	OUT_DIR=$(PWD) ${NORMAL_RS} $S/rust/kpi/src/lib.rs
 
 .for _rsf in ${RSFILES:N$S/rust/kpi/src/lib.rs}
