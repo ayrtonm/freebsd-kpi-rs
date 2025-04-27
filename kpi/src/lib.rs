@@ -447,3 +447,30 @@ err_codes! {
     EOWNERDEAD, "Previous owner died",
     EINTEGRITY, "Integrity check failed",
 }
+
+macro_rules! define_stub_syms {
+    ($($sym:ident)*) => {
+        $(
+        #[no_mangle]
+        pub extern "C" fn $sym() {
+            panic!("uh oh")
+        }
+        )*
+    };
+}
+
+define_stub_syms! {
+    __floatundisf
+    __mulsf3
+    __divsf3
+    __floatundidf
+    __muldf3
+    __divdf3
+    __nesf2
+    __ltsf2
+    __gesf2
+    __nedf2
+    __ltdf2
+    __gedf2
+    __udivti3
+}

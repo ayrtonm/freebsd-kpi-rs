@@ -39,25 +39,31 @@ KPI_CRATE= lib.rs \
 
 KPI_CRATE_FILES= ${KPI_CRATE:S/^/$S\/rust\/kpi\/src\//g}
 
+RUSTFLAGS=
+
 .if ${TARGET_ARCH} == aarch64
 RUST_TARGET= aarch64-unknown-none-softfloat
-RUST_FEATURES= --cfg 'feature="intrng"'
+RUST_KPI_FEATURES= --cfg 'feature="intrng"'
+RUSTFLAGS+= -Zfixed-x18 -Zbranch-protection=bti
 .elif ${TARGET_ARCH} == amd64
 RUST_TARGET= x86_64-unknown-none
-RUST_FEATURES=
+RUST_KPI_FEATURES=
 .else
 .error Unknown TARGET_ARCH: ${TARGET_ARCH}
 .endif
 
 .if ${MK_FDT} != "no"
-RUST_FEATURES+= --cfg 'feature="fdt"'
+RUST_KPI_FEATURES+= --cfg 'feature="fdt"'
 .endif
 
 # crate-independent build flags
-RUSTFLAGS= --target=${RUST_TARGET} ${RUST_FEATURES} --edition 2021
+RUSTFLAGS+= --target=${RUST_TARGET} --edition 2021 -Copt-level=3
 
+RUST_SYSROOT= rust_sysroot
+RUST_LIBDIR= ${RUST_SYSROOT}/lib/rustlib/${RUST_TARGET}/lib
 # the rustc invocation for rlibs
-NORMAL_RS= ${RUSTC} ${RUSTFLAGS} -Cdebuginfo=full -Copt-level=3 --crate-type rlib -o ${.TARGET}
+NORMAL_RS= ${RUSTC} ${RUSTFLAGS} ${RUST_KPI_FEATURES} -Cdebuginfo=full --crate-type rlib \
+	-o ${.TARGET} --sysroot=$(PWD)/${RUST_SYSROOT}
 
 # the only rust build artifact that gets directly linked into the kernel is this static lib
 RUSTROOT_RS= rustroot.rs
@@ -91,9 +97,20 @@ BINDGENFLAGS= \
 bindings.rs: $S/rust/bindings.c bindings.o
 	${BINDGEN} ${BINDGENFLAGS} $S/rust/bindings.c -- ${CFLAGS} -DBINDGEN > bindings.rs
 
+libcore.rlib:
+	mkdir -p ${RUST_LIBDIR}; \
+	${RUSTC} ${RUSTFLAGS} --crate-name core $S/rust/compiler/library/core/src/lib.rs \
+		--crate-type rlib --out-dir ${RUST_LIBDIR} \
+		-Cstrip=debuginfo -Cembed-bitcode=no -Zforce-unstable-if-unmarked
+
+libcompiler_builtins.rlib: libcore.rlib
+	${RUSTC} ${RUSTFLAGS} $S/rust/compiler_builtins.rs --crate-type rlib \
+		--extern core=${RUST_LIBDIR}/libcore.rlib \
+		-o ${RUST_LIBDIR}/libcompiler_builtins.rlib
+
 # TODO: OUT_DIR env var used to include! bindings.rs in the idiomatic way. Maybe there's an existing
 # env var to anchor the path
-libkpi.rlib: ${KPI_CRATE_FILES} bindings.rs ${MFILES:T:S/.m$/.h/g}
+libkpi.rlib: ${KPI_CRATE_FILES} bindings.rs ${MFILES:T:S/.m$/.h/g} libcompiler_builtins.rlib
 	OUT_DIR=$(PWD) ${NORMAL_RS} $S/rust/kpi/src/lib.rs
 
 .for _rsf in ${RSFILES:N$S/rust/kpi/src/lib.rs}
@@ -121,4 +138,5 @@ ${RUSTROOT_RS}:
 	printf "#![no_std]\n${CRATES:C/^.*$/extern crate \0;/g}" > ${RUSTROOT_RS}
 
 ${RUSTROOT_A}: ${RLIBS} ${RUSTROOT_RS}
-	${RUSTC} ${RUSTFLAGS} --crate-type staticlib -o ${RUSTROOT_A} ${RUSTROOT_RS} ${EXTERN_ARGS}
+	${RUSTC} ${RUSTFLAGS} --crate-type staticlib -o ${RUSTROOT_A} ${RUSTROOT_RS} \
+		${EXTERN_ARGS} --sysroot=$(PWD)/${RUST_SYSROOT}
