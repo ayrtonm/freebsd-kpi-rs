@@ -39,7 +39,12 @@ pub struct CString(Vec<u8>);
 
 impl CString {
     pub fn new(msg: &str) -> Result<Self> {
-        todo!("")
+        let mut buf = Vec::try_with_capacity(msg.as_bytes().len() + 1, M_WAITOK).unwrap();
+        for &b in msg.as_bytes() {
+            buf.try_push(b);
+        }
+        buf.try_push(0);
+        Ok(Self(buf))
     }
 
     pub fn as_c_str(&self) -> &CStr {
