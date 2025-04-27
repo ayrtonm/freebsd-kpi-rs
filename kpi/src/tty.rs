@@ -26,23 +26,33 @@
  * SUCH DAMAGE.
  */
 
-use crate::device::Device;
 use crate::bindings;
-use crate::ffi::CString;
+use crate::device::Device;
 use core::fmt;
+use core::hint::black_box;
 
-pub struct TTY<'a>(pub Option<&'a Device>);
+pub struct TTY;
 
-impl fmt::Write for TTY<'_> {
+impl fmt::Write for TTY {
     fn write_str(&mut self, msg: &str) -> fmt::Result {
-        let cmsg = CString::new(msg).unwrap();
-        match &self.0 {
-            Some(dev) => unsafe {
-                bindings::device_printf(dev.as_ptr(), cmsg.as_c_str().as_ptr());
-            },
-            None => unsafe {
-                bindings::printf(cmsg.as_c_str().as_ptr());
-            },
+        const BUF_SIZE: usize = 16;
+        let mut buf = [0u8; BUF_SIZE];
+
+        let mut copy_len = msg.as_bytes().len();
+        if copy_len >= BUF_SIZE {
+            copy_len = BUF_SIZE - 1;
+        }
+        buf[0..copy_len].copy_from_slice(&msg.as_bytes()[0..copy_len]);
+        buf[copy_len] = 0;
+        // Pass the message with as the %s argument to avoid printf formatting interferring with
+        // the intended rust-style formatting. black_box is to avoid LLVM optimizing it to a putchar
+        // FIXME: replace black_box since it's brittle and may break the build
+        unsafe {
+            black_box(bindings::printf(c"%s".as_ptr(), buf.as_ptr()));
+        }
+        // Copy the rest of the message if necessary
+        if copy_len < msg.as_bytes().len() {
+            self.write_str(&msg[copy_len..])?;
         }
         Ok(())
     }
@@ -53,7 +63,7 @@ macro_rules! print {
     ($($args:tt)*) => {
         {
             <$crate::tty::TTY as core::fmt::Write>::write_fmt(
-                &mut $crate::tty::TTY(None),
+                &mut $crate::tty::TTY,
                 format_args!($($args)*)
             ).ok();
         }
@@ -65,11 +75,10 @@ macro_rules! println {
     ($($args:tt)*) => {
         {
             <$crate::tty::TTY as core::fmt::Write>::write_fmt(
-                &mut $crate::tty::TTY(None),
+                &mut $crate::tty::TTY,
                 format_args!($($args)*)
             ).ok();
-            // llvm tries to optimize this to putchar
-            //unsafe { bindings::printf(c"\n".as_ptr()); }
+            unsafe { core::hint::black_box(bindings::printf(c"\n".as_ptr())); }
         }
     };
 }
@@ -79,7 +88,7 @@ macro_rules! device_print {
     ($dev:expr, $($args:tt)*) => {
         {
             <$crate::tty::TTY as core::fmt::Write>::write_fmt(
-                &mut $crate::tty::TTY(Some(&$dev)),
+                &mut $crate::tty::TTY,
                 format_args!($($args)*)
             ).ok();
         }
@@ -90,11 +99,14 @@ macro_rules! device_print {
 macro_rules! device_println {
     ($dev:expr, $($args:tt)*) => {
         {
+            unsafe {
+                bindings::device_printf($dev.as_ptr(), c"".as_ptr());
+            }
             <$crate::tty::TTY as core::fmt::Write>::write_fmt(
-                &mut $crate::tty::TTY(Some(&$dev)),
+                &mut $crate::tty::TTY,
                 format_args!($($args)*)
             ).ok();
-            //unsafe { bindings::device_printf($dev.0, c"\n".as_ptr()); }
+            unsafe { core::hint::black_box(bindings::printf(c"\n".as_ptr())); }
         }
     };
 }
