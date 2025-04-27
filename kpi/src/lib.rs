@@ -67,12 +67,6 @@ pub trait AsRustType<T> {
     fn as_rust_type(self) -> T;
 }
 
-impl<T> AsRustType<T> for T {
-    fn as_rust_type(self) -> T {
-        self
-    }
-}
-
 pub mod prelude {
     pub use crate::bindings;
     pub use crate::boxed::Box;
