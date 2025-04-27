@@ -97,6 +97,10 @@ the build system the kernel can be built by defining environment variables point
 ```
 cd /path/to/src
 git clone https://github.com/ayrtonm/freebsd-kpi-rs sys/rust
+git clone --depth 1 https://github.com/rust-lang/rust sys/rust/compiler
+cd sys/rust/compiler
+git submodule update --init library/stdarch
+cd ../../..
 RUSTC=`which rustc` \
 RUSTFMT=`which rustfmt` \
 BINDGEN=`which bindgen` \
