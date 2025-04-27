@@ -38,8 +38,9 @@ use core::mem::size_of;
 use core::ops::{Deref, DerefMut};
 use core::ptr::NonNull;
 
+// Fields are pub(crate) for easy conversion from Vec
 #[repr(C)]
-pub struct Box<T: ?Sized, M: MallocType>(NonNull<T>, PhantomData<M>);
+pub struct Box<T: ?Sized, M: MallocType>(pub(crate) NonNull<T>, pub(crate) PhantomData<M>);
 
 impl<T: Debug + ?Sized, M: MallocType> Debug for Box<T, M> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
