@@ -30,8 +30,8 @@ use crate::bindings;
 use crate::prelude::*;
 use crate::malloc::{MallocFlags, MallocType};
 use core::alloc::Layout;
-use core::mem::size_of;
-use core::ptr::NonNull;
+use core::mem::{forget, size_of};
+use core::ptr::{NonNull, drop_in_place, write};
 use core::marker::PhantomData;
 use core::ops::{Deref, DerefMut};
 use core::slice;
@@ -61,7 +61,8 @@ impl<T, M: MallocType> Vec<T, M> {
     pub fn try_with_capacity(capacity: usize, flags: MallocFlags) -> Result<Self> {
         let layout = Layout::new::<T>();
         let padded_layout = layout.pad_to_align();
-        let void_ptr = malloc(padded_layout.size(), M::TYPE, flags);
+        let total_size = padded_layout.size() * capacity;
+        let void_ptr = malloc(total_size, M::TYPE, flags);
         match NonNull::new(void_ptr) {
             Some(nonnull_void_ptr) => {
                 let ptr = nonnull_void_ptr.cast::<T>();
@@ -102,10 +103,16 @@ impl<T, M: MallocType> Vec<T, M> {
     }
 
     pub fn try_push(&mut self, value: T) -> Option<T> {
-        todo!("")
-        //if self.len < self.capacity {
-        //    self.len += 1;
-        //}
+        if self.len < self.capacity {
+            unsafe {
+                let next_ptr = self.ptr.add(self.len).as_ptr();
+                write(next_ptr, value);
+            }
+            self.len += 1;
+            None
+        } else {
+            Some(value)
+        }
     }
 
     pub(crate) fn as_ptr(&self) -> *mut T {
@@ -113,7 +120,11 @@ impl<T, M: MallocType> Vec<T, M> {
     }
 
     pub fn into_boxed_slice(self) -> Box<[T], M> {
-        todo!("")
+        // TODO: Ensure the excess capacity is not leaked
+        let fat_ptr = NonNull::slice_from_raw_parts(self.ptr, self.len);
+        // Ownership is transferred to Box which is now responsible for dropping all the initialized contents
+        forget(self);
+        Box(fat_ptr, PhantomData)
     }
 }
 
@@ -141,5 +152,16 @@ impl<'a, T, M: MallocType> IntoIterator for &'a mut Vec<T, M> {
     fn into_iter(self) -> <&'a mut Vec<T, M> as IntoIterator>::IntoIter {
         // Rely on DerefMut<[T]> to use core::slice impl
         self.iter_mut()
+    }
+}
+
+impl<T, M: MallocType> Drop for Vec<T, M> {
+    fn drop(&mut self) {
+        for n in 0..self.len {
+            unsafe {
+                let ptr = self.ptr.add(n).as_ptr();
+                drop_in_place(ptr);
+            }
+        }
     }
 }
