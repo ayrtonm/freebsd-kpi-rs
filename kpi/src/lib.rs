@@ -28,6 +28,7 @@
 
 #![no_std]
 #![deny(improper_ctypes, unused_must_use, unreachable_patterns)]
+#![feature(macro_metavar_expr_concat)]
 
 #[cfg(feature = "std")]
 extern crate std;
@@ -68,18 +69,20 @@ pub trait AsRustType<T> {
 }
 
 pub mod prelude {
+    #[cfg(target_arch = "aarch64")]
+    pub use crate::arm64::in_vhe;
     pub use crate::bindings;
     pub use crate::boxed::Box;
+    pub use crate::project_ref;
     pub use crate::vec::Vec;
     pub use crate::Result;
     #[cfg(target_arch = "aarch64")]
-    pub use crate::{curthread, pcpu_get, pcpu_ptr, read_reg, write_reg};
+    pub use crate::{curthread, isb, pcpu_get, pcpu_ptr, read_specialreg, write_specialreg};
     pub use crate::{device_get_softc, device_init_softc};
     #[cfg(not(feature = "std"))]
     pub use crate::{device_print, device_println, print, println};
     #[cfg(feature = "std")]
     pub use std::{print, println};
-    pub use crate::{pin_field, pin_field_mut};
 
     // Error code macros
     pub use crate::err_codes::*;
@@ -90,11 +93,16 @@ pub mod prelude {
     // INTR_ROOT_* macros
     #[cfg(feature = "intrng")]
     pub use crate::intr::IntrRoot::*;
+    // INTR_ISRCF_* macros
+    #[cfg(feature = "intrng")]
+    pub use crate::intr::IntrIsrcf::*;
     // FILTER_* macros
     pub use crate::bus::Filter::*;
 
     pub use crate::bus::wrappers::*;
     pub use crate::device::wrappers::*;
+    #[cfg(feature = "intrng")]
+    pub use crate::intr::wrappers::*;
     // M_* macros
     pub use crate::malloc::wrappers::*;
     #[cfg(feature = "fdt")]
@@ -105,6 +113,8 @@ pub mod prelude {
 
     pub use crate::bus::BusIfWrappers;
     pub use crate::device::{DeviceIf, IsDriver};
+    #[cfg(feature = "intrng")]
+    pub use crate::intr::PicIf;
 
     // These are implemented widely throughout the KPI crate
     pub use crate::{AsCType, AsRustType};
@@ -123,31 +133,17 @@ macro_rules! count {
 
 #[doc(hidden)]
 #[macro_export]
-macro_rules! if_desc {
-    (device_probe) => {
-        $crate::bindings::device_probe_desc
-    };
-    (device_attach) => {
-        $crate::bindings::device_attach_desc
-    };
-    (device_detach) => {
-        $crate::bindings::device_detach_desc
-    };
-}
-
-#[doc(hidden)]
-#[macro_export]
 macro_rules! export_function {
     (
         $driver_ty:ident $impl:ident
-        void $fn_name:ident($($arg:ident $arg_name:ident$(,)?)*)
+        $fn_name:ident($($arg_name:ident: $arg:ty$(,)?)*);
         $(with init glue { $($init_glue:tt)* })?
         $(with drop glue { $($drop_glue:tt)* })?
     ) => {
         #[no_mangle]
         pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) {
             // Checks that this extern "C" function matches the declaration in bindings.h
-            const _TYPES_MATCH: unsafe extern "C" fn($($arg,)*) = $crate::bindings::$fn_name;
+            //const _TYPES_MATCH: unsafe extern "C" fn($($arg,)*) = $crate::bindings::$fn_name;
 
             // Convert all arguments from C types to rust types
             $(let mut $arg_name = $arg_name.as_rust_type();)*
@@ -164,7 +160,7 @@ macro_rules! export_function {
     };
     (
         $driver_ty:ident $impl:ident
-        $ret:ident $fn_name:ident($($arg:ident $arg_name:ident$(,)?)*)
+        $fn_name:ident($($arg_name:ident: $arg:ty$(,)?)*) -> $ret:ty;
         $(with init glue { $($init_glue:tt)* })?
         $(with drop glue { $($drop_glue:tt)* })?
         $(rust returns $ret_as_rust_ty:ty)?
@@ -172,7 +168,7 @@ macro_rules! export_function {
         #[no_mangle]
         pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) -> $ret {
             // Checks that this extern "C" function matches the declaration in bindings.h
-            const _TYPES_MATCH: unsafe extern "C" fn($($arg,)*) -> $ret = $crate::bindings::$fn_name;
+            //const _TYPES_MATCH: unsafe extern "C" fn($($arg,)*) -> $ret = $crate::bindings::$fn_name;
 
             // Convert all arguments from C types to rust types
             $(let mut $arg_name = $arg_name.as_rust_type();)*
@@ -202,7 +198,7 @@ macro_rules! driver {
             $($if_fn:ident $impl:ident,)*
         }$(,)?
         $(EXPORTS {
-            $($ret:ident $fn_name:ident($($arg:ident $arg_name:ident$(,)?)*);)*
+            $($fn_name:ident($($arg_name:ident: $arg:ty$(,)?)*) $(-> $ret:ty)?;)*
         })?
     ) => {
         use $crate::prelude::*;
@@ -236,7 +232,11 @@ macro_rules! driver {
         static $methods: [$crate::device::DeviceMethod; $crate::count!($($impl)*) + 1] = [
             $(
                 {
-                    let desc = &raw mut $crate::if_desc!($if_fn);
+                    let desc = {
+                        // Glob import everything in this let binding's scope to pick out the one we need
+                        use $crate::bindings::*;
+                        &raw mut ${concat($if_fn, _desc)}
+                    };
                     $crate::device::DeviceMethod::new(desc, $driver_sym::$impl as *const ())
                 },
             )*
@@ -252,9 +252,11 @@ macro_rules! driver {
             use $crate::bindings::*;
             use $crate::{AsRustType, AsCType};
             use $crate::device::DeviceIf;
+            #[cfg(feature = "intrng")]
+            use $crate::intr::PicIf;
             use $crate::export_function;
             $($crate::$if_fn!($driver_ty $impl);)*
-            $($(export_function!($driver_ty $fn_name $ret $fn_name($($arg $arg_name,)*));)*)*
+            $($(export_function!($driver_ty $fn_name $fn_name($($arg_name: $arg,)*) $(-> $ret)*;);)*)*
         }
     };
 }

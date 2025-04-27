@@ -26,7 +26,6 @@
  * SUCH DAMAGE.
  */
 
-use crate::bindings;
 use crate::malloc::{MallocFlags, MallocType};
 use crate::prelude::*;
 use core::cmp::PartialEq;

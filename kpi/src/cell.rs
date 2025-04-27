@@ -47,7 +47,7 @@ impl<T> Checked<T> {
         }
     }
 
-    pub fn get_mut(&self) -> RefMut<'_, T> {
+    pub fn get_mut(&self) -> CheckedRef<'_, T> {
         if !self
             .borrowed
             .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
@@ -55,19 +55,19 @@ impl<T> Checked<T> {
         {
             panic!("already borrowed");
         }
-        RefMut {
+        CheckedRef {
             value: self.t.get(),
             borrowed: &self.borrowed,
         }
     }
 }
 
-pub struct RefMut<'b, T: 'b + ?Sized> {
+pub struct CheckedRef<'b, T: 'b + ?Sized> {
     value: *mut T,
     borrowed: &'b AtomicBool,
 }
 
-impl<T: ?Sized> Deref for RefMut<'_, T> {
+impl<T: ?Sized> Deref for CheckedRef<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -75,13 +75,13 @@ impl<T: ?Sized> Deref for RefMut<'_, T> {
     }
 }
 
-impl<T: ?Sized> DerefMut for RefMut<'_, T> {
+impl<T: ?Sized> DerefMut for CheckedRef<'_, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { self.value.as_mut().unwrap() }
     }
 }
 
-impl<T: ?Sized> Drop for RefMut<'_, T> {
+impl<T: ?Sized> Drop for CheckedRef<'_, T> {
     fn drop(&mut self) {
         self.borrowed.store(false, Ordering::Relaxed);
     }
@@ -148,5 +148,99 @@ impl<B, F> Deref for SubClass<B, F> {
 impl<B, F> DerefMut for SubClass<B, F> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.sub
+    }
+}
+
+#[derive(Debug)]
+enum InnerRef<'a, T: ?Sized> {
+    Shared(&'a T),
+    Exclusive(&'a mut T),
+}
+
+#[derive(Debug)]
+pub struct ExtendedRef<'a, T: ?Sized, O> {
+    borrow: InnerRef<'a, T>,
+    owner: *const O,
+}
+
+impl<'a, T: ?Sized, O> ExtendedRef<'a, T, O> {
+    pub unsafe fn new(borrow: &'a T, owner: *const O) -> Self {
+        let borrow = InnerRef::Shared(borrow);
+        Self {
+            borrow, owner
+        }
+    }
+
+    pub unsafe fn new_mut(borrow: &'a mut T, owner: *const O) -> Self {
+        let borrow = InnerRef::Exclusive(borrow);
+        Self {
+            borrow, owner
+        }
+    }
+
+    pub fn get_owner(&self) -> *const O {
+        self.owner
+    }
+
+    pub fn project<U: ?Sized, F: FnOnce(&T) -> &U>(&self, f: F) -> ExtendedRef<U, O> {
+        match &self.borrow {
+            InnerRef::Shared(borrow) => {
+                unsafe {
+                    ExtendedRef::new(f(borrow), self.owner)
+                }
+            },
+            InnerRef::Exclusive(borrow) => {
+                unsafe {
+                    ExtendedRef::new(f(borrow), self.owner)
+                }
+            },
+        }
+    }
+}
+
+impl<'a, T, O> ExtendedRef<'a, Option<T>, O> {
+    pub fn transpose(self) -> Option<ExtendedRef<'a, T, O>> {
+        match self.borrow {
+            InnerRef::Shared(borrow) => {
+                match borrow {
+                    Some(borrow) => {
+                        unsafe {
+                            Some(ExtendedRef::new(borrow, self.owner))
+                        }
+                    }
+                    None => None,
+                }
+            },
+            InnerRef::Exclusive(borrow) => {
+                match borrow {
+                    Some(borrow) => {
+                        unsafe {
+                            Some(ExtendedRef::new(borrow, self.owner))
+                        }
+                    }
+                    None => None,
+                }
+            },
+        }
+    }
+}
+
+impl<'a, T: ?Sized, O> Deref for ExtendedRef<'a, T, O> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        match &self.borrow {
+            InnerRef::Shared(borrow) => borrow,
+            InnerRef::Exclusive(borrow) => borrow,
+        }
+    }
+}
+
+impl<'a, T: ?Sized, O> DerefMut for ExtendedRef<'a, T, O> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        match &mut self.borrow {
+            InnerRef::Shared(_) => unreachable!(""),
+            InnerRef::Exclusive(borrow) => borrow,
+        }
     }
 }

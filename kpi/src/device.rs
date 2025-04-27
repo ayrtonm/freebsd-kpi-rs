@@ -29,7 +29,7 @@
 use crate::bindings::{device_t, driver_t, kobj_method_t, kobjop_desc};
 use crate::prelude::*;
 use core::any::TypeId;
-use core::ffi::{c_int, CStr};
+use core::ffi::{c_int, c_void, CStr};
 use core::mem::{offset_of, size_of};
 use core::ops::{Deref, DerefMut};
 use core::pin::Pin;
@@ -99,7 +99,7 @@ macro_rules! device_init_softc {
         let sc_mut_ref = unsafe { sc_ptr.as_mut().unwrap() };
         assert!(sc_mut_ref.is_none());
         *sc_mut_ref = Some($sc);
-        unsafe { Pin::new_unchecked(sc_mut_ref.as_mut().unwrap()) }
+        unsafe { $crate::cell::ExtendedRef::new_mut(sc_mut_ref.as_mut().unwrap(), dev_ptr) }
     }};
 }
 
@@ -116,8 +116,7 @@ macro_rules! device_get_softc {
         let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
         let sc_ptr = sc_void_ptr.cast::<Option<<Self as DeviceIf>::Softc>>();
         // Omit a check since the pointer returned by C's device_get_softc should never be NULL
-        let sc_ref: &Option<<Self as DeviceIf>::Softc> =
-            unsafe { sc_ptr.as_ref().unwrap() };
+        let sc_ref: &Option<<Self as DeviceIf>::Softc> = unsafe { sc_ptr.as_ref().unwrap() };
 
         let init_sc_ref = match state {
             DeviceState::Unknown => unreachable!("cannot call device_get_softc! in device_probe"),
@@ -126,7 +125,7 @@ macro_rules! device_get_softc {
                 .expect("must initialize softc using device_init_softc!"),
             DeviceState::Attached => unsafe { sc_ref.as_ref().unwrap() },
         };
-        unsafe { Pin::new_unchecked(init_sc_ref) }
+        unsafe { $crate::cell::ExtendedRef::new(init_sc_ref, dev_ptr) }
     }};
 }
 
@@ -135,7 +134,7 @@ macro_rules! device_probe {
     ($driver_ty:ident $impl_fn_name:ident) => {
         $crate::export_function! {
             $driver_ty $impl_fn_name
-            int device_probe(device_t dev)
+            device_probe(dev: device_t) -> int;
             rust returns $crate::device::BusProbe
         }
     };
@@ -146,7 +145,7 @@ macro_rules! device_attach {
     ($driver_ty:ident $impl_fn_name:ident) => {
         $crate::export_function! {
             $driver_ty $impl_fn_name
-            int device_attach(device_t dev)
+            device_attach(dev: device_t) -> int;
             with init glue {
                 {
                     use $crate::device::{Device, DeviceIf, DeviceState};
@@ -187,7 +186,7 @@ macro_rules! device_detach {
     ($driver_ty:ident $impl_fn_name:ident) => {
         $crate::export_function! {
             $driver_ty $impl_fn_name
-            int device_detach(device_t dev)
+            device_detach(dev: device_t) -> int;
             with init glue {
                 {
                     use $crate::device::{Device, DeviceState};
@@ -265,9 +264,9 @@ pub mod wrappers {
         unsafe { bindings::device_set_desc(dev_ptr, desc_ptr) }
     }
 
-    // TODO: The return value lifetime is safe but not particularly useful.
+    // FIXME: 'static is wrong here
     // It should be something like &'driver CStr but not &'static CStr
-    pub fn device_get_nameunit(dev: &Device) -> &CStr {
+    pub fn device_get_nameunit(dev: Device) -> &'static CStr {
         let dev_ptr = dev.as_ptr();
         let name = unsafe { bindings::device_get_nameunit(dev_ptr) };
         unsafe { CStr::from_ptr(name) }
@@ -320,14 +319,13 @@ impl Device {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::driver;
+    use core::mem::MaybeUninit;
+    use core::ptr::null_mut;
+    use std::ffi::CStr;
     use std::println;
     use std::sync::Mutex;
     use std::vec::Vec;
-    use std::ffi::CStr;
-    use crate::driver;
-    use core::ffi::c_void;
-    use core::mem::MaybeUninit;
-    use core::ptr::null_mut;
 
     unsafe impl Send for TestKernel {}
     unsafe impl Sync for TestKernel {}
@@ -355,9 +353,7 @@ mod tests {
         fn new_device(&mut self, driver: usize) -> device_t {
             let id = self.devices.len();
             let softc = null_mut();
-            let test_dev = TestDevice {
-                id, softc, driver
-            };
+            let test_dev = TestDevice { id, softc, driver };
             self.devices.push(test_dev);
             id as device_t
         }
@@ -369,7 +365,10 @@ mod tests {
         fn device_test(&mut self, dev_ptr: device_t) {
             let dev = &self.devices[dev_ptr as usize];
             let driver = self.drivers[dev.driver];
-            assert_eq!(unsafe { driver.probe()(dev_ptr) }, bindings::BUS_PROBE_DEFAULT);
+            assert_eq!(
+                unsafe { driver.probe()(dev_ptr) },
+                bindings::BUS_PROBE_DEFAULT
+            );
             assert_eq!(unsafe { driver.attach()(dev_ptr) }, 0);
             assert_eq!(unsafe { driver.detach()(dev_ptr) }, 0);
         }

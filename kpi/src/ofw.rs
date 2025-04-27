@@ -151,7 +151,7 @@ pub mod wrappers {
     }
 
     // TODO: this will break if OF_device_register_xref ever changes to return non-zero
-    pub fn OF_device_register_xref(dev: Device, xref: XRef) {
+    pub fn OF_device_register_xref(xref: XRef, dev: Device) {
         let dev_ptr = dev.as_ptr();
         unsafe {
             bindings::OF_device_register_xref(xref.0, dev_ptr);

@@ -71,7 +71,17 @@ macro_rules! curthread {
 }
 
 #[macro_export]
-macro_rules! read_reg {
+macro_rules! read_specialreg {
+    ($reg:ident) => {{
+        let res: u64;
+        unsafe {
+            core::arch::asm! {
+                concat!("mrs {}, ", stringify!($reg)),
+                out(reg) res, options(nomem, nostack)
+            }
+        };
+        res
+    }};
     ($reg:expr) => {{
         let res: u64;
         unsafe {
@@ -81,12 +91,19 @@ macro_rules! read_reg {
             }
         };
         res
-    }}; //($reg:tt) => {
-        //    read_reg!(stringify!($reg))
-        //};
+    }};
 }
 #[macro_export]
-macro_rules! write_reg {
+macro_rules! write_specialreg {
+    ($reg:ident, $val:expr) => {{
+        let _tyck: u64 = $val;
+        unsafe {
+            core::arch::asm! {
+                concat!("msr ", stringify!($reg), ", {}"),
+                in(reg) $val, options(nomem, nostack)
+            }
+        }
+    }};
     ($reg:expr, $val:expr) => {{
         let _tyck: u64 = $val;
         unsafe {
@@ -95,9 +112,7 @@ macro_rules! write_reg {
                 in(reg) $val, options(nomem, nostack)
             }
         }
-    }}; //($reg:tt, $val:expr) => {
-        //    write_reg!(stringify!($reg), $val)
-        //};
+    }};
 }
 
 // rust inverts the asm "memory" option with nomem

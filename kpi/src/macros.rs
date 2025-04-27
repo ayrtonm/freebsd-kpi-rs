@@ -60,20 +60,17 @@ macro_rules! typesafe_c_macros {
 }
 
 #[macro_export]
-macro_rules! pin_field {
-    ($struct:expr, $field:ident) => {
+macro_rules! project_ref {
+    ($extended_ref:ident -> $($field_name:tt)*) => {
         {
-            //let pinned_x: core::pin::Pin<_> = $struct.as_ref();
-            unsafe { $struct.map_unchecked(|x| &x.$field) }
+            use core::borrow::Borrow;
+            $extended_ref.project(|t| t.$($field_name)*.borrow())
         }
-    }
-}
-#[macro_export]
-macro_rules! pin_field_mut {
-    ($struct:expr, $field:ident) => {
+    };
+    ($extended_ref:ident [$($field_name:tt)*]) => {
         {
-            let pinned_x: core::pin::Pin<_> = $struct.as_mut();
-            unsafe { pinned_x.map_unchecked_mut(|x| &mut x.$field) }
+            use core::borrow::Borrow;
+            $extended_ref.project(|t| t[$($field_name)*].borrow())
         }
-    }
+    };
 }

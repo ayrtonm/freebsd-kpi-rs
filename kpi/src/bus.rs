@@ -33,7 +33,6 @@ use crate::device::Device;
 use core::ffi::{c_int, c_void};
 use core::mem::transmute;
 use core::ptr::{addr_of_mut, null_mut};
-use core::pin::Pin;
 use core::ops::BitOr;
 
 enum_c_macros! {
@@ -183,14 +182,14 @@ pub trait BusIfWrappers: IsDriver {
         flags: u32,
         filter: FilterFn<Self::Softc>,
         handler: Handler<Self::Softc>,
-        arg: Pin<&Self::Softc>,
+        arg: &Self::Softc,
         intrhand: *mut *mut c_void,
     ) -> Result<()> {
         let driver = device_get_driver(dev);
         assert!(self as *const Self as *const bindings::driver_t == driver);
         let filter = unsafe { transmute(filter) };
         let handler = unsafe { transmute(handler) };
-        let arg = arg.get_ref() as *const Self::Softc as *const c_void as *mut c_void;
+        let arg = arg as *const Self::Softc as *const c_void as *mut c_void;
         bus_setup_intr_internal(dev, irq, flags, filter, handler, arg, intrhand)
     }
 }
@@ -251,7 +250,6 @@ impl<const N: usize> RegisterBuilder<N> {
 
 pub mod wrappers {
     use super::*;
-    use core::ops::DerefMut;
 
     typesafe_c_macros! {
         ResFlags,
