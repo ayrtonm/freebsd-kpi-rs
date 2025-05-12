@@ -28,12 +28,8 @@
 
 use crate::bindings::{device_t, driver_t, kobj_method_t, kobjop_desc};
 use crate::prelude::*;
-use core::any::TypeId;
-use core::ffi::{c_int, c_void, CStr};
-use core::mem::{offset_of, size_of};
-use core::ops::{Deref, DerefMut};
-use core::pin::Pin;
-use core::ptr::{null_mut, write};
+use core::ffi::{c_int, CStr};
+use core::ptr::{null_mut};
 
 enum_c_macros! {
     #[repr(i32)]
@@ -62,6 +58,12 @@ impl AsRustType<Device> for device_t {
     }
 }
 
+impl AsCType<device_t> for Device {
+    fn as_c_type(self) -> device_t {
+        self.dev_ptr
+    }
+}
+
 #[repr(C)]
 #[derive(Debug)]
 pub struct DeviceMethod(kobj_method_t);
@@ -86,7 +88,6 @@ unsafe impl Sync for DeviceMethod {}
 #[macro_export]
 macro_rules! device_init_softc {
     ($dev:expr, $sc:expr) => {{
-        use core::pin::Pin;
         use $crate::bindings;
         use $crate::device::{DeviceIf, DeviceState};
 
@@ -99,16 +100,14 @@ macro_rules! device_init_softc {
         let sc_mut_ref = unsafe { sc_ptr.as_mut().unwrap() };
         assert!(sc_mut_ref.is_none());
         *sc_mut_ref = Some($sc);
-        unsafe { $crate::cell::ExtendedRef::new_mut(sc_mut_ref.as_mut().unwrap(), dev_ptr) }
+        unsafe { $crate::cell::OwnedMutRef::new(sc_mut_ref.as_mut().unwrap(), dev_ptr) }
     }};
 }
 
 #[macro_export]
 macro_rules! device_get_softc {
     ($dev:expr) => {{
-        use core::pin::Pin;
         use $crate::bindings;
-        use $crate::bindings::device_t;
         use $crate::device::{DeviceIf, DeviceState};
 
         let state = $dev.get_state();
@@ -123,9 +122,9 @@ macro_rules! device_get_softc {
             DeviceState::Attaching => sc_ref
                 .as_ref()
                 .expect("must initialize softc using device_init_softc!"),
-            DeviceState::Attached => unsafe { sc_ref.as_ref().unwrap() },
+            DeviceState::Attached => sc_ref.as_ref().unwrap(),
         };
-        unsafe { $crate::cell::ExtendedRef::new(init_sc_ref, dev_ptr) }
+        unsafe { $crate::cell::OwnedRef::new(init_sc_ref, dev_ptr) }
     }};
 }
 
@@ -135,6 +134,15 @@ macro_rules! device_probe {
         $crate::export_function! {
             $driver_ty $impl_fn_name
             device_probe(dev: device_t) -> int;
+            with init glue {
+                {
+                    use $crate::device::{Device, DeviceState};
+
+                    // Only needed to help type inference in the next line
+                    let dev_ref: &mut Device = &mut dev;
+                    dev.set_state(DeviceState::Unknown);
+                };
+            }
             rust returns $crate::device::BusProbe
         }
     };
@@ -150,7 +158,6 @@ macro_rules! device_attach {
                 {
                     use $crate::device::{Device, DeviceIf, DeviceState};
                     use $crate::bindings;
-                    use core::any::TypeId;
                     use core::ptr::write;
 
                     // Now that we've started attaching the device set the softc to None
@@ -187,19 +194,10 @@ macro_rules! device_detach {
         $crate::export_function! {
             $driver_ty $impl_fn_name
             device_detach(dev: device_t) -> int;
-            with init glue {
-                {
-                    use $crate::device::{Device, DeviceState};
-
-                    // Only needed to help type inference in the next line
-                    let dev_ref: &mut Device = &mut dev;
-                    dev_ref.set_state(DeviceState::Attached);
-                };
-            }
             with drop glue {
                 {
                     use $crate::bindings;
-                    use $crate::device::{Device, DeviceIf};
+                    use $crate::device::DeviceIf;
                     use core::ptr::drop_in_place;
 
                     let dev_ptr = dev.as_ptr();
@@ -212,6 +210,14 @@ macro_rules! device_detach {
     };
 }
 
+define_interface! {
+    device_shutdown(dev: device_t) -> int;
+    device_suspend(dev: device_t) -> int;
+    device_resume(dev: device_t) -> int;
+    device_quiesce(dev: device_t) -> int;
+    device_register(dev: device_t) -> int;
+}
+
 pub trait IsDriver: DeviceIf {
     fn get_driver() -> *const bindings::kobj_class;
 }
@@ -219,28 +225,28 @@ pub trait IsDriver: DeviceIf {
 pub trait DeviceIf<State = ()> {
     type Softc: 'static;
 
-    fn device_probe(dev: Device) -> Result<BusProbe> {
+    fn device_probe(_dev: Device) -> Result<BusProbe> {
         unimplemented!()
     }
-    fn device_attach(dev: Device) -> Result<()> {
+    fn device_attach(_dev: Device) -> Result<()> {
         unimplemented!()
     }
-    fn device_detach(dev: Device) -> Result<()> {
+    fn device_detach(_dev: Device) -> Result<()> {
         unimplemented!()
     }
-    fn device_shutdown(dev: Device) -> Result<()> {
+    fn device_shutdown(_dev: Device) -> Result<()> {
         unimplemented!()
     }
-    fn device_suspend(dev: Device) -> Result<()> {
+    fn device_suspend(_dev: Device) -> Result<()> {
         unimplemented!()
     }
-    fn device_resume(dev: Device) -> Result<()> {
+    fn device_resume(_dev: Device) -> Result<()> {
         unimplemented!()
     }
-    fn device_quiesce(dev: Device) -> Result<()> {
+    fn device_quiesce(_dev: Device) -> Result<()> {
         unimplemented!()
     }
-    fn device_register(dev: Device) -> Result<&'static State> {
+    fn device_register(_dev: Device) -> Result<&'static State> {
         unimplemented!()
     }
 }
@@ -264,8 +270,7 @@ pub mod wrappers {
         unsafe { bindings::device_set_desc(dev_ptr, desc_ptr) }
     }
 
-    // FIXME: 'static is wrong here
-    // It should be something like &'driver CStr but not &'static CStr
+    // FIXME: 'static is wrong here.  It should be OnwedRef<CStr> instead
     pub fn device_get_nameunit(dev: Device) -> &'static CStr {
         let dev_ptr = dev.as_ptr();
         let name = unsafe { bindings::device_get_nameunit(dev_ptr) };
@@ -295,11 +300,12 @@ unsafe impl Sync for Device {}
 unsafe impl Send for Device {}
 
 impl Device {
+    // TODO: Invert state to default to Attached
     // Creates a Device wrapper from a device_t
     pub fn new(dev_ptr: device_t) -> Self {
         Self {
             dev_ptr,
-            state: DeviceState::Unknown,
+            state: DeviceState::Attached,
         }
     }
 
@@ -316,13 +322,14 @@ impl Device {
     }
 }
 
+#[allow(dead_code)]
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::driver;
     use core::mem::MaybeUninit;
     use core::ptr::null_mut;
-    use std::ffi::CStr;
+    use std::ffi::{c_void, CStr};
     use std::println;
     use std::sync::Mutex;
     use std::vec::Vec;
@@ -393,7 +400,7 @@ mod tests {
     });
     impl DeviceIf for MyDriver {
         type Softc = MySoftc;
-        fn device_probe(dev: Device) -> Result<BusProbe> {
+        fn device_probe(_dev: Device) -> Result<BusProbe> {
             Ok(BUS_PROBE_DEFAULT)
         }
         fn device_attach(dev: Device) -> Result<()> {
@@ -435,7 +442,7 @@ mod tests {
     fn get_softc() {
         let mut test_kernel = TEST_KERNEL.lock().unwrap();
         let driver = test_kernel.register_driver(&my_driver);
-        let mut dev = test_kernel.new_device(driver);
+        let dev = test_kernel.new_device(driver);
         test_kernel.device_test(dev);
     }
 }

@@ -40,10 +40,11 @@ mod macros;
 pub mod arm64;
 pub mod bindings;
 pub mod boxed;
-pub mod bus;
 pub mod cell;
+pub mod bus;
 pub mod device;
 pub mod ffi;
+mod interfaces;
 #[cfg(feature = "intrng")]
 pub mod intr;
 pub mod malloc;
@@ -68,16 +69,53 @@ pub trait AsRustType<T> {
     fn as_rust_type(self) -> T;
 }
 
+impl<T> AsRustType<T> for T {
+    fn as_rust_type(self) -> T {
+        self
+    }
+}
+
+// TODO: Put these in the right modules
+pub mod misc {
+    use crate::bindings;
+    use crate::bindings::{u_int, cpuset_t};
+
+    pub fn mp_maxid() -> usize {
+        let val = unsafe { bindings::mp_maxid };
+        val as usize
+    }
+    pub fn atomic_readandclear_32(p: &mut u32) -> u32 {
+        unsafe {
+            bindings::rust_bindings_atomic_readandclear_32(p)
+        }
+    }
+    pub fn atomic_set_32(p: &mut u32, x: u32) {
+        unsafe {
+            bindings::rust_bindings_atomic_set_32(p, x)
+        }
+    }
+    pub fn CPU_SET(cpu: u_int, set: *mut cpuset_t) {
+        unsafe {
+            bindings::rust_bindings_CPU_SET(cpu, set)
+        }
+    }
+    pub fn CPU_ISSET(cpu: u_int, set: &cpuset_t) -> bool {
+        unsafe {
+            bindings::rust_bindings_CPU_ISSET(cpu, set as *const cpuset_t as *mut cpuset_t)
+        }
+    }
+}
+
 pub mod prelude {
+    pub use crate::misc::*;
+
     #[cfg(target_arch = "aarch64")]
-    pub use crate::arm64::in_vhe;
+    pub use crate::arm64::*;
     pub use crate::bindings;
-    pub use crate::boxed::Box;
-    pub use crate::project_ref;
-    pub use crate::vec::Vec;
     pub use crate::Result;
+    pub use crate::{base_class, project};
     #[cfg(target_arch = "aarch64")]
-    pub use crate::{curthread, isb, pcpu_get, pcpu_ptr, read_specialreg, write_specialreg};
+    pub use crate::{curthread, isb, rmb, wmb, pcpu_get, pcpu_ptr, read_specialreg, write_specialreg};
     pub use crate::{device_get_softc, device_init_softc};
     #[cfg(not(feature = "std"))]
     pub use crate::{device_print, device_println, print, println};
@@ -111,7 +149,6 @@ pub mod prelude {
     pub use crate::sync::wrappers::*;
     pub use crate::taskq::wrappers::*;
 
-    pub use crate::bus::BusIfWrappers;
     pub use crate::device::{DeviceIf, IsDriver};
     #[cfg(feature = "intrng")]
     pub use crate::intr::PicIf;
@@ -140,13 +177,14 @@ macro_rules! export_function {
         $(with init glue { $($init_glue:tt)* })?
         $(with drop glue { $($drop_glue:tt)* })?
     ) => {
+        #[allow(unused_mut)]
         #[no_mangle]
         pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) {
             // Checks that this extern "C" function matches the declaration in bindings.h
             //const _TYPES_MATCH: unsafe extern "C" fn($($arg,)*) = $crate::bindings::$fn_name;
 
             // Convert all arguments from C types to rust types
-            $(let mut $arg_name = $arg_name.as_rust_type();)*
+            $(let mut $arg_name: _ = $arg_name.as_rust_type();)*
 
             // Call init glue if any
             $($($init_glue)*)*;
@@ -165,28 +203,57 @@ macro_rules! export_function {
         $(with drop glue { $($drop_glue:tt)* })?
         $(rust returns $ret_as_rust_ty:ty)?
     ) => {
+        #[allow(unused_mut)]
         #[no_mangle]
         pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) -> $ret {
             // Checks that this extern "C" function matches the declaration in bindings.h
             //const _TYPES_MATCH: unsafe extern "C" fn($($arg,)*) -> $ret = $crate::bindings::$fn_name;
 
             // Convert all arguments from C types to rust types
-            $(let mut $arg_name = $arg_name.as_rust_type();)*
+            $(let mut $arg_name: _ = $arg_name.as_rust_type();)*
 
             // Call init glue if any
-            $($($init_glue)*)*;
+            $($($init_glue)*)*
 
             // Call the rust implementation, coercing to the result type if specified
             let res$(: $crate::Result<$ret_as_rust_ty>)* = $driver_ty::$fn_name($($arg_name,)*);
 
             // Call drop glue if any
-            $($($drop_glue)*)*;
+            $($($drop_glue)*)*
 
             // Convert return value from rust type to a C type
             match res {
                 Ok(r) => r.as_c_type(),
                 Err(e) => e.as_c_type(),
             }
+        }
+    };
+    (
+        $driver_ty:ident $impl:ident
+        $fn_name:ident($($arg_name:ident: $arg:ty$(,)?)*) -> $ret:ty;
+        $(with init glue { $($init_glue:tt)* })?
+        $(with drop glue { $($drop_glue:tt)* })?
+        infallible
+    ) => {
+        #[allow(unused_mut)]
+        #[no_mangle]
+        pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) -> $ret {
+            // Checks that this extern "C" function matches the declaration in bindings.h
+            //const _TYPES_MATCH: unsafe extern "C" fn($($arg,)*) -> $ret = $crate::bindings::$fn_name;
+
+            // Convert all arguments from C types to rust types
+            $(let mut $arg_name: _ = $arg_name.as_rust_type();)*
+
+            // Call init glue if any
+            $($($init_glue)*)*
+
+            // Call the rust implementation, coercing to the result type if specified
+            let res = $driver_ty::$fn_name($($arg_name,)*);
+
+            // Call drop glue if any
+            $($($drop_glue)*)*
+
+            res
         }
     };
 }
@@ -254,9 +321,8 @@ macro_rules! driver {
             use $crate::device::DeviceIf;
             #[cfg(feature = "intrng")]
             use $crate::intr::PicIf;
-            use $crate::export_function;
             $($crate::$if_fn!($driver_ty $impl);)*
-            $($(export_function!($driver_ty $fn_name $fn_name($($arg_name: $arg,)*) $(-> $ret)*;);)*)*
+            $($($crate::export_function!($driver_ty $fn_name $fn_name($($arg_name: $arg,)*) $(-> $ret)*;);)*)*
         }
     };
 }

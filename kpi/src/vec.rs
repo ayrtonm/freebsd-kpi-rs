@@ -26,11 +26,11 @@
  * SUCH DAMAGE.
  */
 
-use crate::bindings;
 use crate::prelude::*;
+use crate::boxed::Box;
 use crate::malloc::{MallocFlags, MallocType};
 use core::alloc::Layout;
-use core::mem::{forget, size_of};
+use core::mem::forget;
 use core::ptr::{NonNull, drop_in_place, write};
 use core::marker::PhantomData;
 use core::ops::{Deref, DerefMut};
@@ -87,7 +87,7 @@ impl<T, M: MallocType> Vec<T, M> {
     /// `Vec<T>`. The collection will never speculatively reserve more space. After calling
     /// `try_reserve`, the capacity will equal `self.len() + additional` if it returns `Ok(())`.
     /// Does nothing if capacity is already sufficient.
-    pub fn reserve(&mut self, additional: usize, flags: MallocFlags) -> Result<()> {
+    pub fn reserve(&mut self, additional: usize, _flags: MallocFlags) -> Result<()> {
         if self.capacity >= self.len() + additional {
             return Ok(())
         }
@@ -100,6 +100,10 @@ impl<T, M: MallocType> Vec<T, M> {
         }
         self.len -= 1;
         todo!("")
+    }
+
+    pub fn push(&mut self, value: T) {
+        assert!(self.try_push(value).is_none());
     }
 
     pub fn try_push(&mut self, value: T) -> Option<T> {

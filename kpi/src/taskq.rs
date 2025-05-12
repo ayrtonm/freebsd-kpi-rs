@@ -27,6 +27,7 @@
  */
 
 use crate::bindings::{task, taskqueue};
+use crate::boxed::Box;
 use crate::cell::SubClass;
 use crate::prelude::*;
 use crate::ErrCode;
@@ -43,7 +44,7 @@ pub type TaskFn<T> = extern "C" fn(context: Box<Task<T>, M_DEVBUF>, pending: c_i
 impl<T: 'static + Send> Task<T> {
     pub fn init(&mut self, callback: TaskFn<T>) {
         let callback = unsafe { transmute(callback) };
-        let task_ptr = SubClass::get_base_ptr(&self);
+        let task_ptr = SubClass::get_base_ptr(self);
         unsafe {
             (*task_ptr).ta_func = Some(callback);
         }
@@ -60,18 +61,19 @@ pub mod wrappers {
     }
 
     pub fn taskqueue_enqueue<T: 'static + Send>(queue: Taskqueue, task: Box<Task<T>, M_DEVBUF>) -> Result<()> {
-        let task_ptr = SubClass::get_base_ptr(&task);
-        unsafe {
-            (*task_ptr).ta_context = task_ptr as *mut c_void;
-        }
-        let res = unsafe { bindings::taskqueue_enqueue(queue.0, task_ptr) };
-        if res != 0 {
-            // If we could not enqueue the task return ownership of self to the callee
-            return Err(ErrCode::from(res));
-        }
-        // If we enqueued the task and context skip running self's destructor at the end of this function
-        // The destructor will instead run at the end of the enqueued task's callback
-        forget(task);
-        Ok(())
+        todo!("")
+        //let task_ptr = SubClass::get_base_ptr(task.as_ptr());
+        //unsafe {
+        //    (*task_ptr).ta_context = task_ptr as *mut c_void;
+        //}
+        //let res = unsafe { bindings::taskqueue_enqueue(queue.0, task_ptr) };
+        //if res != 0 {
+        //    // If we could not enqueue the task return ownership of self to the callee
+        //    return Err(ErrCode::from(res));
+        //}
+        //// If we enqueued the task and context skip running self's destructor at the end of this function
+        //// The destructor will instead run at the end of the enqueued task's callback
+        //forget(task);
+        //Ok(())
     }
 }

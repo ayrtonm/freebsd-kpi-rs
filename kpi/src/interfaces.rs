@@ -1,7 +1,7 @@
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
  *
- * Copyright (c) 2024 Ayrton Muñoz
+ * Copyright (c) 2025 Ayrton Muñoz
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,24 +27,47 @@
  */
 
 use crate::prelude::*;
-use crate::vec::Vec;
-use core::ffi::CStr;
+use crate::bindings::{nvme_qpair, nvme_tracker};
 
-pub struct CString(Vec<u8>);
+define_interface! {
+    nvme_delayed_attach(dev: device_t) -> int;
+    nvme_enable(dev: device_t);
+    nvme_sq_leave(dev: device_t, qpair: *mut nvme_qpair, tr: *mut nvme_tracker);
+    nvme_cq_done(dev: device_t, qpair: *mut nvme_qpair, tr: *mut nvme_tracker);
+    nvme_qpair_construct(dev: device_t, qpair: *mut nvme_qpair, num_entries: u32, num_trackers: u32) -> int;
+}
 
-impl CString {
-    pub fn new(msg: &str) -> Result<Self> {
-        let mut buf = Vec::try_with_capacity(msg.as_bytes().len() + 1, M_WAITOK).unwrap();
-        for &b in msg.as_bytes() {
-            buf.try_push(b);
+#[macro_export]
+macro_rules! nvme_sq_enter {
+    ($driver_ty:ident $impl_fn_name:ident) => {
+        $crate::export_function! {
+            $driver_ty $impl_fn_name
+            nvme_sq_enter(dev: device_t, qpair: *mut nvme_qpair, tr: *mut nvme_tracker) -> u32;
+            infallible
         }
-        buf.try_push(0);
-        Ok(Self(buf))
-    }
+    };
+}
 
-    pub fn as_c_str(&self) -> &CStr {
+impl<'a> AsRustType<&'a nvme_qpair> for *mut nvme_qpair {
+    fn as_rust_type(self) -> &'a nvme_qpair {
         unsafe {
-            CStr::from_ptr(self.0.as_ptr().cast())
+            self.as_ref().unwrap()
+        }
+    }
+}
+
+impl<'a> AsRustType<&'a mut nvme_qpair> for *mut nvme_qpair {
+    fn as_rust_type(self) -> &'a mut nvme_qpair {
+        unsafe {
+            self.as_mut().unwrap()
+        }
+    }
+}
+
+impl<'a> AsRustType<&'a nvme_tracker> for *mut nvme_tracker {
+    fn as_rust_type(self) -> &'a nvme_tracker {
+        unsafe {
+            self.as_ref().unwrap()
         }
     }
 }

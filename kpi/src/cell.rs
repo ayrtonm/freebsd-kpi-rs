@@ -30,7 +30,9 @@ use core::cell::UnsafeCell;
 use core::mem::{offset_of, MaybeUninit};
 use core::ops::{Deref, DerefMut, Drop};
 use core::sync::atomic::{AtomicBool, Ordering};
+use core::ffi::c_void;
 
+/// A value borrow-checked at runtime
 #[derive(Debug)]
 pub struct Checked<T> {
     t: UnsafeCell<T>,
@@ -87,7 +89,7 @@ impl<T: ?Sized> Drop for CheckedRef<'_, T> {
     }
 }
 
-/// Rust's view of a variable of type T that has its address shared with C.
+/// Rust's view of a variable of type T that has had its address shared with C.
 ///
 /// This opts out of Rust's requirements that &T must be immutable and T always have a valid value.
 /// While creating a &mut FFICell<T> is perfectly fine, it may not be used to get a &mut T.
@@ -98,6 +100,10 @@ pub struct FFICell<T>(UnsafeCell<MaybeUninit<T>>);
 unsafe impl<T> Sync for FFICell<T> {}
 
 impl<T> FFICell<T> {
+    pub const fn new(t: T) -> Self {
+        Self(UnsafeCell::new(MaybeUninit::new(t)))
+    }
+
     pub const fn zeroed() -> Self {
         Self(UnsafeCell::new(MaybeUninit::zeroed()))
     }
@@ -111,22 +117,30 @@ impl<T> FFICell<T> {
 ///
 /// The definition assumes that the base class is shared between Rust and C but places no
 /// restriction on the extra fields so it may be possible to create references to them.
+#[repr(C)]
 #[derive(Debug)]
 pub struct SubClass<B, F> {
     base: FFICell<B>,
-    pub sub: F,
+    sub: F,
+    exposed: bool,
 }
 
 impl<B, F> SubClass<B, F> {
+    pub const fn new_with_base(base: B, sub: F) -> Self {
+        Self {
+            base: FFICell::new(base),
+            sub,
+            exposed: false,
+        }
+    }
     pub const fn new(sub: F) -> Self {
         Self {
             base: FFICell::zeroed(),
             sub,
+            exposed: true,
         }
     }
 
-    // This could take `&self` but since `SubClass` `Deref`s to its subclass `F` that would
-    // introduce behavior that's hard to analyze if `F` had another method named `get_base_ptr`.
     pub fn get_base_ptr(sub: &Self) -> *mut B {
         sub.base.as_ptr()
     }
@@ -134,6 +148,17 @@ impl<B, F> SubClass<B, F> {
     pub unsafe fn from_base<'a>(ptr: *mut B) -> &'a mut Self {
         let super_ptr = ptr.byte_sub(offset_of!(Self, base)).cast::<Self>();
         super_ptr.as_mut().unwrap()
+    }
+
+    pub fn get_base_ref(sub: &Self) -> &B {
+        assert!(!sub.exposed);
+        unsafe {
+            Self::get_base_ref_unchecked(sub)
+        }
+    }
+
+    pub unsafe fn get_base_ref_unchecked(sub: &Self) -> &B {
+        Self::get_base_ptr(sub).as_ref().unwrap()
     }
 }
 
@@ -151,96 +176,134 @@ impl<B, F> DerefMut for SubClass<B, F> {
     }
 }
 
+pub trait OwnedVar<T: ?Sized> {
+    fn get_var_ptr(&self) -> *mut T;
+    fn get_owner<O>(&self) -> *mut O;
+    fn is_owned_by<O>(&self, owner: *mut O) -> bool;
+}
+
+//impl<T: ?Sized> OwnedVar<T> for OwnedPtr<T> {
+//    fn get_var_ptr(&self) -> *mut T {
+//        self.ptr
+//    }
+//    fn get_owner<O>(&self) -> *mut O {
+//        self.owner.cast::<O>()
+//    }
+//}
+
+//impl<T: ?Sized> OwnedVar<T> for &'static T {
+//    fn get_var_ptr(&self) -> *mut T {
+//        self as *const T as *mut T
+//    }
+//    fn get_owner<O>(&self) -> *mut O { todo!("") }
+//
+//    fn is_owned_by<O>(&self, _owner: *mut O) -> bool {
+//        true
+//    }
+//}
+
+impl<'a, T: ?Sized> OwnedVar<T> for OwnedRef<'a, T> {
+    fn get_var_ptr(&self) -> *mut T {
+        let ptr = self.borrow as *const T;
+        ptr.cast_mut()
+    }
+    fn get_owner<O>(&self) -> *mut O {
+        self.owner.cast::<O>()
+    }
+    fn is_owned_by<O>(&self, owner: *mut O) -> bool {
+        self.owner.cast::<O>() == owner
+    }
+}
+
+impl<'a, T: ?Sized> OwnedVar<T> for OwnedMutRef<'a, T> {
+    fn get_var_ptr(&self) -> *mut T {
+        let ptr = self.borrow as *const T;
+        ptr.cast_mut()
+    }
+    fn get_owner<O>(&self) -> *mut O {
+        self.owner.cast::<O>()
+    }
+    fn is_owned_by<O>(&self, owner: *mut O) -> bool {
+        self.owner.cast::<O>() == owner
+    }
+}
+
+//#[derive(Debug)]
+//pub struct OwnedPtr<T: ?Sized> {
+//    ptr: *mut T,
+//    owner: *mut c_void,
+//}
+
 #[derive(Debug)]
-enum InnerRef<'a, T: ?Sized> {
-    Shared(&'a T),
-    Exclusive(&'a mut T),
+pub struct OwnedRef<'a, T: ?Sized> {
+    borrow: &'a T,
+    owner: *mut c_void,
 }
 
 #[derive(Debug)]
-pub struct ExtendedRef<'a, T: ?Sized, O> {
-    borrow: InnerRef<'a, T>,
-    owner: *const O,
+pub struct OwnedMutRef<'a, T: ?Sized> {
+    borrow: &'a mut T,
+    owner: *mut c_void,
 }
 
-impl<'a, T: ?Sized, O> ExtendedRef<'a, T, O> {
-    pub unsafe fn new(borrow: &'a T, owner: *const O) -> Self {
-        let borrow = InnerRef::Shared(borrow);
+impl<'a, T: ?Sized> OwnedRef<'a, T> {
+    pub unsafe fn new<O>(borrow: &'a T, owner: *mut O) -> Self {
+        let owner = owner.cast::<c_void>();
         Self {
             borrow, owner
         }
     }
 
-    pub unsafe fn new_mut(borrow: &'a mut T, owner: *const O) -> Self {
-        let borrow = InnerRef::Exclusive(borrow);
+    pub fn project<U: ?Sized, F: FnOnce(&T) -> &U>(&self, f: F) -> OwnedRef<U> {
+        unsafe {
+            OwnedRef::new(f(self.borrow), self.owner)
+        }
+    }
+}
+
+impl<'a, T: ?Sized> OwnedMutRef<'a, T> {
+    pub unsafe fn new<O>(borrow: &'a mut T, owner: *mut O) -> Self {
+        let owner = owner.cast::<c_void>();
         Self {
             borrow, owner
         }
     }
 
-    pub fn get_owner(&self) -> *const O {
-        self.owner
-    }
-
-    pub fn project<U: ?Sized, F: FnOnce(&T) -> &U>(&self, f: F) -> ExtendedRef<U, O> {
-        match &self.borrow {
-            InnerRef::Shared(borrow) => {
-                unsafe {
-                    ExtendedRef::new(f(borrow), self.owner)
-                }
-            },
-            InnerRef::Exclusive(borrow) => {
-                unsafe {
-                    ExtendedRef::new(f(borrow), self.owner)
-                }
-            },
+    pub fn project<U: ?Sized, F: FnOnce(&T) -> &U>(&self, f: F) -> OwnedRef<U> {
+        unsafe {
+            OwnedRef::new(f(self.borrow), self.owner)
         }
     }
 }
 
-impl<'a, T, O> ExtendedRef<'a, Option<T>, O> {
-    pub fn transpose(self) -> Option<ExtendedRef<'a, T, O>> {
-        match self.borrow {
-            InnerRef::Shared(borrow) => {
-                match borrow {
-                    Some(borrow) => {
-                        unsafe {
-                            Some(ExtendedRef::new(borrow, self.owner))
-                        }
-                    }
-                    None => None,
-                }
-            },
-            InnerRef::Exclusive(borrow) => {
-                match borrow {
-                    Some(borrow) => {
-                        unsafe {
-                            Some(ExtendedRef::new(borrow, self.owner))
-                        }
-                    }
-                    None => None,
-                }
-            },
-        }
-    }
-}
+//impl<T: ?Sized> OwnedPtr<T> {
+//    pub fn as_ptr(self) -> *mut T {
+//        self.ptr
+//    }
+//
+//    pub fn get_owner<O>(&self) -> *mut O {
+//        self.owner.cast::<O>()
+//    }
+//}
 
-impl<'a, T: ?Sized, O> Deref for ExtendedRef<'a, T, O> {
+impl<'a, T: ?Sized> Deref for OwnedRef<'a, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        match &self.borrow {
-            InnerRef::Shared(borrow) => borrow,
-            InnerRef::Exclusive(borrow) => borrow,
-        }
+        &self.borrow
     }
 }
 
-impl<'a, T: ?Sized, O> DerefMut for ExtendedRef<'a, T, O> {
+impl<'a, T: ?Sized> Deref for OwnedMutRef<'a, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.borrow
+    }
+}
+
+impl<'a, T: ?Sized> DerefMut for OwnedMutRef<'a, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        match &mut self.borrow {
-            InnerRef::Shared(_) => unreachable!(""),
-            InnerRef::Exclusive(borrow) => borrow,
-        }
+        &mut self.borrow
     }
 }

@@ -27,9 +27,27 @@
  */
 
 use crate::bindings;
+use crate::bindings::u_int;
 
 pub fn in_vhe() -> bool {
     unsafe { bindings::in_vhe() }
+}
+
+pub fn CPU_AFFINITY(cpu: u_int) -> u64 {
+    unsafe {
+        bindings::rust_bindings_CPU_AFFINITY(cpu)
+    }
+}
+
+pub fn CPU_AFF0(mpidr: u64) -> u64 {
+    unsafe {
+        bindings::rust_bindings_CPU_AFF0(mpidr)
+    }
+}
+pub fn CPU_AFF1(mpidr: u64) -> u64 {
+    unsafe {
+        bindings::rust_bindings_CPU_AFF1(mpidr)
+    }
 }
 
 #[macro_export]
@@ -120,5 +138,21 @@ macro_rules! write_specialreg {
 macro_rules! isb {
     () => {{
         unsafe { core::arch::asm!("isb") }
+    }};
+}
+
+// rust inverts the asm "memory" option with nomem
+#[macro_export]
+macro_rules! rmb {
+    () => {{
+        unsafe { core::arch::asm!("dmb ld") }
+    }};
+}
+
+// rust inverts the asm "memory" option with nomem
+#[macro_export]
+macro_rules! wmb {
+    () => {{
+        unsafe { core::arch::asm!("dmb st") }
     }};
 }

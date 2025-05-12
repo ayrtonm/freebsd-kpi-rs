@@ -110,8 +110,6 @@ impl<'a, T, M: MallocType> IntoIterator for &'a mut Box<[T], M> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bindings::malloc_type;
-    use std::vec::Vec;
 
     #[no_mangle]
     static mut M_DEVBUF: () = ();

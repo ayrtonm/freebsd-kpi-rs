@@ -26,17 +26,15 @@
  * SUCH DAMAGE.
  */
 
-use crate::bindings::{
-    _device, intr_irqsrc, intr_map_data, intr_map_data_fdt, intr_pic, pcell_t, trapframe,
-};
+use crate::bindings::{intr_irqsrc, intr_map_data, intr_map_data_fdt, pcell_t, trapframe};
 use crate::bus::{Filter, Resource};
-use crate::cell::{ExtendedRef, SubClass};
+use crate::cell::{OwnedRef, SubClass, OwnedVar};
 use crate::device::Device;
 use crate::ofw::XRef;
 use crate::prelude::*;
 use crate::ErrCode;
 use core::ffi::{c_int, c_void, CStr};
-use core::mem::transmute;
+use core::mem::{transmute, MaybeUninit};
 use core::ops::Deref;
 
 enum_c_macros! {
@@ -72,90 +70,83 @@ impl AsRustType<MapData> for *mut intr_map_data {
     }
 }
 
-impl<'a> AsRustType<&'a mut *mut intr_irqsrc> for *mut *mut intr_irqsrc {
-    fn as_rust_type(self) -> &'a mut *mut intr_irqsrc {
-        unsafe { self.as_mut().unwrap() }
+impl AsRustType<IntrRoot> for u32 {
+    fn as_rust_type(self) -> IntrRoot {
+        IntrRoot::try_from(self as i32).unwrap()
     }
 }
 
-#[macro_export]
-macro_rules! pic_setup_intr {
-    ($driver_ty:ident $impl_fn_name:ident) => {
-        $crate::export_function! {
-            $driver_ty $impl_fn_name
-            pic_setup_intr(dev: device_t, isrc: *mut intr_irqsrc, res: *mut resource, data: *mut intr_map_data) -> int;
-        }
-    };
+define_interface! {
+    pic_setup_intr(dev: device_t, isrc: *mut intr_irqsrc, res: *mut resource, data: *mut intr_map_data) -> int;
+    pic_teardown_intr(dev: device_t, isrc: *mut intr_irqsrc, res: *mut resource, data: *mut intr_map_data) -> int;
+    pic_map_intr(dev: device_t, data: *mut intr_map_data, isrcp: *mut *mut intr_irqsrc) -> int;
+    pic_enable_intr(dev: device_t, isrc: *mut intr_irqsrc);
+    pic_disable_intr(dev: device_t, isrc: *mut intr_irqsrc);
+    pic_post_filter(dev: device_t, isrc: *mut intr_irqsrc);
+    pic_post_ithread(dev: device_t, isrc: *mut intr_irqsrc);
+    pic_pre_ithread(dev: device_t, isrc: *mut intr_irqsrc);
+    pic_bind_intr(dev: device_t, isrc: *mut intr_irqsrc) -> int;
+    pic_init_secondary(dev: device_t, root: u32);
+    pic_ipi_setup(dev: device_t, ipi: u32, isrcp: *mut *mut intr_irqsrc) -> int;
+    pic_ipi_send(dev: device_t, isrc: *mut intr_irqsrc, cpus: cpuset_t, ipi: u32);
 }
 
 pub type IrqSrc<T> = SubClass<intr_irqsrc, T>;
 
 pub trait PicIf {
-    type DriverIrq;
-    fn pic_setup_intr(dev: Device, isrc: &mut IrqSrc<Self::DriverIrq>, res: Resource, data: MapData) -> Result<()> {
+    type IrqSrcFields;
+    fn pic_setup_intr(
+        dev: Device,
+        isrc: &mut IrqSrc<Self::IrqSrcFields>,
+        res: Resource,
+        data: MapData,
+    ) -> Result<()> {
+        unimplemented!()
+    }
+    fn pic_teardown_intr(
+        dev: Device,
+        isrc: &mut IrqSrc<Self::IrqSrcFields>,
+        res: Resource,
+        data: MapData,
+    ) -> Result<()> {
+        unimplemented!()
+    }
+    fn pic_map_intr(dev: Device, data: MapData, isrcp: *mut *mut intr_irqsrc) -> Result<()> {
+        unimplemented!()
+    }
+    fn pic_enable_intr(dev: Device, isrc: &mut IrqSrc<Self::IrqSrcFields>) {
+        unimplemented!()
+    }
+    fn pic_disable_intr(dev: Device, isrc: &mut IrqSrc<Self::IrqSrcFields>) {
+        unimplemented!()
+    }
+    fn pic_post_filter(dev: Device, isrc: &mut IrqSrc<Self::IrqSrcFields>) {
+        unimplemented!()
+    }
+    fn pic_post_ithread(dev: Device, isrc: &mut IrqSrc<Self::IrqSrcFields>) {
+        unimplemented!()
+    }
+    fn pic_pre_ithread(dev: Device, isrc: &mut IrqSrc<Self::IrqSrcFields>) {
+        unimplemented!()
+    }
+    fn pic_bind_intr(dev: Device, isrc: &mut IrqSrc<Self::IrqSrcFields>) -> Result<()> {
+        unimplemented!()
+    }
+    fn pic_init_secondary(dev: Device, root: IntrRoot) {
+        unimplemented!()
+    }
+    fn pic_ipi_setup(dev: Device, ipi: u32, isrcp: *mut *mut intr_irqsrc) -> Result<()> {
+        unimplemented!()
+    }
+    fn pic_ipi_send(
+        dev: Device,
+        isrc: &mut IrqSrc<Self::IrqSrcFields>,
+        cpus: bindings::cpuset_t,
+        ipi: u32,
+    ) {
         unimplemented!()
     }
 }
-//impl<T> SubClass<IrqSrc, T> {
-//    pub fn isrc_dispatch(&self, tf: *mut trapframe) -> c_int {
-//        unsafe { bindings::intr_isrc_dispatch(SubClass::get_base_ptr(self), tf) }
-//    }
-//}
-
-//pub trait PicIf {
-//    type Irq;
-//
-//    fn pic_setup_intr(
-//        &self,
-//        dev: Device,
-//        isrc: &mut SubClass<IrqSrc, Self::Irq>,
-//        res: Resource,
-//        data: MapData,
-//    ) -> Result<()>;
-//    fn pic_map_intr(&self, dev: Device, data: MapData, isrcp: &mut *mut IrqSrc) -> Result<()>;
-//    fn pic_teardown_intr(
-//        &self,
-//        dev: Device,
-//        isrc: &SubClass<IrqSrc, Self::Irq>,
-//        res: Resource,
-//        data: MapData,
-//    ) -> Result<()>;
-//
-//    fn pic_disable_intr(&self, dev: Device, isrc: &SubClass<IrqSrc, Self::Irq>);
-//    fn pic_enable_intr(&self, dev: Device, isrc: &SubClass<IrqSrc, Self::Irq>);
-//
-//    fn pic_post_filter(&self, dev: Device, isrc: &SubClass<IrqSrc, Self::Irq>);
-//    fn pic_pre_ithread(&self, dev: Device, isrc: &SubClass<IrqSrc, Self::Irq>);
-//    fn pic_post_ithread(&self, dev: Device, isrc: &SubClass<IrqSrc, Self::Irq>);
-//}
-
-//fn isrc_register(
-//    &self,
-//    dev: Device,
-//    isrc: &SubClass<IrqSrc, Self::Irq>,
-//    flags: i32,
-//    fmt_str: &CStr,
-//    arg0: &CStr,
-//    arg1: u32,
-//    arg2: u32,
-//) -> Result<()> {
-//    let res = unsafe {
-//        bindings::intr_isrc_register(
-//            SubClass::get_base_ptr(&isrc),
-//            dev.as_ptr(),
-//            flags as u32,
-//            fmt_str.as_ptr(),
-//            arg0.as_ptr(),
-//            arg1,
-//            arg2,
-//        )
-//    };
-//    if res != 0 {
-//        Err(ErrCode::from(res))
-//    } else {
-//        Ok(())
-//    }
-//}
 
 #[derive(Debug)]
 pub enum MapData {
@@ -197,7 +188,7 @@ pub mod wrappers {
     use core::pin::Pin;
 
     pub fn intr_isrc_register<T>(
-        isrc: ExtendedRef<IrqSrc<T>, _device>,
+        isrc: OwnedRef<IrqSrc<T>>,
         dev: Device,
         flags: Option<IntrIsrcf>,
         fmt_str: &'static CStr,
@@ -210,7 +201,7 @@ pub mod wrappers {
             return Err(EDOOFUS);
         }
         let flags = flags.map(|f| f as u32).unwrap_or(0);
-        let isrc_ptr = SubClass::get_base_ptr(&isrc);
+        let isrc_ptr = SubClass::get_base_ptr(isrc.deref());
         let res = unsafe {
             bindings::intr_isrc_register(
                 isrc_ptr,
@@ -240,18 +231,18 @@ pub mod wrappers {
         }
     }
 
-    pub fn intr_pic_claim_root<T>(
+    pub fn intr_pic_claim_root<T, P: OwnedVar<T>>(
         dev: Device,
         xref: XRef,
-        filter: extern "C" fn(&T) -> i32,
-        arg: &ExtendedRef<T, _device>,
+        filter: extern "C" fn(&T) -> Filter,
+        arg: &P,
         root: IntrRoot,
     ) -> Result<()> {
         let dev_ptr = dev.as_ptr();
         if arg.get_owner() != dev_ptr {
             return Err(EDOOFUS);
         }
-        let arg_ptr = arg.deref() as *const T;
+        let arg_ptr = arg.get_var_ptr().cast::<c_void>();
         let xref = xref.0 as isize;
         let filter = unsafe { transmute(filter) };
         let res = unsafe {
@@ -259,7 +250,7 @@ pub mod wrappers {
                 dev_ptr,
                 xref,
                 Some(filter),
-                arg_ptr.cast::<c_void>().cast_mut(),
+                arg_ptr,
                 root as u32,
             )
         };
@@ -281,9 +272,13 @@ pub mod wrappers {
     }
 
     pub fn intr_isrc_dispatch<T>(isrc: &IrqSrc<T>, tf: *mut trapframe) -> c_int {
-        let isrc_ptr = SubClass::get_base_ptr(&isrc);
+        let isrc_ptr = SubClass::get_base_ptr(isrc);
+        unsafe { bindings::intr_isrc_dispatch(isrc_ptr, tf) }
+    }
+
+    pub fn intr_ipi_dispatch(ipi: u32) {
         unsafe {
-            bindings::intr_isrc_dispatch(isrc_ptr, tf)
+            bindings::intr_ipi_dispatch(ipi)
         }
     }
 }

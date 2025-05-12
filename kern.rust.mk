@@ -2,7 +2,9 @@ RSFILES= $S/rust/kpi/src/lib.rs \
 	$S/arm64/apple/apple_aic.rs \
 	$S/arm64/apple/apple_mbox.rs \
 	$S/arm64/apple/rtkit.rs \
-	$S/arm64/apple/apple_rtkit.rs
+	$S/arm64/apple/apple_rtkit.rs \
+	$S/arm64/apple/apple_smc.rs \
+	$S/dev/nvme/nvme_ans.rs \
 
 
 CRATES=
@@ -26,6 +28,7 @@ KPI_CRATE= lib.rs \
 	cell.rs \
 	device.rs \
 	ffi.rs \
+	interfaces.rs \
 	intr.rs \
 	macros.rs \
 	malloc.rs \
@@ -39,7 +42,7 @@ KPI_CRATE= lib.rs \
 
 KPI_CRATE_FILES= ${KPI_CRATE:S/^/$S\/rust\/kpi\/src\//g}
 
-RUSTFLAGS=
+RUSTFLAGS= -Awarnings
 
 .if ${TARGET_ARCH} == aarch64
 RUST_TARGET= aarch64-unknown-none-softfloat
@@ -80,6 +83,7 @@ BINDGENFLAGS= \
     --use-core \
     --no-prepend-enum-name \
     --no-layout-tests \
+    --with-derive-default \
     --no-derive-copy \
     --default-macro-constant-type signed \
     --merge-extern-blocks \
@@ -89,6 +93,7 @@ BINDGENFLAGS= \
     --blocklist-item 'vfpstate' \
     --blocklist-item 'pcb' \
     --no-debug mdproc \
+    --no-debug nvme_namespace_data \
     --no-debug pcpu
 
     #--blocklist-item 'system_segment_descriptor' # blocked because bindgen cannot derive Debug trait
@@ -126,6 +131,12 @@ _crate_deps= kpi rtkit apple_mbox
 .elif ${_crate} == apple_aic
 _crate_deps= kpi
 
+.elif ${_crate} == nvme_ans
+_crate_deps= kpi rtkit
+
+.elif ${_crate} == apple_smc
+_crate_deps= kpi rtkit
+
 .endif
 ${_crate}_rlibs:= ${_crate_deps:S/^/lib/g:S/$/.rlib/g}
 ${_crate}_extern_args:= ${_crate_deps:C/^.*$/--extern \0=lib\0.rlib/g}
@@ -139,3 +150,5 @@ ${RUSTROOT_RS}:
 ${RUSTROOT_A}: ${RLIBS} ${RUSTROOT_RS}
 	${RUSTC} ${RUSTFLAGS} --crate-type staticlib -o ${RUSTROOT_A} ${RUSTROOT_RS} \
 		${EXTERN_ARGS} --sysroot=$(PWD)/${RUST_SYSROOT}
+
+LDFLAGS += -Wl,--whole-archive

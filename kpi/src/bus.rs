@@ -26,14 +26,15 @@
  * SUCH DAMAGE.
  */
 
+use crate::bindings::{bus_size_t, resource, resource_spec};
+use crate::cell::{OwnedVar, OwnedRef};
+use crate::device::Device;
 use crate::prelude::*;
 use crate::ErrCode;
-use crate::bindings::{bus_size_t, resource, resource_spec, RF_ACTIVE};
-use crate::device::Device;
 use core::ffi::{c_int, c_void};
 use core::mem::transmute;
-use core::ptr::{addr_of_mut, null_mut};
 use core::ops::BitOr;
+use core::ptr::{addr_of_mut, null_mut};
 
 enum_c_macros! {
     #[repr(i32)]
@@ -85,6 +86,12 @@ impl AsRustType<Resource> for *mut resource {
     }
 }
 
+impl AsCType<*mut resource> for Resource {
+    fn as_c_type(self) -> *mut resource {
+        self.res
+    }
+}
+
 #[derive(Debug)]
 pub struct Resource {
     res: *mut resource,
@@ -115,7 +122,10 @@ impl Register {
         if res.ty != Some(SYS_RES_MEMORY) {
             return Err(EDOOFUS);
         }
-        Ok(Register { res: res.res, bounds: None })
+        Ok(Register {
+            res: res.res,
+            bounds: None,
+        })
     }
 
     pub fn as_ptr(&self) -> *mut resource {
@@ -172,28 +182,6 @@ fn bus_setup_intr_internal(
     }
 }
 
-impl<D: IsDriver> BusIfWrappers for D {}
-
-pub trait BusIfWrappers: IsDriver {
-    fn bus_setup_intr(
-        &self,
-        dev: Device,
-        irq: &Resource,
-        flags: u32,
-        filter: FilterFn<Self::Softc>,
-        handler: Handler<Self::Softc>,
-        arg: &Self::Softc,
-        intrhand: *mut *mut c_void,
-    ) -> Result<()> {
-        let driver = device_get_driver(dev);
-        assert!(self as *const Self as *const bindings::driver_t == driver);
-        let filter = unsafe { transmute(filter) };
-        let handler = unsafe { transmute(handler) };
-        let arg = arg as *const Self::Softc as *const c_void as *mut c_void;
-        bus_setup_intr_internal(dev, irq, flags, filter, handler, arg, intrhand)
-    }
-}
-
 pub struct RegisterBuilder<const N: usize> {
     res: *mut resource,
     claimed_windows: [Option<Bounds>; N],
@@ -201,6 +189,15 @@ pub struct RegisterBuilder<const N: usize> {
 }
 
 impl Resource {
+    pub fn as_register(self) -> Result<Register> {
+        if self.ty != Some(SYS_RES_MEMORY) {
+            return Err(EDOOFUS);
+        }
+        Ok(Register {
+            res: self.res,
+            bounds: None,
+        })
+    }
     pub fn split_registers<const N: usize>(self) -> Result<RegisterBuilder<N>> {
         if self.ty != Some(SYS_RES_MEMORY) {
             return Err(EDOOFUS);
@@ -223,14 +220,14 @@ impl<const N: usize> RegisterBuilder<N> {
                     // Check if an existing window overlaps with the arguments. This assumes that
                     // bounds are well-formed which they must be since we calculate end from the
                     // window size
-                    if window.start <= end && start <= window.end {
+                    if window.start < end && start < window.end {
                         return true;
                     }
-                },
+                }
                 None => {
                     // When we hit an empty slot we know there bounds are not claimed
-                    return false
-                },
+                    return false;
+                }
             }
         }
         panic!("Attempted to claim more than {N} registers")
@@ -244,19 +241,58 @@ impl<const N: usize> RegisterBuilder<N> {
         let bounds = Some(Bounds { start, end });
         self.claimed_windows[self.num_claimed] = bounds;
         self.num_claimed += 1;
-        Ok(Register { res: self.res, bounds })
+        Ok(Register {
+            res: self.res,
+            bounds,
+        })
     }
 }
 
 pub mod wrappers {
     use super::*;
+    use bindings::{bus_space_handle_t, bus_space_tag_t};
 
     typesafe_c_macros! {
         ResFlags,
-        RF_ACTIVE
+        RF_ACTIVE,
+        RF_SHAREABLE
     }
 
-    pub fn bus_alloc_resource(
+    pub fn bus_setup_intr<T>(
+        dev: Device,
+        irq: &Resource,
+        flags: u32,
+        filter: FilterFn<T>,
+        handler: Handler<T>,
+        arg: &OwnedRef<T>,
+        intrhand: &OwnedRef<*mut c_void>,
+    ) -> Result<()> {
+        let filter = unsafe { transmute(filter) };
+        let handler = unsafe { transmute(handler) };
+        let dev_ptr = dev.as_ptr();
+        if arg.get_owner() != dev_ptr {
+            return Err(EDOOFUS);
+        }
+        bus_setup_intr_internal(
+            dev,
+            irq,
+            flags,
+            filter,
+            handler,
+            arg.get_var_ptr().cast::<c_void>(),
+            intrhand.get_var_ptr(),
+        )
+    }
+
+    pub fn rman_get_bustag(res: &Resource) -> bus_space_tag_t {
+        unsafe { bindings::rman_get_bustag(res.res) }
+    }
+
+    pub fn rman_get_bushandle(res: &Resource) -> bus_space_handle_t {
+        unsafe { bindings::rman_get_bushandle(res.res) }
+    }
+
+    pub fn bus_alloc_resource_any(
         dev: Device,
         ty: SysRes,
         mut rid: c_int,
@@ -336,31 +372,23 @@ pub mod wrappers {
         ($read_fn:ident, $read_impl:ident, $write_fn:ident, $write_impl:ident, $ty:ty) => {
             #[macro_export]
             macro_rules! $read_fn {
-                ($reg:expr, $offset:expr) => {
-                    {
-                        use core::any::{Any, TypeId};
-                        let _: $crate::bindings::bus_size_t = $offset;
-                        let reg_ref = &mut $reg;
-                        reg_ref.assert_allowed($offset);
-                        unsafe {
-                            $crate::bindings::$read_impl(reg_ref.as_ptr(), $offset)
-                        }
-                    }
-                };
+                ($reg:expr, $offset:expr) => {{
+                    use core::any::{Any, TypeId};
+                    let _: $crate::bindings::bus_size_t = $offset;
+                    let reg_ref = &mut $reg;
+                    reg_ref.assert_allowed($offset);
+                    unsafe { $crate::bindings::$read_impl(reg_ref.as_ptr(), $offset) }
+                }};
             }
             #[macro_export]
             macro_rules! $write_fn {
-                ($reg:expr, $offset:expr, $value:expr) => {
-                    {
-                        let _: $crate::bindings::bus_size_t = $offset;
-                        let _: $ty = $value;
-                        let reg_ref = &mut $reg;
-                        reg_ref.assert_allowed($offset);
-                        unsafe {
-                            $crate::bindings::$write_impl(reg_ref.as_ptr(), $offset, $value)
-                        }
-                    }
-                };
+                ($reg:expr, $offset:expr, $value:expr) => {{
+                    let _: $crate::bindings::bus_size_t = $offset;
+                    let _: $ty = $value;
+                    let reg_ref = &mut $reg;
+                    reg_ref.assert_allowed($offset);
+                    unsafe { $crate::bindings::$write_impl(reg_ref.as_ptr(), $offset, $value) }
+                }};
             }
             // Needed because macro_export expanded from macro cannot be referenced by full-path in
             // prelude module
@@ -368,9 +396,32 @@ pub mod wrappers {
             pub use $write_fn;
         };
     }
-    bus_n!(bus_read_1, rust_bindings_bus_read_1, bus_write_1, rust_bindings_bus_write_1, u8);
-    bus_n!(bus_read_2, rust_bindings_bus_read_2, bus_write_2, rust_bindings_bus_write_2, u16);
-    bus_n!(bus_read_4, rust_bindings_bus_read_4, bus_write_4, rust_bindings_bus_write_4, u32);
-    bus_n!(bus_read_8, rust_bindings_bus_read_8, bus_write_8, rust_bindings_bus_write_8, u64);
+    bus_n!(
+        bus_read_1,
+        rust_bindings_bus_read_1,
+        bus_write_1,
+        rust_bindings_bus_write_1,
+        u8
+    );
+    bus_n!(
+        bus_read_2,
+        rust_bindings_bus_read_2,
+        bus_write_2,
+        rust_bindings_bus_write_2,
+        u16
+    );
+    bus_n!(
+        bus_read_4,
+        rust_bindings_bus_read_4,
+        bus_write_4,
+        rust_bindings_bus_write_4,
+        u32
+    );
+    bus_n!(
+        bus_read_8,
+        rust_bindings_bus_read_8,
+        bus_write_8,
+        rust_bindings_bus_write_8,
+        u64
+    );
 }
-

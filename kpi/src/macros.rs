@@ -60,17 +60,40 @@ macro_rules! typesafe_c_macros {
 }
 
 #[macro_export]
-macro_rules! project_ref {
-    ($extended_ref:ident -> $($field_name:tt)*) => {
+macro_rules! project {
+    ($owned_ref:ident -> $($field_name:tt)*) => {
         {
             use core::borrow::Borrow;
-            $extended_ref.project(|t| t.$($field_name)*.borrow())
+            $owned_ref.project(|t| t.$($field_name)*.borrow())
         }
     };
-    ($extended_ref:ident [$($field_name:tt)*]) => {
+    ($owned_ref:ident [$($field_name:tt)*]) => {
         {
             use core::borrow::Borrow;
-            $extended_ref.project(|t| t[$($field_name)*].borrow())
+            $owned_ref.project(|t| t[$($field_name)*].borrow())
         }
+    };
+}
+
+#[macro_export]
+macro_rules! base_class {
+    ($subclass:expr) => {
+        $crate::cell::SubClass::get_base_ref(&$subclass)
+    };
+}
+
+macro_rules! define_interface {
+    ($($fn_name:ident($($arg_name:ident: $arg:ty$(,)?)*) $(-> $ret:ty)?;)*) => {
+        $(
+            #[macro_export]
+            macro_rules! $fn_name {
+                ($driver_ty:ident $impl_fn_name:ident) => {
+                    $crate::export_function! {
+                        $driver_ty $impl_fn_name
+                        $fn_name($($arg_name: $arg,)*) $(-> $ret)*;
+                    }
+                };
+            }
+        )*
     };
 }

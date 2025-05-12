@@ -32,6 +32,7 @@
 
 #include <sys/param.h>
 #include <sys/bus.h>
+#include <sys/cpuset.h>
 #ifdef INTRNG
 #include <sys/intr.h>
 #endif
@@ -61,6 +62,7 @@
 
 #ifdef FDT
 #include <dev/fdt/fdt_intr.h>
+#include <dev/fdt/simplebus.h>
 
 #include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
@@ -68,6 +70,11 @@
 
 #include "ofw_bus_if.h"
 #endif
+
+#include <dev/nvme/nvme_private.h>
+#include "nvme_if.h"
+
+#include <dt-bindings/interrupt-controller/apple-aic.h>
 
 #include "device_if.h"
 
@@ -115,6 +122,43 @@ rust_bindings_refcount_release(volatile u_int *count)) {
     return refcount_release(count);
 }
 
+INLINE(
+uint32_t
+rust_bindings_atomic_readandclear_32(volatile uint32_t *p)) {
+    return atomic_readandclear_32(p);
+}
+
+INLINE(
+void
+rust_bindings_atomic_set_32(volatile uint32_t *p, uint32_t x)) {
+    atomic_set_32(p, x);
+}
+
+INLINE(
+void rust_bindings_CPU_SET(u_int cpu, cpuset_t *set)) {
+    CPU_SET(cpu, set);
+}
+
+INLINE(
+bool rust_bindings_CPU_ISSET(u_int cpu, cpuset_t *set)) {
+    return CPU_ISSET(cpu, set);
+}
+
+INLINE(
+uint64_t rust_bindings_CPU_AFFINITY(u_int cpu)) {
+    return CPU_AFFINITY(cpu);
+}
+
+INLINE(
+uint64_t rust_bindings_CPU_AFF0(uint64_t mpidr)) {
+    return CPU_AFF0(mpidr);
+}
+
+INLINE(
+uint64_t rust_bindings_CPU_AFF1(uint64_t mpidr)) {
+    return CPU_AFF1(mpidr);
+}
+
 #define BUS_N(n, ty) \
     ty rust_bindings_bus_read_##n(struct resource *res, bus_size_t offset); \
     ty \
@@ -131,10 +175,3 @@ BUS_N(1, uint8_t);
 BUS_N(2, uint16_t);
 BUS_N(4, uint32_t);
 BUS_N(8, uint64_t);
-
-#if 1
-#include <dt-bindings/interrupt-controller/apple-aic.h>
-#include <arm64/apple/apple_mbox.h>
-#include <arm64/apple/rtkit.h>
-
-#endif

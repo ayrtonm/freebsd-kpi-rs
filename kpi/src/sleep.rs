@@ -28,6 +28,7 @@
 
 use crate::prelude::*;
 use crate::ErrCode;
+use core::ffi::c_int;
 use core::ffi::{c_void, CStr};
 use core::ops::{Deref, DerefMut};
 use core::ptr::null_mut;
@@ -62,6 +63,10 @@ impl<T> DerefMut for Sleepable<T> {
 
 pub mod wrappers {
     use super::*;
+
+    pub fn DELAY(usec: u32) {
+        unsafe { bindings::DELAY(usec as c_int) }
+    }
 
     pub fn tsleep<T>(chan: &Sleepable<T>, priority: i32, wmesg: &CStr, timo: i32) -> Result<()> {
         let chan_ptr = &chan.t as *const T as *const c_void;

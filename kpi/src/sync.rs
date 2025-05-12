@@ -26,7 +26,8 @@
  * SUCH DAMAGE.
  */
 
-use crate::bindings::{mtx, LO_INITIALIZED, MTX_DEF, MTX_SPIN, u_int};
+use crate::bindings::{mtx, MTX_DEF, MTX_SPIN, u_int};
+use crate::boxed::Box;
 use crate::malloc::{MallocFlags, MallocType};
 use crate::prelude::*;
 use core::cell::UnsafeCell;
@@ -127,7 +128,7 @@ impl<T> SpinLock<T> {
 pub mod wrappers {
     use super::*;
 
-    pub trait HasMtx {
+    trait HasMtx {
         const SPINS: bool;
         fn get_impl_mut(&mut self) -> &mut MtxCommon;
     }
