@@ -28,28 +28,19 @@
 
 use crate::bindings::{task, taskqueue};
 use crate::boxed::Box;
+use crate::cell::OwnedVar;
 use crate::cell::SubClass;
+use crate::malloc::MallocType;
 use crate::prelude::*;
 use crate::ErrCode;
 use core::ffi::{c_int, c_void};
 use core::mem::{forget, transmute};
+use core::ops::DerefMut;
 
-pub type Task<T> = SubClass<task, T>;
+pub type Task<T: 'static = ()> = SubClass<task, T>;
 
 pub struct Taskqueue(*mut taskqueue);
 
-// TODO: type check with task_fn_t modulo the unsafe/Option
-pub type TaskFn<T> = extern "C" fn(context: Box<Task<T>, M_DEVBUF>, pending: c_int);
-
-impl<T: 'static + Send> Task<T> {
-    pub fn init(&mut self, callback: TaskFn<T>) {
-        let callback = unsafe { transmute(callback) };
-        let task_ptr = SubClass::get_base_ptr(self);
-        unsafe {
-            (*task_ptr).ta_func = Some(callback);
-        }
-    }
-}
 pub mod wrappers {
     use super::*;
 
@@ -60,20 +51,31 @@ pub mod wrappers {
         Taskqueue(ptr)
     }
 
-    pub fn taskqueue_enqueue<T: 'static + Send>(queue: Taskqueue, task: Box<Task<T>, M_DEVBUF>) -> Result<()> {
-        todo!("")
-        //let task_ptr = SubClass::get_base_ptr(task.as_ptr());
-        //unsafe {
-        //    (*task_ptr).ta_context = task_ptr as *mut c_void;
-        //}
-        //let res = unsafe { bindings::taskqueue_enqueue(queue.0, task_ptr) };
-        //if res != 0 {
-        //    // If we could not enqueue the task return ownership of self to the callee
-        //    return Err(ErrCode::from(res));
-        //}
-        //// If we enqueued the task and context skip running self's destructor at the end of this function
-        //// The destructor will instead run at the end of the enqueued task's callback
-        //forget(task);
-        //Ok(())
+    // This takes ownership of task, passing it to the taskqueue which passes it on to the callback
+    pub fn taskqueue_enqueue<
+        T: 'static,
+        O,
+        P: OwnedVar<Task<T>, O> + DerefMut<Target = Task<T>>,
+    >(
+        queue: Taskqueue,
+        mut taskp: P,
+        callback: extern "C" fn(P, c_int),
+    ) -> core::result::Result<(), (ErrCode, P)> {
+        let task_ptr = taskp.get_var_ptr();
+        if task_ptr != taskp.get_owner().cast() {
+            // Only boxed tasks are currently supported
+            return Err((EDOOFUS, taskp));
+        }
+        taskp.deref_mut().get_base_mut().ta_context = task_ptr.cast();
+        let callback = unsafe { transmute(callback) };
+        taskp.get_base_mut().ta_func = Some(callback);
+        let res = unsafe { bindings::taskqueue_enqueue(queue.0, SubClass::base_ptr(task_ptr)) };
+        if res != 0 {
+            return Err((ErrCode::from(res), taskp));
+        }
+        // Drop the box without running its destructor. When we materialize a new Box out of
+        // ta_context in the callback that destructor will be run instead.
+        forget(taskp);
+        Ok(())
     }
 }

@@ -61,24 +61,20 @@ macro_rules! typesafe_c_macros {
 
 #[macro_export]
 macro_rules! project {
-    ($owned_ref:ident -> $($field_name:tt)*) => {
+    (&$owned_ref:ident . $($field_name:tt)*) => {
         {
-            use core::borrow::Borrow;
-            $owned_ref.project(|t| t.$($field_name)*.borrow())
+            &$owned_ref.project(|t| &t.$($field_name)*)
         }
     };
-    ($owned_ref:ident [$($field_name:tt)*]) => {
+    (&mut $owned_ref:ident . $($field_name:tt)*) => {
         {
-            use core::borrow::Borrow;
-            $owned_ref.project(|t| t[$($field_name)*].borrow())
+            &mut $owned_ref.project_mut(|t| &mut t.$($field_name)*)
         }
     };
-}
-
-#[macro_export]
-macro_rules! base_class {
-    ($subclass:expr) => {
-        $crate::cell::SubClass::get_base_ref(&$subclass)
+    (&$owned_ref:ident -> $($field_name:tt)*) => {
+        {
+            $owned_ref.project(|t| &t.$($field_name)*).erase_lifetime()
+        }
     };
 }
 

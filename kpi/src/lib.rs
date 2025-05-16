@@ -52,7 +52,6 @@ pub mod malloc;
 pub mod ofw;
 #[cfg(not(feature = "std"))]
 mod panic;
-pub mod sleep;
 pub mod sync;
 pub mod taskq;
 #[cfg(not(feature = "std"))]
@@ -79,6 +78,11 @@ impl<T> AsRustType<T> for T {
 pub mod misc {
     use crate::bindings;
     use crate::bindings::{u_int, cpuset_t};
+    use core::ffi::c_int;
+
+    pub fn DELAY(usec: u32) {
+        unsafe { bindings::DELAY(usec as c_int) }
+    }
 
     pub fn mp_maxid() -> usize {
         let val = unsafe { bindings::mp_maxid };
@@ -107,13 +111,13 @@ pub mod misc {
 }
 
 pub mod prelude {
-    pub use crate::misc::*;
-
+    #[doc(inline)]
     #[cfg(target_arch = "aarch64")]
     pub use crate::arm64::*;
+
     pub use crate::bindings;
     pub use crate::Result;
-    pub use crate::{base_class, project};
+    pub use crate::project;
     #[cfg(target_arch = "aarch64")]
     pub use crate::{curthread, isb, rmb, wmb, pcpu_get, pcpu_ptr, read_specialreg, write_specialreg};
     pub use crate::{device_get_softc, device_init_softc};
@@ -123,35 +127,65 @@ pub mod prelude {
     pub use std::{print, println};
 
     // Error code macros
+    #[doc(inline)]
     pub use crate::err_codes::*;
+
     // SYS_RES_* macros
+    #[doc(inline)]
     pub use crate::bus::SysRes::*;
+
     // BUS_PROBE_* macros
+    #[doc(inline)]
     pub use crate::device::BusProbe::*;
+
     // INTR_ROOT_* macros
+    #[doc(inline)]
     #[cfg(feature = "intrng")]
     pub use crate::intr::IntrRoot::*;
+
     // INTR_ISRCF_* macros
+    #[doc(inline)]
     #[cfg(feature = "intrng")]
     pub use crate::intr::IntrIsrcf::*;
+
     // FILTER_* macros
+    #[doc(inline)]
     pub use crate::bus::Filter::*;
 
+    #[doc(inline)]
     pub use crate::bus::wrappers::*;
+
+    #[doc(inline)]
     pub use crate::device::wrappers::*;
+
+    #[doc(inline)]
     #[cfg(feature = "intrng")]
     pub use crate::intr::wrappers::*;
+
     // M_* macros
+    #[doc(inline)]
     pub use crate::malloc::wrappers::*;
+
+    #[doc(inline)]
     #[cfg(feature = "fdt")]
     pub use crate::ofw::wrappers::*;
-    pub use crate::sleep::wrappers::*;
+
+    #[doc(inline)]
+    pub use crate::cell::wrappers::*;
+
+    #[doc(inline)]
     pub use crate::sync::wrappers::*;
+
+    #[doc(inline)]
     pub use crate::taskq::wrappers::*;
 
-    pub use crate::device::{DeviceIf, IsDriver};
+    pub use crate::device::DeviceIf;
+
     #[cfg(feature = "intrng")]
     pub use crate::intr::PicIf;
+
+    #[doc(inline)]
+    pub use crate::misc::*;
 
     // These are implemented widely throughout the KPI crate
     pub use crate::{AsCType, AsRustType};
@@ -275,9 +309,9 @@ macro_rules! driver {
         #[derive(Debug)]
         pub struct $driver_ty(core::cell::UnsafeCell<$crate::bindings::kobj_class>);
         unsafe impl Sync for $driver_ty {}
-        impl IsDriver for $driver_ty {
-            fn get_driver() -> *const $crate::bindings::kobj_class {
-                $driver_sym.0.get()
+        impl $driver_ty {
+            pub fn get_drop_fn() -> unsafe extern "C" fn(*mut core::ffi::c_void) {
+                $driver_sym::drop_softc
             }
         }
 
@@ -288,7 +322,7 @@ macro_rules! driver {
                 name: $driver_name.as_ptr(),
                 methods: core::ptr::addr_of!($methods).cast(),
                 // TODO: ensure alignment of softc memory supports Softc
-                size: core::mem::size_of::<Option<<$driver_ty as DeviceIf>::Softc>>(),
+                size: core::mem::size_of::<$crate::device::Softc<<$driver_ty as DeviceIf>::Softc>>(),
                 baseclasses: core::ptr::null_mut(),
                 refs: 0,
                 ops: core::ptr::null_mut(),
@@ -315,6 +349,13 @@ macro_rules! driver {
         // $driver_sym is used to ensure it is unique (which holds since it corresponds to an
         // unmangled symbol name).
         mod $driver_sym {
+            use core::ffi::c_void;
+            use core::ptr::drop_in_place;
+
+            pub unsafe extern "C" fn drop_softc(sc_void_ptr: *mut c_void) {
+                let sc_ptr = sc_void_ptr.cast::<<$driver_ty as DeviceIf>::Softc>();
+                drop_in_place(sc_ptr)
+            }
             use super::$driver_ty;
             use $crate::bindings::*;
             use $crate::{AsRustType, AsCType};

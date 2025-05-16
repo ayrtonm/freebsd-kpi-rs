@@ -27,7 +27,7 @@
  */
 
 use crate::bindings::{bus_size_t, resource, resource_spec};
-use crate::cell::{OwnedVar, OwnedRef};
+use crate::cell::OwnedVar;
 use crate::device::Device;
 use crate::prelude::*;
 use crate::ErrCode;
@@ -258,14 +258,14 @@ pub mod wrappers {
         RF_SHAREABLE
     }
 
-    pub fn bus_setup_intr<T>(
+    pub fn bus_setup_intr<T, P: OwnedVar<T>, Q: OwnedVar<*mut c_void>>(
         dev: Device,
         irq: &Resource,
         flags: u32,
         filter: FilterFn<T>,
         handler: Handler<T>,
-        arg: &OwnedRef<T>,
-        intrhand: &OwnedRef<*mut c_void>,
+        arg: P,
+        intrhand: Q,
     ) -> Result<()> {
         let filter = unsafe { transmute(filter) };
         let handler = unsafe { transmute(handler) };

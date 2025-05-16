@@ -26,10 +26,11 @@
  * SUCH DAMAGE.
  */
 
-use crate::bindings::{device_t, driver_t, kobj_method_t, kobjop_desc};
+use crate::bindings::{device_t, driver_t, kobj_method_t, kobjop_desc, u_int};
 use crate::prelude::*;
-use core::ffi::{c_int, CStr};
-use core::ptr::{null_mut};
+use core::ffi::{c_int, c_void, CStr};
+use core::mem::MaybeUninit;
+use core::ptr::null_mut;
 
 enum_c_macros! {
     #[repr(i32)]
@@ -85,47 +86,70 @@ impl DeviceMethod {
 
 unsafe impl Sync for DeviceMethod {}
 
+#[doc(hidden)]
+#[repr(C)]
+pub struct Softc<T> {
+    pub sc: T,
+    pub initialized: bool,
+    pub count: u_int,
+}
+
 #[macro_export]
 macro_rules! device_init_softc {
-    ($dev:expr, $sc:expr) => {{
-        use $crate::bindings;
-        use $crate::device::{DeviceIf, DeviceState};
+    ($dev:expr, $sc:expr) => {
+        {
+            use $crate::bindings;
+            use $crate::device;
+            use $crate::device::{DeviceIf, DeviceState, Softc};
+            use core::ptr::write;
 
-        let state = $dev.get_state();
-        assert!(state == DeviceState::Attaching);
+            let state = $dev.get_state();
+            let dev_ptr = $dev.as_ptr();
+            assert!(state == DeviceState::Attaching);
 
-        let dev_ptr = $dev.as_ptr();
-        let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
-        let sc_ptr = sc_void_ptr.cast::<Option<<Self as DeviceIf>::Softc>>();
-        let sc_mut_ref = unsafe { sc_ptr.as_mut().unwrap() };
-        assert!(sc_mut_ref.is_none());
-        *sc_mut_ref = Some($sc);
-        unsafe { $crate::cell::OwnedMutRef::new(sc_mut_ref.as_mut().unwrap(), dev_ptr) }
-    }};
+            let sc_ptr = device::device_get_softc::<<Self as DeviceIf>::Softc>($dev);
+            let sc_init_ptr = unsafe { &raw const (*sc_ptr).initialized };
+            let sc_init_ref = unsafe { sc_init_ptr.as_ref().unwrap() };
+            assert!(!*sc_init_ref);
+            let sc_sc_ptr = unsafe { &raw mut (*sc_ptr).sc };
+            unsafe { write(sc_sc_ptr, $sc) };
+            // Claim the softc in case it gets opted into refcounting at some point
+            unsafe { bindings::device_claim_softc(dev_ptr) };
+            let ref_ptr = unsafe { &raw mut (*sc_ptr).count };
+            let sc_mut_ref = unsafe { sc_sc_ptr.as_mut().unwrap() };
+            unsafe { $crate::cell::OwnedMutRef::new(sc_mut_ref, dev_ptr, ref_ptr, Self::get_drop_fn()) }
+        }
+    };
 }
 
 #[macro_export]
 macro_rules! device_get_softc {
-    ($dev:expr) => {{
-        use $crate::bindings;
-        use $crate::device::{DeviceIf, DeviceState};
+    ($dev:expr) => {
+        {
+            use $crate::bindings;
+            use $crate::device;
+            use $crate::bindings::u_int;
+            use $crate::device::{DeviceIf, DeviceState, Softc};
 
-        let state = $dev.get_state();
-        let dev_ptr = $dev.as_ptr();
-        let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
-        let sc_ptr = sc_void_ptr.cast::<Option<<Self as DeviceIf>::Softc>>();
-        // Omit a check since the pointer returned by C's device_get_softc should never be NULL
-        let sc_ref: &Option<<Self as DeviceIf>::Softc> = unsafe { sc_ptr.as_ref().unwrap() };
+            let state = $dev.get_state();
+            let dev_ptr = $dev.as_ptr();
 
-        let init_sc_ref = match state {
-            DeviceState::Unknown => unreachable!("cannot call device_get_softc! in device_probe"),
-            DeviceState::Attaching => sc_ref
-                .as_ref()
-                .expect("must initialize softc using device_init_softc!"),
-            DeviceState::Attached => sc_ref.as_ref().unwrap(),
-        };
-        unsafe { $crate::cell::OwnedRef::new(init_sc_ref, dev_ptr) }
-    }};
+            let sc_ptr = device::device_get_softc::<<Self as DeviceIf>::Softc>($dev);
+            let sc_sc_ptr = unsafe { &raw const (*sc_ptr).sc };
+            match state {
+                DeviceState::Unknown => unreachable!("cannot call device_get_softc! in device_probe"),
+                DeviceState::Attaching => {
+                    let init_ptr = unsafe { &raw const (*sc_ptr).initialized };
+                    let init_ref = unsafe { init_ptr.as_ref().unwrap() };
+                    assert!(*init_ref);
+                },
+                DeviceState::Attached => {},
+            };
+            let init_sc_ref = unsafe { sc_sc_ptr.as_ref().unwrap() };
+            let ref_ptr = unsafe { &raw mut (*sc_ptr).count };
+            unsafe { $crate::cell::OwnedRef::new(init_sc_ref, dev_ptr, ref_ptr, Self::get_drop_fn()) }
+        }
+    };
 }
 
 #[macro_export]
@@ -156,18 +180,19 @@ macro_rules! device_attach {
             device_attach(dev: device_t) -> int;
             with init glue {
                 {
-                    use $crate::device::{Device, DeviceIf, DeviceState};
                     use $crate::bindings;
+                    use $crate::device;
+                    use $crate::device::{Device, DeviceIf, DeviceState, Softc};
+                    use core::mem::MaybeUninit;
                     use core::ptr::write;
 
-                    // Now that we've started attaching the device set the softc to None
-
-                    // Only needed to help type inference in the next line
-                    let dev_ref: &mut Device = &mut dev;
-                    let dev_ptr = dev_ref.as_ptr();
-                    let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
-                    let sc_ptr = sc_void_ptr.cast::<Option<<$driver_ty as DeviceIf>::Softc>>();
-                    unsafe { write(sc_ptr, None) };
+                    let sc_ptr = device::device_get_softc::<<$driver_ty as DeviceIf>::Softc>(dev);
+                    let sc_init_ptr = unsafe { &raw mut (*sc_ptr).initialized };
+                    unsafe { write(sc_init_ptr, false) };
+                    let sc_count_ptr = unsafe { &raw const (*sc_ptr).count };
+                    unsafe {
+                        bindings::rust_bindings_refcount_init(sc_count_ptr.cast_mut(), 1)
+                    };
 
                     // Set the state of the pointer that's passed to the device_attach impl
                     dev.set_state(DeviceState::Attaching);
@@ -176,12 +201,13 @@ macro_rules! device_attach {
             with drop glue {
                 {
                     use $crate::bindings;
+                    use $crate::device;
                     use $crate::device::DeviceIf;
 
-                    let dev_ptr = dev.as_ptr();
-                    let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
-                    let sc_ptr = sc_void_ptr.cast::<Option<<$driver_ty as DeviceIf>::Softc>>();
-                    assert!(unsafe { sc_ptr.as_ref().unwrap().is_some() });
+                    let sc_ptr = device::device_get_softc::<<$driver_ty as DeviceIf>::Softc>(dev);
+                    let sc_init_ptr = unsafe { &raw const (*sc_ptr).initialized };
+                    let sc_init_ref = unsafe { sc_init_ptr.as_ref().unwrap() };
+                    assert!(*sc_init_ref);
                 }
             }
         }
@@ -196,14 +222,23 @@ macro_rules! device_detach {
             device_detach(dev: device_t) -> int;
             with drop glue {
                 {
+                    use core::ffi::c_void;
                     use $crate::bindings;
+                    use $crate::device;
                     use $crate::device::DeviceIf;
                     use core::ptr::drop_in_place;
 
-                    let dev_ptr = dev.as_ptr();
-                    let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
-                    let sc_ptr = sc_void_ptr.cast::<Option<<$driver_ty as DeviceIf>::Softc>>();
-                    unsafe { drop_in_place(sc_ptr) };
+                    let sc_ptr = device::device_get_softc::<<$driver_ty as DeviceIf>::Softc>(dev);
+                    let sc_count_ptr = unsafe { &raw const (*sc_ptr).count };
+                    let last = unsafe {
+                        bindings::rust_bindings_refcount_release(sc_count_ptr.cast_mut())
+                    };
+                    if last {
+                        // Call the softc's destructors
+                        unsafe { drop_in_place(sc_ptr) };
+                        // Free the softc
+                        unsafe { bindings::device_free_softc(sc_ptr.cast::<c_void>()) };
+                    };
                 };
             }
         }
@@ -216,10 +251,6 @@ define_interface! {
     device_resume(dev: device_t) -> int;
     device_quiesce(dev: device_t) -> int;
     device_register(dev: device_t) -> int;
-}
-
-pub trait IsDriver: DeviceIf {
-    fn get_driver() -> *const bindings::kobj_class;
 }
 
 pub trait DeviceIf<State = ()> {
@@ -249,6 +280,13 @@ pub trait DeviceIf<State = ()> {
     fn device_register(_dev: Device) -> Result<&'static State> {
         unimplemented!()
     }
+}
+
+#[doc(hidden)]
+pub fn device_get_softc<T>(dev: Device) -> *mut Softc<T> {
+    let dev_ptr = dev.as_ptr();
+    let sc_void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
+    sc_void_ptr.cast::<Softc<T>>()
 }
 
 pub mod wrappers {

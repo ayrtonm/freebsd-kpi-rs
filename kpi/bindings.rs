@@ -367,6 +367,8 @@ pub const __ARM_FP16_ARGS: i32 = 1;
 pub const __ARM_SIZEOF_WCHAR_T: i32 = 4;
 pub const __ARM_SIZEOF_MINIMAL_ENUM: i32 = 4;
 pub const __ARM_FEATURE_UNALIGNED: i32 = 1;
+pub const __ARM_FEATURE_PAC_DEFAULT: i32 = 1;
+pub const __ARM_FEATURE_BTI_DEFAULT: i32 = 1;
 pub const __GCC_HAVE_SYNC_COMPARE_AND_SWAP_1: i32 = 1;
 pub const __GCC_HAVE_SYNC_COMPARE_AND_SWAP_2: i32 = 1;
 pub const __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4: i32 = 1;
@@ -2530,6 +2532,22 @@ pub const TS_EXIT: i32 = 1;
 pub const TS_THREAD: i32 = 2;
 pub const TS_EVENT: i32 = 3;
 pub const DEV_PROP_NAME_IOMMU: &[u8; 11] = b"iommu-unit\0";
+pub const CPU_LEVEL_ROOT: i32 = 1;
+pub const CPU_LEVEL_CPUSET: i32 = 2;
+pub const CPU_LEVEL_WHICH: i32 = 3;
+pub const CPU_WHICH_TID: i32 = 1;
+pub const CPU_WHICH_PID: i32 = 2;
+pub const CPU_WHICH_CPUSET: i32 = 3;
+pub const CPU_WHICH_IRQ: i32 = 4;
+pub const CPU_WHICH_JAIL: i32 = 5;
+pub const CPU_WHICH_DOMAIN: i32 = 6;
+pub const CPU_WHICH_INTRHANDLER: i32 = 7;
+pub const CPU_WHICH_ITHREAD: i32 = 8;
+pub const CPU_WHICH_TIDPID: i32 = 9;
+pub const CPUSET_INVALID: i32 = -1;
+pub const CPUSET_DEFAULT: i32 = 0;
+pub const CPU_SET_ROOT: i32 = 1;
+pub const CPU_SET_RDONLY: i32 = 2;
 pub const M_NOWAIT: i32 = 1;
 pub const M_WAITOK: i32 = 2;
 pub const M_NORECLAIM: i32 = 128;
@@ -3126,22 +3144,6 @@ pub const RF_UNMAPPED: i32 = 256;
 pub const RF_ALIGNMENT_SHIFT: i32 = 10;
 pub const RF_ALIGNMENT_MASK: i32 = 64512;
 pub const RM_TEXTLEN: i32 = 32;
-pub const CPU_LEVEL_ROOT: i32 = 1;
-pub const CPU_LEVEL_CPUSET: i32 = 2;
-pub const CPU_LEVEL_WHICH: i32 = 3;
-pub const CPU_WHICH_TID: i32 = 1;
-pub const CPU_WHICH_PID: i32 = 2;
-pub const CPU_WHICH_CPUSET: i32 = 3;
-pub const CPU_WHICH_IRQ: i32 = 4;
-pub const CPU_WHICH_JAIL: i32 = 5;
-pub const CPU_WHICH_DOMAIN: i32 = 6;
-pub const CPU_WHICH_INTRHANDLER: i32 = 7;
-pub const CPU_WHICH_ITHREAD: i32 = 8;
-pub const CPU_WHICH_TIDPID: i32 = 9;
-pub const CPUSET_INVALID: i32 = -1;
-pub const CPUSET_DEFAULT: i32 = 0;
-pub const CPU_SET_ROOT: i32 = 1;
-pub const CPU_SET_RDONLY: i32 = 2;
 pub const CG_SHARE_NONE: i32 = 0;
 pub const CG_SHARE_L1: i32 = 1;
 pub const CG_SHARE_L2: i32 = 2;
@@ -3391,9 +3393,553 @@ pub const FDT_INTR_LEVEL_LOW: i32 = 8;
 pub const FDT_INTR_LOW_MASK: i32 = 10;
 pub const FDT_INTR_EDGE_MASK: i32 = 3;
 pub const FDT_INTR_MASK: i32 = 15;
+pub const SB_FLAG_NO_RANGES: i32 = 1;
 pub const ORIP_NOINT: i32 = -1;
 pub const ORIR_NOTFOUND: i64 = 4294967295;
 pub const FDTCOMPAT_PNP_DESCR: &[u8; 14] = b"Z:compat;P:#;\0";
+pub const DISK_ZONE_MODE_NONE: i32 = 0;
+pub const DISK_ZONE_MODE_HOST_AWARE: i32 = 1;
+pub const DISK_ZONE_MODE_DRIVE_MANAGED: i32 = 2;
+pub const DISK_ZONE_MODE_HOST_MANAGED: i32 = 4;
+pub const DISK_ZONE_DISK_URSWRZ: i32 = 1;
+pub const DISK_ZONE_OPT_SEQ_SET: i32 = 2;
+pub const DISK_ZONE_OPT_NONSEQ_SET: i32 = 4;
+pub const DISK_ZONE_MAX_SEQ_SET: i32 = 8;
+pub const DISK_ZONE_RZ_SUP: i32 = 16;
+pub const DISK_ZONE_OPEN_SUP: i32 = 32;
+pub const DISK_ZONE_CLOSE_SUP: i32 = 64;
+pub const DISK_ZONE_FINISH_SUP: i32 = 128;
+pub const DISK_ZONE_RWP_SUP: i32 = 256;
+pub const DISK_ZONE_CMD_SUP_MASK: i32 = 496;
+pub const DISK_ZONE_RWP_FLAG_NONE: i32 = 0;
+pub const DISK_ZONE_RWP_FLAG_ALL: i32 = 1;
+pub const DISK_ZONE_SAME_ALL_DIFFERENT: i32 = 0;
+pub const DISK_ZONE_SAME_ALL_SAME: i32 = 1;
+pub const DISK_ZONE_SAME_LAST_DIFFERENT: i32 = 2;
+pub const DISK_ZONE_SAME_TYPES_DIFFERENT: i32 = 3;
+pub const DISK_ZONE_TYPE_CONVENTIONAL: i32 = 1;
+pub const DISK_ZONE_TYPE_SEQ_REQUIRED: i32 = 2;
+pub const DISK_ZONE_TYPE_SEQ_PREFERRED: i32 = 3;
+pub const DISK_ZONE_COND_NOT_WP: i32 = 0;
+pub const DISK_ZONE_COND_EMPTY: i32 = 1;
+pub const DISK_ZONE_COND_IMPLICIT_OPEN: i32 = 2;
+pub const DISK_ZONE_COND_EXPLICIT_OPEN: i32 = 3;
+pub const DISK_ZONE_COND_CLOSED: i32 = 4;
+pub const DISK_ZONE_COND_READONLY: i32 = 13;
+pub const DISK_ZONE_COND_FULL: i32 = 14;
+pub const DISK_ZONE_COND_OFFLINE: i32 = 15;
+pub const DISK_ZONE_FLAG_RESET: i32 = 1;
+pub const DISK_ZONE_FLAG_NON_SEQ: i32 = 2;
+pub const DISK_ZONE_REP_ALL: i32 = 0;
+pub const DISK_ZONE_REP_EMPTY: i32 = 1;
+pub const DISK_ZONE_REP_IMP_OPEN: i32 = 2;
+pub const DISK_ZONE_REP_EXP_OPEN: i32 = 3;
+pub const DISK_ZONE_REP_CLOSED: i32 = 4;
+pub const DISK_ZONE_REP_FULL: i32 = 5;
+pub const DISK_ZONE_REP_READONLY: i32 = 6;
+pub const DISK_ZONE_REP_OFFLINE: i32 = 7;
+pub const DISK_ZONE_REP_RWP: i32 = 16;
+pub const DISK_ZONE_REP_NON_SEQ: i32 = 17;
+pub const DISK_ZONE_REP_NON_WP: i32 = 63;
+pub const DISK_ZONE_OPEN: i32 = 0;
+pub const DISK_ZONE_CLOSE: i32 = 1;
+pub const DISK_ZONE_FINISH: i32 = 2;
+pub const DISK_ZONE_REPORT_ZONES: i32 = 3;
+pub const DISK_ZONE_RWP: i32 = 4;
+pub const DISK_ZONE_GET_PARAMS: i32 = 5;
+pub const BIO_READ: i32 = 1;
+pub const BIO_WRITE: i32 = 2;
+pub const BIO_DELETE: i32 = 3;
+pub const BIO_GETATTR: i32 = 4;
+pub const BIO_FLUSH: i32 = 5;
+pub const BIO_CMD0: i32 = 6;
+pub const BIO_CMD1: i32 = 7;
+pub const BIO_CMD2: i32 = 8;
+pub const BIO_ZONE: i32 = 9;
+pub const BIO_SPEEDUP: i32 = 10;
+pub const BIO_ERROR: i32 = 1;
+pub const BIO_DONE: i32 = 2;
+pub const BIO_ONQUEUE: i32 = 4;
+pub const BIO_ORDERED: i32 = 8;
+pub const BIO_UNMAPPED: i32 = 16;
+pub const BIO_TRANSIENT_MAPPING: i32 = 32;
+pub const BIO_VLIST: i32 = 64;
+pub const BIO_SWAP: i32 = 512;
+pub const BIO_SPEEDUP_WRITE: i32 = 16384;
+pub const BIO_SPEEDUP_TRIM: i32 = 32768;
+pub const PRINT_BIO_FLAGS : & [u8 ; 94] = b"\x10\x10speedup_trim\x0Fspeedup_write\nswap\x07vlist\x06transient_mapping\x05unmapped\x04ordered\x03onqueue\x02done\x01error\0" ;
+pub const MEMDESC_VADDR: i32 = 1;
+pub const MEMDESC_PADDR: i32 = 2;
+pub const MEMDESC_VLIST: i32 = 3;
+pub const MEMDESC_PLIST: i32 = 4;
+pub const MEMDESC_UIO: i32 = 6;
+pub const MEMDESC_MBUF: i32 = 7;
+pub const MEMDESC_VMPAGES: i32 = 8;
+pub const UMA_SMALLEST_UNIT: i32 = 8;
+pub const UMA_ZONE_UNMANAGED: i32 = 1;
+pub const UMA_ZONE_ZINIT: i32 = 2;
+pub const UMA_ZONE_CONTIG: i32 = 4;
+pub const UMA_ZONE_NOTOUCH: i32 = 8;
+pub const UMA_ZONE_MALLOC: i32 = 16;
+pub const UMA_ZONE_NOFREE: i32 = 32;
+pub const UMA_ZONE_MTXCLASS: i32 = 64;
+pub const UMA_ZONE_VM: i32 = 128;
+pub const UMA_ZONE_NOTPAGE: i32 = 256;
+pub const UMA_ZONE_SECONDARY: i32 = 512;
+pub const UMA_ZONE_NOBUCKET: i32 = 1024;
+pub const UMA_ZONE_MAXBUCKET: i32 = 2048;
+pub const UMA_ZONE_NOTRIM: i32 = 4096;
+pub const UMA_ZONE_CACHESPREAD: i32 = 8192;
+pub const UMA_ZONE_NODUMP: i32 = 16384;
+pub const UMA_ZONE_PCPU: i32 = 32768;
+pub const UMA_ZONE_FIRSTTOUCH: i32 = 65536;
+pub const UMA_ZONE_ROUNDROBIN: i32 = 131072;
+pub const UMA_ZONE_SMR: i32 = 262144;
+pub const UMA_ZONE_NOKASAN: i32 = 524288;
+pub const UMA_ZONE_INHERIT: i32 = 754104;
+pub const UMA_ANYDOMAIN: i32 = -1;
+pub const UMA_RECLAIM_DRAIN: i32 = 1;
+pub const UMA_RECLAIM_DRAIN_CPU: i32 = 2;
+pub const UMA_RECLAIM_TRIM: i32 = 3;
+pub const UMA_SLAB_BOOT: i32 = 1;
+pub const UMA_SLAB_KERNEL: i32 = 4;
+pub const UMA_SLAB_PRIV: i32 = 8;
+pub const UMA_STREAM_VERSION: i32 = 1;
+pub const UTH_MAX_NAME: i32 = 32;
+pub const UTH_ZONE_SECONDARY: i32 = 1;
+pub const NVME_HMB_UNITS: i32 = 4096;
+pub const NVME_MPS_SHIFT: i32 = 12;
+pub const NVME_MIN_ADMIN_ENTRIES: i32 = 2;
+pub const NVME_MAX_ADMIN_ENTRIES: i32 = 4096;
+pub const NVME_MIN_IO_ENTRIES: i32 = 2;
+pub const NVME_MAX_IO_ENTRIES: i32 = 65536;
+pub const NVME_CAP_LO_REG_MQES_SHIFT: i32 = 0;
+pub const NVME_CAP_LO_REG_MQES_MASK: i32 = 65535;
+pub const NVME_CAP_LO_REG_CQR_SHIFT: i32 = 16;
+pub const NVME_CAP_LO_REG_CQR_MASK: i32 = 1;
+pub const NVME_CAP_LO_REG_AMS_SHIFT: i32 = 17;
+pub const NVME_CAP_LO_REG_AMS_MASK: i32 = 3;
+pub const NVME_CAP_LO_REG_TO_SHIFT: i32 = 24;
+pub const NVME_CAP_LO_REG_TO_MASK: i32 = 255;
+pub const NVME_CAP_HI_REG_DSTRD_SHIFT: i32 = 0;
+pub const NVME_CAP_HI_REG_DSTRD_MASK: i32 = 15;
+pub const NVME_CAP_HI_REG_NSSRS_SHIFT: i32 = 4;
+pub const NVME_CAP_HI_REG_NSSRS_MASK: i32 = 1;
+pub const NVME_CAP_HI_REG_CSS_SHIFT: i32 = 5;
+pub const NVME_CAP_HI_REG_CSS_MASK: i32 = 255;
+pub const NVME_CAP_HI_REG_CSS_NVM_SHIFT: i32 = 5;
+pub const NVME_CAP_HI_REG_CSS_NVM_MASK: i32 = 1;
+pub const NVME_CAP_HI_REG_BPS_SHIFT: i32 = 13;
+pub const NVME_CAP_HI_REG_BPS_MASK: i32 = 1;
+pub const NVME_CAP_HI_REG_CPS_SHIFT: i32 = 14;
+pub const NVME_CAP_HI_REG_CPS_MASK: i32 = 3;
+pub const NVME_CAP_HI_REG_MPSMIN_SHIFT: i32 = 16;
+pub const NVME_CAP_HI_REG_MPSMIN_MASK: i32 = 15;
+pub const NVME_CAP_HI_REG_MPSMAX_SHIFT: i32 = 20;
+pub const NVME_CAP_HI_REG_MPSMAX_MASK: i32 = 15;
+pub const NVME_CAP_HI_REG_PMRS_SHIFT: i32 = 24;
+pub const NVME_CAP_HI_REG_PMRS_MASK: i32 = 1;
+pub const NVME_CAP_HI_REG_CMBS_SHIFT: i32 = 25;
+pub const NVME_CAP_HI_REG_CMBS_MASK: i32 = 1;
+pub const NVME_CAP_HI_REG_NSSS_SHIFT: i32 = 26;
+pub const NVME_CAP_HI_REG_NSSS_MASK: i32 = 1;
+pub const NVME_CAP_HI_REG_CRWMS_SHIFT: i32 = 27;
+pub const NVME_CAP_HI_REG_CRWMS_MASK: i32 = 1;
+pub const NVME_CAP_HI_REG_CRIMS_SHIFT: i32 = 28;
+pub const NVME_CAP_HI_REG_CRIMS_MASK: i32 = 1;
+pub const NVME_CC_REG_EN_SHIFT: i32 = 0;
+pub const NVME_CC_REG_EN_MASK: i32 = 1;
+pub const NVME_CC_REG_CSS_SHIFT: i32 = 4;
+pub const NVME_CC_REG_CSS_MASK: i32 = 7;
+pub const NVME_CC_REG_MPS_SHIFT: i32 = 7;
+pub const NVME_CC_REG_MPS_MASK: i32 = 15;
+pub const NVME_CC_REG_AMS_SHIFT: i32 = 11;
+pub const NVME_CC_REG_AMS_MASK: i32 = 7;
+pub const NVME_CC_REG_SHN_SHIFT: i32 = 14;
+pub const NVME_CC_REG_SHN_MASK: i32 = 3;
+pub const NVME_CC_REG_IOSQES_SHIFT: i32 = 16;
+pub const NVME_CC_REG_IOSQES_MASK: i32 = 15;
+pub const NVME_CC_REG_IOCQES_SHIFT: i32 = 20;
+pub const NVME_CC_REG_IOCQES_MASK: i32 = 15;
+pub const NVME_CC_REG_CRIME_SHIFT: i32 = 24;
+pub const NVME_CC_REG_CRIME_MASK: i32 = 1;
+pub const NVME_CSTS_REG_RDY_SHIFT: i32 = 0;
+pub const NVME_CSTS_REG_RDY_MASK: i32 = 1;
+pub const NVME_CSTS_REG_CFS_SHIFT: i32 = 1;
+pub const NVME_CSTS_REG_CFS_MASK: i32 = 1;
+pub const NVME_CSTS_REG_SHST_SHIFT: i32 = 2;
+pub const NVME_CSTS_REG_SHST_MASK: i32 = 3;
+pub const NVME_CSTS_REG_NVSRO_SHIFT: i32 = 4;
+pub const NVME_CSTS_REG_NVSRO_MASK: i32 = 1;
+pub const NVME_CSTS_REG_PP_SHIFT: i32 = 5;
+pub const NVME_CSTS_REG_PP_MASK: i32 = 1;
+pub const NVME_CSTS_REG_ST_SHIFT: i32 = 6;
+pub const NVME_CSTS_REG_ST_MASK: i32 = 1;
+pub const NVME_AQA_REG_ASQS_SHIFT: i32 = 0;
+pub const NVME_AQA_REG_ASQS_MASK: i32 = 4095;
+pub const NVME_AQA_REG_ACQS_SHIFT: i32 = 16;
+pub const NVME_AQA_REG_ACQS_MASK: i32 = 4095;
+pub const NVME_PMRCAP_REG_RDS_SHIFT: i32 = 3;
+pub const NVME_PMRCAP_REG_RDS_MASK: i32 = 1;
+pub const NVME_PMRCAP_REG_WDS_SHIFT: i32 = 4;
+pub const NVME_PMRCAP_REG_WDS_MASK: i32 = 1;
+pub const NVME_PMRCAP_REG_BIR_SHIFT: i32 = 5;
+pub const NVME_PMRCAP_REG_BIR_MASK: i32 = 7;
+pub const NVME_PMRCAP_REG_PMRTU_SHIFT: i32 = 8;
+pub const NVME_PMRCAP_REG_PMRTU_MASK: i32 = 3;
+pub const NVME_PMRCAP_REG_PMRWBM_SHIFT: i32 = 10;
+pub const NVME_PMRCAP_REG_PMRWBM_MASK: i32 = 15;
+pub const NVME_PMRCAP_REG_PMRTO_SHIFT: i32 = 16;
+pub const NVME_PMRCAP_REG_PMRTO_MASK: i32 = 255;
+pub const NVME_PMRCAP_REG_CMSS_SHIFT: i32 = 24;
+pub const NVME_PMRCAP_REG_CMSS_MASK: i32 = 1;
+pub const NVME_CMD_FUSE_SHIFT: i32 = 0;
+pub const NVME_CMD_FUSE_MASK: i32 = 3;
+pub const NVME_CMD_PSDT_SHIFT: i32 = 6;
+pub const NVME_CMD_PSDT_MASK: i32 = 3;
+pub const NVME_STATUS_P_SHIFT: i32 = 0;
+pub const NVME_STATUS_P_MASK: i32 = 1;
+pub const NVME_STATUS_SC_SHIFT: i32 = 1;
+pub const NVME_STATUS_SC_MASK: i32 = 255;
+pub const NVME_STATUS_SCT_SHIFT: i32 = 9;
+pub const NVME_STATUS_SCT_MASK: i32 = 7;
+pub const NVME_STATUS_CRD_SHIFT: i32 = 12;
+pub const NVME_STATUS_CRD_MASK: i32 = 3;
+pub const NVME_STATUS_M_SHIFT: i32 = 14;
+pub const NVME_STATUS_M_MASK: i32 = 1;
+pub const NVME_STATUS_DNR_SHIFT: i32 = 15;
+pub const NVME_STATUS_DNR_MASK: i32 = 1;
+pub const NVME_PWR_ST_MPS_SHIFT: i32 = 0;
+pub const NVME_PWR_ST_MPS_MASK: i32 = 1;
+pub const NVME_PWR_ST_NOPS_SHIFT: i32 = 1;
+pub const NVME_PWR_ST_NOPS_MASK: i32 = 1;
+pub const NVME_PWR_ST_RRT_SHIFT: i32 = 0;
+pub const NVME_PWR_ST_RRT_MASK: i32 = 31;
+pub const NVME_PWR_ST_RRL_SHIFT: i32 = 0;
+pub const NVME_PWR_ST_RRL_MASK: i32 = 31;
+pub const NVME_PWR_ST_RWT_SHIFT: i32 = 0;
+pub const NVME_PWR_ST_RWT_MASK: i32 = 31;
+pub const NVME_PWR_ST_RWL_SHIFT: i32 = 0;
+pub const NVME_PWR_ST_RWL_MASK: i32 = 31;
+pub const NVME_PWR_ST_IPS_SHIFT: i32 = 6;
+pub const NVME_PWR_ST_IPS_MASK: i32 = 3;
+pub const NVME_PWR_ST_APW_SHIFT: i32 = 0;
+pub const NVME_PWR_ST_APW_MASK: i32 = 7;
+pub const NVME_PWR_ST_APS_SHIFT: i32 = 6;
+pub const NVME_PWR_ST_APS_MASK: i32 = 3;
+pub const NVME_CTRLR_DATA_MIC_MPORTS_SHIFT: i32 = 0;
+pub const NVME_CTRLR_DATA_MIC_MPORTS_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_MIC_MCTRLRS_SHIFT: i32 = 1;
+pub const NVME_CTRLR_DATA_MIC_MCTRLRS_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_MIC_SRIOVVF_SHIFT: i32 = 2;
+pub const NVME_CTRLR_DATA_MIC_SRIOVVF_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_MIC_ANAR_SHIFT: i32 = 3;
+pub const NVME_CTRLR_DATA_MIC_ANAR_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_OAES_NS_ATTR_SHIFT: i32 = 8;
+pub const NVME_CTRLR_DATA_OAES_NS_ATTR_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_OAES_FW_ACTIVATE_SHIFT: i32 = 9;
+pub const NVME_CTRLR_DATA_OAES_FW_ACTIVATE_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_OAES_ASYM_NS_CHANGE_SHIFT: i32 = 11;
+pub const NVME_CTRLR_DATA_OAES_ASYM_NS_CHANGE_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_OAES_PREDICT_LATENCY_SHIFT: i32 = 12;
+pub const NVME_CTRLR_DATA_OAES_PREDICT_LATENCY_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_OAES_LBA_STATUS_SHIFT: i32 = 13;
+pub const NVME_CTRLR_DATA_OAES_LBA_STATUS_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_OAES_ENDURANCE_GROUP_SHIFT: i32 = 14;
+pub const NVME_CTRLR_DATA_OAES_ENDURANCE_GROUP_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_OAES_NORMAL_SHUTDOWN_SHIFT: i32 = 15;
+pub const NVME_CTRLR_DATA_OAES_NORMAL_SHUTDOWN_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_OAES_ZONE_DESC_CHANGE_SHIFT: i32 = 27;
+pub const NVME_CTRLR_DATA_OAES_ZONE_DESC_CHANGE_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_OAES_LOG_PAGE_CHANGE_SHIFT: i32 = 31;
+pub const NVME_CTRLR_DATA_OAES_LOG_PAGE_CHANGE_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_CTRATT_128BIT_HOSTID_SHIFT: i32 = 0;
+pub const NVME_CTRLR_DATA_CTRATT_128BIT_HOSTID_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_CTRATT_NONOP_POWER_STATE_SHIFT: i32 = 1;
+pub const NVME_CTRLR_DATA_CTRATT_NONOP_POWER_STATE_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_CTRATT_NVM_SETS_SHIFT: i32 = 2;
+pub const NVME_CTRLR_DATA_CTRATT_NVM_SETS_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_CTRATT_READ_RECOVERY_LVLS_SHIFT: i32 = 3;
+pub const NVME_CTRLR_DATA_CTRATT_READ_RECOVERY_LVLS_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_CTRATT_ENDURANCE_GROUPS_SHIFT: i32 = 4;
+pub const NVME_CTRLR_DATA_CTRATT_ENDURANCE_GROUPS_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_CTRATT_PREDICTABLE_LATENCY_SHIFT: i32 = 5;
+pub const NVME_CTRLR_DATA_CTRATT_PREDICTABLE_LATENCY_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_CTRATT_TBKAS_SHIFT: i32 = 6;
+pub const NVME_CTRLR_DATA_CTRATT_TBKAS_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_CTRATT_NAMESPACE_GRANULARITY_SHIFT: i32 = 7;
+pub const NVME_CTRLR_DATA_CTRATT_NAMESPACE_GRANULARITY_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_CTRATT_SQ_ASSOCIATIONS_SHIFT: i32 = 8;
+pub const NVME_CTRLR_DATA_CTRATT_SQ_ASSOCIATIONS_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_CTRATT_UUID_LIST_SHIFT: i32 = 9;
+pub const NVME_CTRLR_DATA_CTRATT_UUID_LIST_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_OACS_SECURITY_SHIFT: i32 = 0;
+pub const NVME_CTRLR_DATA_OACS_SECURITY_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_OACS_FORMAT_SHIFT: i32 = 1;
+pub const NVME_CTRLR_DATA_OACS_FORMAT_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_OACS_FIRMWARE_SHIFT: i32 = 2;
+pub const NVME_CTRLR_DATA_OACS_FIRMWARE_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_OACS_NSMGMT_SHIFT: i32 = 3;
+pub const NVME_CTRLR_DATA_OACS_NSMGMT_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_OACS_SELFTEST_SHIFT: i32 = 4;
+pub const NVME_CTRLR_DATA_OACS_SELFTEST_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_OACS_DIRECTIVES_SHIFT: i32 = 5;
+pub const NVME_CTRLR_DATA_OACS_DIRECTIVES_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_OACS_NVMEMI_SHIFT: i32 = 6;
+pub const NVME_CTRLR_DATA_OACS_NVMEMI_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_OACS_VM_SHIFT: i32 = 7;
+pub const NVME_CTRLR_DATA_OACS_VM_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_OACS_DBBUFFER_SHIFT: i32 = 8;
+pub const NVME_CTRLR_DATA_OACS_DBBUFFER_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_OACS_GETLBA_SHIFT: i32 = 9;
+pub const NVME_CTRLR_DATA_OACS_GETLBA_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_FRMW_SLOT1_RO_SHIFT: i32 = 0;
+pub const NVME_CTRLR_DATA_FRMW_SLOT1_RO_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_FRMW_NUM_SLOTS_SHIFT: i32 = 1;
+pub const NVME_CTRLR_DATA_FRMW_NUM_SLOTS_MASK: i32 = 7;
+pub const NVME_CTRLR_DATA_FRMW_ACT_WO_RESET_SHIFT: i32 = 4;
+pub const NVME_CTRLR_DATA_FRMW_ACT_WO_RESET_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_LPA_NS_SMART_SHIFT: i32 = 0;
+pub const NVME_CTRLR_DATA_LPA_NS_SMART_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_LPA_CMD_EFFECTS_SHIFT: i32 = 1;
+pub const NVME_CTRLR_DATA_LPA_CMD_EFFECTS_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_LPA_EXT_DATA_SHIFT: i32 = 2;
+pub const NVME_CTRLR_DATA_LPA_EXT_DATA_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_LPA_TELEMETRY_SHIFT: i32 = 3;
+pub const NVME_CTRLR_DATA_LPA_TELEMETRY_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_LPA_PERSISTENT_EVENT_SHIFT: i32 = 4;
+pub const NVME_CTRLR_DATA_LPA_PERSISTENT_EVENT_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_LPA_LOG_PAGES_PAGE_SHIFT: i32 = 5;
+pub const NVME_CTRLR_DATA_LPA_LOG_PAGES_PAGE_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_LPA_DA4_TELEMETRY_SHIFT: i32 = 6;
+pub const NVME_CTRLR_DATA_LPA_DA4_TELEMETRY_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_AVSCC_SPEC_FORMAT_SHIFT: i32 = 0;
+pub const NVME_CTRLR_DATA_AVSCC_SPEC_FORMAT_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_APSTA_APST_SUPP_SHIFT: i32 = 0;
+pub const NVME_CTRLR_DATA_APSTA_APST_SUPP_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_SANICAP_CES_SHIFT: i32 = 0;
+pub const NVME_CTRLR_DATA_SANICAP_CES_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_SANICAP_BES_SHIFT: i32 = 1;
+pub const NVME_CTRLR_DATA_SANICAP_BES_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_SANICAP_OWS_SHIFT: i32 = 2;
+pub const NVME_CTRLR_DATA_SANICAP_OWS_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_SANICAP_NDI_SHIFT: i32 = 29;
+pub const NVME_CTRLR_DATA_SANICAP_NDI_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_SANICAP_NODMMAS_SHIFT: i32 = 30;
+pub const NVME_CTRLR_DATA_SANICAP_NODMMAS_MASK: i32 = 3;
+pub const NVME_CTRLR_DATA_SANICAP_NODMMAS_UNDEF: i32 = 0;
+pub const NVME_CTRLR_DATA_SANICAP_NODMMAS_NO: i32 = 1;
+pub const NVME_CTRLR_DATA_SANICAP_NODMMAS_YES: i32 = 2;
+pub const NVME_CTRLR_DATA_SQES_MIN_SHIFT: i32 = 0;
+pub const NVME_CTRLR_DATA_SQES_MIN_MASK: i32 = 15;
+pub const NVME_CTRLR_DATA_SQES_MAX_SHIFT: i32 = 4;
+pub const NVME_CTRLR_DATA_SQES_MAX_MASK: i32 = 15;
+pub const NVME_CTRLR_DATA_CQES_MIN_SHIFT: i32 = 0;
+pub const NVME_CTRLR_DATA_CQES_MIN_MASK: i32 = 15;
+pub const NVME_CTRLR_DATA_CQES_MAX_SHIFT: i32 = 4;
+pub const NVME_CTRLR_DATA_CQES_MAX_MASK: i32 = 15;
+pub const NVME_CTRLR_DATA_ONCS_COMPARE_SHIFT: i32 = 0;
+pub const NVME_CTRLR_DATA_ONCS_COMPARE_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_ONCS_WRITE_UNC_SHIFT: i32 = 1;
+pub const NVME_CTRLR_DATA_ONCS_WRITE_UNC_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_ONCS_DSM_SHIFT: i32 = 2;
+pub const NVME_CTRLR_DATA_ONCS_DSM_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_ONCS_WRZERO_SHIFT: i32 = 3;
+pub const NVME_CTRLR_DATA_ONCS_WRZERO_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_ONCS_SAVEFEAT_SHIFT: i32 = 4;
+pub const NVME_CTRLR_DATA_ONCS_SAVEFEAT_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_ONCS_RESERV_SHIFT: i32 = 5;
+pub const NVME_CTRLR_DATA_ONCS_RESERV_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_ONCS_TIMESTAMP_SHIFT: i32 = 6;
+pub const NVME_CTRLR_DATA_ONCS_TIMESTAMP_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_ONCS_VERIFY_SHIFT: i32 = 7;
+pub const NVME_CTRLR_DATA_ONCS_VERIFY_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_FUSES_CNW_SHIFT: i32 = 0;
+pub const NVME_CTRLR_DATA_FUSES_CNW_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_FNA_FORMAT_ALL_SHIFT: i32 = 0;
+pub const NVME_CTRLR_DATA_FNA_FORMAT_ALL_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_FNA_ERASE_ALL_SHIFT: i32 = 1;
+pub const NVME_CTRLR_DATA_FNA_ERASE_ALL_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_FNA_CRYPTO_ERASE_SHIFT: i32 = 2;
+pub const NVME_CTRLR_DATA_FNA_CRYPTO_ERASE_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_VWC_PRESENT_SHIFT: i32 = 0;
+pub const NVME_CTRLR_DATA_VWC_PRESENT_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_VWC_ALL_SHIFT: i32 = 1;
+pub const NVME_CTRLR_DATA_VWC_ALL_MASK: i32 = 3;
+pub const NVME_CTRLR_DATA_VWC_ALL_UNKNOWN: i32 = 0;
+pub const NVME_CTRLR_DATA_VWC_ALL_NO: i32 = 2;
+pub const NVME_CTRLR_DATA_VWC_ALL_YES: i32 = 3;
+pub const NVME_CTRLR_DATA_SGLS_NVM_COMMAND_SET_SHIFT: i32 = 0;
+pub const NVME_CTRLR_DATA_SGLS_NVM_COMMAND_SET_MASK: i32 = 3;
+pub const NVME_CTRLR_DATA_SGLS_KEYED_DATA_BLOCK_SHIFT: i32 = 2;
+pub const NVME_CTRLR_DATA_SGLS_KEYED_DATA_BLOCK_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_SGLS_BIT_BUCKET_SHIFT: i32 = 16;
+pub const NVME_CTRLR_DATA_SGLS_BIT_BUCKET_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_SGLS_CONTIG_MPTR_SHIFT: i32 = 17;
+pub const NVME_CTRLR_DATA_SGLS_CONTIG_MPTR_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_SGLS_OVERSIZED_SHIFT: i32 = 18;
+pub const NVME_CTRLR_DATA_SGLS_OVERSIZED_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_SGLS_MPTR_SGL_SHIFT: i32 = 19;
+pub const NVME_CTRLR_DATA_SGLS_MPTR_SGL_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_SGLS_ADDRESS_AS_OFFSET_SHIFT: i32 = 20;
+pub const NVME_CTRLR_DATA_SGLS_ADDRESS_AS_OFFSET_MASK: i32 = 1;
+pub const NVME_CTRLR_DATA_SGLS_TRANSPORT_DATA_BLOCK_SHIFT: i32 = 21;
+pub const NVME_CTRLR_DATA_SGLS_TRANSPORT_DATA_BLOCK_MASK: i32 = 1;
+pub const NVME_NS_DATA_NSFEAT_THIN_PROV_SHIFT: i32 = 0;
+pub const NVME_NS_DATA_NSFEAT_THIN_PROV_MASK: i32 = 1;
+pub const NVME_NS_DATA_NSFEAT_NA_FIELDS_SHIFT: i32 = 1;
+pub const NVME_NS_DATA_NSFEAT_NA_FIELDS_MASK: i32 = 1;
+pub const NVME_NS_DATA_NSFEAT_DEALLOC_SHIFT: i32 = 2;
+pub const NVME_NS_DATA_NSFEAT_DEALLOC_MASK: i32 = 1;
+pub const NVME_NS_DATA_NSFEAT_NO_ID_REUSE_SHIFT: i32 = 3;
+pub const NVME_NS_DATA_NSFEAT_NO_ID_REUSE_MASK: i32 = 1;
+pub const NVME_NS_DATA_NSFEAT_NPVALID_SHIFT: i32 = 4;
+pub const NVME_NS_DATA_NSFEAT_NPVALID_MASK: i32 = 1;
+pub const NVME_NS_DATA_FLBAS_FORMAT_SHIFT: i32 = 0;
+pub const NVME_NS_DATA_FLBAS_FORMAT_MASK: i32 = 15;
+pub const NVME_NS_DATA_FLBAS_EXTENDED_SHIFT: i32 = 4;
+pub const NVME_NS_DATA_FLBAS_EXTENDED_MASK: i32 = 1;
+pub const NVME_NS_DATA_MC_EXTENDED_SHIFT: i32 = 0;
+pub const NVME_NS_DATA_MC_EXTENDED_MASK: i32 = 1;
+pub const NVME_NS_DATA_MC_POINTER_SHIFT: i32 = 1;
+pub const NVME_NS_DATA_MC_POINTER_MASK: i32 = 1;
+pub const NVME_NS_DATA_DPC_PIT1_SHIFT: i32 = 0;
+pub const NVME_NS_DATA_DPC_PIT1_MASK: i32 = 1;
+pub const NVME_NS_DATA_DPC_PIT2_SHIFT: i32 = 1;
+pub const NVME_NS_DATA_DPC_PIT2_MASK: i32 = 1;
+pub const NVME_NS_DATA_DPC_PIT3_SHIFT: i32 = 2;
+pub const NVME_NS_DATA_DPC_PIT3_MASK: i32 = 1;
+pub const NVME_NS_DATA_DPC_MD_START_SHIFT: i32 = 3;
+pub const NVME_NS_DATA_DPC_MD_START_MASK: i32 = 1;
+pub const NVME_NS_DATA_DPC_MD_END_SHIFT: i32 = 4;
+pub const NVME_NS_DATA_DPC_MD_END_MASK: i32 = 1;
+pub const NVME_NS_DATA_DPS_PIT_SHIFT: i32 = 0;
+pub const NVME_NS_DATA_DPS_PIT_MASK: i32 = 7;
+pub const NVME_NS_DATA_DPS_MD_START_SHIFT: i32 = 3;
+pub const NVME_NS_DATA_DPS_MD_START_MASK: i32 = 1;
+pub const NVME_NS_DATA_NMIC_MAY_BE_SHARED_SHIFT: i32 = 0;
+pub const NVME_NS_DATA_NMIC_MAY_BE_SHARED_MASK: i32 = 1;
+pub const NVME_NS_DATA_RESCAP_PTPL_SHIFT: i32 = 0;
+pub const NVME_NS_DATA_RESCAP_PTPL_MASK: i32 = 1;
+pub const NVME_NS_DATA_RESCAP_WR_EX_SHIFT: i32 = 1;
+pub const NVME_NS_DATA_RESCAP_WR_EX_MASK: i32 = 1;
+pub const NVME_NS_DATA_RESCAP_EX_AC_SHIFT: i32 = 2;
+pub const NVME_NS_DATA_RESCAP_EX_AC_MASK: i32 = 1;
+pub const NVME_NS_DATA_RESCAP_WR_EX_RO_SHIFT: i32 = 3;
+pub const NVME_NS_DATA_RESCAP_WR_EX_RO_MASK: i32 = 1;
+pub const NVME_NS_DATA_RESCAP_EX_AC_RO_SHIFT: i32 = 4;
+pub const NVME_NS_DATA_RESCAP_EX_AC_RO_MASK: i32 = 1;
+pub const NVME_NS_DATA_RESCAP_WR_EX_AR_SHIFT: i32 = 5;
+pub const NVME_NS_DATA_RESCAP_WR_EX_AR_MASK: i32 = 1;
+pub const NVME_NS_DATA_RESCAP_EX_AC_AR_SHIFT: i32 = 6;
+pub const NVME_NS_DATA_RESCAP_EX_AC_AR_MASK: i32 = 1;
+pub const NVME_NS_DATA_RESCAP_IEKEY13_SHIFT: i32 = 7;
+pub const NVME_NS_DATA_RESCAP_IEKEY13_MASK: i32 = 1;
+pub const NVME_NS_DATA_FPI_PERC_SHIFT: i32 = 0;
+pub const NVME_NS_DATA_FPI_PERC_MASK: i32 = 127;
+pub const NVME_NS_DATA_FPI_SUPP_SHIFT: i32 = 7;
+pub const NVME_NS_DATA_FPI_SUPP_MASK: i32 = 1;
+pub const NVME_NS_DATA_DLFEAT_READ_SHIFT: i32 = 0;
+pub const NVME_NS_DATA_DLFEAT_READ_MASK: i32 = 7;
+pub const NVME_NS_DATA_DLFEAT_READ_NR: i32 = 0;
+pub const NVME_NS_DATA_DLFEAT_READ_00: i32 = 1;
+pub const NVME_NS_DATA_DLFEAT_READ_FF: i32 = 2;
+pub const NVME_NS_DATA_DLFEAT_DWZ_SHIFT: i32 = 3;
+pub const NVME_NS_DATA_DLFEAT_DWZ_MASK: i32 = 1;
+pub const NVME_NS_DATA_DLFEAT_GCRC_SHIFT: i32 = 4;
+pub const NVME_NS_DATA_DLFEAT_GCRC_MASK: i32 = 1;
+pub const NVME_NS_DATA_LBAF_MS_SHIFT: i32 = 0;
+pub const NVME_NS_DATA_LBAF_MS_MASK: i32 = 65535;
+pub const NVME_NS_DATA_LBAF_LBADS_SHIFT: i32 = 16;
+pub const NVME_NS_DATA_LBAF_LBADS_MASK: i32 = 255;
+pub const NVME_NS_DATA_LBAF_RP_SHIFT: i32 = 24;
+pub const NVME_NS_DATA_LBAF_RP_MASK: i32 = 3;
+pub const NVME_CRIT_WARN_ST_RESERVED_MASK: i32 = 192;
+pub const NVME_ASYNC_EVENT_NS_ATTRIBUTE: i32 = 256;
+pub const NVME_ASYNC_EVENT_FW_ACTIVATE: i32 = 512;
+pub const NVME_ASYNC_EVENT_TELEMETRY_LOG: i32 = 1024;
+pub const NVME_ASYNC_EVENT_ASYM_NS_ACC: i32 = 2048;
+pub const NVME_ASYNC_EVENT_PRED_LAT_DELTA: i32 = 4096;
+pub const NVME_ASYNC_EVENT_LBA_STATUS: i32 = 8192;
+pub const NVME_ASYNC_EVENT_ENDURANCE_DELTA: i32 = 16384;
+pub const NVME_ASYNC_EVENT_NVM_SHUTDOWN: i32 = 32768;
+pub const NVME_ASYNC_EVENT_ZONE_DELTA: i32 = 134217728;
+pub const NVME_ASYNC_EVENT_DISCOVERY_DELTA: i64 = 2147483648;
+pub const NVME_FIRMWARE_PAGE_AFI_SLOT_SHIFT: i32 = 0;
+pub const NVME_FIRMWARE_PAGE_AFI_SLOT_MASK: i32 = 7;
+pub const NVME_CE_PAGE_CSUP_SHIFT: i32 = 0;
+pub const NVME_CE_PAGE_CSUP_MASK: i32 = 1;
+pub const NVME_CE_PAGE_LBCC_SHIFT: i32 = 1;
+pub const NVME_CE_PAGE_LBCC_MASK: i32 = 1;
+pub const NVME_CE_PAGE_NCC_SHIFT: i32 = 2;
+pub const NVME_CE_PAGE_NCC_MASK: i32 = 1;
+pub const NVME_CE_PAGE_NIC_SHIFT: i32 = 3;
+pub const NVME_CE_PAGE_NIC_MASK: i32 = 1;
+pub const NVME_CE_PAGE_CCC_SHIFT: i32 = 4;
+pub const NVME_CE_PAGE_CCC_MASK: i32 = 1;
+pub const NVME_CE_PAGE_CSE_SHIFT: i32 = 16;
+pub const NVME_CE_PAGE_CSE_MASK: i32 = 7;
+pub const NVME_CE_PAGE_UUID_SHIFT: i32 = 19;
+pub const NVME_CE_PAGE_UUID_MASK: i32 = 1;
+pub const NVME_SS_PAGE_SSTAT_STATUS_SHIFT: i32 = 0;
+pub const NVME_SS_PAGE_SSTAT_STATUS_MASK: i32 = 7;
+pub const NVME_SS_PAGE_SSTAT_STATUS_NEVER: i32 = 0;
+pub const NVME_SS_PAGE_SSTAT_STATUS_COMPLETED: i32 = 1;
+pub const NVME_SS_PAGE_SSTAT_STATUS_INPROG: i32 = 2;
+pub const NVME_SS_PAGE_SSTAT_STATUS_FAILED: i32 = 3;
+pub const NVME_SS_PAGE_SSTAT_STATUS_COMPLETEDWD: i32 = 4;
+pub const NVME_SS_PAGE_SSTAT_PASSES_SHIFT: i32 = 3;
+pub const NVME_SS_PAGE_SSTAT_PASSES_MASK: i32 = 31;
+pub const NVME_SS_PAGE_SSTAT_GDE_SHIFT: i32 = 8;
+pub const NVME_SS_PAGE_SSTAT_GDE_MASK: i32 = 1;
+pub const NVME_FEAT_GET_SEL_SHIFT: i32 = 8;
+pub const NVME_FEAT_GET_SEL_MASK: i32 = 7;
+pub const NVME_FEAT_GET_FID_SHIFT: i32 = 0;
+pub const NVME_FEAT_GET_FID_MASK: i32 = 255;
+pub const NVME_FEAT_SET_SV_SHIFT: i32 = 31;
+pub const NVME_FEAT_SET_SV_MASK: i32 = 1;
+pub const NVME_FEAT_SET_FID_SHIFT: i32 = 0;
+pub const NVME_FEAT_SET_FID_MASK: i32 = 255;
+pub const NVME_ASYNC_EVENT_TYPE_SHIFT: i32 = 0;
+pub const NVME_ASYNC_EVENT_TYPE_MASK: i32 = 7;
+pub const NVME_ASYNC_EVENT_INFO_SHIFT: i32 = 8;
+pub const NVME_ASYNC_EVENT_INFO_MASK: i32 = 255;
+pub const NVME_ASYNC_EVENT_LOG_PAGE_ID_SHIFT: i32 = 16;
+pub const NVME_ASYNC_EVENT_LOG_PAGE_ID_MASK: i32 = 255;
+pub const NVME_SGL_SUBTYPE_SHIFT: i32 = 0;
+pub const NVME_SGL_SUBTYPE_MASK: i32 = 15;
+pub const NVME_SGL_TYPE_SHIFT: i32 = 4;
+pub const NVME_SGL_TYPE_MASK: i32 = 15;
+pub const NVME_MAX_DSM_TRIM: i32 = 4096;
+pub const NVME_SERIAL_NUMBER_LENGTH: i32 = 20;
+pub const NVME_MODEL_NUMBER_LENGTH: i32 = 40;
+pub const NVME_FIRMWARE_REVISION_LENGTH: i32 = 8;
+pub const NVME_TEST_MAX_THREADS: i32 = 128;
+pub const IDT32_PCI_ID: i64 = 2161119517;
+pub const IDT8_PCI_ID: i64 = 2161250589;
+pub const NVME_ADMIN_TRACKERS: i32 = 16;
+pub const NVME_ADMIN_ENTRIES: i32 = 128;
+pub const NVME_IO_ENTRIES: i32 = 256;
+pub const NVME_IO_TRACKERS: i32 = 128;
+pub const NVME_MIN_IO_TRACKERS: i32 = 4;
+pub const NVME_MAX_IO_TRACKERS: i32 = 1024;
+pub const NVME_INT_COAL_TIME: i32 = 0;
+pub const NVME_INT_COAL_THRESHOLD: i32 = 0;
+pub const NVME_MAX_NAMESPACES: i32 = 16;
+pub const NVME_MAX_CONSUMERS: i32 = 2;
+pub const NVME_MAX_ASYNC_EVENTS: i32 = 8;
+pub const NVME_ADMIN_TIMEOUT_PERIOD: i32 = 60;
+pub const NVME_DEFAULT_TIMEOUT_PERIOD: i32 = 30;
+pub const NVME_MIN_TIMEOUT_PERIOD: i32 = 5;
+pub const NVME_MAX_TIMEOUT_PERIOD: i32 = 120;
+pub const NVME_DEFAULT_RETRY_COUNT: i32 = 4;
+pub const NVME_MAX_AER_LOG_SIZE: i32 = 4096;
+pub const NVME_GONE: i64 = 4294967295;
+pub const QUIRK_DELAY_B4_CHK_RDY: i32 = 1;
+pub const QUIRK_DISABLE_TIMEOUT: i32 = 2;
+pub const QUIRK_INTEL_ALIGNMENT: i32 = 4;
+pub const QUIRK_AHCI: i32 = 8;
+pub const QUIRK_ANS: i32 = 16;
 pub const IRQ_TYPE_NONE: i32 = 0;
 pub const IRQ_TYPE_EDGE_RISING: i32 = 1;
 pub const IRQ_TYPE_EDGE_FALLING: i32 = 2;
@@ -3408,9 +3954,6 @@ pub const AIC_TMR_GUEST_PHYS: i32 = 2;
 pub const AIC_TMR_GUEST_VIRT: i32 = 3;
 pub const AIC_CPU_PMU_E: i32 = 4;
 pub const AIC_CPU_PMU_P: i32 = 5;
-pub const RTKIT_MGMT_PWR_STATE_SLEEP: i32 = 1;
-pub const RTKIT_MGMT_PWR_STATE_QUIESCED: i32 = 16;
-pub const RTKIT_MGMT_PWR_STATE_ON: i32 = 32;
 pub type __int8_t = ::core::ffi::c_schar;
 pub type __uint8_t = ::core::ffi::c_uchar;
 pub type __int16_t = ::core::ffi::c_short;
@@ -3504,7 +4047,7 @@ pub type __char16_t = __uint_least16_t;
 pub type __char32_t = __uint_least32_t;
 #[repr(C)]
 #[repr(align(16))]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct __max_align_t {
     pub __max_align1: ::core::ffi::c_longlong,
     pub __bindgen_padding_0: u64,
@@ -3524,6 +4067,15 @@ pub struct __mbstate_t {
     pub __mbstate8: __BindgenUnionField<[::core::ffi::c_char; 128usize]>,
     pub _mbstateL: __BindgenUnionField<__int64_t>,
     pub bindgen_union_field: [u64; 16usize],
+}
+impl Default for __mbstate_t {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 pub type __rman_res_t = __uintmax_t;
 pub type __gnuc_va_list = __va_list;
@@ -3609,6 +4161,15 @@ pub type pthread_startroutine_t = ::core::option::Option<
 pub struct pthread_once {
     pub state: ::core::ffi::c_int,
     pub mutex: pthread_mutex_t,
+}
+impl Default for pthread_once {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 pub type u_char = ::core::ffi::c_uchar;
 pub type u_short = ::core::ffi::c_ushort;
@@ -3701,25 +4262,25 @@ pub struct vm_page {
 pub type vm_page_t = *mut vm_page;
 pub type bool_ = bool;
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct __sigset {
     pub __bits: [__uint32_t; 4usize],
 }
 pub type __sigset_t = __sigset;
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct timeval {
     pub tv_sec: time_t,
     pub tv_usec: suseconds_t,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct timespec {
     pub tv_sec: time_t,
     pub tv_nsec: ::core::ffi::c_long,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct itimerspec {
     pub it_interval: timespec,
     pub it_value: timespec,
@@ -3728,30 +4289,30 @@ pub type __fd_mask = ::core::ffi::c_ulong;
 pub type fd_mask = __fd_mask;
 pub type sigset_t = __sigset_t;
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct fd_set {
     pub __fds_bits: [__fd_mask; 16usize],
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct timezone {
     pub tz_minuteswest: ::core::ffi::c_int,
     pub tz_dsttime: ::core::ffi::c_int,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct bintime {
     pub sec: time_t,
     pub frac: u64,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct itimerval {
     pub it_interval: timeval,
     pub it_value: timeval,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct clockinfo {
     pub hz: ::core::ffi::c_int,
     pub tick: ::core::ffi::c_int,
@@ -3760,7 +4321,7 @@ pub struct clockinfo {
     pub profhz: ::core::ffi::c_int,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct priority {
     pub pri_class: u_char,
     pub pri_level: u_char,
@@ -3792,7 +4353,7 @@ pub type bus_dma_lock_t = ::core::option::Option<
 >;
 #[doc = " @brief Interface information structure."]
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct u_businfo {
     #[doc = "< @brief interface version"]
     pub ub_version: ::core::ffi::c_int,
@@ -3834,12 +4395,30 @@ pub struct u_device {
     #[doc = "< @brief NUL terminated fields"]
     pub dv_fields: [::core::ffi::c_char; 3072usize],
 }
+impl Default for u_device {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[doc = " @brief Device request structure used for ioctl's.\n\n Used for ioctl's on /dev/devctl2.  All device ioctl's\n must have parameter definitions which begin with dr_name."]
 #[repr(C)]
 #[derive(Debug)]
 pub struct devreq_buffer {
     pub buffer: *mut ::core::ffi::c_void,
     pub length: usize,
+}
+impl Default for devreq_buffer {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 pub struct devreq {
@@ -3853,6 +4432,24 @@ pub struct devreq__bindgen_ty_1 {
     pub dru_data: __BindgenUnionField<*mut ::core::ffi::c_void>,
     pub bindgen_union_field: [u64; 2usize],
 }
+impl Default for devreq__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for devreq {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct eventhandler_entry {
@@ -3865,6 +4462,24 @@ pub struct eventhandler_entry {
 pub struct eventhandler_entry__bindgen_ty_1 {
     pub tqe_next: *mut eventhandler_entry,
     pub tqe_prev: *mut *mut eventhandler_entry,
+}
+impl Default for eventhandler_entry__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for eventhandler_entry {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 pub type eventhandler_tag = *mut eventhandler_entry;
 #[repr(C)]
@@ -3884,6 +4499,15 @@ pub struct kobj_method {
     pub desc: kobjop_desc_t,
     pub func: kobjop_t,
 }
+impl Default for kobj_method {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct kobj_class {
@@ -3894,10 +4518,28 @@ pub struct kobj_class {
     pub refs: u_int,
     pub ops: kobj_ops_t,
 }
+impl Default for kobj_class {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct kobj {
     pub ops: kobj_ops_t,
+}
+impl Default for kobj {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -3905,27 +4547,72 @@ pub struct kobj_ops {
     pub cache: [*const kobj_method; 256usize],
     pub cls: kobj_class_t,
 }
+impl Default for kobj_ops {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct kobjop_desc {
     pub id: ::core::ffi::c_uint,
     pub deflt: kobj_method_t,
 }
+impl Default for kobjop_desc {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct callout_list {
     pub lh_first: *mut callout,
+}
+impl Default for callout_list {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
 pub struct callout_slist {
     pub slh_first: *mut callout,
 }
+impl Default for callout_slist {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct callout_tailq {
     pub tqh_first: *mut callout,
     pub tqh_last: *mut *mut callout,
+}
+impl Default for callout_tailq {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 pub type callout_func_t =
     ::core::option::Option<unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void)>;
@@ -3954,16 +4641,61 @@ pub struct callout__bindgen_ty_1__bindgen_ty_1 {
     pub le_next: *mut callout,
     pub le_prev: *mut *mut callout,
 }
+impl Default for callout__bindgen_ty_1__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct callout__bindgen_ty_1__bindgen_ty_2 {
     pub sle_next: *mut callout,
+}
+impl Default for callout__bindgen_ty_1__bindgen_ty_2 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
 pub struct callout__bindgen_ty_1__bindgen_ty_3 {
     pub tqe_next: *mut callout,
     pub tqe_prev: *mut *mut callout,
+}
+impl Default for callout__bindgen_ty_1__bindgen_ty_3 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for callout__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for callout {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 pub type int_least8_t = __int_least8_t;
 pub type int_least16_t = __int_least16_t;
@@ -3994,12 +4726,12 @@ pub const VM_GUEST_NVMM: VM_GUEST = 9;
 pub const VM_GUEST_LAST: VM_GUEST = 10;
 pub type VM_GUEST = ::core::ffi::c_uint;
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct bitset {
     pub __bits: [::core::ffi::c_ulong; 1usize],
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct _cpuset {
     pub __bits: [::core::ffi::c_ulong; 16usize],
 }
@@ -4012,11 +4744,29 @@ pub struct lock_object {
     pub lo_data: ::core::ffi::c_uint,
     pub lo_witness: *mut witness,
 }
+impl Default for lock_object {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct mtx {
     pub lock_object: lock_object,
     pub mtx_lock: __uintptr_t,
+}
+impl Default for mtx {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[repr(align(128))]
@@ -4025,22 +4775,58 @@ pub struct mtx_padalign {
     pub lock_object: lock_object,
     pub mtx_lock: __uintptr_t,
 }
+impl Default for mtx_padalign {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct sx {
     pub lock_object: lock_object,
     pub sx_lock: __uintptr_t,
 }
+impl Default for sx {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct rmpriolist {
     pub lh_first: *mut rm_priotracker,
+}
+impl Default for rmpriolist {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
 pub struct rm_queue {
     pub rmq_next: *mut rm_queue,
     pub rmq_prev: *mut rm_queue,
+}
+impl Default for rm_queue {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 pub struct rmlock {
@@ -4054,12 +4840,39 @@ pub struct rmlock {
 pub struct rmlock__bindgen_ty_1 {
     pub lh_first: *mut rm_priotracker,
 }
+impl Default for rmlock__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 pub struct rmlock__bindgen_ty_2 {
     pub _rm_wlock_object: __BindgenUnionField<lock_object>,
     pub _rm_lock_mtx: __BindgenUnionField<mtx>,
     pub _rm_lock_sx: __BindgenUnionField<sx>,
     pub bindgen_union_field: [u64; 4usize],
+}
+impl Default for rmlock__bindgen_ty_2 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for rmlock {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -4076,6 +4889,24 @@ pub struct rm_priotracker__bindgen_ty_1 {
     pub le_next: *mut rm_priotracker,
     pub le_prev: *mut *mut rm_priotracker,
 }
+impl Default for rm_priotracker__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for rm_priotracker {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct rmslock_pcpu {
@@ -4091,8 +4922,17 @@ pub struct rmslock {
     pub readers: ::core::ffi::c_int,
     pub debug_readers: ::core::ffi::c_int,
 }
+impl Default for rmslock {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct rusage {
     pub ru_utime: timeval,
     pub ru_stime: timeval,
@@ -4112,25 +4952,25 @@ pub struct rusage {
     pub ru_nivcsw: ::core::ffi::c_long,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct __wrusage {
     pub wru_self: rusage,
     pub wru_children: rusage,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct rlimit {
     pub rlim_cur: rlim_t,
     pub rlim_max: rlim_t,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct orlimit {
     pub rlim_cur: __int32_t,
     pub rlim_max: __int32_t,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct loadavg {
     pub ldavg: [__fixpt_t; 3usize],
     pub fscale: ::core::ffi::c_long,
@@ -4143,6 +4983,15 @@ pub struct sigaltstack {
     pub ss_size: __size_t,
     pub ss_flags: ::core::ffi::c_int,
 }
+impl Default for sigaltstack {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 pub struct sigval {
     pub sival_int: __BindgenUnionField<::core::ffi::c_int>,
@@ -4150,6 +4999,15 @@ pub struct sigval {
     pub sigval_int: __BindgenUnionField<::core::ffi::c_int>,
     pub sigval_ptr: __BindgenUnionField<*mut ::core::ffi::c_void>,
     pub bindgen_union_field: u64,
+}
+impl Default for sigval {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 pub struct sigval32 {
@@ -4159,9 +5017,18 @@ pub struct sigval32 {
     pub sigval_ptr: __BindgenUnionField<__uint32_t>,
     pub bindgen_union_field: u32,
 }
+impl Default for sigval32 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub type sig_atomic_t = ::core::ffi::c_long;
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct sigcontext {
     pub _dummy: ::core::ffi::c_int,
 }
@@ -4187,6 +5054,33 @@ pub struct sigevent__bindgen_ty_1__bindgen_ty_1 {
     pub _function: ::core::option::Option<unsafe extern "C" fn(arg1: sigval)>,
     pub _attribute: *mut *mut pthread_attr,
 }
+impl Default for sigevent__bindgen_ty_1__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for sigevent__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for sigevent {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 pub struct __siginfo {
     pub si_signo: ::core::ffi::c_int,
@@ -4210,36 +5104,54 @@ pub struct __siginfo__bindgen_ty_1 {
     pub bindgen_union_field: [u64; 5usize],
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct __siginfo__bindgen_ty_1__bindgen_ty_1 {
     pub _trapno: ::core::ffi::c_int,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct __siginfo__bindgen_ty_1__bindgen_ty_2 {
     pub _timerid: ::core::ffi::c_int,
     pub _overrun: ::core::ffi::c_int,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct __siginfo__bindgen_ty_1__bindgen_ty_3 {
     pub _mqd: ::core::ffi::c_int,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct __siginfo__bindgen_ty_1__bindgen_ty_4 {
     pub _band: ::core::ffi::c_long,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct __siginfo__bindgen_ty_1__bindgen_ty_5 {
     pub _syscall: ::core::ffi::c_int,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct __siginfo__bindgen_ty_1__bindgen_ty_6 {
     pub __spare1__: ::core::ffi::c_long,
     pub __spare2__: [::core::ffi::c_int; 7usize],
+}
+impl Default for __siginfo__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for __siginfo {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 pub type siginfo_t = __siginfo;
 #[repr(C)]
@@ -4264,31 +5176,49 @@ pub struct __siginfo32__bindgen_ty_1 {
     pub bindgen_union_field: [u32; 8usize],
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct __siginfo32__bindgen_ty_1__bindgen_ty_1 {
     pub _trapno: ::core::ffi::c_int,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct __siginfo32__bindgen_ty_1__bindgen_ty_2 {
     pub _timerid: ::core::ffi::c_int,
     pub _overrun: ::core::ffi::c_int,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct __siginfo32__bindgen_ty_1__bindgen_ty_3 {
     pub _mqd: ::core::ffi::c_int,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct __siginfo32__bindgen_ty_1__bindgen_ty_4 {
     pub _band: i32,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct __siginfo32__bindgen_ty_1__bindgen_ty_5 {
     pub __spare1__: i32,
     pub __spare2__: [::core::ffi::c_int; 7usize],
+}
+impl Default for __siginfo32__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for __siginfo32 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 pub struct sigaction {
@@ -4311,6 +5241,24 @@ pub struct sigaction__bindgen_ty_1 {
     >,
     pub bindgen_union_field: u64,
 }
+impl Default for sigaction__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for sigaction {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub type sig_t = __sighandler_t;
 pub type __siginfohandler_t = ::core::option::Option<
     unsafe extern "C" fn(
@@ -4320,7 +5268,7 @@ pub type __siginfohandler_t = ::core::option::Option<
     ),
 >;
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct sigvec {
     pub sv_handler: __sighandler_t,
     pub sv_mask: ::core::ffi::c_int,
@@ -4332,8 +5280,17 @@ pub struct sigstack {
     pub ss_sp: *mut ::core::ffi::c_void,
     pub ss_onstack: ::core::ffi::c_int,
 }
+impl Default for sigstack {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct gpregs {
     pub gp_x: [__register_t; 30usize],
     pub gp_lr: __register_t,
@@ -4343,7 +5300,7 @@ pub struct gpregs {
 }
 #[repr(C)]
 #[repr(align(16))]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct fpregs {
     pub fp_q: [__uint128_t; 32usize],
     pub fp_sr: __uint32_t,
@@ -4352,13 +5309,13 @@ pub struct fpregs {
     pub fp_pad: ::core::ffi::c_int,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct arm64_reg_context {
     pub ctx_id: __uint32_t,
     pub ctx_size: __uint32_t,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct sve_context {
     pub sve_ctx: arm64_reg_context,
     pub sve_vector_len: __uint16_t,
@@ -4367,7 +5324,7 @@ pub struct sve_context {
 }
 #[repr(C)]
 #[repr(align(16))]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct __mcontext {
     pub mc_gpregs: gpregs,
     pub mc_fpregs: fpregs,
@@ -4377,7 +5334,7 @@ pub struct __mcontext {
     pub mc_spare: [__uint64_t; 7usize],
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct sigaltstack32 {
     pub ss_sp: u32,
     pub ss_size: u32,
@@ -4395,6 +5352,24 @@ pub struct osigevent32__bindgen_ty_1 {
     pub __sigev_notify_kqueue: __BindgenUnionField<::core::ffi::c_int>,
     pub bindgen_union_field: u32,
 }
+impl Default for osigevent32__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for osigevent32 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 pub struct sigevent32 {
     pub sigev_notify: ::core::ffi::c_int,
@@ -4411,10 +5386,28 @@ pub struct sigevent32__bindgen_ty_1 {
     pub bindgen_union_field: [u32; 8usize],
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct sigevent32__bindgen_ty_1__bindgen_ty_1 {
     pub _function: u32,
     pub _attribute: u32,
+}
+impl Default for sigevent32__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for sigevent32 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -4423,6 +5416,15 @@ pub struct __mcontext32 {
     pub mc_vfp_size: u32,
     pub mc_vfp_ptr: u32,
     pub mc_spare: [u32; 33usize],
+}
+impl Default for __mcontext32 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 pub type mcontext32_t = __mcontext32;
 #[repr(C)]
@@ -4435,9 +5437,18 @@ pub struct __ucontext32 {
     pub uc_flags: u_int32_t,
     pub __spare__: [u_int32_t; 4usize],
 }
+impl Default for __ucontext32 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub type ucontext32_t = __ucontext32;
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct __mcontext32_vfp {
     pub mcv_reg: [__uint64_t; 32usize],
     pub mcv_fpscr: __uint32_t,
@@ -4453,9 +5464,18 @@ pub struct __ucontext {
     pub uc_flags: ::core::ffi::c_int,
     pub __spare__: [::core::ffi::c_int; 4usize],
 }
+impl Default for __ucontext {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub type ucontext_t = __ucontext;
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct trapframe {
     pub tf_sp: u64,
     pub tf_lr: u64,
@@ -4471,8 +5491,17 @@ pub struct sigframe {
     pub sf_si: siginfo_t,
     pub sf_uc: ucontext_t,
 }
+impl Default for sigframe {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct frame {
     pub dummy: ::core::ffi::c_int,
 }
@@ -4481,6 +5510,15 @@ pub struct sigframe32 {
     pub sf_si: __siginfo32,
     pub sf_uc: ucontext32_t,
     pub sf_vfp: mcontext32_vfp_t,
+}
+impl Default for sigframe32 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -4531,11 +5569,38 @@ pub struct pcpu {
 pub struct pcpu__bindgen_ty_1 {
     pub stqe_next: *mut pcpu,
 }
+impl Default for pcpu__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for pcpu {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct cpuhead {
     pub stqh_first: *mut pcpu,
     pub stqh_last: *mut *mut pcpu,
+}
+impl Default for cpuhead {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -4548,6 +5613,15 @@ pub struct thread_lite {
     pub td_priority: u_char,
     pub pad_td_critnest: [u_char; 249usize],
     pub td_critnest: u_int,
+}
+impl Default for thread_lite {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -4598,13 +5672,31 @@ pub struct root_hold_token__bindgen_ty_1 {
     pub tqe_next: *mut root_hold_token,
     pub tqe_prev: *mut *mut root_hold_token,
 }
+impl Default for root_hold_token__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for root_hold_token {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct unrhdr {
     _unused: [u8; 0],
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct unrhdr64 {
     pub counter: u64,
 }
@@ -4634,6 +5726,15 @@ pub type dev_lookup_fn = ::core::option::Option<
 pub struct eventhandler_entry_dev_lookup {
     pub ee: eventhandler_entry,
     pub eh_func: dev_lookup_fn,
+}
+impl Default for eventhandler_entry_dev_lookup {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -4694,9 +5795,18 @@ pub struct resource_map {
     pub r_size: bus_size_t,
     pub r_vaddr: *mut ::core::ffi::c_void,
 }
+impl Default for resource_map {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[doc = " @brief Optional properties of a resource mapping request."]
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct resource_map_request {
     pub size: usize,
     pub offset: rman_res_t,
@@ -4728,14 +5838,41 @@ pub struct resource_list_entry {
 pub struct resource_list_entry__bindgen_ty_1 {
     pub stqe_next: *mut resource_list_entry,
 }
+impl Default for resource_list_entry__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for resource_list_entry {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct resource_list {
     pub stqh_first: *mut resource_list_entry,
     pub stqh_last: *mut *mut resource_list_entry,
 }
+impl Default for resource_list {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct resource_spec {
     pub type_: ::core::ffi::c_int,
     pub rid: ::core::ffi::c_int,
@@ -5122,6 +6259,15 @@ pub struct driver_module_data {
     pub dmd_devclass: *mut devclass_t,
     pub dmd_pass: ::core::ffi::c_int,
 }
+impl Default for driver_module_data {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct device_location_cache {
@@ -5136,11 +6282,100 @@ pub type device_prop_dtr_t = ::core::option::Option<
         dtr_ctx: *mut ::core::ffi::c_void,
     ),
 >;
+#[repr(C)]
+#[derive(Debug)]
+pub struct setlist {
+    pub lh_first: *mut cpuset,
+}
+impl Default for setlist {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct cpuset {
+    pub cs_ref: u_int,
+    pub cs_flags: ::core::ffi::c_int,
+    pub cs_link: cpuset__bindgen_ty_1,
+    pub cs_siblings: cpuset__bindgen_ty_2,
+    pub cs_children: setlist,
+    pub cs_domain: *mut domainset,
+    pub cs_id: cpusetid_t,
+    pub cs_parent: *mut cpuset,
+    pub cs_mask: cpuset_t,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct cpuset__bindgen_ty_1 {
+    pub le_next: *mut cpuset,
+    pub le_prev: *mut *mut cpuset,
+}
+impl Default for cpuset__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct cpuset__bindgen_ty_2 {
+    pub le_next: *mut cpuset,
+    pub le_prev: *mut *mut cpuset,
+}
+impl Default for cpuset__bindgen_ty_2 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for cpuset {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct prison {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct cpuset_copy_cb {
+    pub cpuset_copyin: ::core::option::Option<
+        unsafe extern "C" fn(
+            arg1: *const ::core::ffi::c_void,
+            arg2: *mut ::core::ffi::c_void,
+            arg3: usize,
+        ) -> ::core::ffi::c_int,
+    >,
+    pub cpuset_copyout: ::core::option::Option<
+        unsafe extern "C" fn(
+            arg1: *const ::core::ffi::c_void,
+            arg2: *mut ::core::ffi::c_void,
+            arg3: usize,
+        ) -> ::core::ffi::c_int,
+    >,
+}
 pub type ihandle_t = u32;
 pub type phandle_t = u32;
 pub type pcell_t = u32;
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct malloc_type_stats {
     pub mts_memalloced: u64,
     pub mts_memfreed: u64,
@@ -5159,6 +6394,15 @@ pub struct malloc_type_internal {
     pub mti_stats: *mut malloc_type_stats,
     pub mti_spare: [u_long; 8usize],
 }
+impl Default for malloc_type_internal {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct malloc_type {
@@ -5167,8 +6411,17 @@ pub struct malloc_type {
     pub ks_shortdesc: *const ::core::ffi::c_char,
     pub ks_mti: malloc_type_internal,
 }
+impl Default for malloc_type {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct malloc_type_stream_header {
     pub mtsh_version: u32,
     pub mtsh_maxcpus: u32,
@@ -5176,7 +6429,7 @@ pub struct malloc_type_stream_header {
     pub _mtsh_pad: u32,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct malloc_type_header {
     pub mth_name: [::core::ffi::c_char; 32usize],
 }
@@ -5232,7 +6485,7 @@ pub struct vm_reserv {
 }
 pub type vm_reserv_t = *mut vm_reserv;
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct kva_md_info {
     pub buffer_sva: vm_offset_t,
     pub buffer_eva: vm_offset_t,
@@ -5241,7 +6494,7 @@ pub struct kva_md_info {
 }
 pub type cell_t = u32;
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct mem_region {
     pub mr_start: vm_offset_t,
     pub mr_size: vm_size_t,
@@ -5262,11 +6515,29 @@ pub struct intr_map_data {
     pub len: usize,
     pub type_: intr_map_data_type,
 }
+impl Default for intr_map_data {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct intr_map_data_msi {
     pub hdr: intr_map_data,
     pub isrc: *mut intr_irqsrc,
+}
+impl Default for intr_map_data_msi {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 pub type intr_irq_filter_t = ::core::option::Option<
     unsafe extern "C" fn(arg: *mut ::core::ffi::c_void) -> ::core::ffi::c_int,
@@ -5292,6 +6563,15 @@ pub struct intr_irqsrc {
     pub isrc_handlers: u_int,
     pub isrc_event: *mut intr_event,
     pub isrc_iommu: *mut ::core::ffi::c_void,
+}
+impl Default for intr_irqsrc {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 pub type intr_ipi_handler_t =
     ::core::option::Option<unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void)>;
@@ -5402,11 +6682,38 @@ pub struct sysinit {
 pub struct sysinit__bindgen_ty_1 {
     pub stqe_next: *mut sysinit,
 }
+impl Default for sysinit__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for sysinit {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct tunable_int {
     pub path: *const ::core::ffi::c_char,
     pub var: *mut ::core::ffi::c_int,
+}
+impl Default for tunable_int {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -5414,11 +6721,29 @@ pub struct tunable_long {
     pub path: *const ::core::ffi::c_char,
     pub var: *mut ::core::ffi::c_long,
 }
+impl Default for tunable_long {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct tunable_ulong {
     pub path: *const ::core::ffi::c_char,
     pub var: *mut ::core::ffi::c_ulong,
+}
+impl Default for tunable_ulong {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -5426,11 +6751,29 @@ pub struct tunable_int64 {
     pub path: *const ::core::ffi::c_char,
     pub var: *mut i64,
 }
+impl Default for tunable_int64 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct tunable_uint64 {
     pub path: *const ::core::ffi::c_char,
     pub var: *mut u64,
+}
+impl Default for tunable_uint64 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -5438,11 +6781,29 @@ pub struct tunable_quad {
     pub path: *const ::core::ffi::c_char,
     pub var: *mut quad_t,
 }
+impl Default for tunable_quad {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct tunable_bool {
     pub path: *const ::core::ffi::c_char,
     pub var: *mut bool_,
+}
+impl Default for tunable_bool {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -5450,6 +6811,15 @@ pub struct tunable_str {
     pub path: *const ::core::ffi::c_char,
     pub var: *mut ::core::ffi::c_char,
     pub size: ::core::ffi::c_int,
+}
+impl Default for tunable_str {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 pub type ich_func_t = ::core::option::Option<unsafe extern "C" fn(_arg: *mut ::core::ffi::c_void)>;
 #[repr(C)]
@@ -5464,6 +6834,24 @@ pub struct intr_config_hook {
 #[derive(Debug)]
 pub struct intr_config_hook__bindgen_ty_1 {
     pub stqe_next: *mut intr_config_hook,
+}
+impl Default for intr_config_hook__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for intr_config_hook {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -5491,8 +6879,17 @@ pub struct lock_class {
         unsafe extern "C" fn(lock: *mut lock_object, how: usize) -> ::core::ffi::c_int,
     >,
 }
+impl Default for lock_class {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct lock_delay_config {
     pub base: u_short,
     pub max: u_short,
@@ -5503,6 +6900,15 @@ pub struct lock_delay_arg {
     pub config: *mut lock_delay_config,
     pub delay: u_int,
     pub spin_cnt: u_int,
+}
+impl Default for lock_delay_arg {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 pub const MOD_LOAD: modeventtype = 0;
 pub const MOD_UNLOAD: modeventtype = 1;
@@ -5525,6 +6931,15 @@ pub struct moduledata {
     pub evhand: modeventhand_t,
     pub priv_: *mut ::core::ffi::c_void,
 }
+impl Default for moduledata {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub type moduledata_t = moduledata;
 #[repr(C)]
 pub struct modspecific {
@@ -5534,16 +6949,25 @@ pub struct modspecific {
     pub ulongval: __BindgenUnionField<u_long>,
     pub bindgen_union_field: u64,
 }
+impl Default for modspecific {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub type modspecific_t = modspecific;
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct mod_depend {
     pub md_ver_minimum: ::core::ffi::c_int,
     pub md_ver_preferred: ::core::ffi::c_int,
     pub md_ver_maximum: ::core::ffi::c_int,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct mod_version {
     pub mv_version: ::core::ffi::c_int,
 }
@@ -5555,6 +6979,15 @@ pub struct mod_metadata {
     pub md_data: *const ::core::ffi::c_void,
     pub md_cval: *const ::core::ffi::c_char,
 }
+impl Default for mod_metadata {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct mod_pnp_match_info {
@@ -5563,6 +6996,15 @@ pub struct mod_pnp_match_info {
     pub table: *const ::core::ffi::c_void,
     pub entry_len: ::core::ffi::c_int,
     pub num_entry: ::core::ffi::c_int,
+}
+impl Default for mod_pnp_match_info {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -5577,6 +7019,15 @@ pub struct module_stat {
     pub id: ::core::ffi::c_int,
     pub data: modspecific_t,
 }
+impl Default for module_stat {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct lock_profile_object {
@@ -5586,6 +7037,15 @@ pub struct lock_profile_object {
 #[derive(Debug)]
 pub struct lpohead {
     pub lh_first: *mut lock_profile_object,
+}
+impl Default for lpohead {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -5599,6 +7059,24 @@ pub struct sdt_tracepoint {
 #[derive(Debug)]
 pub struct sdt_tracepoint__bindgen_ty_1 {
     pub stqe_next: *mut sdt_tracepoint,
+}
+impl Default for sdt_tracepoint__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for sdt_tracepoint {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 pub type sdt_probe_func_t = ::core::option::Option<
     unsafe extern "C" fn(
@@ -5626,6 +7104,24 @@ pub struct sdt_argtype__bindgen_ty_1 {
     pub tqe_next: *mut sdt_argtype,
     pub tqe_prev: *mut *mut sdt_argtype,
 }
+impl Default for sdt_argtype__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for sdt_argtype {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct sdt_probe {
@@ -5647,17 +7143,53 @@ pub struct sdt_probe__bindgen_ty_1 {
     pub tqe_next: *mut sdt_probe,
     pub tqe_prev: *mut *mut sdt_probe,
 }
+impl Default for sdt_probe__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct sdt_probe__bindgen_ty_2 {
     pub tqh_first: *mut sdt_argtype,
     pub tqh_last: *mut *mut sdt_argtype,
 }
+impl Default for sdt_probe__bindgen_ty_2 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct sdt_probe__bindgen_ty_3 {
     pub stqh_first: *mut sdt_tracepoint,
     pub stqh_last: *mut *mut sdt_tracepoint,
+}
+impl Default for sdt_probe__bindgen_ty_3 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for sdt_probe {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -5673,6 +7205,24 @@ pub struct sdt_provider__bindgen_ty_1 {
     pub tqe_next: *mut sdt_provider,
     pub tqe_prev: *mut *mut sdt_provider,
 }
+impl Default for sdt_provider__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for sdt_provider {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct mtx_pool {
@@ -5685,6 +7235,15 @@ pub struct mtx_args {
     pub ma_desc: *const ::core::ffi::c_char,
     pub ma_opts: ::core::ffi::c_int,
 }
+impl Default for mtx_args {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct kevent {
@@ -5696,8 +7255,17 @@ pub struct kevent {
     pub udata: *mut ::core::ffi::c_void,
     pub ext: [__uint64_t; 4usize],
 }
+impl Default for kevent {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct kevent32 {
     pub ident: __uint32_t,
     pub filter: ::core::ffi::c_short,
@@ -5715,6 +7283,15 @@ pub struct kevent32 {
 pub struct klist {
     pub slh_first: *mut knote,
 }
+impl Default for klist {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct kqueue {
@@ -5725,6 +7302,15 @@ pub struct kqueue {
 pub struct kqlist {
     pub tqh_first: *mut kqueue,
     pub tqh_last: *mut *mut kqueue,
+}
+impl Default for kqlist {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -5738,13 +7324,22 @@ pub struct knlist {
     pub kl_lockarg: *mut ::core::ffi::c_void,
     pub kl_autodestroy: ::core::ffi::c_int,
 }
+impl Default for knlist {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct kinfo_knote {
     _unused: [u8; 0],
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct filterops {
     pub f_isfd: ::core::ffi::c_int,
     pub f_attach:
@@ -5786,16 +7381,43 @@ pub struct knote {
 pub struct knote__bindgen_ty_1 {
     pub sle_next: *mut knote,
 }
+impl Default for knote__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct knote__bindgen_ty_2 {
     pub sle_next: *mut knote,
+}
+impl Default for knote__bindgen_ty_2 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
 pub struct knote__bindgen_ty_3 {
     pub tqe_next: *mut knote,
     pub tqe_prev: *mut *mut knote,
+}
+impl Default for knote__bindgen_ty_3 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 pub struct knote__bindgen_ty_4 {
@@ -5805,6 +7427,24 @@ pub struct knote__bindgen_ty_4 {
     pub p_lio: __BindgenUnionField<*mut aioliojob>,
     pub p_v: __BindgenUnionField<*mut ::core::ffi::c_void>,
     pub bindgen_union_field: u64,
+}
+impl Default for knote__bindgen_ty_4 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for knote {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -5826,6 +7466,15 @@ pub struct kevent_copyops {
     >,
     pub kevent_size: usize,
 }
+impl Default for kevent_copyops {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct rwlock {
@@ -5836,6 +7485,15 @@ pub struct rwlock {
 pub struct cv {
     pub cv_description: *const ::core::ffi::c_char,
     pub cv_waiters: ::core::ffi::c_int,
+}
+impl Default for cv {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -5850,6 +7508,24 @@ pub struct osd__bindgen_ty_1 {
     pub le_next: *mut osd,
     pub le_prev: *mut *mut osd,
 }
+impl Default for osd__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for osd {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub type osd_destructor_t =
     ::core::option::Option<unsafe extern "C" fn(value: *mut ::core::ffi::c_void)>;
 pub type osd_method_t = ::core::option::Option<
@@ -5859,7 +7535,7 @@ pub type osd_method_t = ::core::option::Option<
     ) -> ::core::ffi::c_int,
 >;
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct rtprio {
     pub type_: u_short,
     pub prio: u_short,
@@ -5871,8 +7547,17 @@ pub struct rqhead {
     pub tqh_first: *mut thread,
     pub tqh_last: *mut *mut thread,
 }
+impl Default for rqhead {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct rqbits {
     pub rqb_bits: [rqb_word_t; 1usize],
 }
@@ -5881,6 +7566,15 @@ pub struct rqbits {
 pub struct runq {
     pub rq_status: rqbits,
     pub rq_queues: [rqhead; 64usize],
+}
+impl Default for runq {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 pub struct sigio {
@@ -5896,15 +7590,51 @@ pub struct sigio__bindgen_ty_1 {
     pub siu_pgrp: __BindgenUnionField<*mut pgrp>,
     pub bindgen_union_field: u64,
 }
+impl Default for sigio__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct sigio__bindgen_ty_2 {
     pub sle_next: *mut sigio,
 }
+impl Default for sigio__bindgen_ty_2 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for sigio {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct sigiolst {
     pub slh_first: *mut sigio,
+}
+impl Default for sigiolst {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -5925,6 +7655,15 @@ pub struct sigacts {
     pub ps_refcnt: u_int,
     pub ps_mtx: mtx,
 }
+impl Default for sigacts {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 pub struct ksiginfo {
     pub ksi_link: ksiginfo__bindgen_ty_1,
@@ -5937,6 +7676,24 @@ pub struct ksiginfo {
 pub struct ksiginfo__bindgen_ty_1 {
     pub tqe_next: *mut ksiginfo,
     pub tqe_prev: *mut *mut ksiginfo,
+}
+impl Default for ksiginfo__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for ksiginfo {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 pub type ksiginfo_t = ksiginfo;
 #[repr(C)]
@@ -5955,6 +7712,24 @@ pub struct sigqueue__bindgen_ty_1 {
     pub tqh_first: *mut ksiginfo,
     pub tqh_last: *mut *mut ksiginfo,
 }
+impl Default for sigqueue__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for sigqueue {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub type sigqueue_t = sigqueue;
 pub type au_id_t = uid_t;
 pub type au_asid_t = pid_t;
@@ -5963,14 +7738,14 @@ pub type au_emod_t = u_int16_t;
 pub type au_class_t = u_int32_t;
 pub type au_asflgs_t = u_int64_t;
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct au_tid {
     pub port: u_int32_t,
     pub machine: u_int32_t,
 }
 pub type au_tid_t = au_tid;
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct au_tid_addr {
     pub at_port: u_int32_t,
     pub at_type: u_int32_t,
@@ -5978,14 +7753,14 @@ pub struct au_tid_addr {
 }
 pub type au_tid_addr_t = au_tid_addr;
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct au_mask {
     pub am_success: ::core::ffi::c_uint,
     pub am_failure: ::core::ffi::c_uint,
 }
 pub type au_mask_t = au_mask;
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct auditinfo {
     pub ai_auid: au_id_t,
     pub ai_mask: au_mask_t,
@@ -5994,7 +7769,7 @@ pub struct auditinfo {
 }
 pub type auditinfo_t = auditinfo;
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct auditinfo_addr {
     pub ai_auid: au_id_t,
     pub ai_mask: au_mask_t,
@@ -6004,7 +7779,7 @@ pub struct auditinfo_addr {
 }
 pub type auditinfo_addr_t = auditinfo_addr;
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct auditpinfo {
     pub ap_pid: pid_t,
     pub ap_auid: au_id_t,
@@ -6014,7 +7789,7 @@ pub struct auditpinfo {
 }
 pub type auditpinfo_t = auditpinfo;
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct auditpinfo_addr {
     pub ap_pid: pid_t,
     pub ap_auid: au_id_t,
@@ -6030,6 +7805,15 @@ pub struct au_session {
     pub as_aia_p: *mut auditinfo_addr_t,
     pub as_mask: au_mask_t,
 }
+impl Default for au_session {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub type au_session_t = au_session;
 #[repr(C)]
 #[derive(Debug)]
@@ -6038,7 +7822,7 @@ pub struct au_token {
 }
 pub type token_t = au_token;
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct au_qctrl {
     pub aq_hiwater: ::core::ffi::c_int,
     pub aq_lowater: ::core::ffi::c_int,
@@ -6048,7 +7832,7 @@ pub struct au_qctrl {
 }
 pub type au_qctrl_t = au_qctrl;
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct audit_stat {
     pub as_version: ::core::ffi::c_uint,
     pub as_numevent: ::core::ffi::c_uint,
@@ -6067,14 +7851,14 @@ pub struct audit_stat {
 }
 pub type au_stat_t = audit_stat;
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct audit_fstat {
     pub af_filesz: u_int64_t,
     pub af_currsz: u_int64_t,
 }
 pub type au_fstat_t = audit_fstat;
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct au_evclass_map {
     pub ec_number: au_event_t,
     pub ec_class: au_class_t,
@@ -6086,6 +7870,15 @@ pub struct au_evname_map {
     pub en_number: au_event_t,
     pub en_name: [::core::ffi::c_char; 64usize],
 }
+impl Default for au_evname_map {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub type au_evname_map_t = au_evname_map;
 #[repr(C)]
 #[derive(Debug)]
@@ -6095,11 +7888,6 @@ pub struct label {
 #[repr(C)]
 #[derive(Debug)]
 pub struct loginclass {
-    _unused: [u8; 0],
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct prison {
     _unused: [u8; 0],
 }
 #[repr(C)]
@@ -6131,6 +7919,15 @@ pub struct ucred {
     pub cr_agroups: ::core::ffi::c_int,
     pub cr_smallgroups: [gid_t; 16usize],
 }
+impl Default for ucred {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 pub struct xucred {
     pub cr_version: u_int,
@@ -6144,6 +7941,24 @@ pub struct xucred__bindgen_ty_1 {
     pub _cr_unused1: __BindgenUnionField<*mut ::core::ffi::c_void>,
     pub cr_pid: __BindgenUnionField<pid_t>,
     pub bindgen_union_field: u64,
+}
+impl Default for xucred__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for xucred {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -6164,8 +7979,17 @@ pub struct setcred {
     pub sc_supp_groups: *mut gid_t,
     pub sc_label: *mut mac,
 }
+impl Default for setcred {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct setcred32 {
     pub sc_uid: uid_t,
     pub sc_ruid: uid_t,
@@ -6185,8 +8009,17 @@ pub struct credbatch {
     pub users: u_int,
     pub ref_: ::core::ffi::c_long,
 }
+impl Default for credbatch {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct _domainset {
     pub __bits: [::core::ffi::c_ulong; 1usize],
 }
@@ -6197,14 +8030,23 @@ pub struct domainset_ref {
     pub dr_policy: *mut domainset,
     pub dr_iter: ::core::ffi::c_uint,
 }
+impl Default for domainset_ref {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ptrauth_key {
     pub pa_key_lo: u64,
     pub pa_key_hi: u64,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct mdthread {
     pub md_spinlock_count: ::core::ffi::c_int,
     pub md_saved_daif: register_t,
@@ -6217,7 +8059,7 @@ pub struct mdthread {
     pub md_reserved: [u64; 2usize],
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct mdthread__bindgen_ty_1 {
     pub apia: ptrauth_key,
     pub apib: ptrauth_key,
@@ -6226,11 +8068,12 @@ pub struct mdthread__bindgen_ty_1 {
     pub apga: ptrauth_key,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct mdthread__bindgen_ty_2 {
     pub apia: ptrauth_key,
 }
 #[repr(C)]
+#[derive(Default)]
 pub struct mdproc {
     pub md_dummy: ::core::ffi::c_long,
 }
@@ -6245,6 +8088,15 @@ pub struct session {
     pub s_sid: pid_t,
     pub s_login: [::core::ffi::c_char; 40usize],
     pub s_mtx: mtx,
+}
+impl Default for session {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -6264,13 +8116,40 @@ pub struct pgrp__bindgen_ty_1 {
     pub le_next: *mut pgrp,
     pub le_prev: *mut *mut pgrp,
 }
+impl Default for pgrp__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct pgrp__bindgen_ty_2 {
     pub lh_first: *mut proc_,
 }
+impl Default for pgrp__bindgen_ty_2 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for pgrp {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct pargs {
     pub ar_ref: u_int,
     pub ar_length: u_int,
@@ -6369,8 +8248,17 @@ pub struct syscall_args {
     pub callp: *mut sysent,
     pub args: [register_t; 8usize],
 }
+impl Default for syscall_args {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct rusage_ext {
     pub rux_runtime: u64,
     pub rux_uticks: u64,
@@ -6512,11 +8400,29 @@ pub struct thread__bindgen_ty_1 {
     pub tqe_next: *mut thread,
     pub tqe_prev: *mut *mut thread,
 }
+impl Default for thread__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct thread__bindgen_ty_2 {
     pub tqe_next: *mut thread,
     pub tqe_prev: *mut *mut thread,
+}
+impl Default for thread__bindgen_ty_2 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 pub struct thread__bindgen_ty_3 {
@@ -6530,11 +8436,38 @@ pub struct thread__bindgen_ty_3__bindgen_ty_1 {
     pub tqe_next: *mut thread,
     pub tqe_prev: *mut *mut thread,
 }
+impl Default for thread__bindgen_ty_3__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for thread__bindgen_ty_3 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct thread__bindgen_ty_4 {
     pub tqe_next: *mut thread,
     pub tqe_prev: *mut *mut thread,
+}
+impl Default for thread__bindgen_ty_4 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -6542,10 +8475,28 @@ pub struct thread__bindgen_ty_5 {
     pub le_next: *mut thread,
     pub le_prev: *mut *mut thread,
 }
+impl Default for thread__bindgen_ty_5 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct thread__bindgen_ty_6 {
     pub lh_first: *mut turnstile,
+}
+impl Default for thread__bindgen_ty_6 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 pub const TDS_INACTIVE: thread_td_states = 0;
 pub const TDS_INHIBITED: thread_td_states = 1;
@@ -6559,10 +8510,37 @@ pub struct thread__bindgen_ty_7 {
     pub tdu_off: __BindgenUnionField<off_t>,
     pub bindgen_union_field: [u64; 2usize],
 }
+impl Default for thread__bindgen_ty_7 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for thread {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 pub struct thread0_storage {
     pub t0st_thread: thread,
     pub t0st_sched: [u64; 10usize],
+}
+impl Default for thread0_storage {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 pub const TDA_AST: _bindgen_ty_1 = 0;
 pub const TDA_OWEUPC: _bindgen_ty_1 = 1;
@@ -6693,11 +8671,29 @@ pub struct proc__bindgen_ty_1 {
     pub le_next: *mut proc_,
     pub le_prev: *mut *mut proc_,
 }
+impl Default for proc__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct proc__bindgen_ty_2 {
     pub tqh_first: *mut thread,
     pub tqh_last: *mut *mut thread,
+}
+impl Default for proc__bindgen_ty_2 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 pub const PRS_NEW: proc_p_states = 0;
 pub const PRS_NORMAL: proc_p_states = 1;
@@ -6709,11 +8705,29 @@ pub struct proc__bindgen_ty_3 {
     pub le_next: *mut proc_,
     pub le_prev: *mut *mut proc_,
 }
+impl Default for proc__bindgen_ty_3 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct proc__bindgen_ty_4 {
     pub le_next: *mut proc_,
     pub le_prev: *mut *mut proc_,
+}
+impl Default for proc__bindgen_ty_4 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -6721,15 +8735,42 @@ pub struct proc__bindgen_ty_5 {
     pub le_next: *mut proc_,
     pub le_prev: *mut *mut proc_,
 }
+impl Default for proc__bindgen_ty_5 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct proc__bindgen_ty_6 {
     pub lh_first: *mut proc_,
 }
+impl Default for proc__bindgen_ty_6 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct proc__bindgen_ty_7 {
     pub lh_first: *mut proc_,
+}
+impl Default for proc__bindgen_ty_7 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -6737,16 +8778,43 @@ pub struct proc__bindgen_ty_8 {
     pub le_next: *mut proc_,
     pub le_prev: *mut *mut proc_,
 }
+impl Default for proc__bindgen_ty_8 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct proc__bindgen_ty_9 {
     pub stqh_first: *mut ktr_request,
     pub stqh_last: *mut *mut ktr_request,
 }
+impl Default for proc__bindgen_ty_9 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct proc__bindgen_ty_10 {
     pub lh_first: *mut mqueue_notifier,
+}
+impl Default for proc__bindgen_ty_10 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -6754,10 +8822,28 @@ pub struct proc__bindgen_ty_11 {
     pub le_next: *mut proc_,
     pub le_prev: *mut *mut proc_,
 }
+impl Default for proc__bindgen_ty_11 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct proc__bindgen_ty_12 {
     pub lh_first: *mut proc_,
+}
+impl Default for proc__bindgen_ty_12 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -6765,24 +8851,69 @@ pub struct proc__bindgen_ty_13 {
     pub tqh_first: *mut kq_timer_cb_data,
     pub tqh_last: *mut *mut kq_timer_cb_data,
 }
+impl Default for proc__bindgen_ty_13 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct proc__bindgen_ty_14 {
     pub le_next: *mut proc_,
     pub le_prev: *mut *mut proc_,
 }
+impl Default for proc__bindgen_ty_14 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for proc_ {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct pidhashhead {
     pub lh_first: *mut proc_,
+}
+impl Default for pidhashhead {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
 pub struct pgrphashhead {
     pub lh_first: *mut pgrp,
 }
+impl Default for pgrphashhead {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct vmspace {
     pub _address: u8,
 }
@@ -6791,17 +8922,44 @@ pub struct vmspace {
 pub struct proclist {
     pub lh_first: *mut proc_,
 }
+impl Default for proclist {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct procqueue {
     pub tqh_first: *mut proc_,
     pub tqh_last: *mut *mut proc_,
 }
+impl Default for procqueue {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct threadqueue {
     pub tqh_first: *mut thread,
     pub tqh_last: *mut *mut thread,
+}
+impl Default for threadqueue {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -6820,12 +8978,21 @@ pub struct fork_req {
     pub fr_pd_fcaps: *mut filecaps,
     pub fr_flags2: ::core::ffi::c_int,
 }
+impl Default for fork_req {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub const RMAN_UNINIT: rman_type = 0;
 pub const RMAN_GAUGE: rman_type = 1;
 pub const RMAN_ARRAY: rman_type = 2;
 pub type rman_type = ::core::ffi::c_uint;
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct u_resource {
     pub r_handle: usize,
     pub r_parent: usize,
@@ -6844,12 +9011,30 @@ pub struct u_rman {
     pub rm_size: rman_res_t,
     pub rm_type: rman_type,
 }
+impl Default for u_rman {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct resource {
     pub __r_i: *mut resource_i,
     pub r_bustag: bus_space_tag_t,
     pub r_bushandle: bus_space_handle_t,
+}
+impl Default for resource {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -6861,6 +9046,15 @@ pub struct resource_i {
 pub struct resource_head {
     pub tqh_first: *mut resource_i,
     pub tqh_last: *mut *mut resource_i,
+}
+impl Default for resource_head {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -6879,59 +9073,38 @@ pub struct rman__bindgen_ty_1 {
     pub tqe_next: *mut rman,
     pub tqe_prev: *mut *mut rman,
 }
+impl Default for rman__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for rman {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct rman_head {
     pub tqh_first: *mut rman,
     pub tqh_last: *mut *mut rman,
 }
-#[repr(C)]
-#[derive(Debug)]
-pub struct setlist {
-    pub lh_first: *mut cpuset,
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct cpuset {
-    pub cs_ref: u_int,
-    pub cs_flags: ::core::ffi::c_int,
-    pub cs_link: cpuset__bindgen_ty_1,
-    pub cs_siblings: cpuset__bindgen_ty_2,
-    pub cs_children: setlist,
-    pub cs_domain: *mut domainset,
-    pub cs_id: cpusetid_t,
-    pub cs_parent: *mut cpuset,
-    pub cs_mask: cpuset_t,
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct cpuset__bindgen_ty_1 {
-    pub le_next: *mut cpuset,
-    pub le_prev: *mut *mut cpuset,
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct cpuset__bindgen_ty_2 {
-    pub le_next: *mut cpuset,
-    pub le_prev: *mut *mut cpuset,
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct cpuset_copy_cb {
-    pub cpuset_copyin: ::core::option::Option<
-        unsafe extern "C" fn(
-            arg1: *const ::core::ffi::c_void,
-            arg2: *mut ::core::ffi::c_void,
-            arg3: usize,
-        ) -> ::core::ffi::c_int,
-    >,
-    pub cpuset_copyout: ::core::option::Option<
-        unsafe extern "C" fn(
-            arg1: *const ::core::ffi::c_void,
-            arg2: *mut ::core::ffi::c_void,
-            arg3: usize,
-        ) -> ::core::ffi::c_int,
-    >,
+impl Default for rman_head {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 pub const TOPO_TYPE_DUMMY: topo_node_type = 0;
 pub const TOPO_TYPE_PU: topo_node_type = 1;
@@ -6964,11 +9137,38 @@ pub struct topo_node_topo_children {
     pub tqh_first: *mut topo_node,
     pub tqh_last: *mut *mut topo_node,
 }
+impl Default for topo_node_topo_children {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct topo_node__bindgen_ty_1 {
     pub tqe_next: *mut topo_node,
     pub tqe_prev: *mut *mut topo_node,
+}
+impl Default for topo_node__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for topo_node {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -6983,6 +9183,15 @@ pub struct cpu_group {
     pub cg_level: i8,
     pub cg_flags: i8,
 }
+impl Default for cpu_group {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub type cpu_group_t = *mut cpu_group;
 pub const TOPO_LEVEL_PKG: topo_level = 0;
 pub const TOPO_LEVEL_GROUP: topo_level = 1;
@@ -6992,12 +9201,12 @@ pub const TOPO_LEVEL_THREAD: topo_level = 4;
 pub const TOPO_LEVEL_COUNT: topo_level = 5;
 pub type topo_level = ::core::ffi::c_uint;
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct topo_analysis {
     pub entities: [::core::ffi::c_int; 5usize],
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct smp_rendezvous_cpus_retry_arg {
     pub cpus: cpuset_t,
 }
@@ -7019,6 +9228,24 @@ pub struct task {
 pub struct task__bindgen_ty_1 {
     pub stqe_next: *mut task,
 }
+impl Default for task__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for task {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct taskqueue {
@@ -7030,6 +9257,15 @@ pub struct timeout_task {
     pub t: task,
     pub c: callout,
     pub f: ::core::ffi::c_int,
+}
+impl Default for timeout_task {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 pub type gtask_fn_t =
     ::core::option::Option<unsafe extern "C" fn(context: *mut ::core::ffi::c_void)>;
@@ -7046,6 +9282,24 @@ pub struct gtask {
 #[derive(Debug)]
 pub struct gtask__bindgen_ty_1 {
     pub stqe_next: *mut gtask,
+}
+impl Default for gtask__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for gtask {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -7702,13 +9956,17 @@ pub struct bus_space {
         ) -> ::core::ffi::c_int,
     >,
 }
-#[repr(C)]
-pub struct ccb {
-    _unused: [u8; 0],
+impl Default for bus_space {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
-#[derive(Debug)]
-pub struct bio {
+pub struct ccb {
     _unused: [u8; 0],
 }
 #[repr(C)]
@@ -7728,16 +9986,11 @@ pub struct mbuf {
 }
 #[repr(C)]
 #[derive(Debug)]
-pub struct memdesc {
-    _unused: [u8; 0],
-}
-#[repr(C)]
-#[derive(Debug)]
 pub struct pmap {
     _unused: [u8; 0],
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct bus_dma_segment {
     pub ds_addr: bus_addr_t,
     pub ds_len: bus_size_t,
@@ -7761,6 +10014,15 @@ pub struct bus_dma_template_t {
     pub lockfunc: bus_dma_lock_t,
     pub lockfuncarg: *mut ::core::ffi::c_void,
     pub name: *const ::core::ffi::c_char,
+}
+impl Default for bus_dma_template_t {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 pub const BD_PARAM_INVALID: bus_dma_param_key_t = 0;
 pub const BD_PARAM_PARENT: bus_dma_param_key_t = 1;
@@ -7787,6 +10049,24 @@ pub struct bus_dma_param_t__bindgen_ty_1 {
     pub pa: __BindgenUnionField<vm_paddr_t>,
     pub num: __BindgenUnionField<uintmax_t>,
     pub bindgen_union_field: u64,
+}
+impl Default for bus_dma_param_t__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for bus_dma_param_t {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 pub type bus_dmamap_callback_t = ::core::option::Option<
     unsafe extern "C" fn(
@@ -7821,8 +10101,17 @@ pub struct bus_dma_tag_common {
     pub lockfuncarg: *mut ::core::ffi::c_void,
     pub domain: ::core::ffi::c_int,
 }
+impl Default for bus_dma_tag_common {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct bus_dma_impl {
     pub tag_create: ::core::option::Option<
         unsafe extern "C" fn(
@@ -7932,7 +10221,7 @@ pub struct bus_dma_impl {
     >,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct arm64_bootparams {
     pub modulep: vm_offset_t,
     pub kern_stack: vm_offset_t,
@@ -7945,7 +10234,7 @@ pub const ARM64_BUS_FDT: arm64_bus = 1;
 pub const ARM64_BUS_ACPI: arm64_bus = 2;
 pub type arm64_bus = ::core::ffi::c_uint;
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct debug_monitor_state {
     pub dbg_enable_count: u32,
     pub dbg_flags: u32,
@@ -7982,6 +10271,15 @@ pub struct ofw_bus_devinfo {
     pub obd_type: *mut ::core::ffi::c_char,
     pub obd_status: *mut ::core::ffi::c_char,
 }
+impl Default for ofw_bus_devinfo {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[doc = " @brief A function implementing the OFW_BUS_GET_DEVINFO() method"]
 pub type ofw_bus_get_devinfo_t = ::core::option::Option<
     unsafe extern "C" fn(bus: device_t, dev: device_t) -> *const ofw_bus_devinfo,
@@ -8016,6 +10314,48 @@ pub type ofw_bus_map_intr_t = ::core::option::Option<
     ) -> ::core::ffi::c_int,
 >;
 #[repr(C)]
+#[derive(Debug, Default)]
+pub struct simplebus_range {
+    pub bus: u64,
+    pub host: u64,
+    pub size: u64,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct simplebus_softc {
+    pub dev: device_t,
+    pub node: phandle_t,
+    pub ranges: *mut simplebus_range,
+    pub nranges: ::core::ffi::c_int,
+    pub flags: ::core::ffi::c_int,
+    pub acells: pcell_t,
+    pub scells: pcell_t,
+}
+impl Default for simplebus_softc {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct simplebus_devinfo {
+    pub obdinfo: ofw_bus_devinfo,
+    pub rl: resource_list,
+}
+impl Default for simplebus_devinfo {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
 #[derive(Debug)]
 pub struct ofw_bus_iinfo {
     pub opi_imap: *mut u8,
@@ -8023,11 +10363,29 @@ pub struct ofw_bus_iinfo {
     pub opi_imapsz: ::core::ffi::c_int,
     pub opi_addrc: pcell_t,
 }
+impl Default for ofw_bus_iinfo {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct ofw_compat_data {
     pub ocd_str: *const ::core::ffi::c_char,
     pub ocd_data: usize,
+}
+impl Default for ofw_compat_data {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -8037,6 +10395,1902 @@ pub struct intr_map_data_fdt {
     pub ncells: u_int,
     pub cells: __IncompleteArrayField<pcell_t>,
 }
+impl Default for intr_map_data_fdt {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct disk_zone_disk_params {
+    pub zone_mode: u32,
+    pub flags: u64,
+    pub optimal_seq_zones: u64,
+    pub optimal_nonseq_zones: u64,
+    pub max_seq_zones: u64,
+}
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct disk_zone_rwp {
+    pub id: u64,
+    pub flags: u8,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct disk_zone_rep_header {
+    pub same: u8,
+    pub maximum_lba: u64,
+    pub reserved: [u8; 64usize],
+}
+impl Default for disk_zone_rep_header {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct disk_zone_rep_entry {
+    pub zone_type: u8,
+    pub zone_condition: u8,
+    pub zone_flags: u8,
+    pub zone_length: u64,
+    pub zone_start_lba: u64,
+    pub write_pointer_lba: u64,
+    pub reserved: [u8; 32usize],
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct disk_zone_report {
+    pub starting_id: u64,
+    pub rep_options: u8,
+    pub header: disk_zone_rep_header,
+    pub entries_allocated: u32,
+    pub entries_filled: u32,
+    pub entries_available: u32,
+    pub entries: *mut disk_zone_rep_entry,
+}
+impl Default for disk_zone_report {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+pub struct disk_zone_params {
+    pub disk_params: __BindgenUnionField<disk_zone_disk_params>,
+    pub rwp: __BindgenUnionField<disk_zone_rwp>,
+    pub report: __BindgenUnionField<disk_zone_report>,
+    pub bindgen_union_field: [u64; 15usize],
+}
+impl Default for disk_zone_params {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+pub struct disk_zone_args {
+    pub zone_cmd: u8,
+    pub zone_params: disk_zone_params,
+}
+impl Default for disk_zone_args {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct disk {
+    _unused: [u8; 0],
+}
+pub type bio_task_t = ::core::option::Option<unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void)>;
+#[repr(C)]
+pub struct bio {
+    pub bio_cmd: u16,
+    pub bio_flags: u16,
+    pub bio_cflags: u16,
+    pub bio_pflags: u16,
+    pub bio_dev: *mut cdev,
+    pub bio_disk: *mut disk,
+    pub bio_offset: off_t,
+    pub bio_bcount: ::core::ffi::c_long,
+    pub bio_data: caddr_t,
+    pub bio_ma: *mut *mut vm_page,
+    pub bio_ma_offset: ::core::ffi::c_int,
+    pub bio_ma_n: ::core::ffi::c_int,
+    pub bio_error: ::core::ffi::c_int,
+    pub bio_resid: ::core::ffi::c_long,
+    pub bio_done: ::core::option::Option<unsafe extern "C" fn(arg1: *mut bio)>,
+    pub bio_driver1: *mut ::core::ffi::c_void,
+    pub bio_driver2: *mut ::core::ffi::c_void,
+    pub bio_caller1: *mut ::core::ffi::c_void,
+    pub bio_caller2: *mut ::core::ffi::c_void,
+    pub bio_queue: bio__bindgen_ty_1,
+    pub bio_attribute: *const ::core::ffi::c_char,
+    pub bio_zone: disk_zone_args,
+    pub bio_from: *mut g_consumer,
+    pub bio_to: *mut g_provider,
+    pub bio_length: off_t,
+    pub bio_completed: off_t,
+    pub bio_children: u_int,
+    pub bio_inbed: u_int,
+    pub bio_parent: *mut bio,
+    pub bio_t0: bintime,
+    pub bio_task: bio_task_t,
+    pub bio_task_arg: *mut ::core::ffi::c_void,
+    pub bio_spare1: *mut ::core::ffi::c_void,
+    pub bio_spare2: *mut ::core::ffi::c_void,
+    pub bio_track_bp: *mut buf,
+    pub bio_pblkno: daddr_t,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct bio__bindgen_ty_1 {
+    pub tqe_next: *mut bio,
+    pub tqe_prev: *mut *mut bio,
+}
+impl Default for bio__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for bio {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct devstat {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct bio_queue_head {
+    pub queue: bio_queue_head_bio_queue,
+    pub last_offset: off_t,
+    pub insert_point: *mut bio,
+    pub total: ::core::ffi::c_int,
+    pub batched: ::core::ffi::c_int,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct bio_queue_head_bio_queue {
+    pub tqh_first: *mut bio,
+    pub tqh_last: *mut *mut bio,
+}
+impl Default for bio_queue_head_bio_queue {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for bio_queue_head {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type counter_u64_t = *mut u64;
+#[repr(C)]
+#[derive(Debug)]
+pub struct counter_rate {
+    pub cr_rate: counter_u64_t,
+    pub cr_lock: ::core::ffi::c_int,
+    pub cr_ticks: ::core::ffi::c_int,
+    pub cr_over: ::core::ffi::c_int,
+}
+impl Default for counter_rate {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+pub struct memdesc {
+    pub u: memdesc__bindgen_ty_1,
+    pub __bindgen_anon_1: memdesc__bindgen_ty_2,
+    pub __bindgen_anon_2: memdesc__bindgen_ty_3,
+    pub md_type: u32,
+}
+#[repr(C)]
+pub struct memdesc__bindgen_ty_1 {
+    pub md_vaddr: __BindgenUnionField<*mut ::core::ffi::c_void>,
+    pub md_paddr: __BindgenUnionField<vm_paddr_t>,
+    pub md_list: __BindgenUnionField<*mut bus_dma_segment>,
+    pub md_uio: __BindgenUnionField<*mut uio>,
+    pub md_mbuf: __BindgenUnionField<*mut mbuf>,
+    pub md_ma: __BindgenUnionField<*mut *mut vm_page>,
+    pub bindgen_union_field: u64,
+}
+impl Default for memdesc__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+pub struct memdesc__bindgen_ty_2 {
+    pub md_len: __BindgenUnionField<usize>,
+    pub md_nseg: __BindgenUnionField<::core::ffi::c_int>,
+    pub bindgen_union_field: u64,
+}
+impl Default for memdesc__bindgen_ty_2 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+pub struct memdesc__bindgen_ty_3 {
+    pub md_offset: __BindgenUnionField<u32>,
+    pub bindgen_union_field: u32,
+}
+impl Default for memdesc__bindgen_ty_3 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for memdesc {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type memdesc_alloc_ext_mbuf_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        arg1: *mut ::core::ffi::c_void,
+        arg2: ::core::ffi::c_int,
+        arg3: *mut ::core::ffi::c_void,
+        arg4: usize,
+    ) -> *mut mbuf,
+>;
+pub type memdesc_alloc_extpg_mbuf_t = ::core::option::Option<
+    unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: ::core::ffi::c_int) -> *mut mbuf,
+>;
+pub type smr_seq_t = u32;
+pub type smr_delta_t = i32;
+#[repr(C)]
+#[derive(Debug)]
+pub struct smr {
+    _unused: [u8; 0],
+}
+pub type smr_t = *mut smr;
+pub type uma_zone_t = *mut uma_zone;
+pub type uma_ctor = ::core::option::Option<
+    unsafe extern "C" fn(
+        mem: *mut ::core::ffi::c_void,
+        size: ::core::ffi::c_int,
+        arg: *mut ::core::ffi::c_void,
+        flags: ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int,
+>;
+pub type uma_dtor = ::core::option::Option<
+    unsafe extern "C" fn(
+        mem: *mut ::core::ffi::c_void,
+        size: ::core::ffi::c_int,
+        arg: *mut ::core::ffi::c_void,
+    ),
+>;
+pub type uma_init = ::core::option::Option<
+    unsafe extern "C" fn(
+        mem: *mut ::core::ffi::c_void,
+        size: ::core::ffi::c_int,
+        flags: ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int,
+>;
+pub type uma_fini = ::core::option::Option<
+    unsafe extern "C" fn(mem: *mut ::core::ffi::c_void, size: ::core::ffi::c_int),
+>;
+pub type uma_import = ::core::option::Option<
+    unsafe extern "C" fn(
+        arg: *mut ::core::ffi::c_void,
+        store: *mut *mut ::core::ffi::c_void,
+        count: ::core::ffi::c_int,
+        domain: ::core::ffi::c_int,
+        flags: ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int,
+>;
+pub type uma_release = ::core::option::Option<
+    unsafe extern "C" fn(
+        arg: *mut ::core::ffi::c_void,
+        store: *mut *mut ::core::ffi::c_void,
+        count: ::core::ffi::c_int,
+    ),
+>;
+pub type uma_alloc = ::core::option::Option<
+    unsafe extern "C" fn(
+        zone: uma_zone_t,
+        size: vm_size_t,
+        domain: ::core::ffi::c_int,
+        pflag: *mut u8,
+        wait: ::core::ffi::c_int,
+    ) -> *mut ::core::ffi::c_void,
+>;
+pub type uma_free = ::core::option::Option<
+    unsafe extern "C" fn(item: *mut ::core::ffi::c_void, size: vm_size_t, pflag: u8),
+>;
+pub type uma_maxaction_t =
+    ::core::option::Option<unsafe extern "C" fn(arg1: uma_zone_t, arg2: ::core::ffi::c_int)>;
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct uma_stream_header {
+    pub ush_version: u32,
+    pub ush_maxcpus: u32,
+    pub ush_count: u32,
+    pub _ush_pad: u32,
+}
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct uma_type_header {
+    pub uth_name: [::core::ffi::c_char; 32usize],
+    pub uth_align: u32,
+    pub uth_size: u32,
+    pub uth_rsize: u32,
+    pub uth_maxpages: u32,
+    pub uth_limit: u32,
+    pub uth_pages: u32,
+    pub uth_keg_free: u32,
+    pub uth_zone_free: u32,
+    pub uth_bucketsize: u32,
+    pub uth_zone_flags: u32,
+    pub uth_allocs: u64,
+    pub uth_frees: u64,
+    pub uth_fails: u64,
+    pub uth_sleeps: u64,
+    pub uth_xdomain: u64,
+    pub _uth_reserved1: [u64; 1usize],
+}
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct uma_percpu_stat {
+    pub ups_allocs: u64,
+    pub ups_frees: u64,
+    pub ups_cache_free: u64,
+    pub _ups_reserved: [u64; 5usize],
+}
+pub const NVME_FUSE_NORMAL: nvme_fuse = 0;
+pub const NVME_FUSE_FIRST: nvme_fuse = 1;
+pub const NVME_FUSE_SECOND: nvme_fuse = 2;
+pub type nvme_fuse = ::core::ffi::c_uint;
+pub const NVME_PSDT_PRP: nvme_psdt = 0;
+pub const NVME_PSDT_SGL: nvme_psdt = 1;
+pub const NVME_PSDT_SGL_MPTR: nvme_psdt = 2;
+pub type nvme_psdt = ::core::ffi::c_uint;
+pub const NVME_CRIT_WARN_ST_AVAILABLE_SPARE: nvme_critical_warning_state = 1;
+pub const NVME_CRIT_WARN_ST_TEMPERATURE: nvme_critical_warning_state = 2;
+pub const NVME_CRIT_WARN_ST_DEVICE_RELIABILITY: nvme_critical_warning_state = 4;
+pub const NVME_CRIT_WARN_ST_READ_ONLY: nvme_critical_warning_state = 8;
+pub const NVME_CRIT_WARN_ST_VOLATILE_MEMORY_BACKUP: nvme_critical_warning_state = 16;
+pub const NVME_CRIT_WARN_ST_PERSISTENT_MEMORY_REGION: nvme_critical_warning_state = 32;
+pub type nvme_critical_warning_state = ::core::ffi::c_uint;
+pub const NVME_SHN_NORMAL: shn_value = 1;
+pub const NVME_SHN_ABRUPT: shn_value = 2;
+pub type shn_value = ::core::ffi::c_uint;
+pub const NVME_SHST_NORMAL: shst_value = 0;
+pub const NVME_SHST_OCCURRING: shst_value = 1;
+pub const NVME_SHST_COMPLETE: shst_value = 2;
+pub type shst_value = ::core::ffi::c_uint;
+#[repr(C)]
+#[derive(Debug)]
+pub struct nvme_registers {
+    pub cap_lo: u32,
+    pub cap_hi: u32,
+    pub vs: u32,
+    pub intms: u32,
+    pub intmc: u32,
+    pub cc: u32,
+    pub reserved1: u32,
+    pub csts: u32,
+    pub nssr: u32,
+    pub aqa: u32,
+    pub asq: u64,
+    pub acq: u64,
+    pub cmbloc: u32,
+    pub cmbsz: u32,
+    pub bpinfo: u32,
+    pub bprsel: u32,
+    pub bpmbl: u64,
+    pub cmbmsc: u64,
+    pub cmbsts: u32,
+    pub cmbebs: u32,
+    pub cmbswtp: u32,
+    pub nssd: u32,
+    pub crto: u32,
+    pub reserved3: [u8; 3476usize],
+    pub pmrcap: u32,
+    pub pmrctl: u32,
+    pub pmrsts: u32,
+    pub pmrebs: u32,
+    pub pmrswtp: u32,
+    pub pmrmsc_lo: u32,
+    pub pmrmsc_hi: u32,
+    pub reserved4: [u8; 484usize],
+    pub doorbell: [nvme_registers__bindgen_ty_1; 1usize],
+}
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct nvme_registers__bindgen_ty_1 {
+    pub sq_tdbl: u32,
+    pub cq_hdbl: u32,
+}
+impl Default for nvme_registers {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub const NVME_SGL_TYPE_DATA_BLOCK: nvme_sgl_type = 0;
+pub const NVME_SGL_TYPE_BIT_BUCKET: nvme_sgl_type = 1;
+pub const NVME_SGL_TYPE_SEGMENT: nvme_sgl_type = 2;
+pub const NVME_SGL_TYPE_LAST_SEGMENT: nvme_sgl_type = 3;
+pub const NVME_SGL_TYPE_KEYED_DATA_BLOCK: nvme_sgl_type = 4;
+pub const NVME_SGL_TYPE_TRANSPORT_DATA_BLOCK: nvme_sgl_type = 5;
+pub type nvme_sgl_type = ::core::ffi::c_uint;
+pub const NVME_SGL_SUBTYPE_ADDRESS: nvme_sgl_subtype = 0;
+pub const NVME_SGL_SUBTYPE_OFFSET: nvme_sgl_subtype = 1;
+pub const NVME_SGL_SUBTYPE_TRANSPORT: nvme_sgl_subtype = 10;
+pub type nvme_sgl_subtype = ::core::ffi::c_uint;
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct nvme_sgl_descriptor {
+    pub address: u64,
+    pub length: u32,
+    pub reserved: [u8; 3usize],
+    pub type_: u8,
+}
+#[repr(C)]
+pub struct nvme_command {
+    pub opc: u8,
+    pub fuse: u8,
+    pub cid: u16,
+    pub nsid: u32,
+    pub rsvd2: u32,
+    pub rsvd3: u32,
+    pub mptr: u64,
+    pub __bindgen_anon_1: nvme_command__bindgen_ty_1,
+    pub cdw10: u32,
+    pub cdw11: u32,
+    pub cdw12: u32,
+    pub cdw13: u32,
+    pub cdw14: u32,
+    pub cdw15: u32,
+}
+#[repr(C)]
+pub struct nvme_command__bindgen_ty_1 {
+    pub __bindgen_anon_1: __BindgenUnionField<nvme_command__bindgen_ty_1__bindgen_ty_1>,
+    pub sgl: __BindgenUnionField<nvme_sgl_descriptor>,
+    pub bindgen_union_field: [u64; 2usize],
+}
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct nvme_command__bindgen_ty_1__bindgen_ty_1 {
+    pub prp1: u64,
+    pub prp2: u64,
+}
+impl Default for nvme_command__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for nvme_command {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[repr(align(8))]
+#[derive(Debug, Default)]
+pub struct nvme_completion {
+    pub cdw0: u32,
+    pub rsvd1: u32,
+    pub sqhd: u16,
+    pub sqid: u16,
+    pub cid: u16,
+    pub status: u16,
+}
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct nvme_dsm_range {
+    pub attributes: u32,
+    pub length: u32,
+    pub starting_lba: u64,
+}
+pub const NVME_SCT_GENERIC: nvme_status_code_type = 0;
+pub const NVME_SCT_COMMAND_SPECIFIC: nvme_status_code_type = 1;
+pub const NVME_SCT_MEDIA_ERROR: nvme_status_code_type = 2;
+pub const NVME_SCT_PATH_RELATED: nvme_status_code_type = 3;
+pub const NVME_SCT_VENDOR_SPECIFIC: nvme_status_code_type = 7;
+pub type nvme_status_code_type = ::core::ffi::c_uint;
+pub const NVME_SC_SUCCESS: nvme_generic_command_status_code = 0;
+pub const NVME_SC_INVALID_OPCODE: nvme_generic_command_status_code = 1;
+pub const NVME_SC_INVALID_FIELD: nvme_generic_command_status_code = 2;
+pub const NVME_SC_COMMAND_ID_CONFLICT: nvme_generic_command_status_code = 3;
+pub const NVME_SC_DATA_TRANSFER_ERROR: nvme_generic_command_status_code = 4;
+pub const NVME_SC_ABORTED_POWER_LOSS: nvme_generic_command_status_code = 5;
+pub const NVME_SC_INTERNAL_DEVICE_ERROR: nvme_generic_command_status_code = 6;
+pub const NVME_SC_ABORTED_BY_REQUEST: nvme_generic_command_status_code = 7;
+pub const NVME_SC_ABORTED_SQ_DELETION: nvme_generic_command_status_code = 8;
+pub const NVME_SC_ABORTED_FAILED_FUSED: nvme_generic_command_status_code = 9;
+pub const NVME_SC_ABORTED_MISSING_FUSED: nvme_generic_command_status_code = 10;
+pub const NVME_SC_INVALID_NAMESPACE_OR_FORMAT: nvme_generic_command_status_code = 11;
+pub const NVME_SC_COMMAND_SEQUENCE_ERROR: nvme_generic_command_status_code = 12;
+pub const NVME_SC_INVALID_SGL_SEGMENT_DESCR: nvme_generic_command_status_code = 13;
+pub const NVME_SC_INVALID_NUMBER_OF_SGL_DESCR: nvme_generic_command_status_code = 14;
+pub const NVME_SC_DATA_SGL_LENGTH_INVALID: nvme_generic_command_status_code = 15;
+pub const NVME_SC_METADATA_SGL_LENGTH_INVALID: nvme_generic_command_status_code = 16;
+pub const NVME_SC_SGL_DESCRIPTOR_TYPE_INVALID: nvme_generic_command_status_code = 17;
+pub const NVME_SC_INVALID_USE_OF_CMB: nvme_generic_command_status_code = 18;
+pub const NVME_SC_PRP_OFFET_INVALID: nvme_generic_command_status_code = 19;
+pub const NVME_SC_ATOMIC_WRITE_UNIT_EXCEEDED: nvme_generic_command_status_code = 20;
+pub const NVME_SC_OPERATION_DENIED: nvme_generic_command_status_code = 21;
+pub const NVME_SC_SGL_OFFSET_INVALID: nvme_generic_command_status_code = 22;
+pub const NVME_SC_HOST_ID_INCONSISTENT_FORMAT: nvme_generic_command_status_code = 24;
+pub const NVME_SC_KEEP_ALIVE_TIMEOUT_EXPIRED: nvme_generic_command_status_code = 25;
+pub const NVME_SC_KEEP_ALIVE_TIMEOUT_INVALID: nvme_generic_command_status_code = 26;
+pub const NVME_SC_ABORTED_DUE_TO_PREEMPT: nvme_generic_command_status_code = 27;
+pub const NVME_SC_SANITIZE_FAILED: nvme_generic_command_status_code = 28;
+pub const NVME_SC_SANITIZE_IN_PROGRESS: nvme_generic_command_status_code = 29;
+pub const NVME_SC_SGL_DATA_BLOCK_GRAN_INVALID: nvme_generic_command_status_code = 30;
+pub const NVME_SC_NOT_SUPPORTED_IN_CMB: nvme_generic_command_status_code = 31;
+pub const NVME_SC_NAMESPACE_IS_WRITE_PROTECTED: nvme_generic_command_status_code = 32;
+pub const NVME_SC_COMMAND_INTERRUPTED: nvme_generic_command_status_code = 33;
+pub const NVME_SC_TRANSIENT_TRANSPORT_ERROR: nvme_generic_command_status_code = 34;
+pub const NVME_SC_LBA_OUT_OF_RANGE: nvme_generic_command_status_code = 128;
+pub const NVME_SC_CAPACITY_EXCEEDED: nvme_generic_command_status_code = 129;
+pub const NVME_SC_NAMESPACE_NOT_READY: nvme_generic_command_status_code = 130;
+pub const NVME_SC_RESERVATION_CONFLICT: nvme_generic_command_status_code = 131;
+pub const NVME_SC_FORMAT_IN_PROGRESS: nvme_generic_command_status_code = 132;
+pub type nvme_generic_command_status_code = ::core::ffi::c_uint;
+pub const NVME_SC_COMPLETION_QUEUE_INVALID: nvme_command_specific_status_code = 0;
+pub const NVME_SC_INVALID_QUEUE_IDENTIFIER: nvme_command_specific_status_code = 1;
+pub const NVME_SC_MAXIMUM_QUEUE_SIZE_EXCEEDED: nvme_command_specific_status_code = 2;
+pub const NVME_SC_ABORT_COMMAND_LIMIT_EXCEEDED: nvme_command_specific_status_code = 3;
+pub const NVME_SC_ASYNC_EVENT_REQUEST_LIMIT_EXCEEDED: nvme_command_specific_status_code = 5;
+pub const NVME_SC_INVALID_FIRMWARE_SLOT: nvme_command_specific_status_code = 6;
+pub const NVME_SC_INVALID_FIRMWARE_IMAGE: nvme_command_specific_status_code = 7;
+pub const NVME_SC_INVALID_INTERRUPT_VECTOR: nvme_command_specific_status_code = 8;
+pub const NVME_SC_INVALID_LOG_PAGE: nvme_command_specific_status_code = 9;
+pub const NVME_SC_INVALID_FORMAT: nvme_command_specific_status_code = 10;
+pub const NVME_SC_FIRMWARE_REQUIRES_RESET: nvme_command_specific_status_code = 11;
+pub const NVME_SC_INVALID_QUEUE_DELETION: nvme_command_specific_status_code = 12;
+pub const NVME_SC_FEATURE_NOT_SAVEABLE: nvme_command_specific_status_code = 13;
+pub const NVME_SC_FEATURE_NOT_CHANGEABLE: nvme_command_specific_status_code = 14;
+pub const NVME_SC_FEATURE_NOT_NS_SPECIFIC: nvme_command_specific_status_code = 15;
+pub const NVME_SC_FW_ACT_REQUIRES_NVMS_RESET: nvme_command_specific_status_code = 16;
+pub const NVME_SC_FW_ACT_REQUIRES_RESET: nvme_command_specific_status_code = 17;
+pub const NVME_SC_FW_ACT_REQUIRES_TIME: nvme_command_specific_status_code = 18;
+pub const NVME_SC_FW_ACT_PROHIBITED: nvme_command_specific_status_code = 19;
+pub const NVME_SC_OVERLAPPING_RANGE: nvme_command_specific_status_code = 20;
+pub const NVME_SC_NS_INSUFFICIENT_CAPACITY: nvme_command_specific_status_code = 21;
+pub const NVME_SC_NS_ID_UNAVAILABLE: nvme_command_specific_status_code = 22;
+pub const NVME_SC_NS_ALREADY_ATTACHED: nvme_command_specific_status_code = 24;
+pub const NVME_SC_NS_IS_PRIVATE: nvme_command_specific_status_code = 25;
+pub const NVME_SC_NS_NOT_ATTACHED: nvme_command_specific_status_code = 26;
+pub const NVME_SC_THIN_PROV_NOT_SUPPORTED: nvme_command_specific_status_code = 27;
+pub const NVME_SC_CTRLR_LIST_INVALID: nvme_command_specific_status_code = 28;
+pub const NVME_SC_SELF_TEST_IN_PROGRESS: nvme_command_specific_status_code = 29;
+pub const NVME_SC_BOOT_PART_WRITE_PROHIB: nvme_command_specific_status_code = 30;
+pub const NVME_SC_INVALID_CTRLR_ID: nvme_command_specific_status_code = 31;
+pub const NVME_SC_INVALID_SEC_CTRLR_STATE: nvme_command_specific_status_code = 32;
+pub const NVME_SC_INVALID_NUM_OF_CTRLR_RESRC: nvme_command_specific_status_code = 33;
+pub const NVME_SC_INVALID_RESOURCE_ID: nvme_command_specific_status_code = 34;
+pub const NVME_SC_SANITIZE_PROHIBITED_WPMRE: nvme_command_specific_status_code = 35;
+pub const NVME_SC_ANA_GROUP_ID_INVALID: nvme_command_specific_status_code = 36;
+pub const NVME_SC_ANA_ATTACH_FAILED: nvme_command_specific_status_code = 37;
+pub const NVME_SC_CONFLICTING_ATTRIBUTES: nvme_command_specific_status_code = 128;
+pub const NVME_SC_INVALID_PROTECTION_INFO: nvme_command_specific_status_code = 129;
+pub const NVME_SC_ATTEMPTED_WRITE_TO_RO_PAGE: nvme_command_specific_status_code = 130;
+pub type nvme_command_specific_status_code = ::core::ffi::c_uint;
+pub const NVME_SC_WRITE_FAULTS: nvme_media_error_status_code = 128;
+pub const NVME_SC_UNRECOVERED_READ_ERROR: nvme_media_error_status_code = 129;
+pub const NVME_SC_GUARD_CHECK_ERROR: nvme_media_error_status_code = 130;
+pub const NVME_SC_APPLICATION_TAG_CHECK_ERROR: nvme_media_error_status_code = 131;
+pub const NVME_SC_REFERENCE_TAG_CHECK_ERROR: nvme_media_error_status_code = 132;
+pub const NVME_SC_COMPARE_FAILURE: nvme_media_error_status_code = 133;
+pub const NVME_SC_ACCESS_DENIED: nvme_media_error_status_code = 134;
+pub const NVME_SC_DEALLOCATED_OR_UNWRITTEN: nvme_media_error_status_code = 135;
+pub type nvme_media_error_status_code = ::core::ffi::c_uint;
+pub const NVME_SC_INTERNAL_PATH_ERROR: nvme_path_related_status_code = 0;
+pub const NVME_SC_ASYMMETRIC_ACCESS_PERSISTENT_LOSS: nvme_path_related_status_code = 1;
+pub const NVME_SC_ASYMMETRIC_ACCESS_INACCESSIBLE: nvme_path_related_status_code = 2;
+pub const NVME_SC_ASYMMETRIC_ACCESS_TRANSITION: nvme_path_related_status_code = 3;
+pub const NVME_SC_CONTROLLER_PATHING_ERROR: nvme_path_related_status_code = 96;
+pub const NVME_SC_HOST_PATHING_ERROR: nvme_path_related_status_code = 112;
+pub const NVME_SC_COMMAND_ABORTED_BY_HOST: nvme_path_related_status_code = 113;
+pub type nvme_path_related_status_code = ::core::ffi::c_uint;
+pub const NVME_OPC_DELETE_IO_SQ: nvme_admin_opcode = 0;
+pub const NVME_OPC_CREATE_IO_SQ: nvme_admin_opcode = 1;
+pub const NVME_OPC_GET_LOG_PAGE: nvme_admin_opcode = 2;
+pub const NVME_OPC_DELETE_IO_CQ: nvme_admin_opcode = 4;
+pub const NVME_OPC_CREATE_IO_CQ: nvme_admin_opcode = 5;
+pub const NVME_OPC_IDENTIFY: nvme_admin_opcode = 6;
+pub const NVME_OPC_ABORT: nvme_admin_opcode = 8;
+pub const NVME_OPC_SET_FEATURES: nvme_admin_opcode = 9;
+pub const NVME_OPC_GET_FEATURES: nvme_admin_opcode = 10;
+pub const NVME_OPC_ASYNC_EVENT_REQUEST: nvme_admin_opcode = 12;
+pub const NVME_OPC_NAMESPACE_MANAGEMENT: nvme_admin_opcode = 13;
+pub const NVME_OPC_FIRMWARE_ACTIVATE: nvme_admin_opcode = 16;
+pub const NVME_OPC_FIRMWARE_IMAGE_DOWNLOAD: nvme_admin_opcode = 17;
+pub const NVME_OPC_DEVICE_SELF_TEST: nvme_admin_opcode = 20;
+pub const NVME_OPC_NAMESPACE_ATTACHMENT: nvme_admin_opcode = 21;
+pub const NVME_OPC_KEEP_ALIVE: nvme_admin_opcode = 24;
+pub const NVME_OPC_DIRECTIVE_SEND: nvme_admin_opcode = 25;
+pub const NVME_OPC_DIRECTIVE_RECEIVE: nvme_admin_opcode = 26;
+pub const NVME_OPC_VIRTUALIZATION_MANAGEMENT: nvme_admin_opcode = 28;
+pub const NVME_OPC_NVME_MI_SEND: nvme_admin_opcode = 29;
+pub const NVME_OPC_NVME_MI_RECEIVE: nvme_admin_opcode = 30;
+pub const NVME_OPC_CAPACITY_MANAGEMENT: nvme_admin_opcode = 32;
+pub const NVME_OPC_LOCKDOWN: nvme_admin_opcode = 36;
+pub const NVME_OPC_DOORBELL_BUFFER_CONFIG: nvme_admin_opcode = 124;
+pub const NVME_OPC_FABRICS_COMMANDS: nvme_admin_opcode = 127;
+pub const NVME_OPC_FORMAT_NVM: nvme_admin_opcode = 128;
+pub const NVME_OPC_SECURITY_SEND: nvme_admin_opcode = 129;
+pub const NVME_OPC_SECURITY_RECEIVE: nvme_admin_opcode = 130;
+pub const NVME_OPC_SANITIZE: nvme_admin_opcode = 132;
+pub const NVME_OPC_GET_LBA_STATUS: nvme_admin_opcode = 134;
+pub type nvme_admin_opcode = ::core::ffi::c_uint;
+pub const NVME_OPC_FLUSH: nvme_nvm_opcode = 0;
+pub const NVME_OPC_WRITE: nvme_nvm_opcode = 1;
+pub const NVME_OPC_READ: nvme_nvm_opcode = 2;
+pub const NVME_OPC_WRITE_UNCORRECTABLE: nvme_nvm_opcode = 4;
+pub const NVME_OPC_COMPARE: nvme_nvm_opcode = 5;
+pub const NVME_OPC_WRITE_ZEROES: nvme_nvm_opcode = 8;
+pub const NVME_OPC_DATASET_MANAGEMENT: nvme_nvm_opcode = 9;
+pub const NVME_OPC_VERIFY: nvme_nvm_opcode = 12;
+pub const NVME_OPC_RESERVATION_REGISTER: nvme_nvm_opcode = 13;
+pub const NVME_OPC_RESERVATION_REPORT: nvme_nvm_opcode = 14;
+pub const NVME_OPC_RESERVATION_ACQUIRE: nvme_nvm_opcode = 17;
+pub const NVME_OPC_RESERVATION_RELEASE: nvme_nvm_opcode = 21;
+pub const NVME_OPC_COPY: nvme_nvm_opcode = 25;
+pub type nvme_nvm_opcode = ::core::ffi::c_uint;
+pub const NVME_FEAT_ARBITRATION: nvme_feature = 1;
+pub const NVME_FEAT_POWER_MANAGEMENT: nvme_feature = 2;
+pub const NVME_FEAT_LBA_RANGE_TYPE: nvme_feature = 3;
+pub const NVME_FEAT_TEMPERATURE_THRESHOLD: nvme_feature = 4;
+pub const NVME_FEAT_ERROR_RECOVERY: nvme_feature = 5;
+pub const NVME_FEAT_VOLATILE_WRITE_CACHE: nvme_feature = 6;
+pub const NVME_FEAT_NUMBER_OF_QUEUES: nvme_feature = 7;
+pub const NVME_FEAT_INTERRUPT_COALESCING: nvme_feature = 8;
+pub const NVME_FEAT_INTERRUPT_VECTOR_CONFIGURATION: nvme_feature = 9;
+pub const NVME_FEAT_WRITE_ATOMICITY: nvme_feature = 10;
+pub const NVME_FEAT_ASYNC_EVENT_CONFIGURATION: nvme_feature = 11;
+pub const NVME_FEAT_AUTONOMOUS_POWER_STATE_TRANSITION: nvme_feature = 12;
+pub const NVME_FEAT_HOST_MEMORY_BUFFER: nvme_feature = 13;
+pub const NVME_FEAT_TIMESTAMP: nvme_feature = 14;
+pub const NVME_FEAT_KEEP_ALIVE_TIMER: nvme_feature = 15;
+pub const NVME_FEAT_HOST_CONTROLLED_THERMAL_MGMT: nvme_feature = 16;
+pub const NVME_FEAT_NON_OP_POWER_STATE_CONFIG: nvme_feature = 17;
+pub const NVME_FEAT_READ_RECOVERY_LEVEL_CONFIG: nvme_feature = 18;
+pub const NVME_FEAT_PREDICTABLE_LATENCY_MODE_CONFIG: nvme_feature = 19;
+pub const NVME_FEAT_PREDICTABLE_LATENCY_MODE_WINDOW: nvme_feature = 20;
+pub const NVME_FEAT_LBA_STATUS_INFORMATION_ATTRIBUTES: nvme_feature = 21;
+pub const NVME_FEAT_HOST_BEHAVIOR_SUPPORT: nvme_feature = 22;
+pub const NVME_FEAT_SANITIZE_CONFIG: nvme_feature = 23;
+pub const NVME_FEAT_ENDURANCE_GROUP_EVENT_CONFIGURATION: nvme_feature = 24;
+pub const NVME_FEAT_SOFTWARE_PROGRESS_MARKER: nvme_feature = 128;
+pub const NVME_FEAT_HOST_IDENTIFIER: nvme_feature = 129;
+pub const NVME_FEAT_RESERVATION_NOTIFICATION_MASK: nvme_feature = 130;
+pub const NVME_FEAT_RESERVATION_PERSISTENCE: nvme_feature = 131;
+pub const NVME_FEAT_NAMESPACE_WRITE_PROTECTION_CONFIG: nvme_feature = 132;
+pub type nvme_feature = ::core::ffi::c_uint;
+pub const NVME_DSM_ATTR_INTEGRAL_READ: nvme_dsm_attribute = 1;
+pub const NVME_DSM_ATTR_INTEGRAL_WRITE: nvme_dsm_attribute = 2;
+pub const NVME_DSM_ATTR_DEALLOCATE: nvme_dsm_attribute = 4;
+pub type nvme_dsm_attribute = ::core::ffi::c_uint;
+pub const NVME_AA_REPLACE_NO_ACTIVATE: nvme_activate_action = 0;
+pub const NVME_AA_REPLACE_ACTIVATE: nvme_activate_action = 1;
+pub const NVME_AA_ACTIVATE: nvme_activate_action = 2;
+pub type nvme_activate_action = ::core::ffi::c_uint;
+#[repr(C, packed)]
+pub struct nvme_power_state {
+    #[doc = " Maximum Power"]
+    pub mp: u16,
+    pub ps_rsvd1: u8,
+    pub mps_nops: u8,
+    pub enlat: u32,
+    pub exlat: u32,
+    pub rrt: u8,
+    pub rrl: u8,
+    pub rwt: u8,
+    pub rwl: u8,
+    pub idlp: u16,
+    pub ips: u8,
+    pub ps_rsvd8: u8,
+    pub actp: u16,
+    pub apw_aps: u8,
+    pub ps_rsvd10: [u8; 9usize],
+}
+impl Default for nvme_power_state {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C, packed(4))]
+pub struct nvme_controller_data {
+    #[doc = " pci vendor id"]
+    pub vid: u16,
+    #[doc = " pci subsystem vendor id"]
+    pub ssvid: u16,
+    #[doc = " serial number"]
+    pub sn: [u8; 20usize],
+    #[doc = " model number"]
+    pub mn: [u8; 40usize],
+    #[doc = " firmware revision"]
+    pub fr: [u8; 8usize],
+    #[doc = " recommended arbitration burst"]
+    pub rab: u8,
+    #[doc = " ieee oui identifier"]
+    pub ieee: [u8; 3usize],
+    #[doc = " multi-interface capabilities"]
+    pub mic: u8,
+    #[doc = " maximum data transfer size"]
+    pub mdts: u8,
+    #[doc = " Controller ID"]
+    pub ctrlr_id: u16,
+    #[doc = " Version"]
+    pub ver: u32,
+    #[doc = " RTD3 Resume Latency"]
+    pub rtd3r: u32,
+    #[doc = " RTD3 Enter Latency"]
+    pub rtd3e: u32,
+    #[doc = " Optional Asynchronous Events Supported"]
+    pub oaes: u32,
+    #[doc = " Controller Attributes"]
+    pub ctratt: u32,
+    #[doc = " Read Recovery Levels Supported"]
+    pub rrls: u16,
+    pub reserved1: [u8; 9usize],
+    #[doc = " Controller Type"]
+    pub cntrltype: u8,
+    #[doc = " FRU Globally Unique Identifier"]
+    pub fguid: [u8; 16usize],
+    #[doc = " Command Retry Delay Time 1"]
+    pub crdt1: u16,
+    #[doc = " Command Retry Delay Time 2"]
+    pub crdt2: u16,
+    #[doc = " Command Retry Delay Time 3"]
+    pub crdt3: u16,
+    pub reserved2: [u8; 122usize],
+    #[doc = " optional admin command support"]
+    pub oacs: u16,
+    #[doc = " abort command limit"]
+    pub acl: u8,
+    #[doc = " asynchronous event request limit"]
+    pub aerl: u8,
+    #[doc = " firmware updates"]
+    pub frmw: u8,
+    #[doc = " log page attributes"]
+    pub lpa: u8,
+    #[doc = " error log page entries"]
+    pub elpe: u8,
+    #[doc = " number of power states supported"]
+    pub npss: u8,
+    #[doc = " admin vendor specific command configuration"]
+    pub avscc: u8,
+    #[doc = " Autonomous Power State Transition Attributes"]
+    pub apsta: u8,
+    #[doc = " Warning Composite Temperature Threshold"]
+    pub wctemp: u16,
+    #[doc = " Critical Composite Temperature Threshold"]
+    pub cctemp: u16,
+    #[doc = " Maximum Time for Firmware Activation"]
+    pub mtfa: u16,
+    #[doc = " Host Memory Buffer Preferred Size"]
+    pub hmpre: u32,
+    #[doc = " Host Memory Buffer Minimum Size"]
+    pub hmmin: u32,
+    pub untncap: nvme_controller_data__bindgen_ty_1,
+    #[doc = " Replay Protected Memory Block Support"]
+    pub rpmbs: u32,
+    #[doc = " Extended Device Self-test Time"]
+    pub edstt: u16,
+    #[doc = " Device Self-test Options"]
+    pub dsto: u8,
+    #[doc = " Firmware Update Granularity"]
+    pub fwug: u8,
+    #[doc = " Keep Alive Support"]
+    pub kas: u16,
+    #[doc = " Host Controlled Thermal Management Attributes"]
+    pub hctma: u16,
+    #[doc = " Minimum Thermal Management Temperature"]
+    pub mntmt: u16,
+    #[doc = " Maximum Thermal Management Temperature"]
+    pub mxtmt: u16,
+    #[doc = " Sanitize Capabilities"]
+    pub sanicap: u32,
+    #[doc = " Host Memory Buffer Minimum Descriptor Entry Size"]
+    pub hmminds: u32,
+    #[doc = " Host Memory Maximum Descriptors Entries"]
+    pub hmmaxd: u16,
+    #[doc = " NVM Set Identifier Maximum"]
+    pub nsetidmax: u16,
+    #[doc = " Endurance Group Identifier Maximum"]
+    pub endgidmax: u16,
+    #[doc = " ANA Transition Time"]
+    pub anatt: u8,
+    #[doc = " Asymmetric Namespace Access Capabilities"]
+    pub anacap: u8,
+    #[doc = " ANA Group Identifier Maximum"]
+    pub anagrpmax: u32,
+    #[doc = " Number of ANA Group Identifiers"]
+    pub nanagrpid: u32,
+    #[doc = " Persistent Event Log Size"]
+    pub pels: u32,
+    pub reserved3: [u8; 156usize],
+    #[doc = " submission queue entry size"]
+    pub sqes: u8,
+    #[doc = " completion queue entry size"]
+    pub cqes: u8,
+    #[doc = " Maximum Outstanding Commands"]
+    pub maxcmd: u16,
+    #[doc = " number of namespaces"]
+    pub nn: u32,
+    #[doc = " optional nvm command support"]
+    pub oncs: u16,
+    #[doc = " fused operation support"]
+    pub fuses: u16,
+    #[doc = " format nvm attributes"]
+    pub fna: u8,
+    #[doc = " volatile write cache"]
+    pub vwc: u8,
+    #[doc = " Atomic Write Unit Normal"]
+    pub awun: u16,
+    #[doc = " Atomic Write Unit Power Fail"]
+    pub awupf: u16,
+    #[doc = " NVM Vendor Specific Command Configuration"]
+    pub nvscc: u8,
+    #[doc = " Namespace Write Protection Capabilities"]
+    pub nwpc: u8,
+    #[doc = " Atomic Compare & Write Unit"]
+    pub acwu: u16,
+    pub reserved6: u16,
+    #[doc = " SGL Support"]
+    pub sgls: u32,
+    #[doc = " Maximum Number of Allowed Namespaces"]
+    pub mnan: u32,
+    pub reserved7: [u8; 224usize],
+    #[doc = " NVM Subsystem NVMe Qualified Name"]
+    pub subnqn: [u8; 256usize],
+    pub reserved8: [u8; 768usize],
+    pub ioccsz: u32,
+    pub iorcsz: u32,
+    pub icdoff: u16,
+    pub fcatt: u8,
+    pub msdbd: u8,
+    pub ofcs: u16,
+    pub reserved9: [u8; 242usize],
+    pub power_state: [nvme_power_state; 32usize],
+    pub vs: [u8; 1024usize],
+}
+#[doc = " Name space capabilities"]
+#[repr(C, packed)]
+pub struct nvme_controller_data__bindgen_ty_1 {
+    pub tnvmcap: [u8; 16usize],
+    pub unvmcap: [u8; 16usize],
+}
+impl Default for nvme_controller_data__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for nvme_controller_data {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C, packed(4))]
+pub struct nvme_namespace_data {
+    #[doc = " namespace size"]
+    pub nsze: u64,
+    #[doc = " namespace capacity"]
+    pub ncap: u64,
+    #[doc = " namespace utilization"]
+    pub nuse: u64,
+    #[doc = " namespace features"]
+    pub nsfeat: u8,
+    #[doc = " number of lba formats"]
+    pub nlbaf: u8,
+    #[doc = " formatted lba size"]
+    pub flbas: u8,
+    #[doc = " metadata capabilities"]
+    pub mc: u8,
+    #[doc = " end-to-end data protection capabilities"]
+    pub dpc: u8,
+    #[doc = " end-to-end data protection type settings"]
+    pub dps: u8,
+    #[doc = " Namespace Multi-path I/O and Namespace Sharing Capabilities"]
+    pub nmic: u8,
+    #[doc = " Reservation Capabilities"]
+    pub rescap: u8,
+    #[doc = " Format Progress Indicator"]
+    pub fpi: u8,
+    #[doc = " Deallocate Logical Block Features"]
+    pub dlfeat: u8,
+    #[doc = " Namespace Atomic Write Unit Normal"]
+    pub nawun: u16,
+    #[doc = " Namespace Atomic Write Unit Power Fail"]
+    pub nawupf: u16,
+    #[doc = " Namespace Atomic Compare & Write Unit"]
+    pub nacwu: u16,
+    #[doc = " Namespace Atomic Boundary Size Normal"]
+    pub nabsn: u16,
+    #[doc = " Namespace Atomic Boundary Offset"]
+    pub nabo: u16,
+    #[doc = " Namespace Atomic Boundary Size Power Fail"]
+    pub nabspf: u16,
+    #[doc = " Namespace Optimal IO Boundary"]
+    pub noiob: u16,
+    #[doc = " NVM Capacity"]
+    pub nvmcap: [u8; 16usize],
+    #[doc = " Namespace Preferred Write Granularity"]
+    pub npwg: u16,
+    #[doc = " Namespace Preferred Write Alignment"]
+    pub npwa: u16,
+    #[doc = " Namespace Preferred Deallocate Granularity"]
+    pub npdg: u16,
+    #[doc = " Namespace Preferred Deallocate Alignment"]
+    pub npda: u16,
+    #[doc = " Namespace Optimal Write Size"]
+    pub nows: u16,
+    pub reserved5: [u8; 18usize],
+    #[doc = " ANA Group Identifier"]
+    pub anagrpid: u32,
+    pub reserved6: [u8; 3usize],
+    #[doc = " Namespace Attributes"]
+    pub nsattr: u8,
+    #[doc = " NVM Set Identifier"]
+    pub nvmsetid: u16,
+    #[doc = " Endurance Group Identifier"]
+    pub endgid: u16,
+    #[doc = " Namespace Globally Unique Identifier"]
+    pub nguid: [u8; 16usize],
+    #[doc = " IEEE Extended Unique Identifier"]
+    pub eui64: [u8; 8usize],
+    #[doc = " lba format support"]
+    pub lbaf: [u32; 16usize],
+    pub reserved7: [u8; 192usize],
+    pub vendor_specific: [u8; 3712usize],
+}
+impl Default for nvme_namespace_data {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub const NVME_LOG_ERROR: nvme_log_page = 1;
+pub const NVME_LOG_HEALTH_INFORMATION: nvme_log_page = 2;
+pub const NVME_LOG_FIRMWARE_SLOT: nvme_log_page = 3;
+pub const NVME_LOG_CHANGED_NAMESPACE: nvme_log_page = 4;
+pub const NVME_LOG_COMMAND_EFFECT: nvme_log_page = 5;
+pub const NVME_LOG_DEVICE_SELF_TEST: nvme_log_page = 6;
+pub const NVME_LOG_TELEMETRY_HOST_INITIATED: nvme_log_page = 7;
+pub const NVME_LOG_TELEMETRY_CONTROLLER_INITIATED: nvme_log_page = 8;
+pub const NVME_LOG_ENDURANCE_GROUP_INFORMATION: nvme_log_page = 9;
+pub const NVME_LOG_PREDICTABLE_LATENCY_PER_NVM_SET: nvme_log_page = 10;
+pub const NVME_LOG_PREDICTABLE_LATENCY_EVENT_AGGREGATE: nvme_log_page = 11;
+pub const NVME_LOG_ASYMMETRIC_NAMESPACE_ACCESS: nvme_log_page = 12;
+pub const NVME_LOG_PERSISTENT_EVENT_LOG: nvme_log_page = 13;
+pub const NVME_LOG_LBA_STATUS_INFORMATION: nvme_log_page = 14;
+pub const NVME_LOG_ENDURANCE_GROUP_EVENT_AGGREGATE: nvme_log_page = 15;
+pub const NVME_LOG_DISCOVERY: nvme_log_page = 112;
+pub const NVME_LOG_RES_NOTIFICATION: nvme_log_page = 128;
+pub const NVME_LOG_SANITIZE_STATUS: nvme_log_page = 129;
+pub const INTEL_LOG_READ_LAT_LOG: nvme_log_page = 193;
+pub const INTEL_LOG_WRITE_LAT_LOG: nvme_log_page = 194;
+pub const INTEL_LOG_TEMP_STATS: nvme_log_page = 197;
+pub const INTEL_LOG_ADD_SMART: nvme_log_page = 202;
+pub const INTEL_LOG_DRIVE_MKT_NAME: nvme_log_page = 221;
+pub const HGST_INFO_LOG: nvme_log_page = 193;
+pub type nvme_log_page = ::core::ffi::c_uint;
+#[repr(C, packed(4))]
+pub struct nvme_error_information_entry {
+    pub error_count: u64,
+    pub sqid: u16,
+    pub cid: u16,
+    pub status: u16,
+    pub error_location: u16,
+    pub lba: u64,
+    pub nsid: u32,
+    pub vendor_specific: u8,
+    pub trtype: u8,
+    pub reserved30: u16,
+    pub csi: u64,
+    pub ttsi: u16,
+    pub reserved: [u8; 22usize],
+}
+impl Default for nvme_error_information_entry {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C, packed(8))]
+pub struct nvme_health_information_page {
+    pub critical_warning: u8,
+    pub temperature: u16,
+    pub available_spare: u8,
+    pub available_spare_threshold: u8,
+    pub percentage_used: u8,
+    pub reserved: [u8; 26usize],
+    pub data_units_read: [u64; 2usize],
+    pub data_units_written: [u64; 2usize],
+    pub host_read_commands: [u64; 2usize],
+    pub host_write_commands: [u64; 2usize],
+    pub controller_busy_time: [u64; 2usize],
+    pub power_cycles: [u64; 2usize],
+    pub power_on_hours: [u64; 2usize],
+    pub unsafe_shutdowns: [u64; 2usize],
+    pub media_errors: [u64; 2usize],
+    pub num_error_info_log_entries: [u64; 2usize],
+    pub warning_temp_time: u32,
+    pub error_temp_time: u32,
+    pub temp_sensor: [u16; 8usize],
+    pub tmt1tc: u32,
+    pub tmt2tc: u32,
+    pub ttftmt1: u32,
+    pub ttftmt2: u32,
+    pub reserved2: [u8; 280usize],
+}
+impl Default for nvme_health_information_page {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[repr(align(4))]
+pub struct nvme_firmware_page {
+    pub afi: u8,
+    pub reserved: [u8; 7usize],
+    pub revision: [[u8; 8usize]; 7usize],
+    pub reserved2: [u8; 448usize],
+}
+impl Default for nvme_firmware_page {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C, packed(4))]
+pub struct nvme_ns_list {
+    pub ns: [u32; 1024usize],
+}
+impl Default for nvme_ns_list {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C, packed(4))]
+pub struct nvme_command_effects_page {
+    pub acs: [u32; 256usize],
+    pub iocs: [u32; 256usize],
+    pub reserved: [u8; 2048usize],
+}
+impl Default for nvme_command_effects_page {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[repr(align(4))]
+pub struct nvme_device_self_test_page {
+    pub curr_operation: u8,
+    pub curr_compl: u8,
+    pub rsvd2: [u8; 2usize],
+    pub result: [nvme_device_self_test_page__bindgen_ty_1; 20usize],
+}
+#[repr(C, packed)]
+pub struct nvme_device_self_test_page__bindgen_ty_1 {
+    pub status: u8,
+    pub segment_num: u8,
+    pub valid_diag_info: u8,
+    pub rsvd3: u8,
+    pub poh: u64,
+    pub nsid: u32,
+    pub failing_lba: [u8; 8usize],
+    pub status_code_type: u8,
+    pub status_code: u8,
+    pub vendor_specific: [u8; 2usize],
+}
+impl Default for nvme_device_self_test_page__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for nvme_device_self_test_page {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C, packed(4))]
+pub struct nvme_telemetry_log_page {
+    pub identifier: u8,
+    pub rsvd: [u8; 4usize],
+    pub oui: [u8; 3usize],
+    pub da1_last: u16,
+    pub da2_last: u16,
+    pub da3_last: u16,
+    pub rsvd2: [u8; 2usize],
+    pub da4_last: u32,
+    pub rsvd3: [u8; 361usize],
+    pub hi_gen: u8,
+    pub ci_avail: u8,
+    pub ci_gen: u8,
+    pub reason: [u8; 128usize],
+}
+impl Default for nvme_telemetry_log_page {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[repr(align(4))]
+pub struct nvme_discovery_log_entry {
+    pub trtype: u8,
+    pub adrfam: u8,
+    pub subtype: u8,
+    pub treq: u8,
+    pub portid: u16,
+    pub cntlid: u16,
+    pub aqsz: u16,
+    pub reserved1: [u8; 22usize],
+    pub trsvcid: [u8; 32usize],
+    pub reserved2: [u8; 192usize],
+    pub subnqn: [u8; 256usize],
+    pub traddr: [u8; 256usize],
+    pub tsas: nvme_discovery_log_entry__bindgen_ty_1,
+}
+#[repr(C)]
+pub struct nvme_discovery_log_entry__bindgen_ty_1 {
+    pub rdma: __BindgenUnionField<nvme_discovery_log_entry__bindgen_ty_1__bindgen_ty_1>,
+    pub tcp: __BindgenUnionField<nvme_discovery_log_entry__bindgen_ty_1__bindgen_ty_2>,
+    pub reserved: __BindgenUnionField<[u8; 256usize]>,
+    pub bindgen_union_field: [u16; 128usize],
+}
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct nvme_discovery_log_entry__bindgen_ty_1__bindgen_ty_1 {
+    pub rdma_qptype: u8,
+    pub rdma_prtype: u8,
+    pub rdma_cms: u8,
+    pub reserved: [u8; 5usize],
+    pub rdma_pkey: u16,
+}
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct nvme_discovery_log_entry__bindgen_ty_1__bindgen_ty_2 {
+    pub sectype: u8,
+}
+impl Default for nvme_discovery_log_entry__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for nvme_discovery_log_entry {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C, packed(4))]
+pub struct nvme_discovery_log {
+    pub genctr: u64,
+    pub numrec: u64,
+    pub recfmt: u16,
+    pub reserved: [u8; 1006usize],
+    pub entries: __IncompleteArrayField<nvme_discovery_log_entry>,
+}
+impl Default for nvme_discovery_log {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C, packed(4))]
+pub struct nvme_res_notification_page {
+    pub log_page_count: u64,
+    pub log_page_type: u8,
+    pub available_log_pages: u8,
+    pub reserved2: u8,
+    pub nsid: u32,
+    pub reserved: [u8; 48usize],
+}
+impl Default for nvme_res_notification_page {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C, packed(4))]
+pub struct nvme_sanitize_status_page {
+    pub sprog: u16,
+    pub sstat: u16,
+    pub scdw10: u32,
+    pub etfo: u32,
+    pub etfbe: u32,
+    pub etfce: u32,
+    pub etfownd: u32,
+    pub etfbewnd: u32,
+    pub etfcewnd: u32,
+    pub reserved: [u8; 480usize],
+}
+impl Default for nvme_sanitize_status_page {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C, packed(4))]
+pub struct intel_log_temp_stats {
+    pub current: u64,
+    pub overtemp_flag_last: u64,
+    pub overtemp_flag_life: u64,
+    pub max_temp: u64,
+    pub min_temp: u64,
+    pub _rsvd: [u64; 5usize],
+    pub max_oper_temp: u64,
+    pub min_oper_temp: u64,
+    pub est_offset: u64,
+}
+impl Default for intel_log_temp_stats {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C, packed(4))]
+pub struct nvme_resv_reg_ctrlr {
+    pub ctrlr_id: u16,
+    pub rcsts: u8,
+    pub reserved3: [u8; 5usize],
+    pub hostid: u64,
+    pub rkey: u64,
+}
+impl Default for nvme_resv_reg_ctrlr {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C, packed(4))]
+pub struct nvme_resv_reg_ctrlr_ext {
+    pub ctrlr_id: u16,
+    pub rcsts: u8,
+    pub reserved3: [u8; 5usize],
+    pub rkey: u64,
+    pub hostid: [u64; 2usize],
+    pub reserved32: [u8; 32usize],
+}
+impl Default for nvme_resv_reg_ctrlr_ext {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C, packed(4))]
+pub struct nvme_resv_status {
+    pub gen: u32,
+    pub rtype: u8,
+    pub regctl: [u8; 2usize],
+    pub reserved7: [u8; 2usize],
+    pub ptpls: u8,
+    pub reserved10: [u8; 14usize],
+    pub ctrlr: __IncompleteArrayField<nvme_resv_reg_ctrlr>,
+}
+impl Default for nvme_resv_status {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C, packed(4))]
+pub struct nvme_resv_status_ext {
+    pub gen: u32,
+    pub rtype: u8,
+    pub regctl: [u8; 2usize],
+    pub reserved7: [u8; 2usize],
+    pub ptpls: u8,
+    pub reserved10: [u8; 14usize],
+    pub reserved24: [u8; 40usize],
+    pub ctrlr: __IncompleteArrayField<nvme_resv_reg_ctrlr_ext>,
+}
+impl Default for nvme_resv_status_ext {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct nvme_io_test {
+    pub opc: nvme_nvm_opcode,
+    pub size: u32,
+    pub time: u32,
+    pub num_threads: u32,
+    pub flags: u32,
+    pub io_completed: [u64; 128usize],
+}
+impl Default for nvme_io_test {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub const NVME_TEST_FLAG_REFTHREAD: nvme_io_test_flags = 1;
+pub type nvme_io_test_flags = ::core::ffi::c_uint;
+#[repr(C)]
+pub struct nvme_pt_command {
+    pub cmd: nvme_command,
+    pub cpl: nvme_completion,
+    pub buf: *mut ::core::ffi::c_void,
+    pub len: u32,
+    pub is_read: u32,
+    pub driver_lock: *mut mtx,
+}
+impl Default for nvme_pt_command {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct nvme_get_nsid {
+    pub cdev: [::core::ffi::c_char; 256usize],
+    pub nsid: u32,
+}
+impl Default for nvme_get_nsid {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct nvme_hmb_desc {
+    pub addr: u64,
+    pub size: u32,
+    pub reserved: u32,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct nvme_consumer {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct nvme_passthru_cmd {
+    _unused: [u8; 0],
+}
+pub type nvme_cb_fn_t = ::core::option::Option<
+    unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: *const nvme_completion),
+>;
+pub type nvme_cons_ns_fn_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        arg1: *mut nvme_namespace,
+        arg2: *mut ::core::ffi::c_void,
+    ) -> *mut ::core::ffi::c_void,
+>;
+pub type nvme_cons_ctrlr_fn_t = ::core::option::Option<
+    unsafe extern "C" fn(arg1: *mut nvme_controller) -> *mut ::core::ffi::c_void,
+>;
+pub type nvme_cons_async_fn_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        arg1: *mut ::core::ffi::c_void,
+        arg2: *const nvme_completion,
+        arg3: u32,
+        arg4: *mut ::core::ffi::c_void,
+        arg5: u32,
+    ),
+>;
+pub type nvme_cons_fail_fn_t =
+    ::core::option::Option<unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void)>;
+pub const NVME_NS_DEALLOCATE_SUPPORTED: nvme_namespace_flags = 1;
+pub const NVME_NS_FLUSH_SUPPORTED: nvme_namespace_flags = 2;
+pub type nvme_namespace_flags = ::core::ffi::c_uint;
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct nvme_completion_poll_status {
+    pub cpl: nvme_completion,
+    pub done: ::core::ffi::c_int,
+}
+#[repr(C)]
+pub struct nvme_request {
+    pub cmd: nvme_command,
+    pub qpair: *mut nvme_qpair,
+    pub payload: memdesc,
+    pub cb_fn: nvme_cb_fn_t,
+    pub cb_arg: *mut ::core::ffi::c_void,
+    pub retries: i32,
+    pub payload_valid: bool_,
+    pub timeout: bool_,
+    pub spare: [bool_; 2usize],
+    pub stailq: nvme_request__bindgen_ty_1,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct nvme_request__bindgen_ty_1 {
+    pub stqe_next: *mut nvme_request,
+}
+impl Default for nvme_request__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for nvme_request {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct nvme_async_event_request {
+    pub ctrlr: *mut nvme_controller,
+    pub req: *mut nvme_request,
+    pub cpl: nvme_completion,
+    pub log_page_id: u32,
+    pub log_page_size: u32,
+    pub log_page_buffer: [u8; 4096usize],
+}
+impl Default for nvme_async_event_request {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct nvme_tracker {
+    pub tailq: nvme_tracker__bindgen_ty_1,
+    pub req: *mut nvme_request,
+    pub qpair: *mut nvme_qpair,
+    pub deadline: sbintime_t,
+    pub payload_dma_map: bus_dmamap_t,
+    pub cid: u16,
+    pub prp: *mut u64,
+    pub prp_bus_addr: bus_addr_t,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct nvme_tracker__bindgen_ty_1 {
+    pub tqe_next: *mut nvme_tracker,
+    pub tqe_prev: *mut *mut nvme_tracker,
+}
+impl Default for nvme_tracker__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for nvme_tracker {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub const RECOVERY_NONE: nvme_recovery = 0;
+pub const RECOVERY_WAITING: nvme_recovery = 1;
+pub type nvme_recovery = ::core::ffi::c_uint;
+#[repr(C)]
+#[repr(align(128))]
+pub struct nvme_qpair {
+    pub ctrlr: *mut nvme_controller,
+    pub id: u32,
+    pub domain: ::core::ffi::c_int,
+    pub cpu: ::core::ffi::c_int,
+    pub vector: u16,
+    pub rid: ::core::ffi::c_int,
+    pub res: *mut resource,
+    pub tag: *mut ::core::ffi::c_void,
+    pub timer: callout,
+    pub timer_armed: bool_,
+    pub recovery_state: nvme_recovery,
+    pub num_entries: u32,
+    pub num_trackers: u32,
+    pub sq_tdbl_off: u32,
+    pub cq_hdbl_off: u32,
+    pub phase: u32,
+    pub sq_head: u32,
+    pub sq_tail: u32,
+    pub cq_head: u32,
+    pub num_cmds: i64,
+    pub num_intr_handler_calls: i64,
+    pub num_retries: i64,
+    pub num_failures: i64,
+    pub num_ignored: i64,
+    pub num_recovery_nolock: i64,
+    pub cmd: *mut nvme_command,
+    pub cpl: *mut nvme_completion,
+    pub dma_tag: bus_dma_tag_t,
+    pub dma_tag_payload: bus_dma_tag_t,
+    pub queuemem_map: bus_dmamap_t,
+    pub cmd_bus_addr: u64,
+    pub cpl_bus_addr: u64,
+    pub free_tr: nvme_qpair__bindgen_ty_1,
+    pub outstanding_tr: nvme_qpair__bindgen_ty_2,
+    pub queued_req: nvme_qpair__bindgen_ty_3,
+    pub act_tr: *mut *mut nvme_tracker,
+    pub __bindgen_padding_0: [u64; 9usize],
+    pub lock: mtx_padalign,
+    pub recovery: mtx_padalign,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct nvme_qpair__bindgen_ty_1 {
+    pub tqh_first: *mut nvme_tracker,
+    pub tqh_last: *mut *mut nvme_tracker,
+}
+impl Default for nvme_qpair__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct nvme_qpair__bindgen_ty_2 {
+    pub tqh_first: *mut nvme_tracker,
+    pub tqh_last: *mut *mut nvme_tracker,
+}
+impl Default for nvme_qpair__bindgen_ty_2 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct nvme_qpair__bindgen_ty_3 {
+    pub stqh_first: *mut nvme_request,
+    pub stqh_last: *mut *mut nvme_request,
+}
+impl Default for nvme_qpair__bindgen_ty_3 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for nvme_qpair {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+pub struct nvme_namespace {
+    pub ctrlr: *mut nvme_controller,
+    pub data: nvme_namespace_data,
+    pub id: u32,
+    pub flags: u32,
+    pub cdev: *mut cdev,
+    pub cons_cookie: [*mut ::core::ffi::c_void; 2usize],
+    pub boundary: u32,
+    pub lock: mtx,
+}
+impl Default for nvme_namespace {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[repr(align(128))]
+pub struct nvme_controller {
+    pub dev: device_t,
+    pub lock: mtx,
+    pub domain: ::core::ffi::c_int,
+    pub ready_timeout_in_ms: u32,
+    pub quirks: u32,
+    pub bus_tag: bus_space_tag_t,
+    pub bus_handle: bus_space_handle_t,
+    pub resource_id: ::core::ffi::c_int,
+    pub resource: *mut resource,
+    pub bar4_resource_id: ::core::ffi::c_int,
+    pub bar4_resource: *mut resource,
+    pub msi_count: ::core::ffi::c_int,
+    pub enable_aborts: u32,
+    pub num_io_queues: u32,
+    pub max_hw_pend_io: u32,
+    pub config_hook: intr_config_hook,
+    pub ns_identified: u32,
+    pub queues_created: u32,
+    pub reset_task: task,
+    pub taskqueue: *mut taskqueue,
+    pub rid: ::core::ffi::c_int,
+    pub res: *mut resource,
+    pub tag: *mut ::core::ffi::c_void,
+    #[doc = " maximum i/o size in bytes"]
+    pub max_xfer_size: u32,
+    #[doc = " LO and HI capacity mask"]
+    pub cap_lo: u32,
+    pub cap_hi: u32,
+    #[doc = " Page size and log2(page_size) - 12 that we're currently using"]
+    pub page_size: u32,
+    pub mps: u32,
+    #[doc = " interrupt coalescing time period (in microseconds)"]
+    pub int_coal_time: u32,
+    #[doc = " interrupt coalescing threshold"]
+    pub int_coal_threshold: u32,
+    #[doc = " timeout period in seconds"]
+    pub admin_timeout_period: u32,
+    pub timeout_period: u32,
+    #[doc = " doorbell stride"]
+    pub dstrd: u32,
+    pub __bindgen_padding_0: [u64; 15usize],
+    pub adminq: nvme_qpair,
+    pub ioq: *mut nvme_qpair,
+    pub regs: *mut nvme_registers,
+    pub cdata: nvme_controller_data,
+    pub ns: [nvme_namespace; 16usize],
+    pub cdev: *mut cdev,
+    #[doc = " bit mask of event types currently enabled for async events"]
+    pub async_event_config: u32,
+    pub num_aers: u32,
+    pub aer: [nvme_async_event_request; 8usize],
+    pub cons_cookie: [*mut ::core::ffi::c_void; 2usize],
+    pub is_resetting: u32,
+    pub notification_sent: u32,
+    pub fail_on_reset: u_int,
+    pub is_failed: bool_,
+    pub is_failed_admin: bool_,
+    pub is_dying: bool_,
+    pub isr_warned: bool_,
+    pub is_initialized: bool_,
+    pub fail_req: nvme_controller__bindgen_ty_1,
+    pub hmb_nchunks: ::core::ffi::c_int,
+    pub hmb_chunk: usize,
+    pub hmb_tag: bus_dma_tag_t,
+    pub hmb_chunks: *mut nvme_controller_nvme_hmb_chunk,
+    pub hmb_desc_tag: bus_dma_tag_t,
+    pub hmb_desc_map: bus_dmamap_t,
+    pub hmb_desc_vaddr: *mut nvme_hmb_desc,
+    pub hmb_desc_paddr: u64,
+    pub alignment_splits: counter_u64_t,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct nvme_controller__bindgen_ty_1 {
+    pub stqh_first: *mut nvme_request,
+    pub stqh_last: *mut *mut nvme_request,
+}
+impl Default for nvme_controller__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct nvme_controller_nvme_hmb_chunk {
+    pub hmbc_map: bus_dmamap_t,
+    pub hmbc_vaddr: *mut ::core::ffi::c_void,
+    pub hmbc_paddr: u64,
+}
+impl Default for nvme_controller_nvme_hmb_chunk {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for nvme_controller {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[doc = " @brief A function implementing the NVME_DELAYED_ATTACH() method"]
+pub type nvme_delayed_attach_t = ::core::option::Option<
+    unsafe extern "C" fn(dev: device_t, ctrlr: *mut nvme_controller) -> ::core::ffi::c_int,
+>;
+#[doc = " @brief A function implementing the NVME_ENABLE() method"]
+pub type nvme_enable_t = ::core::option::Option<unsafe extern "C" fn(dev: device_t)>;
+#[doc = " @brief A function implementing the NVME_SQ_ENTER() method"]
+pub type nvme_sq_enter_t = ::core::option::Option<
+    unsafe extern "C" fn(dev: device_t, qpair: *mut nvme_qpair, tr: *mut nvme_tracker) -> u32,
+>;
+#[doc = " @brief A function implementing the NVME_SQ_LEAVE() method"]
+pub type nvme_sq_leave_t = ::core::option::Option<
+    unsafe extern "C" fn(dev: device_t, qpair: *mut nvme_qpair, tr: *mut nvme_tracker),
+>;
+#[doc = " @brief A function implementing the NVME_CQ_DONE() method"]
+pub type nvme_cq_done_t = ::core::option::Option<
+    unsafe extern "C" fn(dev: device_t, qpair: *mut nvme_qpair, tr: *mut nvme_tracker),
+>;
+#[doc = " @brief A function implementing the NVME_QPAIR_CONSTRUCT() method"]
+pub type nvme_qpair_construct_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        dev: device_t,
+        qpair: *mut nvme_qpair,
+        num_entries: u32,
+        num_trackers: u32,
+        ctrlr: *mut nvme_controller,
+    ) -> ::core::ffi::c_int,
+>;
 #[doc = " @brief A function implementing the PIC_ACTIVATE_INTR() method"]
 pub type pic_activate_intr_t = ::core::option::Option<
     unsafe extern "C" fn(
@@ -8116,168 +12370,119 @@ pub type pic_ipi_setup_t = ::core::option::Option<
     ) -> ::core::ffi::c_int,
 >;
 #[repr(C)]
-#[derive(Debug)]
-pub struct apple_mbox_msg {
-    pub data0: u64,
-    pub data1: u32,
-}
-pub type apple_mbox_rx = ::core::option::Option<
-    unsafe extern "C" fn(
-        arg1: *mut ::core::ffi::c_void,
-        arg2: apple_mbox_msg,
-    ) -> ::core::ffi::c_int,
->;
-#[repr(C)]
-#[derive(Debug)]
-pub struct apple_mbox {
-    pub dev: device_t,
-}
-pub type rtkit_map = ::core::option::Option<
-    unsafe extern "C" fn(
-        arg1: *mut ::core::ffi::c_void,
-        arg2: bus_addr_t,
-        arg3: bus_size_t,
-    ) -> ::core::ffi::c_int,
->;
-#[repr(C)]
-#[derive(Debug)]
-pub struct rtkit_buffer {
-    pub addr: bus_addr_t,
-    pub size: bus_size_t,
-    pub kva: *mut ::core::ffi::c_void,
-    pub tag: bus_dma_tag_t,
-    pub map: bus_dmamap_t,
-    pub state: *mut rtkit_state,
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct rtkit_task {
-    pub msg: apple_mbox_msg,
-    pub state: *mut rtkit_state,
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct rtkit_state {
-    pub dev: device_t,
-    pub mbox: apple_mbox,
-    pub iop_pwrstate: u16,
-    pub ap_pwrstate: u16,
-    pub epmap: u64,
-    pub callbacks: [::core::option::Option<
-        unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: u64),
-    >; 32usize],
-    pub args: [*mut ::core::ffi::c_void; 32usize],
-    pub crashlog_buffer: rtkit_buffer,
-    pub syslog_buffer: rtkit_buffer,
-    pub ioreport_buffer: rtkit_buffer,
-    pub oslog_buffer: rtkit_buffer,
-    pub map_fn: rtkit_map,
-    pub map_arg: *mut ::core::ffi::c_void,
-    pub syslog_entries: u8,
-    pub syslog_msg_size: u8,
-    pub syslog_msg: *mut ::core::ffi::c_char,
-    pub verbose: bool_,
-    pub noalloc: bool_,
-}
-#[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct witness {
     pub _address: u8,
 }
 pub type __uint128_t = u128;
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct intr_event {
     pub _address: u8,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct file {
     pub _address: u8,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct kaiocb {
     pub _address: u8,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct aioliojob {
     pub _address: u8,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct vnode {
     pub _address: u8,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct cdev_priv {
     pub _address: u8,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct sysent {
     pub _address: u8,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct seltd {
     pub _address: u8,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct umtx_q {
     pub _address: u8,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct plimit {
     pub _address: u8,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct vnet {
     pub _address: u8,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct filedesc {
     pub _address: u8,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct filedesc_to_leader {
     pub _address: u8,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct pwddesc {
     pub _address: u8,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct pstats {
     pub _address: u8,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ktr_io_params {
     pub _address: u8,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct itimers {
     pub _address: u8,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct sysentvec {
     pub _address: u8,
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ktr_request {
+    pub _address: u8,
+}
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct g_consumer {
+    pub _address: u8,
+}
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct g_provider {
+    pub _address: u8,
+}
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct buf {
     pub _address: u8,
 }
 unsafe extern "C" {
@@ -9839,6 +14044,31 @@ unsafe extern "C" {
     pub fn device_clear_prop(dev: device_t, name: *const ::core::ffi::c_char)
         -> ::core::ffi::c_int;
     pub fn device_clear_prop_alldev(name: *const ::core::ffi::c_char);
+    pub static mut cpusetsizemin: u_int;
+    pub static mut cpuset_root: *mut cpuset_t;
+    pub fn cpuset_thread0() -> *mut cpuset;
+    pub fn cpuset_ref(arg1: *mut cpuset) -> *mut cpuset;
+    pub fn cpuset_rel(arg1: *mut cpuset);
+    pub fn cpuset_setthread(id: lwpid_t, arg1: *mut cpuset_t) -> ::core::ffi::c_int;
+    pub fn cpuset_setithread(id: lwpid_t, cpu: ::core::ffi::c_int) -> ::core::ffi::c_int;
+    pub fn cpuset_create_root(arg1: *mut prison, arg2: *mut *mut cpuset) -> ::core::ffi::c_int;
+    pub fn cpuset_setproc_update_set(arg1: *mut proc_, arg2: *mut cpuset) -> ::core::ffi::c_int;
+    pub fn cpuset_which(
+        arg1: cpuwhich_t,
+        arg2: id_t,
+        arg3: *mut *mut proc_,
+        arg4: *mut *mut thread,
+        arg5: *mut *mut cpuset,
+    ) -> ::core::ffi::c_int;
+    pub fn cpuset_kernthread(arg1: *mut thread);
+    pub fn cpusetobj_strprint(
+        arg1: *mut ::core::ffi::c_char,
+        arg2: *const cpuset_t,
+    ) -> *mut ::core::ffi::c_char;
+    pub fn cpusetobj_strscan(
+        arg1: *mut cpuset_t,
+        arg2: *const ::core::ffi::c_char,
+    ) -> ::core::ffi::c_int;
     pub static mut M_CACHE: [malloc_type; 1usize];
     pub static mut M_DEVBUF: [malloc_type; 1usize];
     pub static mut M_PARGS: [malloc_type; 1usize];
@@ -11009,31 +15239,6 @@ unsafe extern "C" {
     pub fn rman_set_type(_r: *mut resource, _type: ::core::ffi::c_int);
     pub fn rman_set_virtual(_r: *mut resource, _v: *mut ::core::ffi::c_void);
     pub static mut rman_head: rman_head;
-    pub static mut cpusetsizemin: u_int;
-    pub static mut cpuset_root: *mut cpuset_t;
-    pub fn cpuset_thread0() -> *mut cpuset;
-    pub fn cpuset_ref(arg1: *mut cpuset) -> *mut cpuset;
-    pub fn cpuset_rel(arg1: *mut cpuset);
-    pub fn cpuset_setthread(id: lwpid_t, arg1: *mut cpuset_t) -> ::core::ffi::c_int;
-    pub fn cpuset_setithread(id: lwpid_t, cpu: ::core::ffi::c_int) -> ::core::ffi::c_int;
-    pub fn cpuset_create_root(arg1: *mut prison, arg2: *mut *mut cpuset) -> ::core::ffi::c_int;
-    pub fn cpuset_setproc_update_set(arg1: *mut proc_, arg2: *mut cpuset) -> ::core::ffi::c_int;
-    pub fn cpuset_which(
-        arg1: cpuwhich_t,
-        arg2: id_t,
-        arg3: *mut *mut proc_,
-        arg4: *mut *mut thread,
-        arg5: *mut *mut cpuset,
-    ) -> ::core::ffi::c_int;
-    pub fn cpuset_kernthread(arg1: *mut thread);
-    pub fn cpusetobj_strprint(
-        arg1: *mut ::core::ffi::c_char,
-        arg2: *const cpuset_t,
-    ) -> *mut ::core::ffi::c_char;
-    pub fn cpusetobj_strscan(
-        arg1: *mut cpuset_t,
-        arg2: *const ::core::ffi::c_char,
-    ) -> ::core::ffi::c_int;
     pub fn topo_init_node(node: *mut topo_node);
     pub fn topo_init_root(root: *mut topo_node);
     pub fn topo_add_node_by_hwid(
@@ -11423,6 +15628,25 @@ unsafe extern "C" {
     pub static mut ofw_bus_get_type_desc: kobjop_desc;
     #[doc = " @brief Unique descriptor for the OFW_BUS_MAP_INTR() method"]
     pub static mut ofw_bus_map_intr_desc: kobjop_desc;
+    pub static mut simplebus_driver: kobj_class;
+    pub fn simplebus_init(dev: device_t, node: phandle_t);
+    pub fn simplebus_add_device(
+        dev: device_t,
+        node: phandle_t,
+        order: u_int,
+        name: *const ::core::ffi::c_char,
+        unit: ::core::ffi::c_int,
+        di: *mut simplebus_devinfo,
+    ) -> device_t;
+    pub fn simplebus_setup_dinfo(
+        dev: device_t,
+        node: phandle_t,
+        di: *mut simplebus_devinfo,
+    ) -> *mut simplebus_devinfo;
+    pub fn simplebus_fill_ranges(node: phandle_t, sc: *mut simplebus_softc) -> ::core::ffi::c_int;
+    pub fn simplebus_attach(dev: device_t) -> ::core::ffi::c_int;
+    pub fn simplebus_attach_impl(dev: device_t) -> ::core::ffi::c_int;
+    pub fn simplebus_detach(dev: device_t) -> ::core::ffi::c_int;
     pub fn ofw_bus_gen_setup_devinfo(
         arg1: *mut ofw_bus_devinfo,
         arg2: phandle_t,
@@ -11560,6 +15784,434 @@ unsafe extern "C" {
         list_name: *const ::core::ffi::c_char,
         array: *mut *mut *const ::core::ffi::c_char,
     ) -> ::core::ffi::c_int;
+    pub static mut bio_transient_maxcnt: ::core::ffi::c_int;
+    pub fn biodone(bp: *mut bio);
+    pub fn biofinish(bp: *mut bio, stat: *mut devstat, error: ::core::ffi::c_int);
+    pub fn biowait(bp: *mut bio, wmesg: *const ::core::ffi::c_char) -> ::core::ffi::c_int;
+    pub fn biotrack_buf(bp: *mut bio, location: *const ::core::ffi::c_char);
+    pub fn bioq_disksort(ap: *mut bio_queue_head, bp: *mut bio);
+    pub fn bioq_first(head: *mut bio_queue_head) -> *mut bio;
+    pub fn bioq_takefirst(head: *mut bio_queue_head) -> *mut bio;
+    pub fn bioq_flush(head: *mut bio_queue_head, stp: *mut devstat, error: ::core::ffi::c_int);
+    pub fn bioq_init(head: *mut bio_queue_head);
+    pub fn bioq_insert_head(head: *mut bio_queue_head, bp: *mut bio);
+    pub fn bioq_insert_tail(head: *mut bio_queue_head, bp: *mut bio);
+    pub fn bioq_remove(head: *mut bio_queue_head, bp: *mut bio);
+    pub fn physio(dev: *mut cdev, uio: *mut uio, ioflag: ::core::ffi::c_int) -> ::core::ffi::c_int;
+    pub fn counter_u64_alloc(arg1: ::core::ffi::c_int) -> counter_u64_t;
+    pub fn counter_u64_free(arg1: counter_u64_t);
+    pub fn counter_u64_zero(arg1: counter_u64_t);
+    pub fn counter_u64_fetch(arg1: counter_u64_t) -> u64;
+    pub fn counter_ratecheck(arg1: *mut counter_rate, arg2: i64) -> i64;
+    pub fn counter_u64_sysinit(arg1: *mut ::core::ffi::c_void);
+    pub fn counter_u64_sysuninit(arg1: *mut ::core::ffi::c_void);
+    pub fn memdesc_bio(bio: *mut bio) -> memdesc;
+    pub fn memdesc_ccb(ccb: *mut ccb) -> memdesc;
+    pub fn memdesc_copyback(
+        mem: *mut memdesc,
+        off: ::core::ffi::c_int,
+        size: ::core::ffi::c_int,
+        src: *const ::core::ffi::c_void,
+    );
+    pub fn memdesc_copydata(
+        mem: *mut memdesc,
+        off: ::core::ffi::c_int,
+        size: ::core::ffi::c_int,
+        dst: *mut ::core::ffi::c_void,
+    );
+    pub fn memdesc_alloc_ext_mbufs(
+        mem: *mut memdesc,
+        ext_alloc: memdesc_alloc_ext_mbuf_t,
+        extpg_alloc: memdesc_alloc_extpg_mbuf_t,
+        cb_arg: *mut ::core::ffi::c_void,
+        how: ::core::ffi::c_int,
+        offset: usize,
+        len: usize,
+        actual_len: *mut usize,
+        can_truncate: bool_,
+    ) -> *mut mbuf;
+    pub fn uma_zcreate(
+        name: *const ::core::ffi::c_char,
+        size: usize,
+        ctor: uma_ctor,
+        dtor: uma_dtor,
+        uminit: uma_init,
+        fini: uma_fini,
+        align: ::core::ffi::c_int,
+        flags: u32,
+    ) -> uma_zone_t;
+    pub fn uma_zsecond_create(
+        name: *const ::core::ffi::c_char,
+        ctor: uma_ctor,
+        dtor: uma_dtor,
+        zinit: uma_init,
+        zfini: uma_fini,
+        primary: uma_zone_t,
+    ) -> uma_zone_t;
+    pub fn uma_zcache_create(
+        name: *const ::core::ffi::c_char,
+        size: ::core::ffi::c_int,
+        ctor: uma_ctor,
+        dtor: uma_dtor,
+        zinit: uma_init,
+        zfini: uma_fini,
+        zimport: uma_import,
+        zrelease: uma_release,
+        arg: *mut ::core::ffi::c_void,
+        flags: ::core::ffi::c_int,
+    ) -> uma_zone_t;
+    pub fn uma_zdestroy(zone: uma_zone_t);
+    pub fn uma_zalloc_arg(
+        zone: uma_zone_t,
+        arg: *mut ::core::ffi::c_void,
+        flags: ::core::ffi::c_int,
+    ) -> *mut ::core::ffi::c_void;
+    pub fn uma_zalloc_pcpu_arg(
+        zone: uma_zone_t,
+        arg: *mut ::core::ffi::c_void,
+        flags: ::core::ffi::c_int,
+    ) -> *mut ::core::ffi::c_void;
+    pub fn uma_zalloc_smr(zone: uma_zone_t, flags: ::core::ffi::c_int) -> *mut ::core::ffi::c_void;
+    pub fn uma_zalloc_domain(
+        zone: uma_zone_t,
+        arg: *mut ::core::ffi::c_void,
+        domain: ::core::ffi::c_int,
+        flags: ::core::ffi::c_int,
+    ) -> *mut ::core::ffi::c_void;
+    pub fn uma_zfree_arg(
+        zone: uma_zone_t,
+        item: *mut ::core::ffi::c_void,
+        arg: *mut ::core::ffi::c_void,
+    );
+    pub fn uma_zfree_pcpu_arg(
+        zone: uma_zone_t,
+        item: *mut ::core::ffi::c_void,
+        arg: *mut ::core::ffi::c_void,
+    );
+    pub fn uma_zfree_smr(zone: uma_zone_t, item: *mut ::core::ffi::c_void);
+    pub fn uma_zwait(zone: uma_zone_t);
+    pub fn uma_reclaim(req: ::core::ffi::c_int);
+    pub fn uma_reclaim_domain(req: ::core::ffi::c_int, domain: ::core::ffi::c_int);
+    pub fn uma_zone_reclaim(arg1: uma_zone_t, req: ::core::ffi::c_int);
+    pub fn uma_zone_reclaim_domain(
+        arg1: uma_zone_t,
+        req: ::core::ffi::c_int,
+        domain: ::core::ffi::c_int,
+    );
+    pub fn uma_set_cache_align_mask(mask: ::core::ffi::c_uint);
+    pub fn uma_get_cache_align_mask() -> ::core::ffi::c_uint;
+    pub fn uma_zone_reserve(zone: uma_zone_t, nitems: ::core::ffi::c_int);
+    pub fn uma_zone_reserve_kva(zone: uma_zone_t, nitems: ::core::ffi::c_int)
+        -> ::core::ffi::c_int;
+    pub fn uma_zone_set_max(zone: uma_zone_t, nitems: ::core::ffi::c_int) -> ::core::ffi::c_int;
+    pub fn uma_zone_set_maxcache(zone: uma_zone_t, nitems: ::core::ffi::c_int);
+    pub fn uma_zone_get_max(zone: uma_zone_t) -> ::core::ffi::c_int;
+    pub fn uma_zone_set_warning(zone: uma_zone_t, warning: *const ::core::ffi::c_char);
+    pub fn uma_zone_set_maxaction(zone: uma_zone_t, arg1: uma_maxaction_t);
+    pub fn uma_zone_get_cur(zone: uma_zone_t) -> ::core::ffi::c_int;
+    pub fn uma_zone_set_init(zone: uma_zone_t, uminit: uma_init);
+    pub fn uma_zone_set_fini(zone: uma_zone_t, fini: uma_fini);
+    pub fn uma_zone_set_zinit(zone: uma_zone_t, zinit: uma_init);
+    pub fn uma_zone_set_zfini(zone: uma_zone_t, zfini: uma_fini);
+    pub fn uma_zone_set_allocf(zone: uma_zone_t, allocf: uma_alloc);
+    pub fn uma_zone_set_freef(zone: uma_zone_t, freef: uma_free);
+    pub fn uma_zone_set_smr(zone: uma_zone_t, smr: smr_t);
+    pub fn uma_zone_get_smr(zone: uma_zone_t) -> smr_t;
+    pub fn uma_prealloc(zone: uma_zone_t, itemcnt: ::core::ffi::c_int);
+    pub fn uma_zone_exhausted(zone: uma_zone_t) -> ::core::ffi::c_int;
+    pub fn uma_zone_memory(zone: uma_zone_t) -> usize;
+    pub static mut pcpu_zone_4: uma_zone_t;
+    pub static mut pcpu_zone_8: uma_zone_t;
+    pub static mut pcpu_zone_16: uma_zone_t;
+    pub static mut pcpu_zone_32: uma_zone_t;
+    pub static mut pcpu_zone_64: uma_zone_t;
+    pub fn uma_reclaim_wakeup();
+    pub fn uma_reclaim_worker(arg1: *mut ::core::ffi::c_void);
+    pub fn uma_limit() -> ::core::ffi::c_ulong;
+    pub fn uma_size() -> ::core::ffi::c_ulong;
+    pub fn uma_avail() -> ::core::ffi::c_long;
+    pub fn nvme_strvis(
+        dst: *mut u8,
+        src: *const u8,
+        dstlen: ::core::ffi::c_int,
+        srclen: ::core::ffi::c_int,
+    );
+    pub fn nvme_ctrlr_passthrough_cmd(
+        ctrlr: *mut nvme_controller,
+        pt: *mut nvme_pt_command,
+        nsid: u32,
+        is_user_buffer: ::core::ffi::c_int,
+        is_admin_cmd: ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int;
+    pub fn nvme_ctrlr_linux_passthru_cmd(
+        ctrlr: *mut nvme_controller,
+        npc: *mut nvme_passthru_cmd,
+        nsid: u32,
+        is_user: bool_,
+        is_admin: bool_,
+    ) -> ::core::ffi::c_int;
+    pub fn nvme_ctrlr_cmd_set_feature(
+        ctrlr: *mut nvme_controller,
+        feature: u8,
+        cdw11: u32,
+        cdw12: u32,
+        cdw13: u32,
+        cdw14: u32,
+        cdw15: u32,
+        payload: *mut ::core::ffi::c_void,
+        payload_size: u32,
+        cb_fn: nvme_cb_fn_t,
+        cb_arg: *mut ::core::ffi::c_void,
+    );
+    pub fn nvme_ctrlr_cmd_get_feature(
+        ctrlr: *mut nvme_controller,
+        feature: u8,
+        cdw11: u32,
+        payload: *mut ::core::ffi::c_void,
+        payload_size: u32,
+        cb_fn: nvme_cb_fn_t,
+        cb_arg: *mut ::core::ffi::c_void,
+    );
+    pub fn nvme_ctrlr_cmd_get_log_page(
+        ctrlr: *mut nvme_controller,
+        log_page: u8,
+        nsid: u32,
+        payload: *mut ::core::ffi::c_void,
+        payload_size: u32,
+        cb_fn: nvme_cb_fn_t,
+        cb_arg: *mut ::core::ffi::c_void,
+    );
+    pub fn nvme_ns_cmd_write(
+        ns: *mut nvme_namespace,
+        payload: *mut ::core::ffi::c_void,
+        lba: u64,
+        lba_count: u32,
+        cb_fn: nvme_cb_fn_t,
+        cb_arg: *mut ::core::ffi::c_void,
+    ) -> ::core::ffi::c_int;
+    pub fn nvme_ns_cmd_write_bio(
+        ns: *mut nvme_namespace,
+        bp: *mut bio,
+        cb_fn: nvme_cb_fn_t,
+        cb_arg: *mut ::core::ffi::c_void,
+    ) -> ::core::ffi::c_int;
+    pub fn nvme_ns_cmd_read(
+        ns: *mut nvme_namespace,
+        payload: *mut ::core::ffi::c_void,
+        lba: u64,
+        lba_count: u32,
+        cb_fn: nvme_cb_fn_t,
+        cb_arg: *mut ::core::ffi::c_void,
+    ) -> ::core::ffi::c_int;
+    pub fn nvme_ns_cmd_read_bio(
+        ns: *mut nvme_namespace,
+        bp: *mut bio,
+        cb_fn: nvme_cb_fn_t,
+        cb_arg: *mut ::core::ffi::c_void,
+    ) -> ::core::ffi::c_int;
+    pub fn nvme_ns_cmd_deallocate(
+        ns: *mut nvme_namespace,
+        payload: *mut ::core::ffi::c_void,
+        num_ranges: u8,
+        cb_fn: nvme_cb_fn_t,
+        cb_arg: *mut ::core::ffi::c_void,
+    ) -> ::core::ffi::c_int;
+    pub fn nvme_ns_cmd_flush(
+        ns: *mut nvme_namespace,
+        cb_fn: nvme_cb_fn_t,
+        cb_arg: *mut ::core::ffi::c_void,
+    ) -> ::core::ffi::c_int;
+    pub fn nvme_ns_dump(
+        ns: *mut nvme_namespace,
+        virt: *mut ::core::ffi::c_void,
+        offset: off_t,
+        len: usize,
+    ) -> ::core::ffi::c_int;
+    pub fn nvme_register_consumer(
+        ns_fn: nvme_cons_ns_fn_t,
+        ctrlr_fn: nvme_cons_ctrlr_fn_t,
+        async_fn: nvme_cons_async_fn_t,
+        fail_fn: nvme_cons_fail_fn_t,
+    ) -> *mut nvme_consumer;
+    pub fn nvme_unregister_consumer(consumer: *mut nvme_consumer);
+    pub fn nvme_ctrlr_get_device(ctrlr: *mut nvme_controller) -> device_t;
+    pub fn nvme_ctrlr_get_data(ctrlr: *mut nvme_controller) -> *const nvme_controller_data;
+    pub fn nvme_ns_get_max_io_xfer_size(ns: *mut nvme_namespace) -> u32;
+    pub fn nvme_ns_get_sector_size(ns: *mut nvme_namespace) -> u32;
+    pub fn nvme_ns_get_num_sectors(ns: *mut nvme_namespace) -> u64;
+    pub fn nvme_ns_get_size(ns: *mut nvme_namespace) -> u64;
+    pub fn nvme_ns_get_flags(ns: *mut nvme_namespace) -> u32;
+    pub fn nvme_ns_get_serial_number(ns: *mut nvme_namespace) -> *const ::core::ffi::c_char;
+    pub fn nvme_ns_get_model_number(ns: *mut nvme_namespace) -> *const ::core::ffi::c_char;
+    pub fn nvme_ns_get_data(ns: *mut nvme_namespace) -> *const nvme_namespace_data;
+    pub fn nvme_ns_get_stripesize(ns: *mut nvme_namespace) -> u32;
+    pub fn nvme_ns_bio_process(
+        ns: *mut nvme_namespace,
+        bp: *mut bio,
+        cb_fn: nvme_cb_fn_t,
+    ) -> ::core::ffi::c_int;
+    pub fn nvme_ns_ioctl_process(
+        ns: *mut nvme_namespace,
+        cmd: u_long,
+        arg: caddr_t,
+        flag: ::core::ffi::c_int,
+        td: *mut thread,
+    ) -> ::core::ffi::c_int;
+    pub static mut nvme_use_nvd: ::core::ffi::c_int;
+    pub static mut M_NVME: [malloc_type; 1usize];
+    pub static mut nvme_retry_count: i32;
+    pub static mut nvme_verbose_cmd_dump: bool_;
+    pub fn nvme_qpair_sq_enter(qpair: *mut nvme_qpair, tr: *mut nvme_tracker) -> u32;
+    pub fn nvme_qpair_sq_leave(qpair: *mut nvme_qpair, tr: *mut nvme_tracker);
+    pub fn nvme_qpair_cq_done(qpair: *mut nvme_qpair, tr: *mut nvme_tracker);
+    pub fn nvme_ns_test(ns: *mut nvme_namespace, cmd: u_long, arg: caddr_t);
+    pub fn nvme_ctrlr_cmd_identify_controller(
+        ctrlr: *mut nvme_controller,
+        payload: *mut ::core::ffi::c_void,
+        cb_fn: nvme_cb_fn_t,
+        cb_arg: *mut ::core::ffi::c_void,
+    );
+    pub fn nvme_ctrlr_cmd_identify_namespace(
+        ctrlr: *mut nvme_controller,
+        nsid: u32,
+        payload: *mut ::core::ffi::c_void,
+        cb_fn: nvme_cb_fn_t,
+        cb_arg: *mut ::core::ffi::c_void,
+    );
+    pub fn nvme_ctrlr_cmd_set_interrupt_coalescing(
+        ctrlr: *mut nvme_controller,
+        microseconds: u32,
+        threshold: u32,
+        cb_fn: nvme_cb_fn_t,
+        cb_arg: *mut ::core::ffi::c_void,
+    );
+    pub fn nvme_ctrlr_cmd_get_error_page(
+        ctrlr: *mut nvme_controller,
+        payload: *mut nvme_error_information_entry,
+        num_entries: u32,
+        cb_fn: nvme_cb_fn_t,
+        cb_arg: *mut ::core::ffi::c_void,
+    );
+    pub fn nvme_ctrlr_cmd_get_health_information_page(
+        ctrlr: *mut nvme_controller,
+        nsid: u32,
+        payload: *mut nvme_health_information_page,
+        cb_fn: nvme_cb_fn_t,
+        cb_arg: *mut ::core::ffi::c_void,
+    );
+    pub fn nvme_ctrlr_cmd_get_firmware_page(
+        ctrlr: *mut nvme_controller,
+        payload: *mut nvme_firmware_page,
+        cb_fn: nvme_cb_fn_t,
+        cb_arg: *mut ::core::ffi::c_void,
+    );
+    pub fn nvme_ctrlr_cmd_create_io_cq(
+        ctrlr: *mut nvme_controller,
+        io_que: *mut nvme_qpair,
+        cb_fn: nvme_cb_fn_t,
+        cb_arg: *mut ::core::ffi::c_void,
+    );
+    pub fn nvme_ctrlr_cmd_create_io_sq(
+        ctrlr: *mut nvme_controller,
+        io_que: *mut nvme_qpair,
+        cb_fn: nvme_cb_fn_t,
+        cb_arg: *mut ::core::ffi::c_void,
+    );
+    pub fn nvme_ctrlr_cmd_delete_io_cq(
+        ctrlr: *mut nvme_controller,
+        io_que: *mut nvme_qpair,
+        cb_fn: nvme_cb_fn_t,
+        cb_arg: *mut ::core::ffi::c_void,
+    );
+    pub fn nvme_ctrlr_cmd_delete_io_sq(
+        ctrlr: *mut nvme_controller,
+        io_que: *mut nvme_qpair,
+        cb_fn: nvme_cb_fn_t,
+        cb_arg: *mut ::core::ffi::c_void,
+    );
+    pub fn nvme_ctrlr_cmd_set_num_queues(
+        ctrlr: *mut nvme_controller,
+        num_queues: u32,
+        cb_fn: nvme_cb_fn_t,
+        cb_arg: *mut ::core::ffi::c_void,
+    );
+    pub fn nvme_ctrlr_cmd_set_async_event_config(
+        ctrlr: *mut nvme_controller,
+        state: u32,
+        cb_fn: nvme_cb_fn_t,
+        cb_arg: *mut ::core::ffi::c_void,
+    );
+    pub fn nvme_ctrlr_cmd_abort(
+        ctrlr: *mut nvme_controller,
+        cid: u16,
+        sqid: u16,
+        cb_fn: nvme_cb_fn_t,
+        cb_arg: *mut ::core::ffi::c_void,
+    );
+    pub fn nvme_completion_poll_cb(arg: *mut ::core::ffi::c_void, cpl: *const nvme_completion);
+    pub fn nvme_ctrlr_construct(ctrlr: *mut nvme_controller, dev: device_t) -> ::core::ffi::c_int;
+    pub fn nvme_ctrlr_destruct(ctrlr: *mut nvme_controller, dev: device_t);
+    pub fn nvme_ctrlr_shutdown(ctrlr: *mut nvme_controller);
+    pub fn nvme_ctrlr_reset(ctrlr: *mut nvme_controller);
+    pub fn nvme_ctrlr_start_config_hook(ctrlr_arg: *mut ::core::ffi::c_void);
+    pub fn nvme_ctrlr_submit_admin_request(ctrlr: *mut nvme_controller, req: *mut nvme_request);
+    pub fn nvme_ctrlr_submit_io_request(ctrlr: *mut nvme_controller, req: *mut nvme_request);
+    pub fn nvme_qpair_construct(
+        dev: device_t,
+        qpair: *mut nvme_qpair,
+        num_entries: u32,
+        num_trackers: u32,
+        ctrlr: *mut nvme_controller,
+    ) -> ::core::ffi::c_int;
+    pub fn nvme_qpair_submit_tracker(qpair: *mut nvme_qpair, tr: *mut nvme_tracker);
+    pub fn nvme_qpair_process_completions(qpair: *mut nvme_qpair) -> bool_;
+    pub fn nvme_qpair_submit_request(qpair: *mut nvme_qpair, req: *mut nvme_request);
+    pub fn nvme_qpair_reset(qpair: *mut nvme_qpair);
+    pub fn nvme_qpair_fail(qpair: *mut nvme_qpair);
+    pub fn nvme_admin_qpair_enable(qpair: *mut nvme_qpair);
+    pub fn nvme_admin_qpair_disable(qpair: *mut nvme_qpair);
+    pub fn nvme_admin_qpair_destroy(qpair: *mut nvme_qpair);
+    pub fn nvme_io_qpair_enable(qpair: *mut nvme_qpair);
+    pub fn nvme_io_qpair_disable(qpair: *mut nvme_qpair);
+    pub fn nvme_io_qpair_destroy(qpair: *mut nvme_qpair);
+    pub fn nvme_ns_construct(
+        ns: *mut nvme_namespace,
+        id: u32,
+        ctrlr: *mut nvme_controller,
+    ) -> ::core::ffi::c_int;
+    pub fn nvme_ns_destruct(ns: *mut nvme_namespace);
+    pub fn nvme_sysctl_initialize_ctrlr(ctrlr: *mut nvme_controller);
+    pub fn nvme_qpair_print_command(qpair: *mut nvme_qpair, cmd: *mut nvme_command);
+    pub fn nvme_qpair_print_completion(qpair: *mut nvme_qpair, cpl: *mut nvme_completion);
+    pub fn nvme_attach(dev: device_t) -> ::core::ffi::c_int;
+    pub fn nvme_shutdown(dev: device_t) -> ::core::ffi::c_int;
+    pub fn nvme_detach(dev: device_t) -> ::core::ffi::c_int;
+    pub fn nvme_notify_async_consumers(
+        ctrlr: *mut nvme_controller,
+        async_cpl: *const nvme_completion,
+        log_page_id: u32,
+        log_page_buffer: *mut ::core::ffi::c_void,
+        log_page_size: u32,
+    );
+    pub fn nvme_notify_fail_consumers(ctrlr: *mut nvme_controller);
+    pub fn nvme_notify_new_controller(ctrlr: *mut nvme_controller);
+    pub fn nvme_notify_ns(ctrlr: *mut nvme_controller, nsid: ::core::ffi::c_int);
+    pub fn nvme_ctrlr_shared_handler(arg: *mut ::core::ffi::c_void);
+    pub fn nvme_ctrlr_poll(ctrlr: *mut nvme_controller);
+    pub fn nvme_ctrlr_suspend(ctrlr: *mut nvme_controller) -> ::core::ffi::c_int;
+    pub fn nvme_ctrlr_resume(ctrlr: *mut nvme_controller) -> ::core::ffi::c_int;
+    #[doc = " @brief Unique descriptor for the NVME_DELAYED_ATTACH() method"]
+    pub static mut nvme_delayed_attach_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the NVME_ENABLE() method"]
+    pub static mut nvme_enable_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the NVME_SQ_ENTER() method"]
+    pub static mut nvme_sq_enter_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the NVME_SQ_LEAVE() method"]
+    pub static mut nvme_sq_leave_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the NVME_CQ_DONE() method"]
+    pub static mut nvme_cq_done_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the NVME_QPAIR_CONSTRUCT() method"]
+    pub static mut nvme_qpair_construct_desc: kobjop_desc;
     #[doc = " @brief Unique descriptor for the PIC_ACTIVATE_INTR() method"]
     pub static mut pic_activate_intr_desc: kobjop_desc;
     #[doc = " @brief Unique descriptor for the PIC_BIND_INTR() method"]
@@ -11593,6 +16245,13 @@ unsafe extern "C" {
     pub fn rust_bindings_refcount_load(count: *mut u_int) -> u_int;
     pub fn rust_bindings_refcount_acquire(count: *mut u_int) -> u_int;
     pub fn rust_bindings_refcount_release(count: *mut u_int) -> bool_;
+    pub fn rust_bindings_atomic_readandclear_32(p: *mut u32) -> u32;
+    pub fn rust_bindings_atomic_set_32(p: *mut u32, x: u32);
+    pub fn rust_bindings_CPU_SET(cpu: u_int, set: *mut cpuset_t);
+    pub fn rust_bindings_CPU_ISSET(cpu: u_int, set: *mut cpuset_t) -> bool_;
+    pub fn rust_bindings_CPU_AFFINITY(cpu: u_int) -> u64;
+    pub fn rust_bindings_CPU_AFF0(mpidr: u64) -> u64;
+    pub fn rust_bindings_CPU_AFF1(mpidr: u64) -> u64;
     pub fn rust_bindings_bus_read_1(res: *mut resource, offset: bus_size_t) -> u8;
     pub fn rust_bindings_bus_write_1(res: *mut resource, offset: bus_size_t, value: u8);
     pub fn rust_bindings_bus_read_2(res: *mut resource, offset: bus_size_t) -> u16;
@@ -11601,36 +16260,4 @@ unsafe extern "C" {
     pub fn rust_bindings_bus_write_4(res: *mut resource, offset: bus_size_t, value: u32);
     pub fn rust_bindings_bus_read_8(res: *mut resource, offset: bus_size_t) -> u64;
     pub fn rust_bindings_bus_write_8(res: *mut resource, offset: bus_size_t, value: u64);
-    pub fn apple_mbox_get(arg1: device_t) -> device_t;
-    pub fn apple_mbox_set_rx(arg1: device_t, arg2: apple_mbox_rx, arg3: *mut ::core::ffi::c_void);
-    pub fn apple_mbox_write(arg1: device_t, arg2: *const apple_mbox_msg) -> ::core::ffi::c_int;
-    pub fn rtkit_init(arg1: device_t, arg2: bool_) -> *mut rtkit_state;
-    pub fn rtkit_boot(arg1: *mut rtkit_state) -> ::core::ffi::c_int;
-    pub fn rtkit_set_map_callback(
-        arg1: *mut rtkit_state,
-        arg2: rtkit_map,
-        arg3: *mut ::core::ffi::c_void,
-    );
-    pub fn apple_sart_map(arg1: u32, arg2: bus_addr_t, arg3: bus_size_t) -> ::core::ffi::c_int;
-    pub fn rtkit_set_ap_pwrstate(arg1: *mut rtkit_state, arg2: u16) -> ::core::ffi::c_int;
-    pub fn apple_rtkit_boot(client: device_t, arg1: phandle_t) -> ::core::ffi::c_int;
-    pub fn rtkit_start_endpoint(
-        arg1: *mut rtkit_state,
-        arg2: u32,
-        arg3: ::core::option::Option<
-            unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: u64),
-        >,
-        arg4: *mut ::core::ffi::c_void,
-    ) -> ::core::ffi::c_int;
-    pub fn rtkit_send_endpoint(arg1: *mut rtkit_state, arg2: u32, arg3: u64) -> ::core::ffi::c_int;
-    pub fn rtkit_set_iop_pwrstate(state: *mut rtkit_state, pwrstate: u16) -> ::core::ffi::c_int;
-    pub fn rtkit_rx_callback(
-        cookie: *mut ::core::ffi::c_void,
-        msg: apple_mbox_msg,
-    ) -> ::core::ffi::c_int;
-    pub fn rtkit_rx_task(context: *mut rtkit_task, pending: ::core::ffi::c_int);
-    pub fn rtkit_handle_mgmt(
-        state: *mut rtkit_state,
-        msg: *mut apple_mbox_msg,
-    ) -> ::core::ffi::c_int;
 }

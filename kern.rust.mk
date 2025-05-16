@@ -34,7 +34,6 @@ KPI_CRATE= lib.rs \
 	malloc.rs \
 	ofw.rs \
 	panic.rs \
-	sleep.rs \
 	sync.rs \
 	taskq.rs \
 	tty.rs \
