@@ -416,8 +416,7 @@ pub mod wrappers {
             }
             // Needed because macro_export expanded from macro cannot be referenced by full-path in
             // prelude module
-            pub use $read_fn;
-            pub use $write_fn;
+            pub use {$read_fn, $write_fn};
         };
     }
     bus_n!(

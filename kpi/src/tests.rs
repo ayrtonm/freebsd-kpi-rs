@@ -34,11 +34,10 @@ use crate::bindings::{
     intr_irq_filter_t, kobj_class, resource, u_int,
 };
 use std::ffi::{CStr, CString, c_void};
-use std::println;
 use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicPtr, AtomicU32, Ordering};
-use std::vec;
 use std::vec::Vec;
+use std::{println, vec};
 
 /*
  * This is part of the test harness, which effectively does what the kernel should do from the
@@ -251,8 +250,8 @@ mod unmangled_fns {
     extern "C" fn malloc_aligned(
         size: usize,
         align: usize,
-        ty: *mut malloc_type,
-        flags: c_int,
+        _ty: *mut malloc_type,
+        _flags: c_int,
     ) -> *mut c_void {
         unsafe { aligned_alloc(align, size) }
     }

@@ -28,16 +28,12 @@
 
 //! Synchronization primitives.
 
-use crate::malloc::{MallocFlags, MallocType};
 use crate::prelude::*;
-use crate::prelude::*;
-use crate::vec::Vec;
 use core::cell::UnsafeCell;
-use core::ffi::CStr;
 use core::fmt;
 use core::fmt::{Debug, Formatter};
 use core::ops::{Deref, DerefMut};
-use core::ptr::{null_mut, read};
+use core::ptr::read;
 use core::sync::atomic::{AtomicBool, Ordering};
 
 pub mod arc;

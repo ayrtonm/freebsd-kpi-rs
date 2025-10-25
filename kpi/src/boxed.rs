@@ -32,12 +32,11 @@ use crate::malloc::{MallocFlags, MallocType};
 use crate::prelude::*;
 use core::cmp::PartialEq;
 use core::ffi::c_void;
-use core::fmt;
 use core::fmt::{Debug, Formatter};
 use core::mem::{forget, size_of};
 use core::ops::{Deref, DerefMut};
 use core::ptr::{NonNull, drop_in_place};
-use core::slice;
+use core::{fmt, slice};
 
 /// To avoid adding an extra, generic malloc_type parameter on Box<T> things on the heap store the
 /// malloc_type they were allocated with on the heap. This is then used when free is called when the

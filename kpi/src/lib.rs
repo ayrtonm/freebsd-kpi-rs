@@ -96,17 +96,15 @@ impl<T> AsRustType<T> for T {
 
 #[allow(non_snake_case)]
 pub mod misc {
-    use crate::ErrCode;
-    use crate::bindings;
     use crate::bindings::{cpuset_t, device_t, u_int};
     use crate::prelude::*;
     use crate::sync::Mutable;
+    use crate::{ErrCode, bindings};
     use core::ffi::{CStr, c_int, c_void};
     use core::ptr::null_mut;
-    use core::sync::atomic::{AtomicBool, AtomicU8, AtomicU16, AtomicU32, AtomicU64, Ordering};
+    use core::sync::atomic::{AtomicU8, AtomicU16, AtomicU32, AtomicU64};
 
-    pub use bindings::BUS_SPACE_MAXADDR;
-    pub use bindings::PAGE_SIZE;
+    pub use bindings::{BUS_SPACE_MAXADDR, PAGE_SIZE};
 
     pub fn hz() -> i32 {
         unsafe { bindings::hz }
@@ -207,12 +205,7 @@ pub mod prelude {
     #[cfg(target_arch = "aarch64")]
     pub use crate::arm64::*;
 
-    pub use crate::Result;
-    pub use crate::base;
-    pub use crate::bindings;
-    pub use crate::device_get_softc;
-    pub use crate::device_init_softc;
-    pub use crate::project;
+    pub use crate::{Result, base, bindings, device_get_softc, device_init_softc, project};
     #[cfg(target_arch = "aarch64")]
     pub use crate::{
         curthread, isb, pcpu_get, pcpu_ptr, read_specialreg, rmb, wmb, write_specialreg,

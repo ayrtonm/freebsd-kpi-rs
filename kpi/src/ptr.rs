@@ -26,13 +26,11 @@
  * SUCH DAMAGE.
  */
 
-use crate::bindings;
 use crate::bindings::u_int;
-use crate::project;
+use crate::{bindings, project};
 use core::fmt;
 use core::fmt::{Debug, Formatter};
-use core::mem::forget;
-use core::mem::offset_of;
+use core::mem::{forget, offset_of};
 use core::ops::{Deref, Drop};
 use core::ptr::null_mut;
 
