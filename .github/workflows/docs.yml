@@ -28,6 +28,8 @@ jobs:
     - name: Generate docs
       working-directory: ./kpi
       run: cargo doc
+    - name: Create redirect
+      run: echo '<meta http-equiv="refresh" content="0; url=kpi/index.html">' > ./kpi/target/doc/index.html
     - name: Setup Pages
       uses: actions/configure-pages@v5
     - name: Upload artifact
