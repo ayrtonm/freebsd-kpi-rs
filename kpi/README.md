@@ -22,7 +22,8 @@ cargo test
 
 ## Browse documentation
 
-Documentation for x86-64 is available at https://ayrtonm.github.io/freebsd-kpi-rs/
+Documentation is available at https://ayrtonm.github.io/freebsd-kpi-rs/ for aarch64 and
+https://ayrtonm.github.io/freebsd-kpi-rs/x86_64-unknown-linux-gnu/doc/kpi/ for x86-64.
 
 ## Regenerate documentation
 
@@ -40,7 +41,7 @@ To generate x86-64 docs on any host run the following and open
 cargo doc --target x86_64-unknown-linux-gnu
 ```
 
-To generate arm64 docs on any host run the following and open
+To generate aarch64 docs on any host run the following and open
 `kpi/target/aarch64-unknown-linux-gnu/doc/kpi/index.html`
 
 ```

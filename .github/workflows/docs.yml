@@ -23,19 +23,26 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./kpi
     steps:
     - uses: actions/checkout@v4
-    - name: Generate docs
-      working-directory: ./kpi
-      run: cargo doc
-    - name: Create redirect
-      run: echo '<meta http-equiv="refresh" content="0; url=kpi/index.html">' > ./kpi/target/doc/index.html
+    - name: Setup Rust
+      run: rustup target add aarch64-unknown-linux-gnu
+    - name: Generate x86-64 docs
+      run: cargo doc --target x86_64-unknown-linux-gnu
+    - name: Generate arm64 docs
+      run: cargo doc --target aarch64-unknown-linux-gnu
+    - name: Create redirects
+      run: |
+        echo '<meta http-equiv="refresh" content="0; url=aarch64-unknown-linux-gnu/doc/kpi/index.html">' > ./target/index.html
     - name: Setup Pages
       uses: actions/configure-pages@v5
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
       with:
-        path: ./kpi/target/doc
+        path: ./kpi/target
     - name: Deploy to Github Pages
       id: deployment
       uses: actions/deploy-pages@v4
