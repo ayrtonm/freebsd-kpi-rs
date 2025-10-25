@@ -1,0 +1,32 @@
+diff --git a/lang/rust/Makefile b/lang/rust/Makefile
+--- a/lang/rust/Makefile
++++ b/lang/rust/Makefile
+@@ -46,8 +46,8 @@
+ # ?= to allow users to still overwrite it in make.conf.
+ TMPDIR?=	${WRKDIR}
+ 
+-OPTIONS_DEFINE=		DOCS GDB LTO PORT_LLVM SOURCES WASM
+-OPTIONS_DEFAULT=	SOURCES WASM
++OPTIONS_DEFINE=		DOCS GDB LTO PORT_LLVM SOURCES WASM FREESTANDING
++OPTIONS_DEFAULT=	SOURCES WASM FREESTANDING
+ OPTIONS_DEFINE_i386=	SSE2
+ OPTIONS_DEFAULT_i386=	SSE2
+ 
+@@ -56,6 +56,7 @@
+ SSE2_DESC=	Enable SSE2 instructions
+ SOURCES_DESC=	Install source files
+ WASM_DESC=	Build the WebAssembly target (wasm32-unknown-unknown)
++FREESTANDING_DESC= Build freestanding targets for FreeBSD Tier 1 archs (aarch64-unknown-none-softfloat and x86_64-unknown-none)
+ 
+ SSE2_EXTRA_PATCHES_OFF+=	${FILESDIR}/extra-patch-compiler_rustc__target_src_spec_targets_i686__unknown__freebsd.rs
+ 
+@@ -70,6 +71,8 @@
+ 			_RUST_TOOLS+=src
+ WASM_VARS=		_COMPONENTS+="rust-analysis-${_PACKAGE_VERS}-wasm32-unknown-unknown rust-std-${_PACKAGE_VERS}-wasm32-unknown-unknown" \
+ 			_RUST_TARGETS+=wasm32-unknown-unknown
++FREESTANDING_VARS=		_COMPONENTS+="rust-std-${_PACKAGE_VERS}-aarch64-unknown-none-softfloat rust-std-${_PACKAGE_VERS}-x86_64-unknown-none" \
++			_RUST_TARGETS+="aarch64-unknown-none-softfloat x86_64-unknown-none"
+ 
+ # See WRKSRC/src/stage0 for the date and version values
+ BOOTSTRAPS_DATE?=		2024-10-17
+

@@ -1,0 +1,16 @@
+[package]
+name = "kpi"
+version = "0.0.1"
+edition = "2024"
+
+[lib]
+crate-type = ["staticlib"]
+
+[features]
+default = ["std", "fdt", "intrng"]
+# Use libstd instead of libcore to run userspace unit tests
+std = []
+# flattened devicetree support
+fdt = []
+# new interrupt framework support
+intrng = []

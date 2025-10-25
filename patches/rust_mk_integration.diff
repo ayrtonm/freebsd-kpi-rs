@@ -1,0 +1,52 @@
+diff --git a/Makefile.inc1 b/Makefile.inc1
+index 5c3d190e4c3..9cf4b6cba22 100644
+--- a/Makefile.inc1
++++ b/Makefile.inc1
+@@ -857,7 +857,8 @@ CROSSENV+=	CC="${XCC} ${XCFLAGS}" CXX="${XCXX} ${XCXXFLAGS} ${XCFLAGS}" \
+ 		AS="${XAS}" AR="${XAR}" ELFCTL="${XELFCTL}" LD="${XLD}" \
+ 		LLVM_LINK="${XLLVM_LINK}" NM=${XNM} OBJCOPY="${XOBJCOPY}" \
+ 		RANLIB=${XRANLIB} STRINGS=${XSTRINGS} \
+-		SIZE="${XSIZE}" STRIPBIN="${XSTRIPBIN}"
++		SIZE="${XSIZE}" STRIPBIN="${XSTRIPBIN}" \
++		RUSTC=${RUSTC} RUSTFMT=${RUSTFMT} BINDGEN=${BINDGEN}
+ 
+ .if defined(CROSS_BINUTILS_PREFIX) && exists(${CROSS_BINUTILS_PREFIX})
+ # In the case of xdev-build tools, CROSS_BINUTILS_PREFIX won't be a
+diff --git a/sys/conf/files b/sys/conf/files
+index 428a2805768..934f6553dbe 100644
+--- a/sys/conf/files
++++ b/sys/conf/files
+@@ -5171,6 +5171,7 @@ rpc/rpcsec_gss/rpcsec_gss_conf.c optional krpc kgssapi | nfslockd kgssapi | nfsc
+ rpc/rpcsec_gss/rpcsec_gss_misc.c optional krpc kgssapi | nfslockd kgssapi | nfscl kgssapi | nfsd kgssapi
+ rpc/rpcsec_gss/rpcsec_gss_prot.c optional krpc kgssapi | nfslockd kgssapi | nfscl kgssapi | nfsd kgssapi
+ rpc/rpcsec_gss/svc_rpcsec_gss.c	optional krpc kgssapi | nfslockd kgssapi | nfscl kgssapi | nfsd kgssapi
++rust/bindings.c		standard
+ security/audit/audit.c		optional audit
+ security/audit/audit_arg.c	optional audit
+ security/audit/audit_bsm.c	optional audit
+diff --git a/sys/conf/kern.post.mk b/sys/conf/kern.post.mk
+index 59e51c394a3..7b26deb3586 100644
+--- a/sys/conf/kern.post.mk
++++ b/sys/conf/kern.post.mk
+@@ -7,6 +7,8 @@
+ # should be defined in the kern.pre.mk so that port makefiles can
+ # override or augment them.
+ 
++.include "../rust/kern.rust.mk"
++
+ .if defined(DTS) || defined(DTSO) || defined(FDT_DTS_FILE)
+ .include "dtb.build.mk"
+ 
+diff --git a/sys/conf/kern.pre.mk b/sys/conf/kern.pre.mk
+index e6e42b33a9b..d8041334fab 100644
+--- a/sys/conf/kern.pre.mk
++++ b/sys/conf/kern.pre.mk
+@@ -293,7 +293,7 @@ BNXT_C=		${BNXT_C_NOIMP} ${.IMPSRC}
+ GEN_CFILES= $S/$M/$M/genassym.c ${MFILES:T:S/.m$/.c/}
+ SYSTEM_CFILES= config.c env.c hints.c vnode_if.c
+ SYSTEM_DEP= Makefile ${SYSTEM_OBJS}
+-SYSTEM_OBJS= locore.o ${MDOBJS} ${OBJS}
++SYSTEM_OBJS= locore.o ${MDOBJS} ${OBJS} rustroot.a
+ SYSTEM_OBJS+= ${SYSTEM_CFILES:.c=.o}
+ SYSTEM_OBJS+= force-dynamic-hack.pico
+ 
