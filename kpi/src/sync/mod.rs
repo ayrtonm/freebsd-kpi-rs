@@ -28,10 +28,99 @@
 
 //! Synchronization primitives.
 
+use crate::malloc::{MallocFlags, MallocType};
 use crate::prelude::*;
+use crate::prelude::*;
+use crate::vec::Vec;
+use core::cell::UnsafeCell;
+use core::ffi::CStr;
+use core::fmt;
+use core::fmt::{Debug, Formatter};
+use core::ops::{Deref, DerefMut};
+use core::ptr::{null_mut, read};
+use core::sync::atomic::{AtomicBool, Ordering};
 
 pub mod arc;
 pub mod mtx;
+
+/// A value borrow-checked at runtime
+pub struct Mutable<T> {
+    t: UnsafeCell<T>,
+    borrowed: AtomicBool,
+}
+
+impl<T: Debug> Debug for Mutable<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        // Just read the pointer and don't overcomplicate things. There may be mutable references to
+        // the pointee so this is a best effort thing and may not be fully reliable, but it avoids
+        // panics (as self.get_mut() might) while being informative.
+        let t = unsafe { read(self.t.get()) };
+        f.debug_struct("Mutable")
+            .field("t", &t)
+            .field("borrowed", &self.borrowed)
+            .finish()
+    }
+}
+
+unsafe impl<T> Sync for Mutable<T> {}
+
+impl<T> Mutable<T> {
+    pub const fn new(t: T) -> Self {
+        Self {
+            t: UnsafeCell::new(t),
+            borrowed: AtomicBool::new(false),
+        }
+    }
+
+    pub fn as_ptr(&self) -> *mut T {
+        self.t.get()
+    }
+
+    pub fn get_mut(&self) -> RefMut<'_, T> {
+        if !self
+            .borrowed
+            .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
+            .is_ok()
+        {
+            panic!("already borrowed");
+        }
+        RefMut {
+            value: self.t.get(),
+            borrowed: &self.borrowed,
+        }
+    }
+}
+
+pub struct RefMut<'b, T: 'b + ?Sized> {
+    value: *mut T,
+    borrowed: &'b AtomicBool,
+}
+
+impl<'b, T: Debug> Debug for RefMut<'b, T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Debug::fmt(self.deref(), f)
+    }
+}
+
+impl<T: ?Sized> Deref for RefMut<'_, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { self.value.as_ref().unwrap() }
+    }
+}
+
+impl<T: ?Sized> DerefMut for RefMut<'_, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { self.value.as_mut().unwrap() }
+    }
+}
+
+impl<T: ?Sized> Drop for RefMut<'_, T> {
+    fn drop(&mut self) {
+        self.borrowed.store(false, Ordering::Relaxed);
+    }
+}
 
 #[cfg(test)]
 mod tests {

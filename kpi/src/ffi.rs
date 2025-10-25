@@ -36,6 +36,8 @@ use core::ffi::CStr;
 use core::fmt;
 use core::fmt::{Debug, Formatter};
 use core::ops::{Deref, DerefMut};
+use core::ptr::{null_mut, read};
+use core::sync::atomic::{AtomicBool, Ordering};
 
 pub struct CString(Vec<u8>);
 

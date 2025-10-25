@@ -313,9 +313,9 @@ pub mod wrappers {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::cell::Mutable;
     use crate::driver;
     use crate::ptr::Ptr;
+    use crate::sync::Mutable;
     use crate::tests::{CDriverFns, DriverManager, LoudDrop};
     use std::ffi::{CStr, c_void};
     use std::vec::Vec;

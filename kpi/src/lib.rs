@@ -44,7 +44,6 @@ pub mod arm64;
 pub mod bindings;
 pub mod boxed;
 pub mod bus;
-pub mod cell;
 pub mod device;
 #[doc(hidden)]
 pub mod driver;
@@ -97,11 +96,14 @@ impl<T> AsRustType<T> for T {
 
 #[allow(non_snake_case)]
 pub mod misc {
+    use crate::ErrCode;
     use crate::bindings;
     use crate::bindings::{cpuset_t, device_t, u_int};
     use crate::prelude::*;
-    use core::ffi::c_int;
-    use core::sync::atomic::AtomicU32;
+    use crate::sync::Mutable;
+    use core::ffi::{CStr, c_int, c_void};
+    use core::ptr::null_mut;
+    use core::sync::atomic::{AtomicBool, AtomicU8, AtomicU16, AtomicU32, AtomicU64, Ordering};
 
     pub use bindings::BUS_SPACE_MAXADDR;
     pub use bindings::PAGE_SIZE;
@@ -137,6 +139,65 @@ pub mod misc {
         } else {
             Ok(res)
         }
+    }
+
+    pub trait Sleepable {
+        fn as_ptr(&self) -> *mut c_void;
+    }
+
+    impl<T> Sleepable for Mutable<T> {
+        fn as_ptr(&self) -> *mut c_void {
+            self.as_ptr().cast::<c_void>()
+        }
+    }
+
+    impl Sleepable for AtomicU8 {
+        fn as_ptr(&self) -> *mut c_void {
+            self.as_ptr().cast::<c_void>()
+        }
+    }
+
+    impl Sleepable for AtomicU16 {
+        fn as_ptr(&self) -> *mut c_void {
+            self.as_ptr().cast::<c_void>()
+        }
+    }
+
+    impl Sleepable for AtomicU32 {
+        fn as_ptr(&self) -> *mut c_void {
+            self.as_ptr().cast::<c_void>()
+        }
+    }
+
+    impl Sleepable for AtomicU64 {
+        fn as_ptr(&self) -> *mut c_void {
+            self.as_ptr().cast::<c_void>()
+        }
+    }
+
+    pub fn tsleep<T: Sleepable>(chan: &T, priority: i32, wmesg: &CStr, timo: i32) -> Result<()> {
+        let chan_ptr = chan.as_ptr();
+        let wmesg_ptr = wmesg.as_ptr();
+        let res = unsafe {
+            bindings::_sleep(
+                chan_ptr,
+                null_mut(),
+                priority,
+                wmesg_ptr,
+                bindings::tick_sbt * timo as i64,
+                0,
+                bindings::C_HARDCLOCK,
+            )
+        };
+        if res != 0 {
+            return Err(ErrCode::from(res));
+        }
+        Ok(())
+    }
+
+    pub fn wakeup<T: Sleepable>(chan: &T) {
+        let chan_ptr = chan.as_ptr();
+        unsafe { bindings::wakeup(chan_ptr) }
     }
 }
 
@@ -184,9 +245,6 @@ pub mod prelude {
     #[doc(inline)]
     #[cfg(feature = "fdt")]
     pub use crate::ofw::wrappers::*;
-
-    #[doc(inline)]
-    pub use crate::cell::wrappers::*;
 
     #[doc(inline)]
     pub use crate::sync::mtx::wrappers::*;
