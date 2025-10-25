@@ -21,7 +21,6 @@ KPI_CRATE= lib.rs \
 	boxed.rs \
 	bus/mod.rs \
 	bus/dma.rs \
-	cell.rs \
 	device.rs \
 	driver.rs \
 	ffi.rs \
@@ -32,7 +31,6 @@ KPI_CRATE= lib.rs \
 	malloc.rs \
 	ofw.rs \
 	panic.rs \
-	ptr.rs \
 	sync/mod.rs \
 	sync/arc.rs \
 	sync/mtx.rs \
