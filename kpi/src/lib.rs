@@ -59,7 +59,8 @@ mod panic;
 pub mod ptr;
 pub mod sync;
 pub mod taskq;
-#[cfg(not(feature = "std"))]
+// This module only exports macros
+#[doc(hidden)]
 pub mod tty;
 pub mod vec;
 

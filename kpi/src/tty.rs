@@ -57,6 +57,7 @@ impl fmt::Write for TTY {
     }
 }
 
+#[cfg(not(feature = "std"))]
 #[macro_export]
 macro_rules! print {
     ($($args:tt)*) => {
@@ -69,6 +70,7 @@ macro_rules! print {
     };
 }
 
+#[cfg(not(feature = "std"))]
 #[macro_export]
 macro_rules! println {
     ($($args:tt)*) => {
