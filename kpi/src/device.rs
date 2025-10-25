@@ -145,6 +145,10 @@ define_interface! {
     device_register(dev: device_t) -> int;
 }
 
+/// The device interface defined by device_if.m
+///
+/// This is used to match devices to drivers during autoconfiguration and allow drivers to handle
+/// system events such as suspend, resume and shutdown.
 #[diagnostic::on_unimplemented(message = "
 Implement the device interface trait by adding this where the `driver!` macro was used
 pub struct {Self}Softc {{}}
@@ -152,31 +156,32 @@ impl DeviceIf for {Self} {{
     type Softc = {Self}Softc;
 }}
 ")]
+#[allow(unused_variables)]
 pub trait DeviceIf<State = ()> {
     type Softc: 'static + Sync;
 
-    fn device_probe(_dev: device_t) -> Result<BusProbe> {
+    fn device_probe(dev: device_t) -> Result<BusProbe> {
         unimplemented!()
     }
-    fn device_attach(_dev: device_t) -> Result<()> {
+    fn device_attach(dev: device_t) -> Result<()> {
         unimplemented!()
     }
-    fn device_detach(_dev: device_t) -> Result<()> {
+    fn device_detach(dev: device_t) -> Result<()> {
         unimplemented!()
     }
-    fn device_shutdown(_dev: device_t) -> Result<()> {
+    fn device_shutdown(dev: device_t) -> Result<()> {
         unimplemented!()
     }
-    fn device_suspend(_dev: device_t) -> Result<()> {
+    fn device_suspend(dev: device_t) -> Result<()> {
         unimplemented!()
     }
-    fn device_resume(_dev: device_t) -> Result<()> {
+    fn device_resume(dev: device_t) -> Result<()> {
         unimplemented!()
     }
-    fn device_quiesce(_dev: device_t) -> Result<()> {
+    fn device_quiesce(dev: device_t) -> Result<()> {
         unimplemented!()
     }
-    fn device_register(_dev: device_t) -> Result<&'static State> {
+    fn device_register(dev: device_t) -> Result<&'static State> {
         unimplemented!()
     }
 }
