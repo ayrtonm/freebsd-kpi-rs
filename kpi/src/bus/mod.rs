@@ -28,8 +28,8 @@
 
 use crate::ErrCode;
 use crate::bindings::{bus_size_t, device_t, resource, resource_spec};
+use crate::ffi::{Ptr, RefCountData, RefCounted};
 use crate::prelude::*;
-use crate::ptr::{Ptr, RefCountData, RefCounted};
 use core::ffi::{c_int, c_void};
 use core::mem::transmute;
 use core::ops::BitOr;
@@ -233,7 +233,7 @@ pub use wrappers::*;
 #[doc(hidden)]
 pub mod wrappers {
     use super::*;
-    use crate::ptr::OwnedPtr;
+    use crate::ffi::OwnedPtr;
     use bindings::{bus_space_handle_t, bus_space_tag_t};
 
     gen_newtype! {

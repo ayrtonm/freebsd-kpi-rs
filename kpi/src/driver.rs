@@ -179,8 +179,8 @@ macro_rules! driver {
             use $crate::bindings;
             use $crate::driver::BaseClasses;
             use $crate::device::DeviceIf;
-            use $crate::ptr::RefCounted;
-            use $crate::ptr::RefCountData;
+            use $crate::ffi::RefCounted;
+            use $crate::ffi::RefCountData;
             use super::$driver_ty;
 
 

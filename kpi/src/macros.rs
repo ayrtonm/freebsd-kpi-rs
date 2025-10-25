@@ -78,16 +78,16 @@ macro_rules! base {
     };
 }
 
-/// Turns raw pointers, [`Ptr`][crate::ptr::Ptr] and [`FatPtr`][crate::ptr::FatPtr] into pointers to
+/// Turns raw pointers, [`Ptr`][crate::ffi::Ptr] and [`FatPtr`][crate::ffi::FatPtr] into pointers to
 /// a struct's fields.
 ///
 /// `project!(&raw const ptr->field)` and `project!(&raw mut ptr->field)` are the equivalent of
 /// `&ptr->field` in C for `*const T` and `*mut T`, respectively.
 ///
-/// `project!(x->field)` where `x` is either [`Ptr`][crate::ptr::Ptr] or
-/// [`FatPtr`][crate::ptr::FatPtr] returns a [`FatPtr`][crate::ptr::FatPtr] to `x.field` in both
-/// cases. Ownership of the refcount owned by the initial [`Ptr`][crate::ptr::Ptr] or
-/// [`FatPtr`][crate::ptr::FatPtr] is transferred to the new [`FatPtr`][crate::ptr::FatPtr]. This
+/// `project!(x->field)` where `x` is either [`Ptr`][crate::ffi::Ptr] or
+/// [`FatPtr`][crate::ffi::FatPtr] returns a [`FatPtr`][crate::ffi::FatPtr] to `x.field` in both
+/// cases. Ownership of the refcount owned by the initial [`Ptr`][crate::ffi::Ptr] or
+/// [`FatPtr`][crate::ffi::FatPtr] is transferred to the new [`FatPtr`][crate::ffi::FatPtr]. This
 /// means that [`project!`][crate::project] does **not** incur the cost of atomic accesses to change
 /// the refcount, but the initial `x` cannot be used after it's projected. To use the initial `x`
 /// and project it, use `let y = x.clone();` to clone it, grabbing a refcount in the process, before
@@ -105,7 +105,7 @@ macro_rules! project {
     };
 
     ($ptr:ident -> $($projection:tt)*) => {
-        $crate::ptr::Projectable::project($ptr, |t| &t.$($projection)*)
+        $crate::ffi::Projectable::project($ptr, |t| &t.$($projection)*)
     };
 }
 

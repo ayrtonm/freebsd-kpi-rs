@@ -32,10 +32,9 @@ use crate::bindings::{
     intr_map_data_fdt, pcell_t, trapframe,
 };
 use crate::bus::{Filter, Resource};
-use crate::ffi::SubClass;
+use crate::ffi::{OwnedPtr, Ptr, RefCountData, RefCounted, SubClass};
 use crate::ofw::XRef;
 use crate::prelude::*;
-use crate::ptr::{OwnedPtr, Ptr, RefCountData, RefCounted};
 use core::cell::UnsafeCell;
 use core::ffi::{CStr, c_int, c_void};
 use core::mem::transmute;

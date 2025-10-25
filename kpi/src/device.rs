@@ -27,8 +27,8 @@
  */
 
 use crate::bindings::{device_state_t, device_t, driver_t};
+use crate::ffi::{Ptr, RefCountData, RefCounted};
 use crate::prelude::*;
-use crate::ptr::{Ptr, RefCountData, RefCounted};
 use core::ffi::{CStr, c_int};
 use core::fmt;
 use core::fmt::{Debug, Formatter};
@@ -88,8 +88,8 @@ macro_rules! device_attach {
             device_attach(dev: device_t) -> int;
             with drop glue {
                 {
-                    use $crate::ptr::RefCountData;
-                    use $crate::ptr::RefCounted;
+                    use $crate::ffi::RefCountData;
+                    use $crate::ffi::RefCounted;
                     use $crate::device::DeviceIf;
 
                     let sc_as_void_ptr = unsafe { bindings::device_get_softc(dev) };
@@ -314,7 +314,7 @@ pub mod wrappers {
 pub mod tests {
     use super::*;
     use crate::driver;
-    use crate::ptr::Ptr;
+    use crate::ffi::Ptr;
     use crate::sync::Mutable;
     use crate::tests::{CDriverFns, DriverManager, LoudDrop};
     use std::ffi::{CStr, c_void};

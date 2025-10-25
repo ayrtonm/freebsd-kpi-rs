@@ -34,7 +34,7 @@
     unsafe_op_in_unsafe_fn
 )]
 
-use crate::ptr::SyncPtr;
+use crate::ffi::SyncPtr;
 
 pub type device_t = SyncPtr<_device>;
 pub type void = core::ffi::c_void;

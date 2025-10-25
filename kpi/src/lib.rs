@@ -56,7 +56,6 @@ pub mod malloc;
 pub mod ofw;
 #[cfg(not(feature = "std"))]
 mod panic;
-pub mod ptr;
 pub mod sync;
 pub mod taskq;
 // This module only exports macros
