@@ -44,6 +44,12 @@ macro_rules! nvme_sq_enter {
         $crate::export_function! {
             $driver_ty $impl_fn_name
             nvme_sq_enter(dev: device_t, qpair: *mut nvme_qpair, tr: *mut nvme_tracker) -> u32;
+            with init glue {
+                let sc_as_void_ptr = unsafe { bindings::device_get_softc(dev) };
+                let sc_ptr = sc_as_void_ptr.cast::<RefCounted<<$driver_ty as DeviceIf>::Softc>>();
+                let _sc = unsafe { sc_ptr.as_ref().unwrap() };
+            }
+            with prefix args { _sc }
             infallible
         }
     };
