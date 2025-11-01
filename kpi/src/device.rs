@@ -158,12 +158,8 @@ impl DeviceIf for {Self} {{
 pub trait DeviceIf<State = ()> {
     type Softc: 'static + Sync;
 
-    fn device_probe(dev: device_t) -> Result<BusProbe> {
-        unimplemented!()
-    }
-    fn device_attach(uninit_sc: &mut Uninit<Self::Softc>, dev: device_t) -> Result<()> {
-        unimplemented!()
-    }
+    fn device_probe(dev: device_t) -> Result<BusProbe>;
+    fn device_attach(uninit_sc: &mut Uninit<Self::Softc>, dev: device_t) -> Result<()>;
     fn device_detach(sc: &RefCounted<Self::Softc>, dev: device_t) -> Result<()> {
         unimplemented!()
     }
