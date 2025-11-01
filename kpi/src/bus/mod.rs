@@ -454,6 +454,7 @@ mod tests {
     use super::*;
     use crate::device::tests::{IrqDriver, irq_driver};
     use crate::device::{BusProbe, DeviceIf};
+    use crate::ffi::Uninit;
     use crate::tests::{DriverManager, LoudDrop};
 
     #[repr(C)]
@@ -465,7 +466,7 @@ mod tests {
     }
 
     impl IrqDriver {
-        fn setup(dev: device_t, sc: &Ptr<IrqSoftc>, filter: bool, handler: bool) {
+        fn setup(dev: device_t, sc: &RefCounted<IrqSoftc>, filter: bool, handler: bool) {
             let filter = if filter {
                 Some(IrqDriver::filter as _)
             } else {
@@ -476,7 +477,7 @@ mod tests {
             } else {
                 None
             };
-            bus_setup_intr(dev, &sc.irq, 0, filter, handler, sc.clone()).unwrap();
+            bus_setup_intr(dev, &sc.irq, 0, filter, handler, sc.grab_ref()).unwrap();
         }
     }
     impl DeviceIf for IrqDriver {
@@ -487,15 +488,14 @@ mod tests {
             }
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(dev: device_t) -> Result<()> {
-            let sc = IrqSoftc {
+        fn device_attach(uninit_sc: &mut Uninit<Self::Softc>, dev: device_t) -> Result<()> {
+            let sc = uninit_sc.init(IrqSoftc {
                 dev,
                 irq: Irq::default(),
                 loud: LoudDrop,
-            };
-            let sc = device_init_softc!(dev, sc);
+            });
             assert_eq!(
-                bus_setup_intr(dev, &sc.irq, 0, None, None, sc.clone()),
+                bus_setup_intr(dev, &sc.irq, 0, None, None, sc.grab_ref()),
                 Err(EDOOFUS)
             );
             if ofw_bus_is_compatible(dev, c"irq_driver,set_both") {
@@ -509,8 +509,7 @@ mod tests {
             }
             Ok(())
         }
-        fn device_detach(dev: device_t) -> Result<()> {
-            let sc = device_get_softc!(dev);
+        fn device_detach(sc: &RefCounted<Self::Softc>, dev: device_t) -> Result<()> {
             if ofw_bus_is_compatible(dev, c"irq_driver,teardown_intr") {
                 bus_teardown_intr(dev, &sc.irq).unwrap();
             }

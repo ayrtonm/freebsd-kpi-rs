@@ -205,7 +205,7 @@ pub mod prelude {
     #[cfg(target_arch = "aarch64")]
     pub use crate::arm64::*;
 
-    pub use crate::{Result, base, bindings, device_get_softc, device_init_softc, project};
+    pub use crate::{Result, base, bindings, project};
     #[cfg(target_arch = "aarch64")]
     pub use crate::{
         curthread, isb, pcpu_get, pcpu_ptr, read_specialreg, rmb, wmb, write_specialreg,
@@ -265,6 +265,7 @@ macro_rules! export_function {
         $fn_name:ident($($arg_name:ident: $arg:ty$(,)?)*);
         $(with init glue { $($init_glue:tt)* })?
         $(with drop glue { $($drop_glue:tt)* })?
+        $(with prefix args { $($prefix_args:ident)* })?
     ) => {
         #[allow(unused_mut)]
         #[unsafe(no_mangle)]
@@ -279,7 +280,7 @@ macro_rules! export_function {
             $($($init_glue)*)*;
 
             // Call the rust implementation
-            $driver_ty::$fn_name($($arg_name,)*);
+            $driver_ty::$fn_name($($($prefix_args,)*)* $($arg_name,)*);
 
             // Call drop glue if any
             $($($drop_glue)*)*;
@@ -290,6 +291,7 @@ macro_rules! export_function {
         $fn_name:ident($($arg_name:ident: $arg:ty$(,)?)*) -> $ret:ty;
         $(with init glue { $($init_glue:tt)* })?
         $(with drop glue { $($drop_glue:tt)* })?
+        $(with prefix args { $($prefix_args:ident)* })?
         $(rust returns $ret_as_rust_ty:ty)?
     ) => {
         #[allow(unused_mut)]
@@ -305,7 +307,7 @@ macro_rules! export_function {
             $($($init_glue)*)*
 
             // Call the rust implementation, coercing to the result type if specified
-            let res$(: $crate::Result<$ret_as_rust_ty>)* = $driver_ty::$fn_name($($arg_name,)*);
+            let res$(: $crate::Result<$ret_as_rust_ty>)* = $driver_ty::$fn_name($($($prefix_args,)*)* $($arg_name,)*);
 
             // Call drop glue if any
             $($($drop_glue)*)*
@@ -322,6 +324,7 @@ macro_rules! export_function {
         $fn_name:ident($($arg_name:ident: $arg:ty$(,)?)*) -> $ret:ty;
         $(with init glue { $($init_glue:tt)* })?
         $(with drop glue { $($drop_glue:tt)* })?
+        $(with prefix args { $($prefix_args:ident)* })?
         infallible
     ) => {
         #[allow(unused_mut)]
@@ -337,7 +340,7 @@ macro_rules! export_function {
             $($($init_glue)*)*
 
             // Call the rust implementation, coercing to the result type if specified
-            let res = $driver_ty::$fn_name($($arg_name,)*);
+            let res = $driver_ty::$fn_name($($($prefix_args,)*)* $($arg_name,)*);
 
             // Call drop glue if any
             $($($drop_glue)*)*

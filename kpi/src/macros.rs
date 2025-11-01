@@ -109,6 +109,14 @@ macro_rules! project {
     };
 }
 
+#[doc(hidden)]
+#[macro_export]
+macro_rules! get_first {
+    ($x:ident $($rest:ident)*) => {
+        $x
+    };
+}
+
 macro_rules! define_interface {
     ($($fn_name:ident($($arg_name:ident: $arg:ty$(,)?)*) $(-> $ret:ty)?
      $(, with init glue { $($init_glue:tt)* })?
@@ -121,8 +129,14 @@ macro_rules! define_interface {
                     $crate::export_function! {
                         $driver_ty $impl_fn_name
                         $fn_name($($arg_name: $arg,)*) $(-> $ret)*;
-                        with init glue { $($($init_glue)*)* }
+                        with init glue {
+                            $($($init_glue)*)*;
+                            let _sc_as_void_ptr = unsafe { bindings::device_get_softc(get_first!($($arg_name)*)) };
+                            let _rust_sc_ptr = _sc_as_void_ptr.cast::<RefCounted<<$driver_ty as DeviceIf>::Softc>>();
+                            let _sc = unsafe { _rust_sc_ptr.as_ref().unwrap() };
+                        }
                         with drop glue { $($($drop_glue)*)* }
+                        with prefix args { _sc }
                     }
                 };
             }

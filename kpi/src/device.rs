@@ -27,7 +27,7 @@
  */
 
 use crate::bindings::{device_state_t, device_t, driver_t};
-use crate::ffi::{Ptr, RefCountData, RefCounted};
+use crate::ffi::{RefCounted, Uninit};
 use crate::prelude::*;
 use core::ffi::{CStr, c_int};
 use core::fmt;
@@ -64,17 +64,14 @@ impl Debug for device_t {
     }
 }
 
+#[doc(hidden)]
 #[macro_export]
-macro_rules! device_init_softc {
-    ($dev:expr, $sc:expr) => {
-        device_init_softc::<Self>($dev, $sc)
-    };
-}
-
-#[macro_export]
-macro_rules! device_get_softc {
-    ($dev:expr) => {
-        device_get_softc::<Self>($dev)
+macro_rules! device_probe {
+    ($driver_ty:ident $impl_fn_name:ident) => {
+        $crate::export_function! {
+            $driver_ty $impl_fn_name
+            device_probe(dev: device_t) -> int;
+        }
     };
 }
 
@@ -82,27 +79,28 @@ macro_rules! device_get_softc {
 #[macro_export]
 macro_rules! device_attach {
     ($driver_ty:ident $impl_fn_name:ident) => {
-        #[macro_export]
         $crate::export_function! {
             $driver_ty $impl_fn_name
             device_attach(dev: device_t) -> int;
-            with drop glue {
-                {
-                    use $crate::ffi::RefCountData;
-                    use $crate::ffi::RefCounted;
-                    use $crate::device::DeviceIf;
+            with init glue {
+                let sc_as_void_ptr = unsafe { bindings::device_get_softc(dev) };
+                let sc_ptr = sc_as_void_ptr.cast::<RefCounted<<$driver_ty as DeviceIf>::Softc>>();
+                let metadata_ptr = RefCounted::metadata_ptr(sc_ptr);
 
-                    let sc_as_void_ptr = unsafe { bindings::device_get_softc(dev) };
-                    let rust_sc_ptr = sc_as_void_ptr.cast::<RefCounted<<$driver_ty as DeviceIf>::Softc>>();
+                let count_ptr = RefCountData::count_ptr(metadata_ptr);
+                unsafe { bindings::refcount_init(count_ptr, 1) };
+                let drop_fn_ptr = RefCountData::drop_fn_ptr(metadata_ptr);
+                unsafe { core::ptr::write(drop_fn_ptr, <$driver_ty as $crate::driver::DriverIf>::DROP_FN) };
 
-                    let metadata_ptr = RefCounted::metadata_ptr(rust_sc_ptr);
-                    let count_ptr = RefCountData::count_ptr(metadata_ptr);
-                    let count = unsafe { bindings::refcount_load(count_ptr) };
-                    if count == 0 {
-                        panic!("`device_init_softc` must be called in `device_attach`");
-                    }
-                }
+                // Claim the softc to opt it into refcounting
+                $crate::device::device_claim_softc(dev);
+
+                let uninit_sc = unsafe { $crate::ffi::Uninit::from_raw(sc_ptr) };
             }
+            with drop glue {
+                assert!(uninit_sc.is_init());
+            }
+            with prefix args { uninit_sc }
         }
     };
 }
@@ -114,30 +112,30 @@ macro_rules! device_detach {
         $crate::export_function! {
             $driver_ty $impl_fn_name
             device_detach(dev: device_t) -> int;
-            with drop glue {
-                {
-                    let sc_as_void_ptr = unsafe { bindings::device_get_softc(dev) };
-                    let rust_sc_ptr = sc_as_void_ptr.cast::<RefCounted<<$driver_ty as DeviceIf>::Softc>>();
-
-                    let metadata_ptr = RefCounted::metadata_ptr(rust_sc_ptr);
-                    let count_ptr = RefCountData::count_ptr(metadata_ptr);
-                    let last = unsafe {
-                        bindings::refcount_release(count_ptr)
-                    };
-                    if last {
-                        let drop_fn = RefCountData::drop_fn(metadata_ptr);
-                        unsafe {
-                            drop_fn(count_ptr)
-                        }
-                    }
-                };
+            with init glue {
+                let sc_as_void_ptr = unsafe { bindings::device_get_softc(dev) };
+                let sc_ptr = sc_as_void_ptr.cast::<RefCounted<<$driver_ty as DeviceIf>::Softc>>();
+                let _sc = unsafe { sc_ptr.as_ref().unwrap() };
             }
+            with drop glue {
+                let metadata_ptr = RefCounted::metadata_ptr(sc_ptr);
+                let count_ptr = RefCountData::count_ptr(metadata_ptr);
+                let last = unsafe {
+                    bindings::refcount_release(count_ptr)
+                };
+                if last {
+                    let drop_fn = RefCountData::drop_fn(metadata_ptr);
+                    unsafe {
+                        drop_fn(count_ptr)
+                    }
+                }
+            }
+            with prefix args { _sc }
         }
     };
 }
 
 define_interface! {
-    device_probe(dev: device_t) -> int;
     device_shutdown(dev: device_t) -> int;
     device_suspend(dev: device_t) -> int;
     device_resume(dev: device_t) -> int;
@@ -163,25 +161,25 @@ pub trait DeviceIf<State = ()> {
     fn device_probe(dev: device_t) -> Result<BusProbe> {
         unimplemented!()
     }
-    fn device_attach(dev: device_t) -> Result<()> {
+    fn device_attach(uninit_sc: &mut Uninit<Self::Softc>, dev: device_t) -> Result<()> {
         unimplemented!()
     }
-    fn device_detach(dev: device_t) -> Result<()> {
+    fn device_detach(sc: &RefCounted<Self::Softc>, dev: device_t) -> Result<()> {
         unimplemented!()
     }
-    fn device_shutdown(dev: device_t) -> Result<()> {
+    fn device_shutdown(sc: &RefCounted<Self::Softc>, dev: device_t) -> Result<()> {
         unimplemented!()
     }
-    fn device_suspend(dev: device_t) -> Result<()> {
+    fn device_suspend(sc: &RefCounted<Self::Softc>, dev: device_t) -> Result<()> {
         unimplemented!()
     }
-    fn device_resume(dev: device_t) -> Result<()> {
+    fn device_resume(sc: &RefCounted<Self::Softc>, dev: device_t) -> Result<()> {
         unimplemented!()
     }
-    fn device_quiesce(dev: device_t) -> Result<()> {
+    fn device_quiesce(sc: &RefCounted<Self::Softc>, dev: device_t) -> Result<()> {
         unimplemented!()
     }
-    fn device_register(dev: device_t) -> Result<&'static State> {
+    fn device_register(sc: &RefCounted<Self::Softc>, dev: device_t) -> Result<&'static State> {
         unimplemented!()
     }
 }
@@ -192,7 +190,6 @@ pub use wrappers::*;
 #[doc(hidden)]
 pub mod wrappers {
     use super::*;
-    use crate::driver::DriverIf;
 
     gen_newtype! {
         BusProbe,
@@ -241,77 +238,6 @@ pub mod wrappers {
     pub fn device_get_driver(dev: device_t) -> *mut driver_t {
         unsafe { bindings::device_get_driver(dev) }
     }
-
-    pub fn device_init_softc<T: DeviceIf + DriverIf>(dev: device_t, sc: T::Softc) -> Ptr<T::Softc> {
-        use core::ptr::write;
-
-        let state = device_get_state(dev);
-        if state != bindings::DS_ATTACHING {
-            panic!("`device_init_softc!` may only be called in `device_attach`");
-        }
-
-        let driver = device_get_driver(dev);
-        if driver != T::DRIVER {
-            panic!("`device_t` passed to `device_get_softc!` has a softc with a different type");
-        }
-
-        let sc_as_void_ptr = unsafe { bindings::device_get_softc(dev) };
-        let rust_sc_ptr = sc_as_void_ptr.cast::<RefCounted<T::Softc>>();
-
-        let metadata_ptr = RefCounted::metadata_ptr(rust_sc_ptr);
-        let count_ptr = RefCountData::count_ptr(metadata_ptr);
-
-        // Take a snapshot of the count. It must be zero since the softc is zero-initialized.
-        // Interrupts are disabled in `device_attach` so it can't change out from under us
-        let count = unsafe { bindings::refcount_load(count_ptr) };
-        if count != 0 {
-            panic!("device_init_softc may not be called twice");
-        }
-        // Initialize the count to **2** instead of 1. One refcount is for the value this macro
-        // returns (which will get released at the end of `device_attach`) and the other is to avoid
-        // dropping it between calls to interface functions. It gets dropped in the `device_detach`
-        // drop glue.
-        unsafe { bindings::refcount_init(count_ptr, 2) };
-        let drop_fn_ptr = RefCountData::drop_fn_ptr(metadata_ptr);
-        unsafe { write(drop_fn_ptr, T::DROP_FN) };
-
-        // Claim the softc to opt it into refcounting
-        device_claim_softc(dev);
-
-        let sc_ptr = RefCounted::get_ptr(rust_sc_ptr);
-        unsafe { write(sc_ptr, sc) };
-        unsafe { Ptr::from_raw(rust_sc_ptr) }
-    }
-
-    pub fn device_get_softc<T: DeviceIf + DriverIf>(dev: device_t) -> Ptr<T::Softc> {
-        let state = device_get_state(dev);
-        if state != bindings::DS_ATTACHED && state != bindings::DS_ATTACHING {
-            panic!(
-                "`device_get_softc!` cannot be called during `device_probe` or after `device_detach`"
-            );
-        }
-        let driver = device_get_driver(dev);
-        if driver != T::DRIVER {
-            panic!("`device_t` passed to `device_get_softc!` has a softc with a different type");
-        }
-
-        let sc_as_void_ptr = unsafe { bindings::device_get_softc(dev) };
-        let rust_sc_ptr = sc_as_void_ptr.cast::<RefCounted<T::Softc>>();
-
-        let metadata_ptr = RefCounted::metadata_ptr(rust_sc_ptr);
-        let count_ptr = RefCountData::count_ptr(metadata_ptr);
-        if state == bindings::DS_ATTACHING {
-            let count = unsafe { bindings::refcount_load(count_ptr) };
-            if count == 0 {
-                panic!(
-                    "`device_attach must call `device_init_softc!` before calling `device_get_softc`"
-                );
-            }
-        }
-        unsafe { bindings::refcount_acquire(count_ptr) };
-
-        unsafe { Ptr::from_raw(rust_sc_ptr) }
-    }
 }
 
 #[allow(dead_code, unused)]
@@ -350,9 +276,9 @@ pub mod tests {
         //
         //thread 'device::tests::set_callback' panicked at library/core/src/panicking.rs:225:5:
         //panic in a function that cannot unwind
-        fn set_callback_arg(arg: Ptr<AnotherDriverSoftc>) {
-            let sc = device_get_softc!(*STASHED_DEVICE.get_mut());
-            *sc.another_sc.get_mut() = Some(arg);
+        fn set_callback_arg(arg: &RefCounted<AnotherDriverSoftc>) {
+            //let sc = device_get_softc!(*STASHED_DEVICE.get_mut());
+            //*sc.another_sc.get_mut() = Some(arg);
         }
     }
     impl DeviceIf for TestDriver {
@@ -370,19 +296,17 @@ pub mod tests {
             println!("test_driver: accepted {dev:x?}");
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(dev: device_t) -> Result<()> {
-            let sc = TestDriverSoftc {
+        fn device_attach(uninit_sc: &mut Uninit<Self::Softc>, dev: device_t) -> Result<()> {
+            let sc = uninit_sc.init(TestDriverSoftc {
                 dev,
                 const_data: 0xdeadbeef,
                 another_sc: Mutable::new(None),
-            };
-            let sc = device_init_softc!(dev, sc);
+            });
             *STASHED_DEVICE.get_mut() = dev;
             println!("{:x?}", sc);
             Ok(())
         }
-        fn device_detach(dev: device_t) -> Result<()> {
-            let sc = device_get_softc!(dev);
+        fn device_detach(sc: &RefCounted<Self::Softc>, dev: device_t) -> Result<()> {
             assert!(sc.const_data == 0xdeadbeef);
             Ok(())
         }
@@ -419,12 +343,11 @@ pub mod tests {
             println!("another_driver: accepted {dev:x?}");
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(dev: device_t) -> Result<()> {
-            let sc = AnotherDriverSoftc {
+        fn device_attach(uninit_sc: &mut Uninit<Self::Softc>, dev: device_t) -> Result<()> {
+            let sc = uninit_sc.init(AnotherDriverSoftc {
                 dev,
                 loud: LoudDrop,
-            };
-            let sc = device_init_softc!(dev, sc);
+            });
             println!("attaching another driver");
             // Store a pointer owning a refcount to AnotherDriver's Softc in a TestDriverSoftc for
             // some appropriate device_t. This means that AnotherDriver::device_detach will drop a
@@ -434,7 +357,7 @@ pub mod tests {
             }
             Ok(())
         }
-        fn device_detach(dev: device_t) -> Result<()> {
+        fn device_detach(sc: &RefCounted<Self::Softc>, dev: device_t) -> Result<()> {
             Ok(())
         }
     }

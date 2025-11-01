@@ -37,9 +37,9 @@ use core::cell::UnsafeCell;
 use core::ffi::CStr;
 use core::fmt;
 use core::fmt::{Debug, Formatter};
-use core::mem::{forget, offset_of};
+use core::mem::{MaybeUninit, forget, offset_of};
 use core::ops::{Deref, DerefMut, Drop};
-use core::ptr::null_mut;
+use core::ptr::{null_mut, write};
 
 #[doc(hidden)]
 pub trait Projectable<T, U> {
@@ -47,6 +47,15 @@ pub trait Projectable<T, U> {
     type ProjectFn;
 
     fn project(self, f: Self::ProjectFn) -> Self::Projection;
+}
+
+impl<'a, T, U> Projectable<T, U> for &'a RefCounted<T> {
+    type Projection = FatPtr<U>;
+    type ProjectFn = fn(&T) -> &U;
+    /// Projects the `&RefCounted<T>` to one of its fields or through layers of indirection.
+    fn project(self, f: Self::ProjectFn) -> Self::Projection {
+        Projectable::project(self.grab_ref(), f)
+    }
 }
 
 impl<T, U> Projectable<T, U> for Ptr<T> {
@@ -190,6 +199,7 @@ pub struct RefCounted<T> {
     // This field must be first to support subclass drivers like simplebus and nvme
     pub(crate) t: T,
     metadata: RefCountData,
+    init: bool,
 }
 
 impl<T> RefCounted<T> {
@@ -202,6 +212,12 @@ impl<T> RefCounted<T> {
     pub fn metadata_ptr(ptr: *mut Self) -> *mut RefCountData {
         project!(&raw mut ptr->metadata)
     }
+    pub fn grab_ref(&self) -> Ptr<T> {
+        Ptr::new(self)
+    }
+    pub fn leak_ref(&self) -> &'static T {
+        OwnedPtr::leak(self.grab_ref())
+    }
 }
 
 // Allows using a `RefCounted<T>` like a `&T`
@@ -210,6 +226,13 @@ impl<'a, T> Deref for RefCounted<T> {
 
     fn deref(&self) -> &Self::Target {
         &self.t
+    }
+}
+
+// Allows using a `RefCounted<T>` like a `&mut T`
+impl<'a, T> DerefMut for RefCounted<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.t
     }
 }
 
@@ -497,5 +520,30 @@ impl<B, F> Deref for SubClass<B, F> {
 impl<B, F> DerefMut for SubClass<B, F> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.sub_fields
+    }
+}
+
+#[repr(C)]
+pub struct Uninit<T>(MaybeUninit<RefCounted<T>>);
+
+impl<T> Uninit<T> {
+    pub unsafe fn from_raw<'a>(ptr: *mut RefCounted<T>) -> &'a mut Self {
+        unsafe { ptr.cast::<Self>().as_mut().unwrap() }
+    }
+
+    pub fn init(&mut self, t: T) -> &RefCounted<T> {
+        let ref_t_ptr = self.0.as_mut_ptr();
+        let t_ptr = unsafe { &raw mut (*ref_t_ptr).t };
+        unsafe { write(t_ptr, t) };
+        unsafe {
+            self.0.assume_init_mut().init = true;
+            self.0.assume_init_ref()
+        }
+    }
+
+    pub fn is_init(&self) -> bool {
+        let ref_t_ptr = self.0.as_ptr();
+        let init_ptr = unsafe { &raw const (*ref_t_ptr).init };
+        unsafe { *init_ptr }
     }
 }

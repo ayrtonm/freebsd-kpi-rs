@@ -388,6 +388,7 @@ mod tests {
     use super::*;
     use crate::device::tests::{HookDriver, IntcDriver, hook_driver, intc_driver};
     use crate::device::{BusProbe, DeviceIf};
+    use crate::ffi::Uninit;
     use crate::tests::{DriverManager, LoudDrop};
 
     #[repr(C)]
@@ -404,16 +405,15 @@ mod tests {
             }
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(dev: device_t) -> Result<()> {
+        fn device_attach(uninit_sc: &mut Uninit<Self::Softc>, dev: device_t) -> Result<()> {
             let hook = ConfigHook::new();
             let loud = LoudDrop;
-            let sc = HookSoftc { dev, hook, loud };
-            let sc = device_init_softc!(dev, sc);
-            sc.hook.init(HookDriver::deferred_attach, sc.clone());
+            let sc = uninit_sc.init(HookSoftc { dev, hook, loud });
+            sc.hook.init(HookDriver::deferred_attach, sc.grab_ref());
             config_intrhook_establish(project!(sc->hook)).unwrap();
             Ok(())
         }
-        fn device_detach(_dev: device_t) -> Result<()> {
+        fn device_detach(_sc: &RefCounted<Self::Softc>, _dev: device_t) -> Result<()> {
             Ok(())
         }
     }
@@ -449,11 +449,17 @@ mod tests {
             }
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(dev: device_t) -> Result<()> {
-            let sc = OwnedPtr::leak(device_init_softc!(dev, IntcSoftc { dev }));
-            intr_pic_claim_root(dev, XRef(0), IntcDriver::handle_irq, sc, INTR_ROOT_IRQ)
+        fn device_attach(uninit_sc: &mut Uninit<Self::Softc>, dev: device_t) -> Result<()> {
+            let sc = uninit_sc.init(IntcSoftc { dev });
+            intr_pic_claim_root(
+                dev,
+                XRef(0),
+                IntcDriver::handle_irq,
+                sc.leak_ref(),
+                INTR_ROOT_IRQ,
+            )
         }
-        fn device_detach(_dev: device_t) -> Result<()> {
+        fn device_detach(_sc: &RefCounted<Self::Softc>, _dev: device_t) -> Result<()> {
             Ok(())
         }
     }
