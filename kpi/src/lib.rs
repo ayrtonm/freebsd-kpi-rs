@@ -246,6 +246,7 @@ pub mod prelude {
     pub use crate::taskq::wrappers::*;
 
     pub use crate::device::DeviceIf;
+    pub use crate::ffi::{RefCounted, Uninit};
 
     #[cfg(feature = "intrng")]
     pub use crate::intr::PicIf;
