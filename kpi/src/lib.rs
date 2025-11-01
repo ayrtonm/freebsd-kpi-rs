@@ -30,7 +30,55 @@
 #![deny(improper_ctypes, unused_must_use, unreachable_patterns)]
 #![feature(macro_metavar_expr_concat)]
 
-//! The FreeBSD KPI crate.
+//! This crate provides access to [FreeBSD kernel interfaces](https://man.freebsd.org/cgi/man.cgi).
+//!
+//! It exposes similar interfaces to the C equivalents with differences mainly to provide ergonomic
+//! or safety benefits. This crate only relies on the rust
+//! [core library](https://doc.rust-lang.org/core/) and will not allocate using
+//! [`malloc(9)`](https://man.freebsd.org/cgi/man.cgi?malloc(9)) unless
+//! [`MallocFlags`][malloc::MallocFlags] are explicitly passed in. It does not rely on any 3rd-party
+//! crates (e.g. [`crates.io`](<https://crates.io>)).
+//!
+//! The **main goal** is to let developers use mostly
+//! [safe rust](https://doc.rust-lang.org/nomicon/what-unsafe-does.html) to define clear
+//! [ownership semantics](https://doc.rust-lang.org/nomicon/ownership.html), avoid
+//! [data races](https://doc.rust-lang.org/nomicon/races.html) and minimize the chance of mis-using
+//! interfaces so they can focus on implementing the functionality they actually care about.
+//!
+//! # Navigating the docs
+//!
+//! The suggested way to use these docs to call a given function is to first check if it's in
+//! [`prelude`]. That module provides safe rust wrappers for C functions under similar names. The
+//! wrapper argument types often differ to improve ergonomics and prevent mis-use. Searching
+//! unfamiliar argument types will show if they have constructors or are returned by other
+//! functions. Arguments may also require
+//! [trait bounds](https://doc.rust-lang.org/rust-by-example/generics/bounds.html) which will
+//! document how to construct them.
+//!
+//! For example, [`device_probe`](https://man.freebsd.org/cgi/man.cgi?query=DEVICE_PROBE) may need
+//! to check if a `device_t`'s devicetree `"compatible"` property matches a driver using
+//! [`ofw_bus_search_compatible`](https://man.freebsd.org/cgi/man.cgi?query=ofw_bus_search_compatible).
+//! Rather than use `struct ofw_compat_data` pointers, the rust
+//! [`ofw_bus_search_compatible`][prelude::ofw_bus_search_compatible] wrapper takes an
+//! [`OfwCompatData`][crate::ofw::OfwCompatData] reference and returns a `&'static T` to the field
+//! the caller cares about. The developer can then create an
+//! [`OfwCompatData`][crate::ofw::OfwCompatData] using
+//! [`OfwCompatData::new`][crate::ofw::OfwCompatData::new], call `ofw_bus_search_compatible`
+//! and get back a reference to the entry with a matching `"compatible"` property. Unless otherwise
+//! specified this crate will ensure that lifetime and memory layouts are constrained as necessary.
+//!
+//! # Driver development
+//!
+//! This crate's initial purpose is to develop kernel device drivers. The [`driver!`] macro is the
+//! equivalent of `DEFINE_CLASS` and the `device_method_t` table in C.
+//!
+//! # Other use-cases
+//!
+//! Nothing precludes using this crate for things other than drivers in the kernel. Defining a
+//! useful boundary between rust and C is very application-specific, but in general the starting
+//! point is defining an
+//! [`extern "C"`](https://doc.rust-lang.org/nomicon/ffi.html#calling-rust-code-from-c) function to
+//! call rust from C.
 
 // This is only for userspace unit tests.
 #[cfg(feature = "std")]
@@ -41,6 +89,7 @@ mod macros;
 
 #[cfg(target_arch = "aarch64")]
 pub mod arm64;
+/// Declarations for using C functions, types and variables directly.
 pub mod bindings;
 pub mod boxed;
 pub mod bus;
@@ -199,7 +248,9 @@ pub mod misc {
     }
 }
 
-/// The KPI crate prelude.
+/// Glob imports commonly-used items.
+///
+/// This must be explicitly imported with `use kpi::prelude::*`.
 pub mod prelude {
     #[doc(inline)]
     #[cfg(target_arch = "aarch64")]
