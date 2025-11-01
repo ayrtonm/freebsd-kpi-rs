@@ -27,7 +27,8 @@
  */
 
 use crate::bindings::{device_state_t, device_t, driver_t};
-use crate::ffi::{RefCounted, Uninit};
+use crate::driver::DriverIf;
+use crate::ffi::{Ptr, RefCountData, RefCounted, Uninit};
 use crate::prelude::*;
 use core::ffi::{CStr, c_int};
 use core::fmt;
@@ -62,6 +63,13 @@ impl Debug for device_t {
             .field("desc", &desc)
             .finish()
     }
+}
+
+#[macro_export]
+macro_rules! device_get_softc {
+    ($dev:expr) => {
+        $crate::device::device_get_softc::<Self>($dev)
+    };
 }
 
 #[doc(hidden)]
@@ -155,7 +163,7 @@ impl DeviceIf for {Self} {{
 }}
 ")]
 #[allow(unused_variables)]
-pub trait DeviceIf<State = ()> {
+pub trait DeviceIf<State = ()>: DriverIf {
     type Softc: 'static + Sync;
 
     fn device_probe(dev: device_t) -> Result<BusProbe>;
@@ -234,6 +242,28 @@ pub mod wrappers {
     pub fn device_get_driver(dev: device_t) -> *mut driver_t {
         unsafe { bindings::device_get_driver(dev) }
     }
+
+    pub fn device_get_softc<D: DeviceIf>(dev: device_t) -> Ptr<D::Softc> {
+        let state = device_get_state(dev);
+        if state != bindings::DS_ATTACHED {
+            panic!("device_get_softc can only be called after device_attach");
+        }
+        let driver = device_get_driver(dev);
+        if driver != D::DRIVER {
+            panic!("device_t passed to device_get_softc has a different softc type");
+        }
+
+        let sc_as_void_ptr = unsafe { bindings::device_get_softc(dev) };
+        let sc_ptr = sc_as_void_ptr.cast::<RefCounted<D::Softc>>();
+
+        let metadata_ptr = RefCounted::metadata_ptr(sc_ptr);
+        let count_ptr = RefCountData::count_ptr(metadata_ptr);
+        let success = unsafe { bindings::refcount_acquire_if_not_zero(count_ptr) };
+        if !success {
+            panic!("device_get_softc called after softc was dropped");
+        }
+        unsafe { Ptr::from_raw(sc_ptr) }
+    }
 }
 
 #[allow(dead_code, unused)]
@@ -241,7 +271,6 @@ pub mod wrappers {
 pub mod tests {
     use super::*;
     use crate::driver;
-    use crate::ffi::Ptr;
     use crate::sync::Mutable;
     use crate::tests::{CDriverFns, DriverManager, LoudDrop};
     use std::ffi::{CStr, c_void};
@@ -364,9 +393,6 @@ pub mod tests {
                 device_detach another_driver_detach,
             }
     );
-
-    // Needed to access Self::DRIVER to impl CDriverFns
-    use crate::driver::DriverIf;
 
     impl CDriverFns for TestDriver {
         fn get_probe(&self) -> unsafe extern "C" fn(device_t) -> i32 {
