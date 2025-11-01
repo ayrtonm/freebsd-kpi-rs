@@ -148,11 +148,11 @@ pub trait PicIf: DeviceIf {
     ) -> Result<()> {
         unimplemented!()
     }
-    fn pic_map_intr(
-        sc: &RefCounted<Self::Softc>,
+    fn pic_map_intr<'a>(
+        sc: &'a RefCounted<Self::Softc>,
         dev: device_t,
         data: MapData,
-        isrcp: &mut Option<&'static IrqSrc<Self::IrqSrcFields>>,
+        isrcp: &mut Option<&'a IrqSrc<Self::IrqSrcFields>>,
     ) -> Result<()> {
         unimplemented!()
     }
@@ -201,11 +201,11 @@ pub trait PicIf: DeviceIf {
     fn pic_init_secondary(sc: &RefCounted<Self::Softc>, dev: device_t, root: IntrRoot) {
         unimplemented!()
     }
-    fn pic_ipi_setup(
-        sc: &RefCounted<Self::Softc>,
+    fn pic_ipi_setup<'a>(
+        sc: &'a RefCounted<Self::Softc>,
         dev: device_t,
         ipi: u32,
-        isrcp: &mut Option<&'static IrqSrc<Self::IrqSrcFields>>,
+        isrcp: &mut Option<&'a IrqSrc<Self::IrqSrcFields>>,
     ) -> Result<()> {
         unimplemented!()
     }
