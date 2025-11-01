@@ -131,7 +131,7 @@ macro_rules! define_interface {
                         $fn_name($($arg_name: $arg,)*) $(-> $ret)*;
                         with init glue {
                             $($($init_glue)*)*;
-                            let _sc_as_void_ptr = unsafe { bindings::device_get_softc(get_first!($($arg_name)*)) };
+                            let _sc_as_void_ptr = unsafe { bindings::device_get_softc($crate::get_first!($($arg_name)*)) };
                             let _rust_sc_ptr = _sc_as_void_ptr.cast::<RefCounted<<$driver_ty as DeviceIf>::Softc>>();
                             let _sc = unsafe { _rust_sc_ptr.as_ref().unwrap() };
                         }
