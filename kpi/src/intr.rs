@@ -128,9 +128,10 @@ impl PicIf for {Self} {{
 }}
 ")]
 #[allow(unused_variables)]
-pub trait PicIf {
+pub trait PicIf: DeviceIf {
     type IrqSrcFields;
     fn pic_setup_intr(
+        sc: &RefCounted<Self::Softc>,
         dev: device_t,
         isrc: &mut IrqSrc<Self::IrqSrcFields>,
         res: Resource,
@@ -139,6 +140,7 @@ pub trait PicIf {
         unimplemented!()
     }
     fn pic_teardown_intr(
+        sc: &RefCounted<Self::Softc>,
         dev: device_t,
         isrc: &mut IrqSrc<Self::IrqSrcFields>,
         res: Resource,
@@ -147,34 +149,60 @@ pub trait PicIf {
         unimplemented!()
     }
     fn pic_map_intr(
+        sc: &RefCounted<Self::Softc>,
         dev: device_t,
         data: MapData,
         isrcp: &mut Option<&'static IrqSrc<Self::IrqSrcFields>>,
     ) -> Result<()> {
         unimplemented!()
     }
-    fn pic_enable_intr(dev: device_t, isrc: &mut IrqSrc<Self::IrqSrcFields>) {
+    fn pic_enable_intr(
+        sc: &RefCounted<Self::Softc>,
+        dev: device_t,
+        isrc: &mut IrqSrc<Self::IrqSrcFields>,
+    ) {
         unimplemented!()
     }
-    fn pic_disable_intr(dev: device_t, isrc: &mut IrqSrc<Self::IrqSrcFields>) {
+    fn pic_disable_intr(
+        sc: &RefCounted<Self::Softc>,
+        dev: device_t,
+        isrc: &mut IrqSrc<Self::IrqSrcFields>,
+    ) {
         unimplemented!()
     }
-    fn pic_post_filter(dev: device_t, isrc: &mut IrqSrc<Self::IrqSrcFields>) {
+    fn pic_post_filter(
+        sc: &RefCounted<Self::Softc>,
+        dev: device_t,
+        isrc: &mut IrqSrc<Self::IrqSrcFields>,
+    ) {
         unimplemented!()
     }
-    fn pic_post_ithread(dev: device_t, isrc: &mut IrqSrc<Self::IrqSrcFields>) {
+    fn pic_post_ithread(
+        sc: &RefCounted<Self::Softc>,
+        dev: device_t,
+        isrc: &mut IrqSrc<Self::IrqSrcFields>,
+    ) {
         unimplemented!()
     }
-    fn pic_pre_ithread(dev: device_t, isrc: &mut IrqSrc<Self::IrqSrcFields>) {
+    fn pic_pre_ithread(
+        sc: &RefCounted<Self::Softc>,
+        dev: device_t,
+        isrc: &mut IrqSrc<Self::IrqSrcFields>,
+    ) {
         unimplemented!()
     }
-    fn pic_bind_intr(dev: device_t, isrc: &mut IrqSrc<Self::IrqSrcFields>) -> Result<()> {
+    fn pic_bind_intr(
+        sc: &RefCounted<Self::Softc>,
+        dev: device_t,
+        isrc: &mut IrqSrc<Self::IrqSrcFields>,
+    ) -> Result<()> {
         unimplemented!()
     }
-    fn pic_init_secondary(dev: device_t, root: IntrRoot) {
+    fn pic_init_secondary(sc: &RefCounted<Self::Softc>, dev: device_t, root: IntrRoot) {
         unimplemented!()
     }
     fn pic_ipi_setup(
+        sc: &RefCounted<Self::Softc>,
         dev: device_t,
         ipi: u32,
         isrcp: &mut Option<&'static IrqSrc<Self::IrqSrcFields>>,
@@ -182,6 +210,7 @@ pub trait PicIf {
         unimplemented!()
     }
     fn pic_ipi_send(
+        sc: &RefCounted<Self::Softc>,
         dev: device_t,
         isrc: &mut IrqSrc<Self::IrqSrcFields>,
         cpus: bindings::cpuset_t,
