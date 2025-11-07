@@ -118,17 +118,17 @@ impl<T> SpinLock<T> {
     }
 }
 
-trait HasMtx {
+trait Lockable {
     const SPINS: bool;
     fn get_impl_mut(&mut self) -> &mut MtxCommon;
 }
-impl<T> HasMtx for Mutex<T> {
+impl<T> Lockable for Mutex<T> {
     const SPINS: bool = false;
     fn get_impl_mut(&mut self) -> &mut MtxCommon {
         &mut self.mtx_impl
     }
 }
-impl<T> HasMtx for SpinLock<T> {
+impl<T> Lockable for SpinLock<T> {
     const SPINS: bool = true;
     fn get_impl_mut(&mut self) -> &mut MtxCommon {
         &mut self.mtx_impl
@@ -144,7 +144,7 @@ pub mod wrappers {
 
     // TODO: The sealed trait pattern shouldn't require disabling this warning
     #[allow(private_bounds)]
-    pub fn mtx_init<M: HasMtx>(
+    pub fn mtx_init<M: Lockable>(
         mutex: Pin<&mut M>,
         name: &'static CStr,
         kind: Option<&'static CStr>,
