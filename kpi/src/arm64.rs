@@ -31,6 +31,7 @@
 use crate::bindings;
 use crate::bindings::u_int;
 
+/// Checks whether the kernel is running in VHE mode.
 pub fn in_vhe() -> bool {
     unsafe { bindings::in_vhe() }
 }

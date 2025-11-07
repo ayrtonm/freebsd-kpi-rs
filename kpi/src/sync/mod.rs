@@ -26,8 +26,6 @@
  * SUCH DAMAGE.
  */
 
-//! Synchronization primitives.
-
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::fmt;
@@ -36,10 +34,19 @@ use core::ops::{Deref, DerefMut};
 use core::ptr::read;
 use core::sync::atomic::{AtomicBool, Ordering};
 
+/// Rust-style atomic reference counting with memory backed malloc(9)
 pub mod arc;
+/// Mutex and SpinLock backed by mtx(9)
 pub mod mtx;
 
 /// A value borrow-checked at runtime
+///
+/// This is intended for variables which are shared between multiple threads but which are expected
+/// to only be accessed by one thread at a time. Attempting to access the `T` from multiple threads
+/// at the same will make it panic. Note that this is essentially a mutex that doesn't sleep since
+/// it uses a single atomic flag to ensure exclusive access and does not differentiate between
+/// readers and writers. It has the benefit of not using the existing `mtx(9)` machinery though
+/// which should make it somewhat lower cost.
 pub struct Mutable<T> {
     t: UnsafeCell<T>,
     borrowed: AtomicBool,
@@ -61,6 +68,7 @@ impl<T: Debug> Debug for Mutable<T> {
 unsafe impl<T> Sync for Mutable<T> {}
 
 impl<T> Mutable<T> {
+    /// Creates a new `Mutable<T>`
     pub const fn new(t: T) -> Self {
         Self {
             t: UnsafeCell::new(t),
@@ -72,6 +80,9 @@ impl<T> Mutable<T> {
         self.t.get()
     }
 
+    /// Get mutable access to the `T`.
+    ///
+    /// This panics if the `Mutable<T>` is already borrowed.
     pub fn get_mut(&self) -> RefMut<'_, T> {
         if !self
             .borrowed
@@ -87,6 +98,7 @@ impl<T> Mutable<T> {
     }
 }
 
+/// A reference to a mutably borrowed [`Mutable<T>`]
 pub struct RefMut<'b, T: 'b + ?Sized> {
     value: *mut T,
     borrowed: &'b AtomicBool,

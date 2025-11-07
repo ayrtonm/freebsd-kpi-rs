@@ -186,14 +186,61 @@ impl RefCountData {
     }
 }
 
-/// The layout of the Ptr pointee
+/// An atomically recounted `T` on the heap.
 ///
-/// This type intentionally does not expose a constructor outside this module to enforce the
-/// invariant that any `RefCounted<T>` which has its address taken is heap-allocated. The `metadata`
-/// is intentionally kept private to ensure the `Deref` impl for `RefCounted<T>` works as expected
-/// for `T` with a field named `metadata`. The intended way to use a `&RefCounted<T>` is just like a
-/// `&T` would be used with the addition that `CPtr`s (and potentially extending its lifetime
-/// because of the additional refcount).
+/// [`RefCounted<T>`] implements [`Deref<Target = T>`][`Deref`] which allows it to be transparently
+/// used like a `T`. This includes both accessing fields and methods the normal dot syntax (e.g.
+/// `refcounted_t.some_field_on_t`). This is how it's primarily intended to be used and it exposes
+/// very few methods itself.
+///
+/// # Invariants
+///
+/// All instances of this type are heap-allocated. For this reason it does not expose a public
+/// constructor outside this crate. Instead `&RefCounted<T>` are provided by some traits and
+/// methods in this crate. A consequence of the [`RefCounted<T>`] struct itself being on the heap is
+/// that this crate always provides access via references. Hitting borrow checker issues due to the
+/// lifetime associated with these references can usually be fixed by calling its
+/// [`grab_ref`][RefCounted::grab_ref] method.
+///
+/// # Projection
+///
+/// Sometimes it may be useful to get a pointer to a field and pass the assurances that the initial
+/// pointer type provided on to the new pointer. In this case [`RefCounted<T>`] owns a refcount
+/// ensuring that the `T` lives at least as long as the reference. Doing a "pointer projection" to
+/// one of `T`'s fields would then create a new pointer to that field which owns some refcount which
+/// will ensure the field lives as long as necessary. Since it's difficult to know ahead of time
+/// which fields will have projections created, projecting a `RefCounted<T>` uses the `T`'s refcount
+/// for the field as well. This means that the entire `T` will live as long as the new field pointer
+/// is alive. To instead use a dedicated refcount for a part of the `T` the solution would be to
+/// make the field an `Arc` (which comes at the cost of a level of indirection). This operation is
+/// currently done using the [`project!`] macro which also documents it in more detail.
+///
+/// # [`RefCounted`] vs [`Arc`][crate::sync::arc::Arc]
+///
+/// One might ask why provide both [`RefCounted`] and [`Arc`][crate::sync::arc::Arc] (i.e.
+/// atomic-refcounted) if they're both for thread-safe refcounted types? Ultimately it boils down to
+/// differences in the memory layout of these types and the different capabilities they provide. In
+/// [`RefCounted<T>`] the `T` is stored first while [`Arc<T>`][crate::sync::arc::Arc] stores it
+/// last. Storing it first allows easier interop when `T` is a subclass of another type. For example
+/// a `RefCounted<SubClass<Base, SubFields>>` has the same layout as this C struct.
+///
+/// ```c
+/// struct RefCounted {
+///     struct SubClass {
+///         struct Base { ... } base;
+///         struct SubFields { ... } sub_fields;
+///     };
+///     struct RefCountData metadata;
+///     bool init;
+/// };
+/// ```
+///
+/// This layout makes it trivial to turn a `struct Base *ptr` received from some C API into a
+/// `&RefCounted<SubClass<Base, SubFields>>` in rust without adding/subtracting any pointer offsets.
+/// The downside of this layout is that the size of `T` must be known at compile-time (i.e. has the
+/// implicit bound [`Sized`]). Since [`Arc`][crate::sync::arc::Arc] has `T` at the end it opts it
+/// out of this bound (i.e. allows `T: ?Sized`). This means you can create things like `Arc<[u32]>`
+/// and other types where `T` has its size determined at runtime.
 #[repr(C)]
 pub struct RefCounted<T> {
     // This field must be first to support subclass drivers like simplebus and nvme
@@ -203,18 +250,29 @@ pub struct RefCounted<T> {
 }
 
 impl<T> RefCounted<T> {
+    #[doc(hidden)]
     pub fn metadata_offset() -> usize {
         offset_of!(Self, metadata)
     }
+
+    #[doc(hidden)]
     pub fn get_ptr(ptr: *mut Self) -> *mut T {
         project!(&raw mut ptr->t)
     }
+
+    #[doc(hidden)]
     pub fn metadata_ptr(ptr: *mut Self) -> *mut RefCountData {
         project!(&raw mut ptr->metadata)
     }
+
+    /// Grabs a refcount and returns a [`Ptr<T>`] which logically owns it.
     pub fn grab_ref(&self) -> Ptr<T> {
         Ptr::new(self)
     }
+
+    /// Grabs a refcount, leaks it and returns a reference with a static lifetime.
+    ///
+    /// Note that leaking the refcount prevents the `T` from ever being freed.
     pub fn leak_ref(&self) -> &'static T {
         OwnedPtr::leak(self.grab_ref())
     }
@@ -245,13 +303,21 @@ impl<T: Debug> Debug for RefCounted<T> {
 
 /// A pointer to a `T` which owns a refcount for it.
 ///
-/// Dropping the `Ptr<T>` releases the refcount it owns.
+/// [`Ptr<T>`] can be created by calling the [`grab_ref`][RefCounted::grab_ref] method on a
+/// [`RefCounted`] reference. Other methods, such as
+/// [`device_get_softc`][crate::device::device_get_softc()] may also return [`Ptr<T>`]s. Dropping a
+/// [`Ptr<T>`] releases the refcount it owns.
+///
+/// [`Ptr<T>`] implements [`Deref<Target = T>`][`Deref`] which allows it to be transparently used
+/// like a `T`. This includes both accessing fields and methods the normal dot syntax (e.g.
+/// `ptr_t.some_field_on_t`). This is how it's primarily intended to be used and it exposes very few
+/// methods itself.
 #[repr(C)]
 pub struct Ptr<T>(*mut RefCounted<T>);
 
 impl<T> Ptr<T> {
     /// Grabs an additional refcount to a `T` and creates a new `Ptr<T>`.
-    pub fn new(rc_t: &RefCounted<T>) -> Self {
+    fn new(rc_t: &RefCounted<T>) -> Self {
         let count_ptr = &raw const rc_t.metadata.count;
         // SAFETY: The pointer is derived from the `&RefCounted<T>` arg passed in to this function.
         // acquiring a refcount is thread-safe so this may happen concurrently with other operations
@@ -260,12 +326,13 @@ impl<T> Ptr<T> {
         Self(ptr.cast_mut())
     }
 
-    /// Creates a `Ptr` from a pointer to a `RefCounted<T>` without grabbing a refcount.
+    /// Creates a [`Ptr`] from a pointer to a [`RefCounted<T>`] without grabbing a refcount.
     ///
     /// # Safety
     ///
-    /// The caller must ensure that there is at least one refcount that the `Ptr` can conceptually
+    /// The caller must ensure that there is at least one refcount that the [`Ptr`] can logically
     /// own.
+    #[doc(hidden)]
     pub unsafe fn from_raw(ptr: *mut RefCounted<T>) -> Self {
         Self(ptr)
     }
@@ -388,10 +455,10 @@ impl<T> Drop for FatPtr<T> {
     }
 }
 
-/// A pointer wrapper implementing `Sync`.
+/// A pointer type implementing `Sync`.
 ///
-/// This is useful for creating pointers to types that intentionally are expected to be shared
-/// between threads without explicit synchronization.
+/// This is useful for creating pointer types that are expected to be shared between threads without
+/// explicit synchronization.
 #[repr(C)]
 pub struct SyncPtr<T>(pub(crate) *mut T);
 
@@ -523,14 +590,17 @@ impl<B, F> DerefMut for SubClass<B, F> {
     }
 }
 
+/// An uninitialized `T` which may be refcounted.
 #[repr(C)]
 pub struct Uninit<T>(MaybeUninit<RefCounted<T>>);
 
 impl<T> Uninit<T> {
+    #[doc(hidden)]
     pub unsafe fn from_raw<'a>(ptr: *mut RefCounted<T>) -> &'a mut Self {
         unsafe { ptr.cast::<Self>().as_mut().unwrap() }
     }
 
+    /// Initialize the `Uninit<T>` to `t`, returning a shared reference to the `RefCounted<T>`.
     pub fn init(&mut self, t: T) -> &RefCounted<T> {
         let ref_t_ptr = self.0.as_mut_ptr();
         let t_ptr = unsafe { &raw mut (*ref_t_ptr).t };
@@ -541,6 +611,7 @@ impl<T> Uninit<T> {
         }
     }
 
+    #[doc(hidden)]
     pub fn is_init(&self) -> bool {
         let ref_t_ptr = self.0.as_ptr();
         let init_ptr = unsafe { &raw const (*ref_t_ptr).init };

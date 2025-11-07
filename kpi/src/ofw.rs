@@ -58,11 +58,14 @@ impl<T> OfwCompatEntry<T> {
     }
 }
 
+/// An array of `ofw_compat_data` entries.
 #[repr(C)]
 #[derive(Debug)]
 pub struct OfwCompatData<T, const N: usize>([OfwCompatEntry<T>; N], OfwCompatEntry<T>);
 
 impl<T, const N: usize> OfwCompatData<T, N> {
+    // TODO: Add a constructor that takes no data `()`
+    /// Create a new OfwCompatData from an array of tuples of compatible strings and their data.
     pub const fn new(data: [(&'static CStr, &'static T); N]) -> Self {
         let _: () = {
             assert!(size_of::<OfwCompatEntry<T>>() == size_of::<ofw_compat_data>());
@@ -118,6 +121,10 @@ pub mod wrappers {
         res == 1
     }
 
+    /// Checks if a device is compatible with any entries in `compat`.
+    ///
+    /// Returns a reference to the first compatible entry or `Err` if none are found. Unlike the C
+    /// version, `compat` does not need to be explicitly terminated by a null entry.
     pub fn ofw_bus_search_compatible<T, const N: usize>(
         dev: device_t,
         compat: &OfwCompatData<T, N>,

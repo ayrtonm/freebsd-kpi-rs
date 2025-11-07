@@ -34,6 +34,10 @@ use core::ffi::{CStr, c_int};
 use core::fmt;
 use core::fmt::{Debug, Formatter};
 
+/// The result of probing a device with a driver.
+///
+/// This intentionally has no constructors and instead can be created by using the `BUS_PROBE_*`
+/// constants in [`crate::prelude`].
 #[repr(C)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct BusProbe(c_int);
@@ -65,6 +69,12 @@ impl Debug for device_t {
     }
 }
 
+/// Calls [`device_get_softc()`] using `Self` as the generic type parameter for the driver.
+///
+/// This is shorthand for calling `device_get_softc::<Self>(dev)` since that function is mainly
+/// expected to be called devices in its own methods. `Self` may not be the correct generic type
+/// parameter in cases where one driver's methods the softc of another. In those cases
+/// [`device_get_softc()`] should be called directly.
 #[macro_export]
 macro_rules! device_get_softc {
     ($dev:expr) => {
@@ -155,6 +165,37 @@ define_interface! {
 ///
 /// This is used to match devices to drivers during autoconfiguration and allow drivers to handle
 /// system events such as suspend, resume and shutdown.
+///
+/// All drivers defined by [`driver!`][crate::driver] must implement this trait to define at least
+/// their softc, [`device_probe`][DeviceIf::device_probe] and
+/// [`device_attach`][DeviceIf::device_attach] methods. Any methods left unimplemented will just
+/// panic if called.
+///
+/// The softc type associated with each [`DeviceIf`] impl has the bounds `'static + Sync`. `'static`
+/// means any references in the softc must always point to global data. The softc will generally own
+/// or share the data it contains rather than use references so this is typically not a problem. The
+/// `Sync` bound roughly means that all fields in the softc must be safe to share between multiple
+/// threads.
+///
+/// In contrast to the C equivalent, the softc is passed as an argument to the methods in which the
+/// driver is allowed to access it (all except [`device_probe`][DeviceIf::device_probe]). In
+/// [`device_attach`][DeviceIf::device_attach] it must be initialized by calling the argument's
+/// [`init`][crate::ffi::Uninit::init] method. That returns a reference to the softc (`&RefCounted<Softc>`)
+/// which can be used for the duration of the function. If a softc reference is not sufficient (e.g.
+/// it needs to be passed to a callback that may be called after the function returns), the
+/// [`grab_ref()`][crate::ffi::RefCounted::grab_ref] method can be used to get a pointer to the
+/// softc and increase its refcount. Grabbing a refcount ensures that the softc will live as long
+/// as necessary. Also note that all kobj interface methods collectively own one refcount to the
+/// softc. That is, methods like those in this trait and [`PicIf`] can access the softc without
+/// the cost of grabbing and releasing a refcount. The [`device_attach`][DeviceIf::device_attach]
+/// and [`device_detach`][DeviceIf::device_detach] methods define when this shared refcount is
+/// acquired and released, respectively. After [`device_detach`][DeviceIf::device_detach], this
+/// crate's glue code releases a reference which may or may not free all memory owned by the softc
+/// depending on whether there are other refcounts which haven't been released.
+///
+/// For cases where it may be easier to pipe a `device_t` than a softc pointer through an interface
+/// [`device_get_softc`][crate::device::device_get_softc()] is also provided to get a softc pointer
+/// from the `device_t`. This always grabs a refcount so it should be avoided whenever possible.
 #[diagnostic::on_unimplemented(message = "
 Implement the device interface trait by adding this where the `driver!` macro was used
 pub struct {Self}Softc {{}}
@@ -164,10 +205,29 @@ impl DeviceIf for {Self} {{
 ")]
 #[allow(unused_variables)]
 pub trait DeviceIf<State = ()>: DriverIf {
+    /// The softc associated with the driver.
+    ///
+    /// If the driver is a subclass of another, then this must be an appropriate
+    /// [`SubClass`][crate::ffi::SubClass].
     type Softc: 'static + Sync;
 
+    /// Used to probe whether the given device is supported by the driver.
     fn device_probe(dev: device_t) -> Result<BusProbe>;
+
+    /// Used to initialize a driver.
+    ///
+    /// All implementations must call [`init`][crate::ffi::Uninit::init] on the `uninit_sc` argument
+    /// before this function returns to avoid a panic at runtime.
     fn device_attach(uninit_sc: &mut Uninit<Self::Softc>, dev: device_t) -> Result<()>;
+
+    /// Used to remove a driver.
+    ///
+    /// If all explicitly grabbed refcounts to the softc have been released, then the softc's memory
+    /// will be freed after this function returns. This includes both the region of memory allocated
+    /// for the softc struct as well as any memory accessible to it via layers of indirection. For
+    /// example, if a softc struct includes a `Box<T>` field (i.e. a pointer to the heap with
+    /// ownership of a `T`) the `T` in the heap will also be freed. This applies recursively through
+    /// any number of layers of indirection.
     fn device_detach(sc: &RefCounted<Self::Softc>, dev: device_t) -> Result<()> {
         unimplemented!()
     }
@@ -243,6 +303,18 @@ pub mod wrappers {
         unsafe { bindings::device_get_driver(dev) }
     }
 
+    /// Get a pointer to a device's softc.
+    ///
+    /// This function grabs a refcount to a device's softc and returns a [`Ptr`][crate::ffi::Ptr] to
+    /// it. The caller must ensure that the generic type parameter `D` is the same type as the
+    /// driver which was attached to the device. The caller must also ensure that the device has
+    /// been attached and the softc refcount has not dropped to zero. Failure to meet these
+    /// requirements will cause a panic at runtime.
+    ///
+    /// Note since this function is a much heavier operation than device_get_softc in C, the
+    /// preferred way to access a softc is through the argument passed to kobj interface methods and
+    /// piping those pointers where necessary. This method is mainly provided as a last resort for
+    /// when there is no good way to pipe softc pointers to a given context.
     pub fn device_get_softc<D: DeviceIf>(dev: device_t) -> Ptr<D::Softc> {
         let state = device_get_state(dev);
         if state != bindings::DS_ATTACHED {

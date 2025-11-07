@@ -34,16 +34,17 @@
 //!
 //! It exposes similar interfaces to the C equivalents with differences mainly to provide ergonomic
 //! or safety benefits. This crate only relies on the rust
-//! [core library](https://doc.rust-lang.org/core/) and will not allocate using
+//! [`core` library](https://doc.rust-lang.org/core/) and will not allocate using
 //! [`malloc(9)`](https://man.freebsd.org/cgi/man.cgi?malloc(9)) unless
 //! [`MallocFlags`][malloc::MallocFlags] are explicitly passed in. It does not rely on any 3rd-party
 //! crates (e.g. [`crates.io`](<https://crates.io>)).
 //!
 //! The **main goal** is to let developers use mostly
 //! [safe rust](https://doc.rust-lang.org/nomicon/what-unsafe-does.html) to define clear
-//! [ownership semantics](https://doc.rust-lang.org/nomicon/ownership.html), avoid
-//! [data races](https://doc.rust-lang.org/nomicon/races.html) and minimize the chance of mis-using
-//! interfaces so they can focus on implementing the functionality they actually care about.
+//! [ownership semantics](https://doc.rust-lang.org/nomicon/ownership.html) and avoid
+//! [data races](https://doc.rust-lang.org/nomicon/races.html). This should minimize the chance of
+//! mis-using interfaces so developers can focus on implementing the functionality they actually
+//! care about.
 //!
 //! # Navigating the docs
 //!
@@ -56,21 +57,37 @@
 //! document how to construct them.
 //!
 //! For example, [`device_probe`](https://man.freebsd.org/cgi/man.cgi?query=DEVICE_PROBE) may need
-//! to check if a `device_t`'s devicetree `"compatible"` property matches a driver using
+//! to check if a `device_t`'s devicetree `"compatible"` string matches a driver using
 //! [`ofw_bus_search_compatible`](https://man.freebsd.org/cgi/man.cgi?query=ofw_bus_search_compatible).
-//! Rather than use `struct ofw_compat_data` pointers, the rust
-//! [`ofw_bus_search_compatible`][prelude::ofw_bus_search_compatible] wrapper takes an
-//! [`OfwCompatData`][crate::ofw::OfwCompatData] reference and returns a `&'static T` to the field
-//! the caller cares about. The developer can then create an
+//! The rust [`ofw_bus_search_compatible`][prelude::ofw_bus_search_compatible] wrapper is exported
+//! by both [`ofw`] (where it's defined) and [`prelude`] (avoiding the need to explicitly import
+//! every function used). Rather than use `struct ofw_compat_data` pointers, the rust wrapper takes
+//! an [`OfwCompatData`][crate::ofw::OfwCompatData] reference and returns a `&'static T` to the
+//! field the caller cares about. The developer can then create an
 //! [`OfwCompatData`][crate::ofw::OfwCompatData] using
-//! [`OfwCompatData::new`][crate::ofw::OfwCompatData::new], call `ofw_bus_search_compatible`
-//! and get back a reference to the entry with a matching `"compatible"` property. Unless otherwise
-//! specified this crate will ensure that lifetime and memory layouts are constrained as necessary.
+//! [`OfwCompatData::new`][crate::ofw::OfwCompatData::new], call
+//! [`ofw_bus_search_compatible`][prelude::ofw_bus_search_compatible] and get back a reference to
+//! the entry with a matching `"compatible"` string. Unless otherwise specified this crate will
+//! ensure that lifetime and memory layouts are constrained as necessary.
+//!
+//! If a function is not available in [`prelude`], the C version can be accessed from the
+//! [`bindings`] module. This can be useful for prototyping rust in different areas of the kernel,
+//! but consider creating safe wrappers before proliferating the use of the C functions across a
+//! codebase.
 //!
 //! # Driver development
 //!
-//! This crate's initial purpose is to develop kernel device drivers. The [`driver!`] macro is the
-//! equivalent of `DEFINE_CLASS` and the `device_method_t` table in C.
+//! This crate's initial purpose was for developing kernel drivers. These docs do not intend to be
+//! an exhaustive guide on writing drivers, but the most relevant points are:
+//!
+//! - the [`driver!`] macro for defining the driver kobj class and method table
+//! - the [`DeviceIf`][device::DeviceIf] trait to define the driver softc
+//! - the [`AsCType`]/[`AsRustType`] traits to make the driver's exported functions ergonomic
+//!
+//! [`driver!`] is used to define the driver kobj class and its method table (i.e. the equivalent of
+//! the `DEFINE_CLASS` macro and `device_method_t` in C). This crate does not define an equivalent
+//! of the `DRIVER_MODULE`/`EARLY_DRIVER_MODULE` C macros so they must be invoked in .c files for
+//! each rust driver.
 //!
 //! # Other use-cases
 //!
@@ -87,25 +104,33 @@ extern crate std;
 #[macro_use]
 mod macros;
 
+/// Arch-specific functions for ARM64
 #[cfg(target_arch = "aarch64")]
 pub mod arm64;
 /// Declarations for using C functions, types and variables directly.
 pub mod bindings;
 pub mod boxed;
+/// Resource bus functions
 pub mod bus;
+/// Device driver and softc functions
 pub mod device;
 #[doc(hidden)]
 pub mod driver;
 pub mod ffi;
 mod interfaces;
+/// Interrupt functions and config hook
 #[cfg(feature = "intrng")]
 pub mod intr;
+/// Malloc flags and types
 pub mod malloc;
+/// Devicetree utilities
 #[cfg(feature = "fdt")]
 pub mod ofw;
 #[cfg(not(feature = "std"))]
 mod panic;
+/// Synchronization primitives
 pub mod sync;
+/// Taskqueue functions
 pub mod taskq;
 // This module only exports macros
 #[doc(hidden)]
@@ -127,6 +152,7 @@ macro_rules! define_stub_syms {
 #[cfg(test)]
 mod tests;
 
+/// A result where the `Err` is always a FreeBSD [`ErrCode`]
 pub type Result<T> = core::result::Result<T, ErrCode>;
 
 pub trait AsCType<T> {
@@ -143,6 +169,7 @@ impl<T> AsRustType<T> for T {
     }
 }
 
+/// A catch-all module for miscellaneous functions
 #[allow(non_snake_case)]
 pub mod misc {
     use crate::bindings::{cpuset_t, device_t, u_int};
@@ -409,7 +436,13 @@ macro_rules! err_codes {
         use core::fmt::{Debug, Display, Formatter};
         use core::num::NonZeroI32;
 
-        // This is effectively an extensible enum with some overlapping variants
+        /// A FreeBSD error code.
+        ///
+        /// In addition to the standard error codes defined in C (`EPERM`, `ENXIO`, etc.) this also
+        /// supports `ENULLPTR` for cases where C APIs report errors by returning null pointers and
+        /// `EBADFFI` to represent cases where errors are caused by the FFI layer between C and
+        /// rust. Keep in mind that rust code understands the two extra error codes, but not all C
+        /// code may treat it as an error.
         #[derive(Copy, Clone, PartialEq, Eq)]
         pub struct ErrCode(pub(crate) NonZeroI32);
 
