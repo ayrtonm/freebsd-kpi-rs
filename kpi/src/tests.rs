@@ -30,9 +30,8 @@
 
 use crate::bindings;
 use crate::bindings::{
-    device_attach_desc, device_attach_t, device_detach_desc, device_detach_t, device_probe_desc,
-    device_probe_t, device_state_t, device_t, driver_filter_t, driver_intr_t, driver_t,
-    intr_config_hook, intr_irq_filter_t, kobjop_desc, resource, u_int,
+    device_attach_t, device_detach_t, device_probe_t, device_state_t, device_t, driver_filter_t,
+    driver_intr_t, driver_t, intr_config_hook, intr_irq_filter_t, kobjop_desc, resource, u_int,
 };
 use crate::driver::DriverIf;
 use core::mem::transmute;
@@ -89,15 +88,21 @@ impl driver_t {
         res
     }
     fn get_probe_fn(driver: *mut Self) -> device_probe_t {
-        let func = Self::get_interface_fn(driver, &raw mut device_probe_desc);
+        // The desc is a function in the test binary so `as` is needd to convert it to a pointer
+        let desc_addr = device_probe_desc as *mut kobjop_desc;
+        let func = Self::get_interface_fn(driver, desc_addr);
         unsafe { transmute(func) }
     }
     fn get_attach_fn(driver: *mut Self) -> device_attach_t {
-        let func = Self::get_interface_fn(driver, &raw mut device_attach_desc);
+        // The desc is a function in the test binary so `as` is needd to convert it to a pointer
+        let desc_addr = device_attach_desc as *mut kobjop_desc;
+        let func = Self::get_interface_fn(driver, desc_addr);
         unsafe { transmute(func) }
     }
     fn get_detach_fn(driver: *mut Self) -> device_detach_t {
-        let func = Self::get_interface_fn(driver, &raw mut device_detach_desc);
+        // The desc is a function in the test binary so `as` is needd to convert it to a pointer
+        let desc_addr = device_detach_desc as *mut kobjop_desc;
+        let func = Self::get_interface_fn(driver, desc_addr);
         unsafe { transmute(func) }
     }
 }
@@ -437,19 +442,15 @@ mod unmangled_fns {
 
     #[unsafe(no_mangle)]
     static mut M_DEVBUF: () = ();
-
-    #[unsafe(no_mangle)]
-    static mut device_probe_desc: () = ();
-
-    #[unsafe(no_mangle)]
-    static mut device_attach_desc: () = ();
-
-    #[unsafe(no_mangle)]
-    static mut device_detach_desc: () = ();
 }
 
 define_stub_syms! {
     simplebus_driver
+    // Make these panicking functions rather than static mut to ensure their addresses don't overlap
+    // in the test binary
+    device_probe_desc
+    device_attach_desc
+    device_detach_desc
     //refcount_release__extern
     //refcount_init__extern
     //refcount_load__extern
