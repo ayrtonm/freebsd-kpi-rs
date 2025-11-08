@@ -358,7 +358,7 @@ pub mod tests {
         const_data: u32,
         another_sc: Mutable<Option<Ptr<AnotherDriverSoftc>>>,
     }
-    static STASHED_DEVICE: Mutable<device_t> = Mutable::new(device_t::null());
+    //static STASHED_DEVICE: Mutable<device_t> = Mutable::new(device_t::null());
     impl TestDriver {
         // TODO: Fix this buggy test
         //test_driver: rejected device_t { driver: "no driver attached", desc: "no desc set" } as incompatible
@@ -399,7 +399,7 @@ pub mod tests {
                 const_data: 0xdeadbeef,
                 another_sc: Mutable::new(None),
             });
-            *STASHED_DEVICE.get_mut() = dev;
+            //*STASHED_DEVICE.get_mut() = dev;
             println!("{:x?}", sc);
             Ok(())
         }
