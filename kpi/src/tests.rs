@@ -60,14 +60,6 @@ pub struct TestDevice {
     desc: Option<CString>,
 }
 
-pub trait CDriverFns {
-    fn get_probe(&self) -> unsafe extern "C" fn(device_t) -> i32;
-    fn get_attach(&self) -> unsafe extern "C" fn(device_t) -> i32;
-    fn get_detach(&self) -> unsafe extern "C" fn(device_t) -> i32;
-    fn softc_size(&self) -> usize;
-    fn get_driver(&self) -> *mut driver_t;
-}
-
 // We only support testing a single config hook since config_intrhook_establish's function signature
 // lacks a way to access a device_t or driver_t
 static CONFIG_HOOK: AtomicPtr<intr_config_hook> = AtomicPtr::new(null_mut());

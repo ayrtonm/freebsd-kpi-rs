@@ -344,7 +344,7 @@ pub mod tests {
     use super::*;
     use crate::driver;
     use crate::sync::Mutable;
-    use crate::tests::{CDriverFns, DriverManager, LoudDrop};
+    use crate::tests::{DriverManager, LoudDrop};
     use std::ffi::{CStr, c_void};
     use std::vec::Vec;
 
@@ -466,41 +466,6 @@ pub mod tests {
             }
     );
 
-    impl CDriverFns for TestDriver {
-        fn get_probe(&self) -> unsafe extern "C" fn(device_t) -> i32 {
-            test_driver::exported_fns::test_driver_probe
-        }
-        fn get_attach(&self) -> unsafe extern "C" fn(device_t) -> i32 {
-            test_driver::exported_fns::test_driver_attach
-        }
-        fn get_detach(&self) -> unsafe extern "C" fn(device_t) -> i32 {
-            test_driver::exported_fns::test_driver_detach
-        }
-        fn softc_size(&self) -> usize {
-            self.0.size
-        }
-        fn get_driver(&self) -> *mut driver_t {
-            Self::DRIVER
-        }
-    }
-    impl CDriverFns for AnotherDriver {
-        fn get_probe(&self) -> unsafe extern "C" fn(device_t) -> i32 {
-            another_driver::exported_fns::another_driver_probe
-        }
-        fn get_attach(&self) -> unsafe extern "C" fn(device_t) -> i32 {
-            another_driver::exported_fns::another_driver_attach
-        }
-        fn get_detach(&self) -> unsafe extern "C" fn(device_t) -> i32 {
-            another_driver::exported_fns::another_driver_detach
-        }
-        fn softc_size(&self) -> usize {
-            self.0.size
-        }
-        fn get_driver(&self) -> *mut driver_t {
-            Self::DRIVER
-        }
-    }
-
     #[test]
     fn normal_flow() {
         let mut m = DriverManager::new();
@@ -545,23 +510,6 @@ pub mod tests {
                 device_detach irq_driver_detach,
             }
     );
-    impl CDriverFns for IrqDriver {
-        fn get_probe(&self) -> unsafe extern "C" fn(device_t) -> i32 {
-            irq_driver::exported_fns::irq_driver_probe
-        }
-        fn get_attach(&self) -> unsafe extern "C" fn(device_t) -> i32 {
-            irq_driver::exported_fns::irq_driver_attach
-        }
-        fn get_detach(&self) -> unsafe extern "C" fn(device_t) -> i32 {
-            irq_driver::exported_fns::irq_driver_detach
-        }
-        fn softc_size(&self) -> usize {
-            self.0.size
-        }
-        fn get_driver(&self) -> *mut driver_t {
-            Self::DRIVER
-        }
-    }
 
     driver!(hook_driver, c"hook_driver", HookDriver, hook_driver_methods,
             INTERFACES {
@@ -570,23 +518,6 @@ pub mod tests {
                 device_detach hook_driver_detach,
             }
     );
-    impl CDriverFns for HookDriver {
-        fn get_probe(&self) -> unsafe extern "C" fn(device_t) -> i32 {
-            hook_driver::exported_fns::hook_driver_probe
-        }
-        fn get_attach(&self) -> unsafe extern "C" fn(device_t) -> i32 {
-            hook_driver::exported_fns::hook_driver_attach
-        }
-        fn get_detach(&self) -> unsafe extern "C" fn(device_t) -> i32 {
-            hook_driver::exported_fns::hook_driver_detach
-        }
-        fn softc_size(&self) -> usize {
-            self.0.size
-        }
-        fn get_driver(&self) -> *mut driver_t {
-            Self::DRIVER
-        }
-    }
 
     driver!(intc_driver, c"intc_driver", IntcDriver, intc_driver_methods,
             INTERFACES {
@@ -595,21 +526,4 @@ pub mod tests {
                 device_detach intc_driver_detach,
             }
     );
-    impl CDriverFns for IntcDriver {
-        fn get_probe(&self) -> unsafe extern "C" fn(device_t) -> i32 {
-            intc_driver::exported_fns::intc_driver_probe
-        }
-        fn get_attach(&self) -> unsafe extern "C" fn(device_t) -> i32 {
-            intc_driver::exported_fns::intc_driver_attach
-        }
-        fn get_detach(&self) -> unsafe extern "C" fn(device_t) -> i32 {
-            intc_driver::exported_fns::intc_driver_detach
-        }
-        fn softc_size(&self) -> usize {
-            self.0.size
-        }
-        fn get_driver(&self) -> *mut driver_t {
-            Self::DRIVER
-        }
-    }
 }
