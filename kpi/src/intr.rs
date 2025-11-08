@@ -120,13 +120,6 @@ define_interface! {
 pub type IrqSrc<T> = SubClass<intr_irqsrc, T>;
 
 /// The PIC interface defined by pic_if.m
-#[diagnostic::on_unimplemented(message = "
-Implement the PIC interface trait by adding this where the `driver!` macro was used
-pub struct {Self}IrqSrcFields {{ ... }}
-impl PicIf for {Self} {{
-    type IrqSrcFields = {Self}IrqSrcFields;
-}}
-")]
 #[allow(unused_variables)]
 pub trait PicIf: DeviceIf {
     type IrqSrcFields;

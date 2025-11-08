@@ -197,11 +197,23 @@ define_interface! {
 /// [`device_get_softc`][crate::device::device_get_softc()] is also provided to get a softc pointer
 /// from the `device_t`. This always grabs a refcount so it should be avoided whenever possible.
 #[diagnostic::on_unimplemented(message = "
-Implement the device interface trait by adding this where the `driver!` macro was used
-pub struct {Self}Softc {{}}
+Implement the device interface trait and define the softc as follows
+
+```
+pub struct MyDriverSoftc {{ /* softc fields go here */ }}
+
 impl DeviceIf for {Self} {{
-    type Softc = {Self}Softc;
+    type Softc = MyDriverSoftc;
+
+    fn device_probe(dev: device_t) -> Result<BusProbe> {{
+        /* device_probe impl goes here */
+    }}
+
+    fn device_attach(sc: &mut Uninit<MyDriverSoftc>, dev: device_t) -> Result<()> {{
+        /* device_attach impl goes here */
+    }}
 }}
+```
 ")]
 #[allow(unused_variables)]
 pub trait DeviceIf<State = ()>: DriverIf {
