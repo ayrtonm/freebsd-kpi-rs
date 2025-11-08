@@ -506,8 +506,8 @@ pub mod tests {
         let mut m = DriverManager::new();
         m.add_test_device(c"device,test_driver");
         m.add_test_device(c"device,another_driver");
-        m.drivers.push(&test_driver);
-        m.drivers.push(&another_driver);
+        m.add_test_driver::<TestDriver>();
+        m.add_test_driver::<AnotherDriver>();
         m.probe_attach_detach();
     }
 
@@ -516,8 +516,8 @@ pub mod tests {
         let mut m = DriverManager::new();
         m.add_test_device(c"device,test_driver");
         m.add_test_device(c"device,another_driver");
-        m.drivers.push(&test_driver);
-        m.drivers.push(&another_driver);
+        m.add_test_driver::<TestDriver>();
+        m.add_test_driver::<AnotherDriver>();
         m.probe_all();
         m.attach_all();
         DriverManager::detach_devices(&mut m.devices.iter_mut().rev());
@@ -529,8 +529,8 @@ pub mod tests {
         m.add_test_device(c"device,test_driver");
         let dev = m.add_test_device(c"device,another_driver");
         dev.compat_strs.push(c"another_driver,set_callback");
-        m.drivers.push(&test_driver);
-        m.drivers.push(&another_driver);
+        m.add_test_driver::<TestDriver>();
+        m.add_test_driver::<AnotherDriver>();
         m.probe_all();
         m.attach_all();
         DriverManager::detach_devices(&mut m.devices.iter_mut().rev());

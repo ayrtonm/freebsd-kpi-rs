@@ -30,9 +30,12 @@
 
 use crate::bindings;
 use crate::bindings::{
-    device_state_t, device_t, driver_filter_t, driver_intr_t, driver_t, intr_config_hook,
-    intr_irq_filter_t, kobj_class, resource, u_int,
+    device_attach_desc, device_attach_t, device_detach_desc, device_detach_t, device_probe_desc,
+    device_probe_t, device_state_t, device_t, driver_filter_t, driver_intr_t, driver_t,
+    intr_config_hook, intr_irq_filter_t, kobjop_desc, resource, u_int,
 };
+use crate::driver::DriverIf;
+use core::mem::transmute;
 use std::ffi::{CStr, CString, c_void};
 use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicPtr, AtomicU32, Ordering};
@@ -47,7 +50,7 @@ pub struct TestDevice {
     pub dev: device_t, /* This is just the address of the TestDevice once it's inserted in the DriverManager's Vec */
     pub id: usize,
     pub is_ok: bool,
-    pub assigned_driver: Option<&'static dyn CDriverFns>,
+    pub assigned_driver: Option<*mut driver_t>,
     pub state: device_state_t,
     pub softc: *mut c_void,
     pub compat_strs: Vec<&'static CStr>,
@@ -69,9 +72,46 @@ pub trait CDriverFns {
 // lacks a way to access a device_t or driver_t
 static CONFIG_HOOK: AtomicPtr<intr_config_hook> = AtomicPtr::new(null_mut());
 
+impl driver_t {
+    fn get_softc_size(driver: *mut Self) -> usize {
+        unsafe { (*driver).size }
+    }
+    fn get_interface_fn(
+        driver: *mut Self,
+        interface_fn_desc: *mut kobjop_desc,
+    ) -> Option<unsafe extern "C" fn()> {
+        let mut res = None;
+
+        let class = unsafe { &*driver };
+        let mut method_ptr = class.methods;
+
+        while unsafe { (*method_ptr).func.is_some() } {
+            let desc = unsafe { (*method_ptr).desc };
+            if desc == interface_fn_desc {
+                res = unsafe { (*method_ptr).func };
+                break;
+            }
+            method_ptr = unsafe { method_ptr.add(1) };
+        }
+
+        res
+    }
+    fn get_probe_fn(driver: *mut Self) -> device_probe_t {
+        let func = Self::get_interface_fn(driver, &raw mut device_probe_desc);
+        unsafe { transmute(func) }
+    }
+    fn get_attach_fn(driver: *mut Self) -> device_attach_t {
+        let func = Self::get_interface_fn(driver, &raw mut device_attach_desc);
+        unsafe { transmute(func) }
+    }
+    fn get_detach_fn(driver: *mut Self) -> device_detach_t {
+        let func = Self::get_interface_fn(driver, &raw mut device_detach_desc);
+        unsafe { transmute(func) }
+    }
+}
 pub struct DriverManager {
     pub devices: Vec<TestDevice>,
-    pub drivers: Vec<&'static dyn CDriverFns>,
+    pub drivers: Vec<*mut driver_t>,
     dev_counter: usize,
 }
 
@@ -82,6 +122,10 @@ impl DriverManager {
             drivers: Vec::new(),
             dev_counter: 0,
         }
+    }
+
+    pub fn add_test_driver<D: DriverIf>(&mut self) {
+        self.drivers.push(D::DRIVER);
     }
 
     pub fn add_test_device(&mut self, driver_compat: &'static CStr) -> &mut TestDevice {
@@ -110,17 +154,18 @@ impl DriverManager {
         self.attach_all();
         self.detach_all();
     }
+
     pub fn probe_all(&mut self) {
         assert!(!self.drivers.is_empty());
         for dev in &mut self.devices {
             for driver in &self.drivers {
-                let probe_fn = driver.get_probe();
+                let probe_fn = driver_t::get_probe_fn(*driver).unwrap();
                 let res = unsafe { probe_fn(dev.dev) };
                 if res == bindings::BUS_PROBE_DEFAULT {
                     dev.assigned_driver = Some(*driver);
                     dev.state = bindings::DS_ALIVE;
                     let mut softc: Vec<u8> = Vec::new();
-                    for _ in 0..driver.softc_size() {
+                    for _ in 0..driver_t::get_softc_size(*driver) {
                         softc.push(0u8);
                     }
                     dev.softc = softc.leak().as_ptr().cast_mut().cast::<c_void>();
@@ -134,7 +179,7 @@ impl DriverManager {
         for dev in &mut self.devices {
             if let Some(driver) = dev.assigned_driver {
                 dev.state = bindings::DS_ATTACHING;
-                let attach_fn = driver.get_attach();
+                let attach_fn = driver_t::get_attach_fn(driver).unwrap();
                 let res = unsafe { attach_fn(dev.dev) };
                 if res != 0 {
                     dev.is_ok = false;
@@ -153,7 +198,7 @@ impl DriverManager {
         for dev in devs {
             if let Some(driver) = dev.assigned_driver {
                 if dev.is_ok {
-                    let detach_fn = driver.get_detach();
+                    let detach_fn = driver_t::get_detach_fn(driver).unwrap();
                     let res = unsafe { detach_fn(dev.dev) };
                     if res != 0 {
                         dev.is_ok = false;
@@ -310,18 +355,15 @@ mod unmangled_fns {
         let _softc = unsafe {
             Vec::<u8>::from_raw_parts(
                 test_dev(dev).softc.cast::<u8>(),
-                driver.softc_size(),
-                driver.softc_size(),
+                driver_t::get_softc_size(driver),
+                driver_t::get_softc_size(driver),
             )
         };
     }
 
     #[unsafe(no_mangle)]
     extern "C" fn device_get_driver(dev: device_t) -> *mut driver_t {
-        match test_dev(dev).assigned_driver.as_ref() {
-            Some(driver) => driver.get_driver() as *const kobj_class as *mut kobj_class,
-            None => null_mut(),
-        }
+        test_dev(dev).assigned_driver.unwrap_or(null_mut())
     }
 
     #[unsafe(no_mangle)]
@@ -403,12 +445,18 @@ mod unmangled_fns {
 
     #[unsafe(no_mangle)]
     static mut M_DEVBUF: () = ();
+
+    #[unsafe(no_mangle)]
+    static mut device_probe_desc: () = ();
+
+    #[unsafe(no_mangle)]
+    static mut device_attach_desc: () = ();
+
+    #[unsafe(no_mangle)]
+    static mut device_detach_desc: () = ();
 }
 
 define_stub_syms! {
-    device_probe_desc
-    device_attach_desc
-    device_detach_desc
     simplebus_driver
     //refcount_release__extern
     //refcount_init__extern

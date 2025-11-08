@@ -452,7 +452,7 @@ pub mod wrappers {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::device::tests::{IrqDriver, irq_driver};
+    use crate::device::tests::IrqDriver;
     use crate::device::{BusProbe, DeviceIf};
     use crate::ffi::Uninit;
     use crate::tests::{DriverManager, LoudDrop};
@@ -537,7 +537,7 @@ mod tests {
         let dev = m.add_test_device(c"bus,irq_driver");
         dev.compat_strs.push(c"irq_driver,set_filter");
         let dev = dev.dev;
-        m.drivers.push(&irq_driver);
+        m.add_test_driver::<IrqDriver>();
         m.probe_all();
         m.attach_all();
         m.trigger_irq(dev);
@@ -550,7 +550,7 @@ mod tests {
         let dev = m.add_test_device(c"bus,irq_driver");
         dev.compat_strs.push(c"irq_driver,set_handler");
         let dev = dev.dev;
-        m.drivers.push(&irq_driver);
+        m.add_test_driver::<IrqDriver>();
         m.probe_all();
         m.attach_all();
         m.trigger_irq(dev);
@@ -567,7 +567,7 @@ mod tests {
         d1.compat_strs.push(c"irq_driver,teardown_intr");
         let d1 = d1.dev;
 
-        m.drivers.push(&irq_driver);
+        m.add_test_driver::<IrqDriver>();
         m.probe_all();
         m.attach_all();
 
@@ -593,7 +593,7 @@ mod tests {
         d2.compat_strs.push(c"irq_driver,teardown_intr");
         let d2 = d2.dev;
 
-        m.drivers.push(&irq_driver);
+        m.add_test_driver::<IrqDriver>();
         m.probe_all();
         m.attach_all();
 
@@ -620,7 +620,7 @@ mod tests {
         d2.compat_strs.push(c"irq_driver,teardown_intr");
         let d2 = d2.dev;
 
-        m.drivers.push(&irq_driver);
+        m.add_test_driver::<IrqDriver>();
         m.probe_all();
         m.attach_all();
 
@@ -640,7 +640,7 @@ mod tests {
         dev.compat_strs.push(c"irq_driver,set_filter");
         dev.compat_strs.push(c"irq_driver,set_handler");
         let dev = dev.dev;
-        m.drivers.push(&irq_driver);
+        m.add_test_driver::<IrqDriver>();
         m.probe_all();
         m.attach_all();
         m.trigger_irq(dev);

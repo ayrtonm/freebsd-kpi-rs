@@ -415,7 +415,7 @@ pub mod wrappers {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::device::tests::{HookDriver, IntcDriver, hook_driver, intc_driver};
+    use crate::device::tests::{HookDriver, IntcDriver};
     use crate::device::{BusProbe, DeviceIf};
     use crate::ffi::Uninit;
     use crate::tests::{DriverManager, LoudDrop};
@@ -458,7 +458,7 @@ mod tests {
     fn run_hook() {
         let mut m = DriverManager::new();
         m.add_test_device(c"intr,hook_driver");
-        m.drivers.push(&hook_driver);
+        m.add_test_driver::<HookDriver>();
         m.probe_all();
         m.attach_all();
         m.trigger_config_hooks();
@@ -504,7 +504,7 @@ mod tests {
     fn run_intc() {
         let mut m = DriverManager::new();
         let dev = m.add_test_device(c"intr,intc_driver").dev;
-        m.drivers.push(&intc_driver);
+        m.add_test_driver::<IntcDriver>();
         m.probe_all();
         m.attach_all();
         m.trigger_pic_root(dev);
