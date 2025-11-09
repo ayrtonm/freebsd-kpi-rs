@@ -31,14 +31,14 @@ macro_rules! gen_enum {
     ($(#[$($meta:meta)*])* $pub:vis enum $enum:ident { $($macro_name:ident$(,)?)* }) => {
         $(#[$($meta)*])*
         $pub enum $enum {
-            $($macro_name = bindings::$macro_name as _,)*
+            $($macro_name = $crate::bindings::$macro_name as _,)*
         }
     };
 }
 #[macro_export]
 macro_rules! gen_newtype {
     ($new_ty:ident, $($macro_name:ident$(,)?)*) => {
-        $(pub const $macro_name: $new_ty = $new_ty(bindings::$macro_name);)*
+        $(pub const $macro_name: $new_ty = $new_ty($crate::bindings::$macro_name);)*
     };
 }
 
