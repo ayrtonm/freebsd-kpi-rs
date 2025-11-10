@@ -74,9 +74,11 @@
 #include <dev/gpio/gpiobusvar.h>
 
 #include <dev/nvme/nvme_private.h>
+// TODO: Enable these once apple silicon work is mainlined
+#if 0
 #include "nvme_if.h"
-
 #include <dt-bindings/interrupt-controller/apple-aic.h>
+#endif
 
 #include "device_if.h"
 
