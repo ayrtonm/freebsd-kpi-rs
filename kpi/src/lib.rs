@@ -283,8 +283,8 @@ pub mod prelude {
     #[cfg(target_arch = "aarch64")]
     pub use crate::arm64::*;
 
-    pub use crate::{Result, ErrCode, base, bindings, device_get_softc, project};
     pub use crate::bindings::device_t;
+    pub use crate::{ErrCode, Result, base, bindings, device_get_softc, project};
     #[cfg(target_arch = "aarch64")]
     pub use crate::{
         curthread, isb, pcpu_get, pcpu_ptr, read_specialreg, rmb, wmb, write_specialreg,
@@ -323,7 +323,7 @@ pub mod prelude {
     #[doc(inline)]
     pub use crate::taskq::wrappers::*;
 
-    pub use crate::device::{DeviceIf, BusProbe};
+    pub use crate::device::{BusProbe, DeviceIf};
     pub use crate::ffi::{RefCounted, Uninit};
 
     #[cfg(feature = "intrng")]
