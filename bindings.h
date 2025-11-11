@@ -69,7 +69,10 @@
 #include <dev/ofw/ofw_bus_subr.h>
 
 #include "ofw_bus_if.h"
-#endif
+#endif // FDT
+
+#include <dev/virtio/virtio.h>
+#include <dev/virtio/virtqueue.h>
 
 #include <dev/gpio/gpiobusvar.h>
 
