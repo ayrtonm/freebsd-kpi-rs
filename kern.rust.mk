@@ -99,7 +99,6 @@ RUST_KPI_SOURCES= \
 	${SRCTOP}/sys/rust/kpi/src/ffi.rs \
 	${SRCTOP}/sys/rust/kpi/src/malloc.rs \
 	${SRCTOP}/sys/rust/kpi/src/tests.rs \
-	${SRCTOP}/sys/rust/kpi/bindings.rs \
 
 BINDINGS_RS= bindings.rs
 
