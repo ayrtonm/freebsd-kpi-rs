@@ -19,6 +19,10 @@ RUST_TARGET= aarch64-unknown-none-softfloat
 RUST_KPI_FEATURES= --cfg 'feature="intrng"'
 RUSTFLAGS+= -Zfixed-x18 -Zbranch-protection=bti
 
+.if ${MK_FDT} != "no"
+RUST_KPI_FEATURES+= --cfg 'feature="fdt"'
+.endif
+
 .elif ${TARGET_ARCH} == amd64
 
 RUST_TARGET= x86_64-unknown-none
