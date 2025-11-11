@@ -87,11 +87,14 @@
 #endif
 
 #include <dev/nvme/nvme_private.h>
-// TODO: Enable these once apple silicon work is mainlined
-#if 0
+
+#if __has_include("nvme_if.h")
 #include "nvme_if.h"
-#include <dt-bindings/interrupt-controller/apple-aic.h>
 #endif
+#if __has_include(<arm64/apple/apple_rtkit.h>)
+#include <arm64/apple/apple_rtkit.h>
+#endif
+#include <dt-bindings/interrupt-controller/apple-aic.h>
 
 #define DECL_IFACE_METHOD(func) func ## _t func;
 
