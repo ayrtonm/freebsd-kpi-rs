@@ -119,7 +119,6 @@ pub mod driver;
 pub mod ffi;
 mod interfaces;
 /// Interrupt functions and config hook
-#[cfg(feature = "intrng")]
 pub mod intr;
 /// Malloc flags and types
 pub mod malloc;
@@ -306,7 +305,6 @@ pub mod prelude {
     pub use crate::device::wrappers::*;
 
     #[doc(inline)]
-    #[cfg(feature = "intrng")]
     pub use crate::intr::wrappers::*;
 
     // M_* macros
