@@ -40,7 +40,7 @@ use core::fmt::{Debug, Formatter};
 /// constants in [`crate::prelude`].
 #[repr(C)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct BusProbe(c_int);
+pub struct BusProbe(pub c_int);
 
 impl AsCType<c_int> for BusProbe {
     fn as_c_type(self) -> c_int {
