@@ -27,7 +27,7 @@
  */
 
 #![no_std]
-#![deny(improper_ctypes, unused_must_use, unreachable_patterns)]
+#![deny(improper_ctypes, unused_must_use, unreachable_patterns, unsafe_op_in_unsafe_fn)]
 #![feature(macro_metavar_expr_concat)]
 
 //! This crate provides access to [FreeBSD kernel interfaces](https://man.freebsd.org/cgi/man.cgi).
