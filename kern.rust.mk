@@ -70,6 +70,33 @@ RUST_LIBDIR= ${RUST_SYSROOT}/lib/rustlib/${RUST_TARGET}/lib
 RUST_CORE= ${RUST_LIBDIR}/libcore.rlib
 RUST_FAKE_BUILTINS= ${RUST_LIBDIR}/libcompiler_builtins.rlib
 RUST_KPI= libkpi.rlib
+RUST_KPI_SOURCES= \
+	${SRCTOP}/sys/rust/kpi/src/sync/mtx.rs \
+	${SRCTOP}/sys/rust/kpi/src/sync/arc.rs \
+	${SRCTOP}/sys/rust/kpi/src/sync/mod.rs \
+	${SRCTOP}/sys/rust/kpi/src/ofw.rs \
+	${SRCTOP}/sys/rust/kpi/src/bus/dma.rs \
+	${SRCTOP}/sys/rust/kpi/src/bus/mod.rs \
+	${SRCTOP}/sys/rust/kpi/src/lib.rs \
+	${SRCTOP}/sys/rust/kpi/src/tty.rs \
+	${SRCTOP}/sys/rust/kpi/src/taskq.rs \
+	${SRCTOP}/sys/rust/kpi/src/vec.rs \
+	${SRCTOP}/sys/rust/kpi/src/intr/intrng.rs \
+	${SRCTOP}/sys/rust/kpi/src/intr/mod.rs \
+	${SRCTOP}/sys/rust/kpi/src/device.rs \
+	${SRCTOP}/sys/rust/kpi/src/interfaces/nvme.rs \
+	${SRCTOP}/sys/rust/kpi/src/interfaces/mod.rs \
+	${SRCTOP}/sys/rust/kpi/src/arm64.rs \
+	${SRCTOP}/sys/rust/kpi/src/bindings.rs \
+	${SRCTOP}/sys/rust/kpi/src/driver.rs \
+	${SRCTOP}/sys/rust/kpi/src/macros.rs \
+	${SRCTOP}/sys/rust/kpi/src/boxed.rs \
+	${SRCTOP}/sys/rust/kpi/src/panic.rs \
+	${SRCTOP}/sys/rust/kpi/src/ffi.rs \
+	${SRCTOP}/sys/rust/kpi/src/malloc.rs \
+	${SRCTOP}/sys/rust/kpi/src/tests.rs \
+	${SRCTOP}/sys/rust/kpi/bindings.rs \
+
 BINDINGS_RS= bindings.rs
 
 RUSTROOT_RS= rustroot.rs
@@ -99,7 +126,7 @@ ${RUST_FAKE_BUILTINS}: ${RUST_CORE}
 ${BINDINGS_RS}: ${SRCTOP}/sys/rust/bindings.h ${RUST_MAKEFILE}
 	${BINDGEN} ${BINDGEN_FLAGS} ${SRCTOP}/sys/rust/bindings.h -- ${CFLAGS} -DBINDGEN > bindings.rs
 
-${RUST_KPI}: ${RUST_FAKE_BUILTINS} ${BINDINGS_RS}
+${RUST_KPI}: ${RUST_FAKE_BUILTINS} ${BINDINGS_RS} ${RUST_KPI_SOURCES}
 	OUT_DIR=$(PWD) ${RLIB_RULE} ${SRCTOP}/sys/rust/kpi/src/lib.rs -o ${.TARGET}
 
 ${RUSTROOT_RS}: ${RUSTROOT_DEP} ${RUST_MAKEFILE}
