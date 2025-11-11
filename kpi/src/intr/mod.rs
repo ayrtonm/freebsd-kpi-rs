@@ -37,6 +37,10 @@ mod intrng;
 pub struct IntrType(pub c_uint);
 
 #[doc(inline)]
+#[cfg(feature = "intrng")]
+pub use intrng::*;
+
+#[doc(inline)]
 pub use wrappers::*;
 
 #[doc(hidden)]
