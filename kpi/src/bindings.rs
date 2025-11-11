@@ -26,12 +26,14 @@
  * SUCH DAMAGE.
  */
 
+// These are allowed for bindgen-generated code
 #![allow(
     nonstandard_style,
     private_interfaces,
     unused_imports,
     dead_code,
-    unsafe_op_in_unsafe_fn
+    unsafe_op_in_unsafe_fn,
+    unnecessary_transmutes,
 )]
 
 use crate::ffi::SyncPtr;
