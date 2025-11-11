@@ -94,7 +94,10 @@
 #if __has_include(<arm64/apple/apple_rtkit.h>)
 #include <arm64/apple/apple_rtkit.h>
 #endif
+
+#if __has_include(<dt-bindings/interrupt-controller/apple-aic.h>)
 #include <dt-bindings/interrupt-controller/apple-aic.h>
+#endif
 
 #define DECL_IFACE_METHOD(func) func ## _t func;
 
