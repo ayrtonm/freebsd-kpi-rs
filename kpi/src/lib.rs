@@ -28,7 +28,7 @@
 
 #![no_std]
 #![deny(improper_ctypes, unused_must_use, unreachable_patterns, unsafe_op_in_unsafe_fn)]
-#![feature(macro_metavar_expr_concat)]
+#![feature(macro_metavar_expr_concat, linkage)]
 
 //! This crate provides access to [FreeBSD kernel interfaces](https://man.freebsd.org/cgi/man.cgi).
 //!
@@ -140,6 +140,7 @@ pub mod vec;
 macro_rules! define_stub_syms {
     ($($sym:ident)*) => {
         $(
+            #[linkage = "weak"]
             #[doc(hidden)]
             #[unsafe(no_mangle)]
             pub extern "C" fn $sym() {
@@ -651,9 +652,14 @@ define_stub_syms! {
     __gnu_h2f_ieee
     __gnu_f2h_ieee
 
-    // stubs for x86-64
-    // TODO: Can I make this one weak instead?
+    // stubs for amd64 KERNCONF=MINIMAL
     sgx_encls
     __floatdisf
     __floatdidf
+
+    // stubs for KERNCONF=APPLE
+    virtio_read_device_config
+    virtio_write_device_config
+    virtio_read_ivar
+    virtio_write_ivar
 }
