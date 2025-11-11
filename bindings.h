@@ -93,10 +93,32 @@
 #include <dt-bindings/interrupt-controller/apple-aic.h>
 #endif
 
+#define DECL_IFACE_METHOD(func) func ## _t func;
+
 #include "device_if.h"
+DECL_IFACE_METHOD(device_probe);
+DECL_IFACE_METHOD(device_attach);
+DECL_IFACE_METHOD(device_detach);
+DECL_IFACE_METHOD(device_shutdown);
+DECL_IFACE_METHOD(device_suspend);
+DECL_IFACE_METHOD(device_resume);
+DECL_IFACE_METHOD(device_quiesce);
+DECL_IFACE_METHOD(device_register);
 
 #if __has_include("pic_if.h")
 #include "pic_if.h"
+DECL_IFACE_METHOD(pic_setup_intr);
+DECL_IFACE_METHOD(pic_teardown_intr);
+DECL_IFACE_METHOD(pic_enable_intr);
+DECL_IFACE_METHOD(pic_disable_intr);
+DECL_IFACE_METHOD(pic_post_filter);
+DECL_IFACE_METHOD(pic_post_ithread);
+DECL_IFACE_METHOD(pic_pre_ithread);
+DECL_IFACE_METHOD(pic_bind_intr);
+DECL_IFACE_METHOD(pic_init_secondary);
+DECL_IFACE_METHOD(pic_ipi_send);
+DECL_IFACE_METHOD(pic_map_intr);
+DECL_IFACE_METHOD(pic_ipi_setup);
 #endif
 
 #if defined(__aarch64__)
