@@ -29,7 +29,7 @@ RUSTFLAGS+= -Ccode-model=kernel \
 	-Cno-redzone=true \
 	-Cforce-frame-pointers=true \
 	-Clink-args="-Wl,--as-needed -m64 -Wl,-z,noexecstack" \
-	-Ctarget-features="+soft-float,-mmx,-sse,-sse2,-sse3,-sse4.1,-sse4.2,-avx,-avx2" \
+	-Ctarget-feature="+soft-float,-mmx,-sse,-sse2,-sse3,-sse4.1,-sse4.2,-avx,-avx2" \
 
 .else
 
