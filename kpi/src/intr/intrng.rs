@@ -408,8 +408,9 @@ pub mod wrappers {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::device::tests::{HookDriver, IntcDriver};
+    use crate::device::tests::HookDriver;
     use crate::device::{BusProbe, DeviceIf};
+    use crate::driver;
     use crate::ffi::Uninit;
     use crate::tests::{DriverManager, LoudDrop};
 
@@ -485,6 +486,9 @@ mod tests {
             Ok(())
         }
     }
+    impl PicIf for IntcDriver {
+        type IrqSrcFields = ();
+    }
 
     impl IntcDriver {
         extern "C" fn handle_irq(sc: &'static IntcSoftc) -> Filter {
@@ -492,6 +496,15 @@ mod tests {
             FILTER_HANDLED
         }
     }
+
+    driver!(intc_driver, c"intc_driver", IntcDriver, intc_driver_methods,
+            INTERFACES {
+                device_probe intc_driver_probe,
+                device_attach intc_driver_attach,
+                device_detach intc_driver_detach,
+                pic_setup_intr intc_setup_intr,
+            }
+    );
 
     #[test]
     fn run_intc() {

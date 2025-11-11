@@ -113,6 +113,7 @@ pub mod boxed;
 /// Resource bus functions
 pub mod bus;
 /// Device driver and softc functions
+#[macro_use]
 pub mod device;
 #[doc(hidden)]
 pub mod driver;
@@ -356,7 +357,7 @@ macro_rules! export_function {
         #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) {
             // Checks that this extern "C" function matches the declaration in bindings.h
-            //const _TYPES_MATCH: unsafe extern "C" fn($($arg,)*) = $crate::bindings::$fn_name;
+            const _TYPES_MATCH: unsafe extern "C" fn($($arg,)*) = $crate::bindings::$fn_name;
 
             // Convert all arguments from C types to rust types
             $(let mut $arg_name: _ = $arg_name.as_rust_type();)*
@@ -383,7 +384,7 @@ macro_rules! export_function {
         #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) -> $ret {
             // Checks that this extern "C" function matches the declaration in bindings.h
-            //const _TYPES_MATCH: unsafe extern "C" fn($($arg,)*) -> $ret = $crate::bindings::$fn_name;
+            const _TYPES_MATCH: unsafe extern "C" fn($($arg,)*) -> $ret = $crate::bindings::$fn_name;
 
             // Convert all arguments from C types to rust types
             $(let mut $arg_name: _ = $arg_name.as_rust_type();)*
@@ -416,7 +417,7 @@ macro_rules! export_function {
         #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) -> $ret {
             // Checks that this extern "C" function matches the declaration in bindings.h
-            //const _TYPES_MATCH: unsafe extern "C" fn($($arg,)*) -> $ret = $crate::bindings::$fn_name;
+            const _TYPES_MATCH: unsafe extern "C" fn($($arg,)*) -> $ret = $crate::bindings::$fn_name;
 
             // Convert all arguments from C types to rust types
             $(let mut $arg_name: _ = $arg_name.as_rust_type();)*

@@ -451,6 +451,7 @@ define_stub_syms! {
     device_probe_desc
     device_attach_desc
     device_detach_desc
+    pic_setup_intr_desc
     //refcount_release__extern
     //refcount_init__extern
     //refcount_load__extern

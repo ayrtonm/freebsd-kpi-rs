@@ -116,6 +116,7 @@ macro_rules! device_attach {
                 let uninit_sc = unsafe { $crate::ffi::Uninit::from_raw(sc_ptr) };
             }
             with drop glue {
+                // TODO: don't have to do this if attach returned err
                 assert!(uninit_sc.is_init());
             }
             with prefix args { uninit_sc }
@@ -528,14 +529,6 @@ pub mod tests {
                 device_probe hook_driver_probe,
                 device_attach hook_driver_attach,
                 device_detach hook_driver_detach,
-            }
-    );
-
-    driver!(intc_driver, c"intc_driver", IntcDriver, intc_driver_methods,
-            INTERFACES {
-                device_probe intc_driver_probe,
-                device_attach intc_driver_attach,
-                device_detach intc_driver_detach,
             }
     );
 }
