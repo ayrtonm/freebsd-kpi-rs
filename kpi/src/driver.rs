@@ -128,15 +128,14 @@ macro_rules! driver {
 
         impl $crate::driver::DriverIf for $driver_ty {
             const DROP_FN: unsafe fn(*mut bindings::u_int) = $driver_sym::drop_softc;
-            const DRIVER: *mut bindings::driver_t = &$driver_sym.0 as *const bindings::driver_t as *mut bindings::driver_t;
-            //pub const DRIVER: &'static bindings::driver_t = &$driver_sym.0;
+            const DRIVER: *mut bindings::driver_t = unsafe { (&raw const $driver_sym.0).cast_mut() };
         }
 
         #[unsafe(no_mangle)]
-        pub static $driver_sym: $driver_ty = $driver_ty(
+        pub static mut $driver_sym: $driver_ty = $driver_ty(
             bindings::driver_t {
                 name: $driver_name.as_ptr(),
-                methods: $method_table.0.as_ptr(),
+                methods: unsafe { &raw const $method_table.0[0] },
                 // TODO: ensure alignment of softc memory supports Softc
                 size: $driver_sym::SOFTC_SIZE,
                 // Expands to either the expression before the comma or null_mut() depending on
@@ -150,7 +149,7 @@ macro_rules! driver {
         );
 
         #[unsafe(no_mangle)]
-        static $method_table: $crate::driver::MethodTable<{ $driver_sym::NUM_METHODS + 1 }> = $crate::driver::MethodTable([
+        static mut $method_table: $crate::driver::MethodTable<{ $driver_sym::NUM_METHODS + 1 }> = $crate::driver::MethodTable([
             $(
                 {
                     let desc = {
