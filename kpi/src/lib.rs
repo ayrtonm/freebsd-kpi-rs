@@ -170,6 +170,12 @@ impl<T> AsRustType<T> for T {
 
 /// A catch-all module for miscellaneous functions
 #[allow(non_snake_case)]
+#[cfg(not(target_arch = "aarch64"))]
+pub mod misc {
+    pub const PAGE_SIZE: u64 = crate::bindings::PAGE_SIZE as u64;
+    pub const BUS_SPACE_MAXADDR: u64 = crate::bindings::BUS_SPACE_MAXADDR as u64;
+}
+#[allow(non_snake_case)]
 #[cfg(target_arch = "aarch64")]
 pub mod misc {
     use crate::bindings::{cpuset_t, device_t, u_int};
@@ -330,7 +336,6 @@ pub mod prelude {
     pub use crate::intr::PicIf;
 
     #[doc(inline)]
-    #[cfg(target_arch = "aarch64")]
     pub use crate::misc::*;
 
     // These are implemented widely throughout the KPI crate
