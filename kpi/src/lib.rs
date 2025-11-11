@@ -187,7 +187,8 @@ pub mod misc {
     use core::ptr::null_mut;
     use core::sync::atomic::{AtomicU8, AtomicU16, AtomicU32, AtomicU64};
 
-    pub use bindings::{BUS_SPACE_MAXADDR, PAGE_SIZE};
+    pub const PAGE_SIZE: u64 = crate::bindings::PAGE_SIZE as u64;
+    pub const BUS_SPACE_MAXADDR: u64 = crate::bindings::BUS_SPACE_MAXADDR as u64;
 
     pub fn hz() -> i32 {
         unsafe { bindings::hz }
