@@ -1,25 +1,40 @@
+commit 2b1770e4188fef6093ef72e0853c809d78d63755
+Author: Ayrton Munoz <a.munoz3327@gmail.com>
+Date:   Mon Nov 10 23:25:51 2025 -0500
+
+    conf: Integrate rust into kernel build system
+
 diff --git a/sys/conf/kern.post.mk b/sys/conf/kern.post.mk
-index 7cdfd17778d..b6cb6c3c0cf 100644
+index 7cdfd17778d..9bebe988f7d 100644
 --- a/sys/conf/kern.post.mk
 +++ b/sys/conf/kern.post.mk
-@@ -7,6 +7,8 @@
+@@ -7,6 +7,7 @@
  # should be defined in the kern.pre.mk so that port makefiles can
  # override or augment them.
  
-+.include "../rust/kern.rust.mk"
-+
++.include "../rust/kern.rustroot.mk"
  .if defined(DTS) || defined(DTSO) || defined(FDT_DTS_FILE)
  .include "dtb.build.mk"
  
 diff --git a/sys/conf/kern.pre.mk b/sys/conf/kern.pre.mk
-index 0251486247d..9ea1dca4789 100644
+index 0251486247d..2d7f1fd1ec9 100644
 --- a/sys/conf/kern.pre.mk
 +++ b/sys/conf/kern.pre.mk
-@@ -302,7 +302,7 @@ IPFILTER_C=		${NORMAL_C} ${IPFILTER_CFLAGS}
+@@ -21,6 +21,7 @@ _srcconf_included_:
+ .include <bsd.own.mk>
+ .include <bsd.compiler.mk>
+ .include "kern.opts.mk"
++.include "../rust/kern.rust.mk"
+ .-include <local.kern.pre.mk>
+ 
+ # The kernel build always occurs in the object directory which is .CURDIR.
+@@ -301,8 +302,8 @@ IPFILTER_C=		${NORMAL_C} ${IPFILTER_CFLAGS}
+ 
  GEN_CFILES= $S/$M/$M/genassym.c ${MFILES:T:S/.m$/.c/}
  SYSTEM_CFILES= config.c env.c hints.c vnode_if.c
- SYSTEM_DEP= Makefile ${SYSTEM_OBJS}
+-SYSTEM_DEP= Makefile ${SYSTEM_OBJS}
 -SYSTEM_OBJS= locore.o ${MDOBJS} ${OBJS}
++SYSTEM_DEP= Makefile ${SYSTEM_OBJS} ${RUST_MAKEFILE}
 +SYSTEM_OBJS= locore.o ${MDOBJS} ${OBJS} ${RUST_OBJS}
  SYSTEM_OBJS+= ${SYSTEM_CFILES:.c=.o}
  SYSTEM_OBJS+= force-dynamic-hack.pico
