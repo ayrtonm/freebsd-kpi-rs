@@ -127,6 +127,8 @@ ${RUST_FAKE_BUILTINS}: ${RUST_CORE}
 		--extern core=${RUST_CORE} \
 		-o ${RUST_LIBDIR}/libcompiler_builtins.rlib
 
+${BINDGEN_INLINE_SRC}: ${BINDINGS_RS}
+
 ${BINDINGS_RS}: ${SRCTOP}/sys/rust/bindings.h ${RUST_MAKEFILE}
 	${BINDGEN} ${BINDGEN_FLAGS} ${SRCTOP}/sys/rust/bindings.h -- ${CFLAGS} -DBINDGEN > bindings.rs
 
