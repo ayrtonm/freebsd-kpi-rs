@@ -132,7 +132,7 @@ ${BINDINGS_RS}: ${SRCTOP}/sys/rust/bindings.h ${RUST_MAKEFILE}
 	${BINDGEN} ${BINDGEN_FLAGS} ${SRCTOP}/sys/rust/bindings.h -- ${CFLAGS} -DBINDGEN > bindings.rs
 
 ${RUST_KPI}: ${RUST_FAKE_BUILTINS} ${BINDINGS_RS} ${RUST_KPI_SOURCES}
-	OUT_DIR=$(PWD) ${RLIB_RULE} ${SRCTOP}/sys/rust/kpi/src/lib.rs -o ${.TARGET}
+	OUT_DIR=$(PWD) ${RLIB_RULE} ${RUST_KPI_FEATURES} ${SRCTOP}/sys/rust/kpi/src/lib.rs -o ${.TARGET}
 
 ${RUSTROOT_RS}: ${RUSTROOT_DEP} ${RUST_MAKEFILE}
 	printf "#![no_std]\nextern crate kpi;\n${RLIBS:S/.rlib/;/:S/lib/extern crate /}" > ${RUSTROOT_RS}
