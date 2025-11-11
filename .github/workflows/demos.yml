@@ -2,7 +2,7 @@ name: Build virtio_snd demo
 
 on:
   push:
-    branches: [ "main", "test" ]
+    branches: [ "main", "dev" ]
 
 jobs:
   build:
