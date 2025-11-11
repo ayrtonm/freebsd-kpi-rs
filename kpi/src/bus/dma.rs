@@ -114,8 +114,8 @@ impl BusDmaTagBuilder {
     }
 }
 
-#[derive(Debug)]
-pub struct BusDmaTag(bus_dma_tag_t);
+#[derive(Debug, Default)]
+pub struct BusDmaTag(pub bus_dma_tag_t);
 
 #[derive(Copy, Clone, Debug)]
 pub struct BusDmaFlags(c_int);
