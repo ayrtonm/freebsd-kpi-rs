@@ -75,10 +75,10 @@ impl<T> ::core::cmp::PartialEq for __BindgenUnionField<T> {
 impl<T> ::core::cmp::Eq for __BindgenUnionField<T> {}
 pub const __llvm__: i32 = 1;
 pub const __clang__: i32 = 1;
-pub const __clang_major__: i32 = 20;
+pub const __clang_major__: i32 = 21;
 pub const __clang_minor__: i32 = 1;
-pub const __clang_patchlevel__: i32 = 8;
-pub const __clang_version__: &[u8; 8] = b"20.1.8 \0";
+pub const __clang_patchlevel__: i32 = 5;
+pub const __clang_version__: &[u8; 8] = b"21.1.5 \0";
 pub const __GNUC__: i32 = 4;
 pub const __GNUC_MINOR__: i32 = 2;
 pub const __GNUC_PATCHLEVEL__: i32 = 1;
@@ -110,7 +110,7 @@ pub const __FPCLASS_POSSUBNORMAL: i32 = 128;
 pub const __FPCLASS_POSNORMAL: i32 = 256;
 pub const __FPCLASS_POSINF: i32 = 512;
 pub const __PRAGMA_REDEFINE_EXTNAME: i32 = 1;
-pub const __VERSION__: &[u8; 13] = b"Clang 20.1.8\0";
+pub const __VERSION__: &[u8; 13] = b"Clang 21.1.5\0";
 pub const __OBJC_BOOL_IS_BOOL: i32 = 0;
 pub const __CONSTANT_CFSTRINGS__: i32 = 1;
 pub const __clang_literal_encoding__: &[u8; 6] = b"UTF-8\0";
@@ -335,7 +335,7 @@ pub const __UINT_FAST64_FMTX__: &[u8; 3] = b"lX\0";
 pub const __FINITE_MATH_ONLY__: i32 = 0;
 pub const __GNUC_STDC_INLINE__: i32 = 1;
 pub const __GCC_ATOMIC_TEST_AND_SET_TRUEVAL: i32 = 1;
-pub const __GCC_DESTRUCTIVE_SIZE: i32 = 64;
+pub const __GCC_DESTRUCTIVE_SIZE: i32 = 256;
 pub const __GCC_CONSTRUCTIVE_SIZE: i32 = 64;
 pub const __CLANG_ATOMIC_BOOL_LOCK_FREE: i32 = 2;
 pub const __CLANG_ATOMIC_CHAR_LOCK_FREE: i32 = 2;
@@ -459,7 +459,7 @@ pub const NBBY: i32 = 8;
 pub const BSD: i32 = 199506;
 pub const BSD4_3: i32 = 1;
 pub const BSD4_4: i32 = 1;
-pub const __FreeBSD_version: i32 = 1600002;
+pub const __FreeBSD_version: i32 = 1600004;
 pub const P_OSREL_SIGWAIT: i32 = 700000;
 pub const P_OSREL_SIGSEGV: i32 = 700004;
 pub const P_OSREL_MAP_ANON: i32 = 800104;
@@ -706,22 +706,22 @@ pub const PAGE_SHIFT_16K: i32 = 14;
 pub const PAGE_SIZE_16K: i32 = 16384;
 pub const PAGE_SHIFT_64K: i32 = 16;
 pub const PAGE_SIZE_64K: i32 = 65536;
-pub const PAGE_SHIFT: i32 = 14;
-pub const PAGE_SIZE: i32 = 16384;
-pub const PAGE_MASK: i32 = 16383;
+pub const PAGE_SHIFT: i32 = 12;
+pub const PAGE_SIZE: i32 = 4096;
+pub const PAGE_MASK: i32 = 4095;
 pub const MAXPAGESIZES: i32 = 4;
 pub const KSTACK_PAGES: i32 = 4;
 pub const KSTACK_GUARD_PAGES: i32 = 1;
 pub const PCPU_PAGES: i32 = 1;
 pub const DEV_BSHIFT: i32 = 9;
 pub const DEV_BSIZE: i32 = 512;
-pub const BLKDEV_IOSIZE: i32 = 16384;
+pub const BLKDEV_IOSIZE: i32 = 4096;
 pub const DFLTPHYS: i32 = 65536;
-pub const MAXDUMPPGS: i32 = 4;
+pub const MAXDUMPPGS: i32 = 16;
 pub const MSIZE: i32 = 256;
 pub const MCLSHIFT: i32 = 11;
 pub const MCLBYTES: i32 = 2048;
-pub const MJUMPAGESIZE: i32 = 8192;
+pub const MJUMPAGESIZE: i32 = 4096;
 pub const MJUM9BYTES: i32 = 9216;
 pub const MJUM16BYTES: i32 = 16384;
 pub const PRIMASK: i32 = 255;
@@ -2546,7 +2546,7 @@ pub const CPU_MATCH_ERRATA_CAVIUM_THUNDERX_1_1: i32 = 0;
 pub const DPCPU_SETNAME: &[u8; 9] = b"set_pcpu\0";
 pub const DPCPU_SYMPREFIX: &[u8; 12] = b"pcpu_entry_\0";
 pub const DPCPU_MODMIN: i32 = 2048;
-pub const UMA_PCPU_ALLOC_SIZE: i32 = 16384;
+pub const UMA_PCPU_ALLOC_SIZE: i32 = 4096;
 pub const HASH_NOWAIT: i32 = 1;
 pub const HASH_WAITOK: i32 = 2;
 pub const HD_COLUMN_MASK: i32 = 255;
@@ -3479,6 +3479,52 @@ pub const SB_FLAG_NO_RANGES: i32 = 1;
 pub const ORIP_NOINT: i32 = -1;
 pub const ORIR_NOTFOUND: i64 = 4294967295;
 pub const FDTCOMPAT_PNP_DESCR: &[u8; 14] = b"Z:compat;P:#;\0";
+pub const VIRTIO_ID_NETWORK: i32 = 1;
+pub const VIRTIO_ID_BLOCK: i32 = 2;
+pub const VIRTIO_ID_CONSOLE: i32 = 3;
+pub const VIRTIO_ID_ENTROPY: i32 = 4;
+pub const VIRTIO_ID_BALLOON: i32 = 5;
+pub const VIRTIO_ID_IOMEMORY: i32 = 6;
+pub const VIRTIO_ID_RPMSG: i32 = 7;
+pub const VIRTIO_ID_SCSI: i32 = 8;
+pub const VIRTIO_ID_9P: i32 = 9;
+pub const VIRTIO_ID_RPROC_SERIAL: i32 = 11;
+pub const VIRTIO_ID_CAIF: i32 = 12;
+pub const VIRTIO_ID_GPU: i32 = 16;
+pub const VIRTIO_ID_INPUT: i32 = 18;
+pub const VIRTIO_ID_VSOCK: i32 = 19;
+pub const VIRTIO_ID_CRYPTO: i32 = 20;
+pub const VIRTIO_ID_IOMMU: i32 = 23;
+pub const VIRTIO_ID_SOUND: i32 = 25;
+pub const VIRTIO_ID_FS: i32 = 26;
+pub const VIRTIO_ID_PMEM: i32 = 27;
+pub const VIRTIO_ID_RPMB: i32 = 28;
+pub const VIRTIO_ID_SCMI: i32 = 32;
+pub const VIRTIO_ID_GPIO: i32 = 41;
+pub const VIRTIO_CONFIG_STATUS_RESET: i32 = 0;
+pub const VIRTIO_CONFIG_STATUS_ACK: i32 = 1;
+pub const VIRTIO_CONFIG_STATUS_DRIVER: i32 = 2;
+pub const VIRTIO_CONFIG_STATUS_DRIVER_OK: i32 = 4;
+pub const VIRTIO_CONFIG_S_FEATURES_OK: i32 = 8;
+pub const VIRTIO_CONFIG_S_NEEDS_RESET: i32 = 64;
+pub const VIRTIO_CONFIG_STATUS_FAILED: i32 = 128;
+pub const VIRTIO_F_NOTIFY_ON_EMPTY: i32 = 16777216;
+pub const VIRTIO_F_ANY_LAYOUT: i32 = 134217728;
+pub const VIRTIO_RING_F_INDIRECT_DESC: i32 = 268435456;
+pub const VIRTIO_RING_F_EVENT_IDX: i32 = 536870912;
+pub const VIRTIO_F_BAD_FEATURE: i32 = 1073741824;
+pub const VIRTIO_F_VERSION_1: i64 = 4294967296;
+pub const VIRTIO_F_IOMMU_PLATFORM: i64 = 8589934592;
+pub const VIRTIO_TRANSPORT_F_START: i32 = 28;
+pub const VIRTIO_TRANSPORT_F_END: i32 = 34;
+pub const VIRTIO_IVAR_DEVTYPE: i32 = 1;
+pub const VIRTIO_IVAR_FEATURE_DESC: i32 = 2;
+pub const VIRTIO_IVAR_VENDOR: i32 = 3;
+pub const VIRTIO_IVAR_DEVICE: i32 = 4;
+pub const VIRTIO_IVAR_SUBVENDOR: i32 = 5;
+pub const VIRTIO_IVAR_SUBDEVICE: i32 = 6;
+pub const VIRTIO_IVAR_MODERN: i32 = 7;
+pub const VIRTQUEUE_MAX_NAME_SZ: i32 = 32;
 pub const GPIOBUS_WAIT: i32 = 1;
 pub const GPIOBUS_DONTWAIT: i32 = 2;
 pub const DISK_ZONE_MODE_NONE: i32 = 0;
@@ -3549,9 +3595,10 @@ pub const BIO_UNMAPPED: i32 = 16;
 pub const BIO_TRANSIENT_MAPPING: i32 = 32;
 pub const BIO_VLIST: i32 = 64;
 pub const BIO_SWAP: i32 = 512;
+pub const BIO_EXTERR: i32 = 8192;
 pub const BIO_SPEEDUP_WRITE: i32 = 16384;
 pub const BIO_SPEEDUP_TRIM: i32 = 32768;
-pub const PRINT_BIO_FLAGS : & [u8 ; 94] = b"\x10\x10speedup_trim\x0Fspeedup_write\nswap\x07vlist\x06transient_mapping\x05unmapped\x04ordered\x03onqueue\x02done\x01error\0" ;
+pub const PRINT_BIO_FLAGS : & [u8 ; 101] = b"\x10\x10speedup_trim\x0Fspeedup_write\x0Eexterr\nswap\x07vlist\x06transient_mapping\x05unmapped\x04ordered\x03onqueue\x02done\x01error\0" ;
 pub const MEMDESC_VADDR: i32 = 1;
 pub const MEMDESC_PADDR: i32 = 2;
 pub const MEMDESC_VLIST: i32 = 3;
@@ -4023,21 +4070,6 @@ pub const QUIRK_DELAY_B4_CHK_RDY: i32 = 1;
 pub const QUIRK_DISABLE_TIMEOUT: i32 = 2;
 pub const QUIRK_INTEL_ALIGNMENT: i32 = 4;
 pub const QUIRK_AHCI: i32 = 8;
-pub const QUIRK_ANS: i32 = 16;
-pub const IRQ_TYPE_NONE: i32 = 0;
-pub const IRQ_TYPE_EDGE_RISING: i32 = 1;
-pub const IRQ_TYPE_EDGE_FALLING: i32 = 2;
-pub const IRQ_TYPE_EDGE_BOTH: i32 = 3;
-pub const IRQ_TYPE_LEVEL_HIGH: i32 = 4;
-pub const IRQ_TYPE_LEVEL_LOW: i32 = 8;
-pub const AIC_IRQ: i32 = 0;
-pub const AIC_FIQ: i32 = 1;
-pub const AIC_TMR_HV_PHYS: i32 = 0;
-pub const AIC_TMR_HV_VIRT: i32 = 1;
-pub const AIC_TMR_GUEST_PHYS: i32 = 2;
-pub const AIC_TMR_GUEST_VIRT: i32 = 3;
-pub const AIC_CPU_PMU_E: i32 = 4;
-pub const AIC_CPU_PMU_P: i32 = 5;
 pub type __int8_t = ::core::ffi::c_schar;
 pub type __uint8_t = ::core::ffi::c_uchar;
 pub type __int16_t = ::core::ffi::c_short;
@@ -5645,7 +5677,8 @@ pub struct pcpu {
     pub pc_curvmpmap: *mut pmap,
     pub pc_mpidr: u64,
     pub pc_bcast_tlbi_workaround: u_int,
-    pub __pad: [::core::ffi::c_char; 197usize],
+    pub pc_release_addr: u64,
+    pub __pad: [::core::ffi::c_char; 189usize],
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -10352,7 +10385,8 @@ pub const IPI_RENDEZVOUS: _bindgen_ty_2 = 2;
 pub const IPI_STOP: _bindgen_ty_2 = 3;
 pub const IPI_STOP_HARD: _bindgen_ty_2 = 4;
 pub const IPI_HARDCLOCK: _bindgen_ty_2 = 5;
-pub const INTR_IPI_COUNT: _bindgen_ty_2 = 6;
+pub const IPI_OFF: _bindgen_ty_2 = 6;
+pub const INTR_IPI_COUNT: _bindgen_ty_2 = 7;
 pub type _bindgen_ty_2 = ::core::ffi::c_uint;
 #[repr(C)]
 #[derive(Debug)]
@@ -10488,6 +10522,70 @@ pub struct intr_map_data_fdt {
     pub cells: __IncompleteArrayField<pcell_t>,
 }
 impl Default for intr_map_data_fdt {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct virtio_feature_desc {
+    pub vfd_val: u64,
+    pub vfd_str: *const ::core::ffi::c_char,
+}
+impl Default for virtio_feature_desc {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct virtio_pnp_match {
+    pub device_type: u32,
+    pub description: *const ::core::ffi::c_char,
+}
+impl Default for virtio_pnp_match {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct virtqueue {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct sglist {
+    _unused: [u8; 0],
+}
+pub type virtqueue_intr_t =
+    ::core::option::Option<unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void)>;
+pub const VQ_POSTPONE_SHORT: vq_postpone_t = 0;
+pub const VQ_POSTPONE_LONG: vq_postpone_t = 1;
+pub const VQ_POSTPONE_EMPTIED: vq_postpone_t = 2;
+pub type vq_postpone_t = ::core::ffi::c_uint;
+#[repr(C)]
+#[derive(Debug)]
+pub struct vq_alloc_info {
+    pub vqai_name: [::core::ffi::c_char; 32usize],
+    pub vqai_maxindirsz: ::core::ffi::c_int,
+    pub vqai_intr: virtqueue_intr_t,
+    pub vqai_intr_arg: *mut ::core::ffi::c_void,
+    pub vqai_vq: *mut *mut virtqueue,
+}
+impl Default for vq_alloc_info {
     fn default() -> Self {
         let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
         unsafe {
@@ -10781,7 +10879,6 @@ pub struct bio {
     pub bio_ma: *mut *mut vm_page,
     pub bio_ma_offset: ::core::ffi::c_int,
     pub bio_ma_n: ::core::ffi::c_int,
-    pub bio_error: ::core::ffi::c_int,
     pub bio_resid: ::core::ffi::c_long,
     pub bio_done: ::core::option::Option<unsafe extern "C" fn(arg1: *mut bio)>,
     pub bio_driver1: *mut ::core::ffi::c_void,
@@ -10805,6 +10902,7 @@ pub struct bio {
     pub bio_spare2: *mut ::core::ffi::c_void,
     pub bio_track_bp: *mut buf,
     pub bio_pblkno: daddr_t,
+    pub bio_exterr: kexterr,
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -12415,8 +12513,10 @@ pub struct nvme_controller {
     pub bus_handle: bus_space_handle_t,
     pub resource_id: ::core::ffi::c_int,
     pub resource: *mut resource,
-    pub bar4_resource_id: ::core::ffi::c_int,
-    pub bar4_resource: *mut resource,
+    pub msix_table_resource_id: ::core::ffi::c_int,
+    pub msix_table_resource: *mut resource,
+    pub msix_pba_resource_id: ::core::ffi::c_int,
+    pub msix_pba_resource: *mut resource,
     pub msi_count: ::core::ffi::c_int,
     pub enable_aborts: u32,
     pub num_io_queues: u32,
@@ -12446,7 +12546,7 @@ pub struct nvme_controller {
     pub timeout_period: u32,
     #[doc = " doorbell stride"]
     pub dstrd: u32,
-    pub __bindgen_padding_0: [u64; 15usize],
+    pub __bindgen_padding_0: [u64; 13usize],
     pub adminq: nvme_qpair,
     pub ioq: *mut nvme_qpair,
     pub regs: *mut nvme_registers,
@@ -12501,34 +12601,6 @@ impl Default for nvme_controller {
         }
     }
 }
-#[doc = " @brief A function implementing the NVME_DELAYED_ATTACH() method"]
-pub type nvme_delayed_attach_t = ::core::option::Option<
-    unsafe extern "C" fn(dev: device_t, ctrlr: *mut nvme_controller) -> ::core::ffi::c_int,
->;
-#[doc = " @brief A function implementing the NVME_ENABLE() method"]
-pub type nvme_enable_t = ::core::option::Option<unsafe extern "C" fn(dev: device_t)>;
-#[doc = " @brief A function implementing the NVME_SQ_ENTER() method"]
-pub type nvme_sq_enter_t = ::core::option::Option<
-    unsafe extern "C" fn(dev: device_t, qpair: *mut nvme_qpair, tr: *mut nvme_tracker) -> u32,
->;
-#[doc = " @brief A function implementing the NVME_SQ_LEAVE() method"]
-pub type nvme_sq_leave_t = ::core::option::Option<
-    unsafe extern "C" fn(dev: device_t, qpair: *mut nvme_qpair, tr: *mut nvme_tracker),
->;
-#[doc = " @brief A function implementing the NVME_CQ_DONE() method"]
-pub type nvme_cq_done_t = ::core::option::Option<
-    unsafe extern "C" fn(dev: device_t, qpair: *mut nvme_qpair, tr: *mut nvme_tracker),
->;
-#[doc = " @brief A function implementing the NVME_QPAIR_CONSTRUCT() method"]
-pub type nvme_qpair_construct_t = ::core::option::Option<
-    unsafe extern "C" fn(
-        dev: device_t,
-        qpair: *mut nvme_qpair,
-        num_entries: u32,
-        num_trackers: u32,
-        ctrlr: *mut nvme_controller,
-    ) -> ::core::ffi::c_int,
->;
 #[doc = " @brief A function implementing the PIC_ACTIVATE_INTR() method"]
 pub type pic_activate_intr_t = ::core::option::Option<
     unsafe extern "C" fn(
@@ -13203,7 +13275,7 @@ unsafe extern "C" {
     pub fn atomic_cmpset_16(p: *mut u16, cmpval: u16, newval: u16) -> ::core::ffi::c_int;
     #[link_name = "atomic_fcmpset_16_llsc__extern"]
     pub fn atomic_fcmpset_16_llsc(p: *mut u16, cmpval: *mut u16, newval: u16)
-        -> ::core::ffi::c_int;
+    -> ::core::ffi::c_int;
     #[link_name = "atomic_fcmpset_16_lse__extern"]
     pub fn atomic_fcmpset_16_lse(p: *mut u16, cmpval: *mut u16, newval: u16) -> ::core::ffi::c_int;
     #[link_name = "atomic_fcmpset_16__extern"]
@@ -13216,7 +13288,7 @@ unsafe extern "C" {
     pub fn atomic_cmpset_32(p: *mut u32, cmpval: u32, newval: u32) -> ::core::ffi::c_int;
     #[link_name = "atomic_fcmpset_32_llsc__extern"]
     pub fn atomic_fcmpset_32_llsc(p: *mut u32, cmpval: *mut u32, newval: u32)
-        -> ::core::ffi::c_int;
+    -> ::core::ffi::c_int;
     #[link_name = "atomic_fcmpset_32_lse__extern"]
     pub fn atomic_fcmpset_32_lse(p: *mut u32, cmpval: *mut u32, newval: u32) -> ::core::ffi::c_int;
     #[link_name = "atomic_fcmpset_32__extern"]
@@ -13229,7 +13301,7 @@ unsafe extern "C" {
     pub fn atomic_cmpset_64(p: *mut u64, cmpval: u64, newval: u64) -> ::core::ffi::c_int;
     #[link_name = "atomic_fcmpset_64_llsc__extern"]
     pub fn atomic_fcmpset_64_llsc(p: *mut u64, cmpval: *mut u64, newval: u64)
-        -> ::core::ffi::c_int;
+    -> ::core::ffi::c_int;
     #[link_name = "atomic_fcmpset_64_lse__extern"]
     pub fn atomic_fcmpset_64_lse(p: *mut u64, cmpval: *mut u64, newval: u64) -> ::core::ffi::c_int;
     #[link_name = "atomic_fcmpset_64__extern"]
@@ -13242,7 +13314,7 @@ unsafe extern "C" {
     pub fn atomic_cmpset_acq_8(p: *mut u8, cmpval: u8, newval: u8) -> ::core::ffi::c_int;
     #[link_name = "atomic_fcmpset_acq_8_llsc__extern"]
     pub fn atomic_fcmpset_acq_8_llsc(p: *mut u8, cmpval: *mut u8, newval: u8)
-        -> ::core::ffi::c_int;
+    -> ::core::ffi::c_int;
     #[link_name = "atomic_fcmpset_acq_8_lse__extern"]
     pub fn atomic_fcmpset_acq_8_lse(p: *mut u8, cmpval: *mut u8, newval: u8) -> ::core::ffi::c_int;
     #[link_name = "atomic_fcmpset_acq_8__extern"]
@@ -13315,7 +13387,7 @@ unsafe extern "C" {
     pub fn atomic_cmpset_rel_8(p: *mut u8, cmpval: u8, newval: u8) -> ::core::ffi::c_int;
     #[link_name = "atomic_fcmpset_rel_8_llsc__extern"]
     pub fn atomic_fcmpset_rel_8_llsc(p: *mut u8, cmpval: *mut u8, newval: u8)
-        -> ::core::ffi::c_int;
+    -> ::core::ffi::c_int;
     #[link_name = "atomic_fcmpset_rel_8_lse__extern"]
     pub fn atomic_fcmpset_rel_8_lse(p: *mut u8, cmpval: *mut u8, newval: u8) -> ::core::ffi::c_int;
     #[link_name = "atomic_fcmpset_rel_8__extern"]
@@ -13502,6 +13574,8 @@ unsafe extern "C" {
     pub fn intr_enable();
     #[link_name = "serror_enable__extern"]
     pub fn serror_enable();
+    #[link_name = "serror_disable__extern"]
+    pub fn serror_disable();
     #[link_name = "get_midr__extern"]
     pub fn get_midr() -> register_t;
     #[link_name = "get_mpidr__extern"]
@@ -13869,7 +13943,7 @@ unsafe extern "C" {
     pub fn subyte(base: *mut ::core::ffi::c_void, byte: ::core::ffi::c_int) -> ::core::ffi::c_int;
     pub fn suword(base: *mut ::core::ffi::c_void, word: ::core::ffi::c_long) -> ::core::ffi::c_int;
     pub fn suword16(base: *mut ::core::ffi::c_void, word: ::core::ffi::c_int)
-        -> ::core::ffi::c_int;
+    -> ::core::ffi::c_int;
     pub fn suword32(base: *mut ::core::ffi::c_void, word: i32) -> ::core::ffi::c_int;
     pub fn suword64(base: *mut ::core::ffi::c_void, word: i64) -> ::core::ffi::c_int;
     pub fn casuword32(base: *mut u32, oldval: u32, newval: u32) -> u32;
@@ -14197,7 +14271,7 @@ unsafe extern "C" {
     pub fn strvalid(arg1: *const ::core::ffi::c_char, arg2: usize) -> ::core::ffi::c_int;
     #[link_name = "index__extern"]
     pub fn index(p: *const ::core::ffi::c_char, ch: ::core::ffi::c_int)
-        -> *mut ::core::ffi::c_char;
+    -> *mut ::core::ffi::c_char;
     #[link_name = "rindex__extern"]
     pub fn rindex(
         p: *const ::core::ffi::c_char,
@@ -14249,7 +14323,7 @@ unsafe extern "C" {
     ) -> ::core::ffi::c_int;
     #[link_name = "pause__extern"]
     pub fn pause(wmesg: *const ::core::ffi::c_char, timo: ::core::ffi::c_int)
-        -> ::core::ffi::c_int;
+    -> ::core::ffi::c_int;
     pub fn wakeup(chan: *const ::core::ffi::c_void);
     pub fn wakeup_one(chan: *const ::core::ffi::c_void);
     pub fn wakeup_any(chan: *const ::core::ffi::c_void);
@@ -14644,7 +14718,7 @@ unsafe extern "C" {
     ) -> ::core::ffi::c_int;
     pub fn bus_helper_reset_post(dev: device_t, flags: ::core::ffi::c_int) -> ::core::ffi::c_int;
     pub fn bus_helper_reset_prepare(dev: device_t, flags: ::core::ffi::c_int)
-        -> ::core::ffi::c_int;
+    -> ::core::ffi::c_int;
     pub fn bus_null_rescan(dev: device_t) -> ::core::ffi::c_int;
     pub fn bus_alloc_resources(
         dev: device_t,
@@ -14774,6 +14848,31 @@ unsafe extern "C" {
         dev: device_t,
         type_: ::core::ffi::c_int,
         rid: *mut ::core::ffi::c_int,
+        count: rman_res_t,
+        flags: u_int,
+    ) -> *mut resource;
+    #[link_name = "bus_alloc_resource_const__extern"]
+    pub fn bus_alloc_resource_const(
+        dev: device_t,
+        type_: ::core::ffi::c_int,
+        rid: ::core::ffi::c_int,
+        start: rman_res_t,
+        end: rman_res_t,
+        count: rman_res_t,
+        flags: u_int,
+    ) -> *mut resource;
+    #[link_name = "bus_alloc_resource_any_const__extern"]
+    pub fn bus_alloc_resource_any_const(
+        dev: device_t,
+        type_: ::core::ffi::c_int,
+        rid: ::core::ffi::c_int,
+        flags: u_int,
+    ) -> *mut resource;
+    #[link_name = "bus_alloc_resource_anywhere_const__extern"]
+    pub fn bus_alloc_resource_anywhere_const(
+        dev: device_t,
+        type_: ::core::ffi::c_int,
+        rid: ::core::ffi::c_int,
         count: rman_res_t,
         flags: u_int,
     ) -> *mut resource;
@@ -14926,7 +15025,7 @@ unsafe extern "C" {
     pub fn devclass_get_name(dc: devclass_t) -> *const ::core::ffi::c_char;
     pub fn devclass_get_device(dc: devclass_t, unit: ::core::ffi::c_int) -> device_t;
     pub fn devclass_get_softc(dc: devclass_t, unit: ::core::ffi::c_int)
-        -> *mut ::core::ffi::c_void;
+    -> *mut ::core::ffi::c_void;
     pub fn devclass_get_devices(
         dc: devclass_t,
         listp: *mut *mut device_t,
@@ -15456,7 +15555,7 @@ unsafe extern "C" {
         valp: *mut *mut ::core::ffi::c_void,
     ) -> ::core::ffi::c_int;
     pub fn device_clear_prop(dev: device_t, name: *const ::core::ffi::c_char)
-        -> ::core::ffi::c_int;
+    -> ::core::ffi::c_int;
     pub fn device_clear_prop_alldev(name: *const ::core::ffi::c_char);
     pub static mut cpusetsizemin: u_int;
     pub static mut cpuset_root: *mut cpuset_t;
@@ -16783,6 +16882,7 @@ unsafe extern "C" {
     pub fn cpu_mp_probe() -> ::core::ffi::c_int;
     pub fn cpu_mp_setmaxid();
     pub fn cpu_mp_start();
+    pub fn cpu_mp_stop();
     pub fn forward_signal(arg1: *mut thread);
     pub fn restart_cpus(arg1: cpuset_t) -> ::core::ffi::c_int;
     pub fn stop_cpus(arg1: cpuset_t) -> ::core::ffi::c_int;
@@ -17344,7 +17444,7 @@ unsafe extern "C" {
         arg2: *const ofw_compat_data,
     ) -> *const ofw_compat_data;
     pub fn ofw_bus_has_prop(arg1: device_t, arg2: *const ::core::ffi::c_char)
-        -> ::core::ffi::c_int;
+    -> ::core::ffi::c_int;
     pub fn ofw_bus_find_compatible(arg1: phandle_t, arg2: *const ::core::ffi::c_char) -> phandle_t;
     pub fn ofw_bus_find_child(arg1: phandle_t, arg2: *const ::core::ffi::c_char) -> phandle_t;
     pub fn ofw_bus_find_child_device_by_phandle(bus: device_t, node: phandle_t) -> device_t;
@@ -17374,6 +17474,169 @@ unsafe extern "C" {
         list_name: *const ::core::ffi::c_char,
         array: *mut *mut *const ::core::ffi::c_char,
     ) -> ::core::ffi::c_int;
+    #[link_name = "be16dec__extern"]
+    pub fn be16dec(pp: *const ::core::ffi::c_void) -> u16;
+    #[link_name = "be32dec__extern"]
+    pub fn be32dec(pp: *const ::core::ffi::c_void) -> u32;
+    #[link_name = "be64dec__extern"]
+    pub fn be64dec(pp: *const ::core::ffi::c_void) -> u64;
+    #[link_name = "le16dec__extern"]
+    pub fn le16dec(pp: *const ::core::ffi::c_void) -> u16;
+    #[link_name = "le32dec__extern"]
+    pub fn le32dec(pp: *const ::core::ffi::c_void) -> u32;
+    #[link_name = "le64dec__extern"]
+    pub fn le64dec(pp: *const ::core::ffi::c_void) -> u64;
+    #[link_name = "be16enc__extern"]
+    pub fn be16enc(pp: *mut ::core::ffi::c_void, u: u16);
+    #[link_name = "be32enc__extern"]
+    pub fn be32enc(pp: *mut ::core::ffi::c_void, u: u32);
+    #[link_name = "be64enc__extern"]
+    pub fn be64enc(pp: *mut ::core::ffi::c_void, u: u64);
+    #[link_name = "le16enc__extern"]
+    pub fn le16enc(pp: *mut ::core::ffi::c_void, u: u16);
+    #[link_name = "le32enc__extern"]
+    pub fn le32enc(pp: *mut ::core::ffi::c_void, u: u32);
+    #[link_name = "le64enc__extern"]
+    pub fn le64enc(pp: *mut ::core::ffi::c_void, u: u64);
+    #[link_name = "virtio_htog16__extern"]
+    pub fn virtio_htog16(modern: bool_, val: u16) -> u16;
+    #[link_name = "virtio_gtoh16__extern"]
+    pub fn virtio_gtoh16(modern: bool_, val: u16) -> u16;
+    #[link_name = "virtio_htog32__extern"]
+    pub fn virtio_htog32(modern: bool_, val: u32) -> u32;
+    #[link_name = "virtio_gtoh32__extern"]
+    pub fn virtio_gtoh32(modern: bool_, val: u32) -> u32;
+    #[link_name = "virtio_htog64__extern"]
+    pub fn virtio_htog64(modern: bool_, val: u64) -> u64;
+    #[link_name = "virtio_gtoh64__extern"]
+    pub fn virtio_gtoh64(modern: bool_, val: u64) -> u64;
+    pub fn virtio_device_name(devid: u16) -> *const ::core::ffi::c_char;
+    pub fn virtio_describe(
+        dev: device_t,
+        msg: *const ::core::ffi::c_char,
+        features: u64,
+        desc: *mut virtio_feature_desc,
+    );
+    pub fn virtio_describe_sbuf(
+        sb: *mut sbuf,
+        features: u64,
+        desc: *mut virtio_feature_desc,
+    ) -> ::core::ffi::c_int;
+    pub fn virtio_filter_transport_features(features: u64) -> u64;
+    pub fn virtio_bus_is_modern(dev: device_t) -> bool_;
+    pub fn virtio_read_device_config_array(
+        dev: device_t,
+        offset: bus_size_t,
+        dst: *mut ::core::ffi::c_void,
+        size: ::core::ffi::c_int,
+        count: ::core::ffi::c_int,
+    );
+    pub fn virtio_read_ivar(dev: device_t, ivar: ::core::ffi::c_int, val: *mut usize);
+    pub fn virtio_write_ivar(dev: device_t, ivar: ::core::ffi::c_int, val: usize);
+    pub fn virtio_negotiate_features(dev: device_t, child_features: u64) -> u64;
+    pub fn virtio_finalize_features(dev: device_t) -> ::core::ffi::c_int;
+    pub fn virtio_alloc_virtqueues(
+        dev: device_t,
+        nvqs: ::core::ffi::c_int,
+        info: *mut vq_alloc_info,
+    ) -> ::core::ffi::c_int;
+    pub fn virtio_setup_intr(dev: device_t, type_: intr_type) -> ::core::ffi::c_int;
+    pub fn virtio_with_feature(dev: device_t, feature: u64) -> bool_;
+    pub fn virtio_stop(dev: device_t);
+    pub fn virtio_config_generation(dev: device_t) -> ::core::ffi::c_int;
+    pub fn virtio_reinit(dev: device_t, features: u64) -> ::core::ffi::c_int;
+    pub fn virtio_reinit_complete(dev: device_t);
+    pub fn virtio_child_pnpinfo(
+        busdev: device_t,
+        child: device_t,
+        sb: *mut sbuf,
+    ) -> ::core::ffi::c_int;
+    pub fn virtio_read_device_config(
+        dev: device_t,
+        offset: bus_size_t,
+        dst: *mut ::core::ffi::c_void,
+        length: ::core::ffi::c_int,
+    );
+    pub fn virtio_write_device_config(
+        dev: device_t,
+        offset: bus_size_t,
+        src: *const ::core::ffi::c_void,
+        length: ::core::ffi::c_int,
+    );
+    #[link_name = "virtio_read_dev_config_1__extern"]
+    pub fn virtio_read_dev_config_1(dev: device_t, offset: bus_size_t) -> u8;
+    #[link_name = "virtio_write_dev_config_1__extern"]
+    pub fn virtio_write_dev_config_1(dev: device_t, offset: bus_size_t, val: u8);
+    #[link_name = "virtio_read_dev_config_2__extern"]
+    pub fn virtio_read_dev_config_2(dev: device_t, offset: bus_size_t) -> u16;
+    #[link_name = "virtio_write_dev_config_2__extern"]
+    pub fn virtio_write_dev_config_2(dev: device_t, offset: bus_size_t, val: u16);
+    #[link_name = "virtio_read_dev_config_4__extern"]
+    pub fn virtio_read_dev_config_4(dev: device_t, offset: bus_size_t) -> u32;
+    #[link_name = "virtio_write_dev_config_4__extern"]
+    pub fn virtio_write_dev_config_4(dev: device_t, offset: bus_size_t, val: u32);
+    #[link_name = "virtio_get_device_type__extern"]
+    pub fn virtio_get_device_type(dev: device_t) -> ::core::ffi::c_int;
+    #[link_name = "virtio_get_vendor__extern"]
+    pub fn virtio_get_vendor(dev: device_t) -> ::core::ffi::c_int;
+    #[link_name = "virtio_get_device__extern"]
+    pub fn virtio_get_device(dev: device_t) -> ::core::ffi::c_int;
+    #[link_name = "virtio_get_subvendor__extern"]
+    pub fn virtio_get_subvendor(dev: device_t) -> ::core::ffi::c_int;
+    #[link_name = "virtio_get_subdevice__extern"]
+    pub fn virtio_get_subdevice(dev: device_t) -> ::core::ffi::c_int;
+    #[link_name = "virtio_get_modern__extern"]
+    pub fn virtio_get_modern(dev: device_t) -> ::core::ffi::c_int;
+    #[link_name = "virtio_set_feature_desc__extern"]
+    pub fn virtio_set_feature_desc(dev: device_t, val: *mut ::core::ffi::c_void);
+    #[link_name = "virtio_simple_probe__extern"]
+    pub fn virtio_simple_probe(
+        dev: device_t,
+        match_: *const virtio_pnp_match,
+    ) -> ::core::ffi::c_int;
+    pub fn virtqueue_alloc(
+        dev: device_t,
+        queue: u16,
+        size: u16,
+        notify_offset: bus_size_t,
+        align: ::core::ffi::c_int,
+        highaddr: vm_paddr_t,
+        info: *mut vq_alloc_info,
+        vqp: *mut *mut virtqueue,
+    ) -> ::core::ffi::c_int;
+    pub fn virtqueue_drain(
+        vq: *mut virtqueue,
+        last: *mut ::core::ffi::c_int,
+    ) -> *mut ::core::ffi::c_void;
+    pub fn virtqueue_free(vq: *mut virtqueue);
+    pub fn virtqueue_reinit(vq: *mut virtqueue, size: u16) -> ::core::ffi::c_int;
+    pub fn virtqueue_intr_filter(vq: *mut virtqueue) -> ::core::ffi::c_int;
+    pub fn virtqueue_intr(vq: *mut virtqueue);
+    pub fn virtqueue_enable_intr(vq: *mut virtqueue) -> ::core::ffi::c_int;
+    pub fn virtqueue_postpone_intr(vq: *mut virtqueue, hint: vq_postpone_t) -> ::core::ffi::c_int;
+    pub fn virtqueue_disable_intr(vq: *mut virtqueue);
+    pub fn virtqueue_paddr(vq: *mut virtqueue) -> vm_paddr_t;
+    pub fn virtqueue_desc_paddr(vq: *mut virtqueue) -> vm_paddr_t;
+    pub fn virtqueue_avail_paddr(vq: *mut virtqueue) -> vm_paddr_t;
+    pub fn virtqueue_used_paddr(vq: *mut virtqueue) -> vm_paddr_t;
+    pub fn virtqueue_index(vq: *mut virtqueue) -> u16;
+    pub fn virtqueue_full(vq: *mut virtqueue) -> bool_;
+    pub fn virtqueue_empty(vq: *mut virtqueue) -> bool_;
+    pub fn virtqueue_size(vq: *mut virtqueue) -> ::core::ffi::c_int;
+    pub fn virtqueue_nfree(vq: *mut virtqueue) -> ::core::ffi::c_int;
+    pub fn virtqueue_nused(vq: *mut virtqueue) -> ::core::ffi::c_int;
+    pub fn virtqueue_notify(vq: *mut virtqueue);
+    pub fn virtqueue_dump(vq: *mut virtqueue);
+    pub fn virtqueue_enqueue(
+        vq: *mut virtqueue,
+        cookie: *mut ::core::ffi::c_void,
+        sg: *mut sglist,
+        readable: ::core::ffi::c_int,
+        writable: ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int;
+    pub fn virtqueue_dequeue(vq: *mut virtqueue, len: *mut u32) -> *mut ::core::ffi::c_void;
+    pub fn virtqueue_poll(vq: *mut virtqueue, len: *mut u32) -> *mut ::core::ffi::c_void;
+    pub fn vtsnd_device_probe(dev: device_t) -> ::core::ffi::c_int;
     #[doc = " @brief Unique descriptor for the GPIO_GET_BUS() method"]
     pub static mut gpio_get_bus_desc: kobjop_desc;
     #[link_name = "GPIO_GET_BUS__extern"]
@@ -17652,7 +17915,7 @@ unsafe extern "C" {
     pub fn uma_zalloc(zone: uma_zone_t, flags: ::core::ffi::c_int) -> *mut ::core::ffi::c_void;
     #[link_name = "uma_zalloc_pcpu__extern"]
     pub fn uma_zalloc_pcpu(zone: uma_zone_t, flags: ::core::ffi::c_int)
-        -> *mut ::core::ffi::c_void;
+    -> *mut ::core::ffi::c_void;
     pub fn uma_zfree_arg(
         zone: uma_zone_t,
         item: *mut ::core::ffi::c_void,
@@ -17681,7 +17944,7 @@ unsafe extern "C" {
     pub fn uma_get_cache_align_mask() -> ::core::ffi::c_uint;
     pub fn uma_zone_reserve(zone: uma_zone_t, nitems: ::core::ffi::c_int);
     pub fn uma_zone_reserve_kva(zone: uma_zone_t, nitems: ::core::ffi::c_int)
-        -> ::core::ffi::c_int;
+    -> ::core::ffi::c_int;
     pub fn uma_zone_set_max(zone: uma_zone_t, nitems: ::core::ffi::c_int) -> ::core::ffi::c_int;
     pub fn uma_zone_set_maxcache(zone: uma_zone_t, nitems: ::core::ffi::c_int);
     pub fn uma_zone_get_max(zone: uma_zone_t) -> ::core::ffi::c_int;
@@ -17709,30 +17972,6 @@ unsafe extern "C" {
     pub fn uma_limit() -> ::core::ffi::c_ulong;
     pub fn uma_size() -> ::core::ffi::c_ulong;
     pub fn uma_avail() -> ::core::ffi::c_long;
-    #[link_name = "be16dec__extern"]
-    pub fn be16dec(pp: *const ::core::ffi::c_void) -> u16;
-    #[link_name = "be32dec__extern"]
-    pub fn be32dec(pp: *const ::core::ffi::c_void) -> u32;
-    #[link_name = "be64dec__extern"]
-    pub fn be64dec(pp: *const ::core::ffi::c_void) -> u64;
-    #[link_name = "le16dec__extern"]
-    pub fn le16dec(pp: *const ::core::ffi::c_void) -> u16;
-    #[link_name = "le32dec__extern"]
-    pub fn le32dec(pp: *const ::core::ffi::c_void) -> u32;
-    #[link_name = "le64dec__extern"]
-    pub fn le64dec(pp: *const ::core::ffi::c_void) -> u64;
-    #[link_name = "be16enc__extern"]
-    pub fn be16enc(pp: *mut ::core::ffi::c_void, u: u16);
-    #[link_name = "be32enc__extern"]
-    pub fn be32enc(pp: *mut ::core::ffi::c_void, u: u32);
-    #[link_name = "be64enc__extern"]
-    pub fn be64enc(pp: *mut ::core::ffi::c_void, u: u64);
-    #[link_name = "le16enc__extern"]
-    pub fn le16enc(pp: *mut ::core::ffi::c_void, u: u16);
-    #[link_name = "le32enc__extern"]
-    pub fn le32enc(pp: *mut ::core::ffi::c_void, u: u32);
-    #[link_name = "le64enc__extern"]
-    pub fn le64enc(pp: *mut ::core::ffi::c_void, u: u64);
     pub fn nvme_cpl_sbuf(cpl: *const nvme_completion, sbuf: *mut sbuf);
     pub fn nvme_opcode_sbuf(admin: bool_, opc: u8, sb: *mut sbuf);
     pub fn nvme_sc_sbuf(cpl: *const nvme_completion, sbuf: *mut sbuf);
@@ -17911,9 +18150,6 @@ unsafe extern "C" {
     pub static mut M_NVME: [malloc_type; 1usize];
     pub static mut nvme_retry_count: i32;
     pub static mut nvme_verbose_cmd_dump: bool_;
-    pub fn nvme_qpair_sq_enter(qpair: *mut nvme_qpair, tr: *mut nvme_tracker) -> u32;
-    pub fn nvme_qpair_sq_leave(qpair: *mut nvme_qpair, tr: *mut nvme_tracker);
-    pub fn nvme_qpair_cq_done(qpair: *mut nvme_qpair, tr: *mut nvme_tracker);
     pub fn nvme_ns_test(ns: *mut nvme_namespace, cmd: u_long, arg: caddr_t);
     pub fn nvme_ctrlr_cmd_identify_controller(
         ctrlr: *mut nvme_controller,
@@ -18007,7 +18243,6 @@ unsafe extern "C" {
     pub fn nvme_ctrlr_submit_admin_request(ctrlr: *mut nvme_controller, req: *mut nvme_request);
     pub fn nvme_ctrlr_submit_io_request(ctrlr: *mut nvme_controller, req: *mut nvme_request);
     pub fn nvme_qpair_construct(
-        dev: device_t,
         qpair: *mut nvme_qpair,
         num_entries: u32,
         num_trackers: u32,
@@ -18094,36 +18329,9 @@ unsafe extern "C" {
     pub fn nvme_ctrlr_poll(ctrlr: *mut nvme_controller);
     pub fn nvme_ctrlr_suspend(ctrlr: *mut nvme_controller) -> ::core::ffi::c_int;
     pub fn nvme_ctrlr_resume(ctrlr: *mut nvme_controller) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the NVME_DELAYED_ATTACH() method"]
-    pub static mut nvme_delayed_attach_desc: kobjop_desc;
-    #[link_name = "NVME_DELAYED_ATTACH__extern"]
-    pub fn NVME_DELAYED_ATTACH(dev: device_t, ctrlr: *mut nvme_controller) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the NVME_ENABLE() method"]
-    pub static mut nvme_enable_desc: kobjop_desc;
-    #[link_name = "NVME_ENABLE__extern"]
-    pub fn NVME_ENABLE(dev: device_t);
-    #[doc = " @brief Unique descriptor for the NVME_SQ_ENTER() method"]
-    pub static mut nvme_sq_enter_desc: kobjop_desc;
-    #[link_name = "NVME_SQ_ENTER__extern"]
-    pub fn NVME_SQ_ENTER(dev: device_t, qpair: *mut nvme_qpair, tr: *mut nvme_tracker) -> u32;
-    #[doc = " @brief Unique descriptor for the NVME_SQ_LEAVE() method"]
-    pub static mut nvme_sq_leave_desc: kobjop_desc;
-    #[link_name = "NVME_SQ_LEAVE__extern"]
-    pub fn NVME_SQ_LEAVE(dev: device_t, qpair: *mut nvme_qpair, tr: *mut nvme_tracker);
-    #[doc = " @brief Unique descriptor for the NVME_CQ_DONE() method"]
-    pub static mut nvme_cq_done_desc: kobjop_desc;
-    #[link_name = "NVME_CQ_DONE__extern"]
-    pub fn NVME_CQ_DONE(dev: device_t, qpair: *mut nvme_qpair, tr: *mut nvme_tracker);
-    #[doc = " @brief Unique descriptor for the NVME_QPAIR_CONSTRUCT() method"]
-    pub static mut nvme_qpair_construct_desc: kobjop_desc;
-    #[link_name = "NVME_QPAIR_CONSTRUCT__extern"]
-    pub fn NVME_QPAIR_CONSTRUCT(
-        dev: device_t,
-        qpair: *mut nvme_qpair,
-        num_entries: u32,
-        num_trackers: u32,
-        ctrlr: *mut nvme_controller,
-    ) -> ::core::ffi::c_int;
+    pub fn device_suspend(dev: device_t) -> ::core::ffi::c_int;
+    pub fn device_resume(dev: device_t) -> ::core::ffi::c_int;
+    pub fn device_register(dev: device_t) -> *mut ::core::ffi::c_void;
     #[doc = " @brief Unique descriptor for the PIC_ACTIVATE_INTR() method"]
     pub static mut pic_activate_intr_desc: kobjop_desc;
     #[link_name = "PIC_ACTIVATE_INTR__extern"]
@@ -18204,6 +18412,36 @@ unsafe extern "C" {
     pub static mut pic_ipi_setup_desc: kobjop_desc;
     #[link_name = "PIC_IPI_SETUP__extern"]
     pub fn PIC_IPI_SETUP(
+        dev: device_t,
+        ipi: u_int,
+        isrcp: *mut *mut intr_irqsrc,
+    ) -> ::core::ffi::c_int;
+    pub fn pic_setup_intr(
+        dev: device_t,
+        isrc: *mut intr_irqsrc,
+        res: *mut resource,
+        data: *mut intr_map_data,
+    ) -> ::core::ffi::c_int;
+    pub fn pic_teardown_intr(
+        dev: device_t,
+        isrc: *mut intr_irqsrc,
+        res: *mut resource,
+        data: *mut intr_map_data,
+    ) -> ::core::ffi::c_int;
+    pub fn pic_enable_intr(dev: device_t, isrc: *mut intr_irqsrc);
+    pub fn pic_disable_intr(dev: device_t, isrc: *mut intr_irqsrc);
+    pub fn pic_post_filter(dev: device_t, isrc: *mut intr_irqsrc);
+    pub fn pic_post_ithread(dev: device_t, isrc: *mut intr_irqsrc);
+    pub fn pic_pre_ithread(dev: device_t, isrc: *mut intr_irqsrc);
+    pub fn pic_bind_intr(dev: device_t, isrc: *mut intr_irqsrc) -> ::core::ffi::c_int;
+    pub fn pic_init_secondary(dev: device_t, rootnum: u32);
+    pub fn pic_ipi_send(dev: device_t, isrc: *mut intr_irqsrc, cpus: cpuset_t, ipi: u_int);
+    pub fn pic_map_intr(
+        dev: device_t,
+        data: *mut intr_map_data,
+        isrcp: *mut *mut intr_irqsrc,
+    ) -> ::core::ffi::c_int;
+    pub fn pic_ipi_setup(
         dev: device_t,
         ipi: u_int,
         isrcp: *mut *mut intr_irqsrc,

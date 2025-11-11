@@ -57,4 +57,4 @@ struct vfpstate(());
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 #[cfg(feature = "std")]
-include!("../bindings.rs");
+include!("../test_bindings.rs");
