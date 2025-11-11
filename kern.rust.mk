@@ -111,7 +111,7 @@ RUST_MAKEFILE= ${SRCTOP}/sys/rust/kern.rust.mk
 RUSTROOT_DEP= ${RLIBS}
 
 RUST_DEFAULT_DEP= ${RUST_KPI} ${RUST_CORE} ${RUST_FAKE_BUILTINS}
-RLIB_RULE= ${RUSTC} ${RUSTFLAGS} -Cdebuginfo=full --crate-type rlib --sysroot=$(PWD)/${RUST_SYSROOT}
+RLIB_RULE= ${RUSTC} ${RUSTFLAGS} -Cdebuginfo=full --crate-type rlib --sysroot=$(PWD)/${RUST_SYSROOT} -L.
 
 NORMAL_R= ${RLIB_RULE} -o ${.TARGET} ${.ALLSRC:M*.rs} \
 	${.ALLSRC:T:Nlibcore.rlib:Nlibcompiler_builtins.rlib:M*.rlib:C/.rlib$//:C/^lib//:C/.*/--extern \0=lib\0.rlib/}
