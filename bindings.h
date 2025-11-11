@@ -74,7 +74,9 @@
 #include <dev/virtio/virtio.h>
 #include <dev/virtio/virtqueue.h>
 
+#if !defined(__x86_64__)
 #include <dev/gpio/gpiobusvar.h>
+#endif
 
 #include <dev/nvme/nvme_private.h>
 // TODO: Enable these once apple silicon work is mainlined
@@ -120,6 +122,7 @@ INLINE(bool rust_bindings_CPU_ISSET(u_int cpu, cpuset_t *set)) {
     return CPU_ISSET(cpu, set);
 }
 
+#if defined(__aarch64__)
 INLINE(uint64_t rust_bindings_CPU_AFFINITY(u_int cpu)) {
     return CPU_AFFINITY(cpu);
 }
@@ -131,6 +134,7 @@ INLINE(uint64_t rust_bindings_CPU_AFF0(uint64_t mpidr)) {
 INLINE(uint64_t rust_bindings_CPU_AFF1(uint64_t mpidr)) {
     return CPU_AFF1(mpidr);
 }
+#endif
 
 INLINE(void rust_bindings_bus_space_barrier(bus_space_tag_t s, bus_space_handle_t h, bus_size_t o, bus_size_t len, int flags)) {
     return bus_space_barrier(s, h, o, len, flags);
@@ -159,4 +163,6 @@ INLINE(size_t rust_bindings_mtx_initialized(const struct mtx *mutex)) {
 BUS_N(1, uint8_t);
 BUS_N(2, uint16_t);
 BUS_N(4, uint32_t);
+#if defined(__aarch64__)
 BUS_N(8, uint64_t);
+#endif

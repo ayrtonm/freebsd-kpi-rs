@@ -170,6 +170,7 @@ impl<T> AsRustType<T> for T {
 
 /// A catch-all module for miscellaneous functions
 #[allow(non_snake_case)]
+#[cfg(target_arch = "aarch64")]
 pub mod misc {
     use crate::bindings::{cpuset_t, device_t, u_int};
     use crate::prelude::*;
@@ -329,6 +330,7 @@ pub mod prelude {
     pub use crate::intr::PicIf;
 
     #[doc(inline)]
+    #[cfg(target_arch = "aarch64")]
     pub use crate::misc::*;
 
     // These are implemented widely throughout the KPI crate
@@ -641,4 +643,10 @@ define_stub_syms! {
     __eqsf2
     __gnu_h2f_ieee
     __gnu_f2h_ieee
+
+    // stubs for x86-64
+    // TODO: Can I make this one weak instead?
+    sgx_encls
+    __floatdisf
+    __floatdidf
 }
