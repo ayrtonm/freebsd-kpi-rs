@@ -108,7 +108,6 @@ RUSTROOT_A= rustroot.a
 # This must be here to ensure it gets added to SYSTEM_OBJS
 RUST_OBJS= ${RUSTROOT_A} ${BINDGEN_INLINE_SRC:S/.c/.o/}
 RUST_MAKEFILE= ${SRCTOP}/sys/rust/kern.rust.mk
-RUSTROOT_DEP= ${RLIBS}
 
 RUST_DEFAULT_DEP= ${RUST_KPI} ${RUST_CORE} ${RUST_FAKE_BUILTINS}
 RLIB_RULE= ${RUSTC} ${RUSTFLAGS} -Cdebuginfo=full --crate-type rlib --sysroot=$(PWD)/${RUST_SYSROOT} -L.
@@ -133,6 +132,3 @@ ${BINDINGS_RS}: ${SRCTOP}/sys/rust/bindings.h ${RUST_MAKEFILE}
 
 ${RUST_KPI}: ${RUST_FAKE_BUILTINS} ${BINDINGS_RS} ${RUST_KPI_SOURCES}
 	OUT_DIR=$(PWD) ${RLIB_RULE} ${RUST_KPI_FEATURES} ${SRCTOP}/sys/rust/kpi/src/lib.rs -o ${.TARGET}
-
-${RUSTROOT_RS}: ${RUSTROOT_DEP} ${RUST_MAKEFILE}
-	printf "#![no_std]\nextern crate kpi;\n${RLIBS:S/.rlib/;/:S/lib/extern crate /}" > ${RUSTROOT_RS}
