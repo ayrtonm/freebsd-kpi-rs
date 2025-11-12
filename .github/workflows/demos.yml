@@ -1,4 +1,4 @@
-name: Build virtio_snd demo
+name: Build rust demo
 
 on:
   push:
@@ -25,7 +25,7 @@ jobs:
         mkdir -p ../obj
         echo "MAKEOBJDIRPREFIX=${PWD%/*}/obj" >> $GITHUB_ENV
 
-    - name: Checkout FreeBSD src
+    - name: Checkout FreeBSD src virtio_snd branch
       uses: actions/checkout@v5
       with:
         repository: ayrtonm/freebsd-src
@@ -73,3 +73,16 @@ jobs:
         BINDGEN=`which bindgen` \
         ./tools/build/make.py --debug -j$NPROC $EXTRA_BUILD_ARGS buildkernel \
           KERNCONF=VIRT NO_MODULES=yes TARGET=arm64 TARGET_ARCH=aarch64
+
+    - name: Checkout FreeBSD src apple branch
+      run: |
+        git fetch origin apple --depth 1
+        git checkout origin/apple
+
+    - name: Build apple drivers
+      run: |
+        RUSTC=`which rustc` \
+        RUSTFMT=`which rustfmt` \
+        BINDGEN=`which bindgen` \
+        ./tools/build/make.py --debug -j$NPROC $EXTRA_BUILD_ARGS buildkernel \
+          KERNCONF=APPLE NO_MODULES=yes TARGET=arm64 TARGET_ARCH=aarch64
