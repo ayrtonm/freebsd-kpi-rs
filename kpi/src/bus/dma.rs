@@ -60,15 +60,15 @@ impl BusDmaTagBuilder {
         self.addr = Some(addr);
         self
     }
-    pub fn maxsize(mut self, maxsize: bus_size_t) -> Self {
+    pub fn max_size(mut self, maxsize: bus_size_t) -> Self {
         self.maxsize = Some(maxsize);
         self
     }
-    pub fn nsegments(mut self, nsegments: usize) -> Self {
+    pub fn num_segments(mut self, nsegments: usize) -> Self {
         self.nsegments = Some(nsegments);
         self
     }
-    pub fn maxsegsz(mut self, maxsegsz: bus_size_t) -> Self {
+    pub fn max_seg_size(mut self, maxsegsz: bus_size_t) -> Self {
         self.maxsegsz = Some(maxsegsz);
         self
     }
@@ -76,7 +76,7 @@ impl BusDmaTagBuilder {
         self.flags = flags;
         self
     }
-    pub fn lockfunc(mut self, func: bus_dma_lock_t, arg: *mut c_void) -> Self {
+    pub fn lock_func(mut self, func: bus_dma_lock_t, arg: *mut c_void) -> Self {
         self.lockfunc = Some(func);
         self.lockfunc_arg = arg;
         self
