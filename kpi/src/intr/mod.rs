@@ -57,4 +57,8 @@ pub mod wrappers {
         INTR_TYPE_CLK,
         INTR_TYPE_AV,
     }
+
+    #[doc(inline)]
+    #[cfg(feature = "intrng")]
+    pub use intrng::wrappers::*;
 }
