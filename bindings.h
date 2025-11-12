@@ -88,9 +88,6 @@
 
 #include <dev/nvme/nvme_private.h>
 
-#if __has_include("nvme_if.h")
-#include "nvme_if.h"
-#endif
 #if __has_include(<arm64/apple/apple_rtkit.h>)
 #include <arm64/apple/apple_rtkit.h>
 #endif
@@ -128,6 +125,15 @@ DECL_IFACE_METHOD(pic_init_secondary);
 DECL_IFACE_METHOD(pic_ipi_send);
 DECL_IFACE_METHOD(pic_map_intr);
 DECL_IFACE_METHOD(pic_ipi_setup);
+#endif
+
+#if __has_include("nvme_if.h")
+#include "nvme_if.h"
+DECL_IFACE_METHOD(nvme_delayed_attach);
+DECL_IFACE_METHOD(nvme_enable);
+DECL_IFACE_METHOD(nvme_sq_enter);
+DECL_IFACE_METHOD(nvme_sq_leave);
+DECL_IFACE_METHOD(nvme_cq_done);
 #endif
 
 #if defined(__aarch64__)

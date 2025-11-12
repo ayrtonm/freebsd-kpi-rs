@@ -26,15 +26,15 @@
  * SUCH DAMAGE.
  */
 
-use crate::bindings::{nvme_qpair, nvme_tracker};
+use crate::bindings::{nvme_controller, nvme_qpair, nvme_tracker};
 use crate::prelude::*;
 
 define_interface! {
-    nvme_delayed_attach(dev: device_t) -> int;
+    nvme_delayed_attach(dev: device_t, ctrlr: *mut nvme_controller) -> int;
     nvme_enable(dev: device_t);
     nvme_sq_leave(dev: device_t, qpair: *mut nvme_qpair, tr: *mut nvme_tracker);
     nvme_cq_done(dev: device_t, qpair: *mut nvme_qpair, tr: *mut nvme_tracker);
-    nvme_qpair_construct(dev: device_t, qpair: *mut nvme_qpair, num_entries: u32, num_trackers: u32) -> int;
+    nvme_qpair_construct(dev: device_t, qpair: *mut nvme_qpair, num_entries: u32, num_trackers: u32, ctrlr: *mut nvme_controller) -> int;
 }
 
 #[doc(hidden)]
