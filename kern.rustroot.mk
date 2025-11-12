@@ -1,4 +1,4 @@
-LDFLAGS += -Wl,--whole-archive
+_LDFLAGS += --whole-archive
 
 ${RUSTROOT_RS}: ${RUST_MAKEFILE} ${RLIBS}
 	printf "#![no_std]\nextern crate kpi;\n${RLIBS:S/.rlib/;/:S/lib/extern crate /}" > ${RUSTROOT_RS}
