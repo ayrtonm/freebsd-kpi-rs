@@ -1,4 +1,4 @@
-name: Build rust demo
+name: Build aarch64 rust demo
 
 on:
   push:
@@ -49,18 +49,6 @@ jobs:
 
     - name: Bootstrap bmake
       run: ./tools/build/make.py -j$NPROC $EXTRA_BUILD_ARGS TARGET=amd64 TARGET_ARCH=amd64 -n
-
-    - name: Build x64 kernel toolchain
-      run: ./tools/build/make.py -j$NPROC $EXTRA_BUILD_ARGS kernel-toolchain \
-          KERNCONF=MINIMAL TARGET=amd64 TARGET_ARCH=amd64
-
-    - name: Build virtio_snd driver for x86-64
-      run: |
-        RUSTC=`which rustc` \
-        RUSTFMT=`which rustfmt` \
-        BINDGEN=`which bindgen` \
-        ./tools/build/make.py --debug -j$NPROC $EXTRA_BUILD_ARGS buildkernel \
-          KERNCONF=MINIMAL NO_MODULES=yes TARGET=amd64 TARGET_ARCH=amd64
 
     - name: Build arm64 kernel toolchain
       run: ./tools/build/make.py -j$NPROC $EXTRA_BUILD_ARGS kernel-toolchain \
