@@ -27,17 +27,19 @@
  */
 
 use crate::bindings::{MTX_DEF, MTX_SPIN, mtx};
+use crate::boxed::Box;
+use crate::malloc::{MallocFlags, MallocType};
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::ffi::CStr;
 use core::mem::{MaybeUninit, drop};
 use core::ops::{Deref, DerefMut};
-use core::pin::Pin;
 use core::ptr::null_mut;
 
+#[doc(hidden)]
 #[derive(Debug)]
-struct MtxCommon {
-    inner: mtx,
+pub struct MtxCommon {
+    inner: Box<mtx>,
     init: bool,
 }
 
@@ -78,9 +80,10 @@ impl<T> DerefMut for SpinLockGuard<'_, T> {
 }
 
 impl MtxCommon {
-    pub fn new() -> Self {
-        let inner = unsafe { MaybeUninit::<mtx>::zeroed().assume_init() };
-        Self { inner, init: false }
+    pub fn try_new(ty: MallocType, flags: MallocFlags) -> Result<Self> {
+        let lock = unsafe { MaybeUninit::<mtx>::zeroed().assume_init() };
+        let inner = Box::try_new(lock, ty, flags)?;
+        Ok(Self { inner, init: false })
     }
 }
 
@@ -95,11 +98,12 @@ pub struct Mutex<T> {
 }
 
 impl<T> Mutex<T> {
-    pub fn new(t: T) -> Self {
-        Self {
-            mtx_impl: MtxCommon::new(),
+    pub fn try_new(t: T, ty: MallocType, flags: MallocFlags) -> Result<Self> {
+        let mtx_impl = MtxCommon::try_new(ty, flags)?;
+        Ok(Self {
+            mtx_impl,
             data: UnsafeCell::new(t),
-        }
+        })
     }
 }
 
@@ -110,29 +114,40 @@ pub struct SpinLock<T> {
 }
 
 impl<T> SpinLock<T> {
-    pub fn new(t: T) -> Self {
-        Self {
-            mtx_impl: MtxCommon::new(),
+    pub fn try_new(t: T, ty: MallocType, flags: MallocFlags) -> Result<Self> {
+        let mtx_impl = MtxCommon::try_new(ty, flags)?;
+        Ok(Self {
+            mtx_impl,
             data: UnsafeCell::new(t),
-        }
+        })
     }
 }
 
-trait Lockable {
+mod private {
+    use super::MtxCommon;
+    pub trait LockablePrivate {
+        fn get_impl_mut(&mut self) -> &mut MtxCommon;
+    }
+}
+impl<T> private::LockablePrivate for Mutex<T> {
+    fn get_impl_mut(&mut self) -> &mut MtxCommon {
+        &mut self.mtx_impl
+    }
+}
+
+impl<T> private::LockablePrivate for SpinLock<T> {
+    fn get_impl_mut(&mut self) -> &mut MtxCommon {
+        &mut self.mtx_impl
+    }
+}
+pub trait Lockable: private::LockablePrivate {
     const SPINS: bool;
-    fn get_impl_mut(&mut self) -> &mut MtxCommon;
 }
 impl<T> Lockable for Mutex<T> {
     const SPINS: bool = false;
-    fn get_impl_mut(&mut self) -> &mut MtxCommon {
-        &mut self.mtx_impl
-    }
 }
 impl<T> Lockable for SpinLock<T> {
     const SPINS: bool = true;
-    fn get_impl_mut(&mut self) -> &mut MtxCommon {
-        &mut self.mtx_impl
-    }
 }
 
 #[doc(inline)]
@@ -142,21 +157,14 @@ pub use wrappers::*;
 pub mod wrappers {
     use super::*;
 
-    // TODO: The sealed trait pattern shouldn't require disabling this warning
-    #[allow(private_bounds)]
-    pub fn mtx_init<M: Lockable>(
-        mutex: Pin<&mut M>,
-        name: &'static CStr,
-        kind: Option<&'static CStr>,
-    ) {
+    pub fn mtx_init<M: Lockable>(lock: &mut M, name: &'static CStr, kind: Option<&'static CStr>) {
         let name_ptr = name.as_ptr();
         let kind_ptr = match kind {
             Some(k) => k.as_ptr(),
             None => null_mut(),
         };
         let variant = if M::SPINS { MTX_SPIN } else { MTX_DEF };
-        let mtx_ref: &mut M = unsafe { mutex.get_unchecked_mut() };
-        let mtx_impl = mtx_ref.get_impl_mut();
+        let mtx_impl = lock.get_impl_mut();
         mtx_impl.init = true;
         let inner_lock_ptr = &raw mut mtx_impl.inner.mtx_lock;
         unsafe {
@@ -229,4 +237,38 @@ impl<T> Drop for SpinLockGuard<'_, T> {
             );
         };
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn basic_mutex() {
+        let mut lock = Mutex::try_new(4u32, M_DEVBUF, M_WAITOK).unwrap();
+        mtx_init(&mut lock, c"", None);
+        let mut x = mtx_lock(&lock);
+        *x += 1;
+        mtx_unlock(x);
+    }
+
+    #[test]
+    fn basic_spinlock() {
+        let mut lock = SpinLock::try_new(4u32, M_DEVBUF, M_WAITOK).unwrap();
+        mtx_init(&mut lock, c"", None);
+        let mut x = mtx_lock_spin(&lock);
+        *x += 1;
+        mtx_unlock_spin(x);
+    }
+
+    #[unsafe(no_mangle)]
+    extern "C" fn _mtx_init() {}
+    #[unsafe(no_mangle)]
+    extern "C" fn __mtx_lock_flags() {}
+    #[unsafe(no_mangle)]
+    extern "C" fn __mtx_unlock_flags() {}
+    #[unsafe(no_mangle)]
+    extern "C" fn __mtx_lock_spin_flags() {}
+    #[unsafe(no_mangle)]
+    extern "C" fn __mtx_unlock_spin_flags() {}
 }

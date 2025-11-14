@@ -28,7 +28,7 @@
 
 use crate::ErrCode;
 use crate::bindings::{bus_size_t, device_t, resource, resource_spec};
-use crate::ffi::{Ptr, RefCountData, RefCounted};
+use crate::ffi::{RefCountData, RefCounted, SharedPtr};
 use crate::prelude::*;
 use core::ffi::{c_int, c_void};
 use core::mem::transmute;
@@ -233,7 +233,7 @@ pub use wrappers::*;
 #[doc(hidden)]
 pub mod wrappers {
     use super::*;
-    use crate::ffi::OwnedPtr;
+    //use crate::ffi::OwnedPtr;
     use bindings::{bus_space_handle_t, bus_space_tag_t};
 
     gen_newtype! {
@@ -256,13 +256,13 @@ pub mod wrappers {
         RF_UNMAPPED
     }
 
-    pub fn bus_setup_intr<T>(
+    pub fn bus_setup_intr<T, P: SharedPtr<T>>(
         dev: device_t,
         irq: &Irq,
         flags: u32,
         filter_arg: FilterFn<T>,
         handler_arg: Handler<T>,
-        arg: Ptr<T>,
+        arg: P,
     ) -> Result<()> {
         if filter_arg.is_none() && handler_arg.is_none() {
             return Err(EDOOFUS);
@@ -272,13 +272,10 @@ pub mod wrappers {
         // SAFETY: These types are ABI-compatible
         let handler = unsafe { transmute::<Handler<T>, RawHandler>(handler_arg) };
 
-        // TODO: is this right?
-        // arg_ptr is stored in the struct Irq then the Ptr is reconstructed and dropped in
-        // bus_teardown_intr
-        let (arg_ptr, metadata_ptr) = OwnedPtr::into_raw_parts(arg);
-        irq.metadata_ptr
-            .store(metadata_ptr.unwrap(), Ordering::Relaxed);
+        // FIXME: cookie could move
         let cookiep = &raw const irq.cookie;
+        let (arg_ptr, metadata_ptr) = SharedPtr::into_raw_parts(arg);
+        irq.metadata_ptr.store(metadata_ptr, Ordering::Relaxed);
 
         let res = unsafe {
             bindings::bus_setup_intr(
@@ -292,10 +289,9 @@ pub mod wrappers {
             )
         };
         if res != 0 {
-            Err(ErrCode::from(res))
-        } else {
-            Ok(())
-        }
+            return Err(ErrCode::from(res));
+        };
+        Ok(())
     }
 
     pub fn bus_teardown_intr(dev: device_t, irq: &Irq) -> Result<()> {
@@ -454,7 +450,7 @@ mod tests {
     use super::*;
     use crate::device::tests::IrqDriver;
     use crate::device::{BusProbe, DeviceIf};
-    use crate::ffi::Uninit;
+    use crate::ffi::{Ptr, UninitPtr};
     use crate::tests::{DriverManager, LoudDrop};
 
     #[repr(C)]
@@ -466,7 +462,7 @@ mod tests {
     }
 
     impl IrqDriver {
-        fn setup(dev: device_t, sc: &RefCounted<IrqSoftc>, filter: bool, handler: bool) {
+        fn setup(dev: device_t, sc: &Ptr<IrqSoftc>, filter: bool, handler: bool) {
             let filter = if filter {
                 Some(IrqDriver::filter as _)
             } else {
@@ -488,12 +484,14 @@ mod tests {
             }
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: &mut Uninit<Self::Softc>, dev: device_t) -> Result<()> {
-            let sc = uninit_sc.init(IrqSoftc {
-                dev,
-                irq: Irq::default(),
-                loud: LoudDrop,
-            });
+        fn device_attach(uninit_sc: UninitPtr<Self::Softc>, dev: device_t) -> Result<()> {
+            let sc = uninit_sc
+                .init(IrqSoftc {
+                    dev,
+                    irq: Irq::default(),
+                    loud: LoudDrop,
+                })
+                .grab_ref();
             assert_eq!(
                 bus_setup_intr(dev, &sc.irq, 0, None, None, sc.grab_ref()),
                 Err(EDOOFUS)

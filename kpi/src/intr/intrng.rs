@@ -28,18 +28,14 @@
 
 use crate::ErrCode;
 use crate::bindings::{
-    device_t, ich_func_t, intr_config_hook, intr_irq_filter_t, intr_irqsrc, intr_map_data,
-    intr_map_data_fdt, pcell_t, trapframe,
+    device_t, intr_irq_filter_t, intr_irqsrc, intr_map_data, intr_map_data_fdt, pcell_t, trapframe,
 };
 use crate::bus::{Filter, Resource};
-use crate::ffi::{OwnedPtr, Ptr, RefCountData, RefCounted, SubClass};
+use crate::ffi::{RefCounted, SubClass};
 use crate::ofw::XRef;
 use crate::prelude::*;
-use core::cell::UnsafeCell;
 use core::ffi::{CStr, c_int, c_void};
 use core::mem::transmute;
-use core::ptr::null_mut;
-use core::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -248,44 +244,6 @@ impl MapData {
     }
 }
 
-#[derive(Debug)]
-pub struct ConfigHook {
-    c_hook: UnsafeCell<intr_config_hook>,
-    init: AtomicBool,
-    metadata_ptr: AtomicPtr<RefCountData>,
-}
-
-// TODO: How much do I care about this given that it only is really active while attaching devices
-// and before interrupts are enabled? Maybe use device_get_state to validate it's not used
-// afterwards and remove the Mutable wrapper on the ctx field
-unsafe impl Sync for ConfigHook {}
-
-pub type ConfigHookFn<T> = extern "C" fn(&RefCounted<T>);
-
-impl ConfigHook {
-    pub fn new() -> Self {
-        let c_hook = UnsafeCell::new(intr_config_hook::default());
-        Self {
-            c_hook,
-            init: AtomicBool::new(false),
-            metadata_ptr: AtomicPtr::new(null_mut()),
-        }
-    }
-
-    pub fn init<T>(&self, func_arg: ConfigHookFn<T>, arg: Ptr<T>) {
-        let func = unsafe { transmute::<Option<ConfigHookFn<T>>, ich_func_t>(Some(func_arg)) };
-        // TODO: where does the refcount get recreated?
-        let (arg_ptr, metadata_ptr) = OwnedPtr::into_raw_parts(arg);
-
-        let c_hook = self.c_hook.get();
-        unsafe { (*c_hook).ich_func = func };
-        unsafe { (*c_hook).ich_arg = arg_ptr.cast::<c_void>() };
-        self.metadata_ptr
-            .store(metadata_ptr.unwrap(), Ordering::Relaxed);
-        self.init.store(true, Ordering::Relaxed);
-    }
-}
-
 #[doc(inline)]
 pub use wrappers::*;
 
@@ -382,82 +340,15 @@ pub mod wrappers {
     pub fn intr_ipi_dispatch(ipi: u32) {
         unsafe { bindings::intr_ipi_dispatch(ipi) }
     }
-
-    pub fn config_intrhook_establish<H: OwnedPtr<ConfigHook>>(hook: H) -> Result<()> {
-        if !hook.init.load(Ordering::Relaxed) {
-            // User didn't call ConfigHook::init
-            return Err(EDOOFUS);
-        }
-        let res = unsafe { bindings::config_intrhook_establish(hook.c_hook.get()) };
-        if res != 0 {
-            Err(ErrCode::from(res))
-        } else {
-            Ok(())
-        }
-    }
-
-    pub fn config_intrhook_disestablish(hook: &ConfigHook) {
-        unsafe { bindings::config_intrhook_disestablish(hook.c_hook.get()) };
-
-        unsafe {
-            RefCountData::release_ref(hook.metadata_ptr.load(Ordering::Relaxed));
-        }
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::device::tests::HookDriver;
     use crate::device::{BusProbe, DeviceIf};
     use crate::driver;
-    use crate::ffi::Uninit;
-    use crate::tests::{DriverManager, LoudDrop};
-
-    #[repr(C)]
-    pub struct HookSoftc {
-        dev: device_t,
-        hook: ConfigHook,
-        loud: LoudDrop,
-    }
-    impl DeviceIf for HookDriver {
-        type Softc = HookSoftc;
-        fn device_probe(dev: device_t) -> Result<BusProbe> {
-            if !ofw_bus_is_compatible(dev, c"intr,hook_driver") {
-                return Err(ENXIO);
-            }
-            Ok(BUS_PROBE_DEFAULT)
-        }
-        fn device_attach(uninit_sc: &mut Uninit<Self::Softc>, dev: device_t) -> Result<()> {
-            let hook = ConfigHook::new();
-            let loud = LoudDrop;
-            let sc = uninit_sc.init(HookSoftc { dev, hook, loud });
-            sc.hook.init(HookDriver::deferred_attach, sc.grab_ref());
-            config_intrhook_establish(project!(sc->hook)).unwrap();
-            Ok(())
-        }
-        fn device_detach(_sc: &RefCounted<Self::Softc>, _dev: device_t) -> Result<()> {
-            Ok(())
-        }
-    }
-
-    impl HookDriver {
-        extern "C" fn deferred_attach(sc: &RefCounted<HookSoftc>) {
-            println!("called config hook rust function/deferred_attach");
-            config_intrhook_disestablish(&sc.hook);
-        }
-    }
-
-    #[test]
-    fn run_hook() {
-        let mut m = DriverManager::new();
-        m.add_test_device(c"intr,hook_driver");
-        m.add_test_driver::<HookDriver>();
-        m.probe_all();
-        m.attach_all();
-        m.trigger_config_hooks();
-        m.detach_all();
-    }
+    use crate::ffi::UninitPtr;
+    use crate::tests::DriverManager;
 
     #[repr(C)]
     #[derive(Debug)]
@@ -472,7 +363,7 @@ mod tests {
             }
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: &mut Uninit<Self::Softc>, dev: device_t) -> Result<()> {
+        fn device_attach(uninit_sc: UninitPtr<Self::Softc>, dev: device_t) -> Result<()> {
             let sc = uninit_sc.init(IntcSoftc { dev });
             intr_pic_claim_root(
                 dev,

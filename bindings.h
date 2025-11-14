@@ -48,6 +48,7 @@
 #include <sys/proc.h>
 #include <sys/refcount.h>
 #include <sys/rman.h>
+#include <sys/sglist.h>
 #include <sys/smp.h>
 #include <sys/systm.h>
 #include <sys/taskqueue.h>

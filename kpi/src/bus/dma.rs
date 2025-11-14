@@ -98,9 +98,9 @@ impl BusDmaTagBuilder {
                 addr.end,
                 None,       /* filtfunc */
                 null_mut(), /* filtfunc_arg */
-                self.maxsize.unwrap_or(unsafe { bindings::maxphys }),
+                self.maxsize.unwrap_or(bindings::maxphys),
                 self.nsegments.unwrap_or(1).try_into().unwrap(),
-                self.maxsegsz.unwrap_or(unsafe { bindings::maxphys }),
+                self.maxsegsz.unwrap_or(bindings::maxphys),
                 flags,
                 self.lockfunc.unwrap_or(None),
                 self.lockfunc_arg,
