@@ -75,6 +75,7 @@ RUST_CORE= ${RUST_LIBDIR}/libcore.rlib
 RUST_FAKE_BUILTINS= ${RUST_LIBDIR}/libcompiler_builtins.rlib
 RUST_KPI= libkpi.rlib
 RUST_KPI_SOURCES= \
+	${SRCTOP}/sys/rust/kpi/src/collections.rs \
 	${SRCTOP}/sys/rust/kpi/src/sync/mtx.rs \
 	${SRCTOP}/sys/rust/kpi/src/sync/arc.rs \
 	${SRCTOP}/sys/rust/kpi/src/sync/mod.rs \
