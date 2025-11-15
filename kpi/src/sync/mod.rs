@@ -26,7 +26,6 @@
  * SUCH DAMAGE.
  */
 
-use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::fmt;
 use core::fmt::{Debug, Formatter};
@@ -47,6 +46,7 @@ pub mod mtx;
 /// it uses a single atomic flag to ensure exclusive access and does not differentiate between
 /// readers and writers. It has the benefit of not using the existing `mtx(9)` machinery though
 /// which should make it somewhat lower cost.
+#[derive(Default)]
 pub struct Mutable<T> {
     t: UnsafeCell<T>,
     borrowed: AtomicBool,
@@ -65,7 +65,7 @@ impl<T: Debug> Debug for Mutable<T> {
     }
 }
 
-unsafe impl<T> Sync for Mutable<T> {}
+unsafe impl<T: Sync> Sync for Mutable<T> {}
 
 impl<T> Mutable<T> {
     /// Creates a new `Mutable<T>`
@@ -132,8 +132,8 @@ impl<T: ?Sized> Drop for RefMut<'_, T> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::bindings::u_int;
+    use crate::prelude::*;
     use crate::sync::arc::Arc;
 
     // FIXME: These are totally thread-unsafe functions which are only used for tests
