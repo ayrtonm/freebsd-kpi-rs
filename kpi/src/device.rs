@@ -28,7 +28,7 @@
 
 use crate::bindings::{device_state_t, device_t, driver_t};
 use crate::driver::DriverIf;
-use crate::ffi::{Ptr, RefCountData, RefCounted, Uninit};
+use crate::ffi::{CString, Ptr, RefCountData, RefCounted, UninitPtr};
 use crate::prelude::*;
 use core::ffi::{CStr, c_int};
 use core::fmt;
@@ -105,19 +105,20 @@ macro_rules! device_attach {
                 let sc_ptr = sc_as_void_ptr.cast::<RefCounted<<$driver_ty as DeviceIf>::Softc>>();
                 let metadata_ptr = RefCounted::metadata_ptr(sc_ptr);
 
-                let count_ptr = RefCountData::count_ptr(metadata_ptr);
-                unsafe { bindings::refcount_init(count_ptr, 1) };
+                //let count_ptr = RefCountData::count_ptr(metadata_ptr);
+                //unsafe { bindings::refcount_init(count_ptr, 1) };
                 let drop_fn_ptr = RefCountData::drop_fn_ptr(metadata_ptr);
                 unsafe { core::ptr::write(drop_fn_ptr, <$driver_ty as $crate::driver::DriverIf>::DROP_FN) };
 
                 // Claim the softc to opt it into refcounting
                 $crate::device::device_claim_softc(dev);
 
-                let uninit_sc = unsafe { $crate::ffi::Uninit::from_raw(sc_ptr) };
+                let uninit_sc = unsafe { $crate::ffi::UninitPtr::from_raw(sc_ptr) };
             }
             with drop glue {
-                // TODO: don't have to do this if attach returned err
-                assert!(uninit_sc.is_init());
+                // TODO: don't do this if attach returned err
+                let count_ptr = RefCountData::count_ptr(metadata_ptr);
+                assert!(unsafe { bindings::refcount_load(count_ptr) } >= 1);
             }
             with prefix args { uninit_sc }
         }
@@ -210,7 +211,7 @@ impl DeviceIf for {Self} {{
         /* device_probe impl goes here */
     }}
 
-    fn device_attach(sc: &mut Uninit<MyDriverSoftc>, dev: device_t) -> Result<()> {{
+    fn device_attach(sc: UninitPtr<MyDriverSoftc>, dev: device_t) -> Result<()> {{
         /* device_attach impl goes here */
     }}
 }}
@@ -231,7 +232,7 @@ pub trait DeviceIf<State = ()>: DriverIf {
     ///
     /// All implementations must call [`init`][crate::ffi::Uninit::init] on the `uninit_sc` argument
     /// before this function returns to avoid a panic at runtime.
-    fn device_attach(uninit_sc: &mut Uninit<Self::Softc>, dev: device_t) -> Result<()>;
+    fn device_attach(uninit_sc: UninitPtr<Self::Softc>, dev: device_t) -> Result<()>;
 
     /// Used to remove a driver.
     ///
@@ -306,10 +307,22 @@ pub mod wrappers {
         unsafe { CStr::from_ptr(name) }
     }
 
-    // FIXME: 'static is wrong here.  It should be Ptr<CStr> or something instead
-    pub fn device_get_nameunit(dev: device_t) -> &'static CStr {
-        let name = unsafe { bindings::device_get_nameunit(dev) };
-        unsafe { CStr::from_ptr(name) }
+    pub fn device_get_nameunit(dev: device_t) -> CString {
+        let mut res = [0; 16];
+        let name_ptr = unsafe { bindings::device_get_nameunit(dev) };
+        let name = unsafe { CStr::from_ptr(name_ptr) };
+        // count_bytes does not include null-terminator
+        let name_len = name.count_bytes();
+        let out_buf = res.get_mut(0..name_len);
+        match out_buf {
+            // to_bytes does not include null-terminator so this can't panic
+            Some(buf) => buf.copy_from_slice(name.to_bytes()),
+            None => {
+                let out_len = res.len();
+                res[0..out_len].copy_from_slice(&name.to_bytes()[0..out_len])
+            }
+        }
+        CString::Small(res)
     }
 
     pub fn device_get_driver(dev: device_t) -> *mut driver_t {
@@ -386,7 +399,7 @@ pub mod tests {
         //
         //thread 'device::tests::set_callback' panicked at library/core/src/panicking.rs:225:5:
         //panic in a function that cannot unwind
-        fn set_callback_arg(arg: &RefCounted<AnotherDriverSoftc>) {
+        fn set_callback_arg(arg: &AnotherDriverSoftc) {
             //let sc = device_get_softc!(*STASHED_DEVICE.get_mut());
             //*sc.another_sc.get_mut() = Some(arg);
         }
@@ -406,7 +419,7 @@ pub mod tests {
             println!("test_driver: accepted {dev:x?}");
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: &mut Uninit<Self::Softc>, dev: device_t) -> Result<()> {
+        fn device_attach(uninit_sc: UninitPtr<Self::Softc>, dev: device_t) -> Result<()> {
             let sc = uninit_sc.init(TestDriverSoftc {
                 dev,
                 const_data: 0xdeadbeef,
@@ -453,7 +466,7 @@ pub mod tests {
             println!("another_driver: accepted {dev:x?}");
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: &mut Uninit<Self::Softc>, dev: device_t) -> Result<()> {
+        fn device_attach(uninit_sc: UninitPtr<Self::Softc>, dev: device_t) -> Result<()> {
             let sc = uninit_sc.init(AnotherDriverSoftc {
                 dev,
                 loud: LoudDrop,
@@ -463,7 +476,7 @@ pub mod tests {
             // some appropriate device_t. This means that AnotherDriver::device_detach will drop a
             // refcount but will not be able to free the softc (as shown by the LoudDrop Drop impl).
             if ofw_bus_is_compatible(dev, c"another_driver,set_callback") {
-                TestDriver::set_callback_arg(sc);
+                TestDriver::set_callback_arg(&sc);
             }
             Ok(())
         }
@@ -521,14 +534,6 @@ pub mod tests {
                 device_probe irq_driver_probe,
                 device_attach irq_driver_attach,
                 device_detach irq_driver_detach,
-            }
-    );
-
-    driver!(hook_driver, c"hook_driver", HookDriver, hook_driver_methods,
-            INTERFACES {
-                device_probe hook_driver_probe,
-                device_attach hook_driver_attach,
-                device_detach hook_driver_detach,
             }
     );
 }

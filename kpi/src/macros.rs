@@ -78,37 +78,6 @@ macro_rules! base {
     };
 }
 
-/// Turns raw pointers, [`Ptr`][crate::ffi::Ptr] and [`FatPtr`][crate::ffi::FatPtr] into pointers to
-/// a struct's fields.
-///
-/// `project!(&raw const ptr->field)` and `project!(&raw mut ptr->field)` are the equivalent of
-/// `&ptr->field` in C for `*const T` and `*mut T`, respectively.
-///
-/// `project!(x->field)` where `x` is either [`Ptr`][crate::ffi::Ptr] or
-/// [`FatPtr`][crate::ffi::FatPtr] returns a [`FatPtr`][crate::ffi::FatPtr] to `x.field` in both
-/// cases. Ownership of the refcount owned by the initial [`Ptr`][crate::ffi::Ptr] or
-/// [`FatPtr`][crate::ffi::FatPtr] is transferred to the new [`FatPtr`][crate::ffi::FatPtr]. This
-/// means that [`project!`][crate::project] does **not** incur the cost of atomic accesses to change
-/// the refcount, but the initial `x` cannot be used after it's projected. To use the initial `x`
-/// and project it, use `let y = x.clone();` to clone it, grabbing a refcount in the process, before
-/// projecting one of them.
-#[macro_export]
-macro_rules! project {
-    (&raw const $ptr:ident -> $field:ident) => {
-        // SAFETY: Raw pointer projection
-        unsafe { &raw const (*$ptr).$field }
-    };
-
-    (&raw mut $ptr:ident -> $field:ident) => {
-        // SAFETY: Raw pointer projection
-        unsafe { &raw mut (*$ptr).$field }
-    };
-
-    ($ptr:ident -> $($projection:tt)*) => {
-        $crate::ffi::Projectable::project($ptr, |t| &t.$($projection)*)
-    };
-}
-
 #[doc(hidden)]
 #[macro_export]
 macro_rules! get_first {
@@ -130,7 +99,7 @@ macro_rules! define_interface {
                         $driver_ty $impl_fn_name
                         $fn_name($($arg_name: $arg,)*) $(-> $ret)*;
                         with init glue {
-                            $($($init_glue)*)*;
+                            $($($init_glue)*)*
                             let _sc_as_void_ptr = unsafe { bindings::device_get_softc($crate::get_first!($($arg_name)*)) };
                             let _rust_sc_ptr = _sc_as_void_ptr.cast::<RefCounted<<$driver_ty as DeviceIf>::Softc>>();
                             let _sc = unsafe { _rust_sc_ptr.as_ref().unwrap() };

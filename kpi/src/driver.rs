@@ -1,29 +1,29 @@
 /*-
- * spdx-license-identifier: bsd-2-clause
+ * SPDX-License-Identifier: BSD-2-Clause
  *
- * copyright (c) 2025 ayrton muñoz
- * all rights reserved.
+ * Copyright (c) 2024 Ayrton Muñoz
+ * All rights reserved.
  *
- * redistribution and use in source and binary forms, with or without
+ * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
- * 1. redistributions of source code must retain the above copyright
+ * 1. Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
- * 2. redistributions in binary form must reproduce the above copyright
+ * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
  *
- * this software is provided by the author and contributors ``as is'' and
- * any express or implied warranties, including, but not limited to, the
- * implied warranties of merchantability and fitness for a particular purpose
- * are disclaimed.  in no event shall the author or contributors be liable
- * for any direct, indirect, incidental, special, exemplary, or consequential
- * damages (including, but not limited to, procurement of substitute goods
- * or services; loss of use, data, or profits; or business interruption)
- * however caused and on any theory of liability, whether in contract, strict
- * liability, or tort (including negligence or otherwise) arising in any way
- * out of the use of this software, even if advised of the possibility of
- * such damage.
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
  */
 
 use crate::bindings::{driver_t, u_int};
@@ -114,6 +114,7 @@ macro_rules! driver {
         })?
     ) => {
         // Import the prelude. The prelude includes `kpi::bindings` so we rely on this below.
+        #[allow(unused_imports)]
         use $crate::prelude::*;
 
         // Define a type for the driver. This is defined in this macro rather than the KPI crate to
@@ -169,6 +170,7 @@ macro_rules! driver {
         // name for them. The module name is arbitrary but we use $driver_sym since it already needs
         // to be unique
         mod $driver_sym {
+            #![allow(unused_imports)]
             use core::ffi::{CStr, c_void};
             use core::ptr::{null_mut, drop_in_place};
             use core::alloc::Layout;
@@ -219,7 +221,7 @@ macro_rules! driver {
             pub unsafe fn drop_softc(count_ptr: *mut u_int) {
                 // Find the offset of the refcount within the RefCounted<T> for this driver
                 let metadata_offset = RefCounted::<<$driver_ty as DeviceIf>::Softc>::metadata_offset();
-                let count_offset = metadata_offset + offset_of!(RefCountData, count);
+                let count_offset = metadata_offset + RefCountData::count_offset();
                 // Get a pointer to the start of the softc
                 let sc_void_ptr = unsafe { count_ptr.cast::<c_void>().byte_sub(count_offset) };
                 // Cast it to the right type

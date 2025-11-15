@@ -1,37 +1,39 @@
 /*-
- * spdx-license-identifier: bsd-2-clause
+ * SPDX-License-Identifier: BSD-2-Clause
  *
- * copyright (c) 2025 ayrton muñoz
- * all rights reserved.
+ * Copyright (c) 2024 Ayrton Muñoz
+ * All rights reserved.
  *
- * redistribution and use in source and binary forms, with or without
+ * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
- * 1. redistributions of source code must retain the above copyright
+ * 1. Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
- * 2. redistributions in binary form must reproduce the above copyright
+ * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
  *
- * this software is provided by the author and contributors ``as is'' and
- * any express or implied warranties, including, but not limited to, the
- * implied warranties of merchantability and fitness for a particular purpose
- * are disclaimed.  in no event shall the author or contributors be liable
- * for any direct, indirect, incidental, special, exemplary, or consequential
- * damages (including, but not limited to, procurement of substitute goods
- * or services; loss of use, data, or profits; or business interruption)
- * however caused and on any theory of liability, whether in contract, strict
- * liability, or tort (including negligence or otherwise) arising in any way
- * out of the use of this software, even if advised of the possibility of
- * such damage.
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
  */
 
 #![allow(dead_code)]
 
 use crate::bindings;
+#[cfg(feature = "intrng")]
+use crate::bindings::intr_irq_filter_t;
 use crate::bindings::{
     device_attach_t, device_detach_t, device_probe_t, device_state_t, device_t, driver_filter_t,
-    driver_intr_t, driver_t, intr_config_hook, intr_irq_filter_t, kobjop_desc, resource, u_int,
+    driver_intr_t, driver_t, intr_config_hook, kobjop_desc, resource, u_int,
 };
 use crate::driver::DriverIf;
 use core::mem::transmute;
@@ -55,6 +57,7 @@ pub struct TestDevice {
     pub compat_strs: Vec<&'static CStr>,
     filter: Option<(driver_filter_t, *mut c_void)>,
     handler: Option<(driver_intr_t, *mut c_void)>,
+    #[cfg(feature = "intrng")]
     pic_root: Option<(intr_irq_filter_t, *mut c_void)>,
     desc: Option<CString>,
 }

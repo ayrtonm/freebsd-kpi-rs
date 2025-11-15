@@ -26,7 +26,7 @@
  * SUCH DAMAGE.
  */
 
-use crate::bindings::{nvme_controller, nvme_qpair, nvme_tracker};
+use crate::bindings::{nvme_qpair, nvme_tracker};
 use crate::prelude::*;
 
 define_interface! {
