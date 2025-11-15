@@ -16,6 +16,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Run tests
+    - name: Run aarch64 tests
       working-directory: ./kpi
-      run: RUST_BACKTRACE=1 cargo test --verbose
+      run: RUST_BACKTRACE=1 cargo test --verbose --lib --features aarch64_tests
+
+    # Need non-ofw device_probe to enable
+    #- name: Run x86_64 tests
+    #  working-directory: ./kpi
+    #  run: RUST_BACKTRACE=1 cargo test --verbose --lib --features x86_64_tests

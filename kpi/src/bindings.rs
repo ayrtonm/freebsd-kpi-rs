@@ -58,5 +58,8 @@ struct vfpstate(());
 #[cfg(not(feature = "std"))]
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
-#[cfg(feature = "std")]
-include!("../test_bindings.rs");
+#[cfg(feature = "aarch64_tests")]
+include!("../aarch64_test_bindings.rs");
+
+#[cfg(feature = "x86_64_tests")]
+include!("../x86_64_test_bindings.rs");

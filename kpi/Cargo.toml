@@ -4,13 +4,15 @@ version = "0.0.1"
 edition = "2024"
 
 [lib]
-crate-type = ["staticlib"]
+crate-type = ["rlib"]
 
 [features]
-default = ["std", "fdt", "intrng"]
+default = ["std"]
 # Use libstd instead of libcore to run userspace unit tests
 std = []
 # flattened devicetree support
 fdt = []
 # new interrupt framework support
 intrng = []
+aarch64_tests = ["fdt", "intrng"]
+x86_64_tests = []

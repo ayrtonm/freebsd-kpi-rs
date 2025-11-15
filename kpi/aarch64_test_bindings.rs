@@ -411,42 +411,45 @@ pub const HAVE_KERNEL_OPTION_HEADERS: i32 = 1;
 pub const LINUX_DTS_VERSION: &[u8; 5] = b"6.12\0";
 pub const BINDGEN: i32 = 1;
 pub const __GCC_HAVE_DWARF2_CFI_ASM: i32 = 1;
-pub const BUF_TRACKING: i32 = 1;
-pub const FULL_BUF_TRACKING: i32 = 1;
-pub const QUEUE_MACRO_DEBUG_TRASH: i32 = 1;
-pub const CC_CUBIC: i32 = 1;
-pub const COMPAT_FREEBSD12: i32 = 1;
-pub const COMPAT_FREEBSD14: i32 = 1;
-pub const KDTRACE_MIB_SDT: i32 = 1;
-pub const PCI_IOV: i32 = 1;
-pub const NETDUMP: i32 = 1;
-pub const TCP_BLACKBOX: i32 = 1;
-pub const INVARIANT_SUPPORT: i32 = 1;
-pub const SMP: i32 = 1;
-pub const WITNESS: i32 = 1;
-pub const VIMAGE: i32 = 1;
-pub const RACCT_DEFAULT_TO_DISABLED: i32 = 1;
-pub const ARM64: i32 = 1;
-pub const VFP: i32 = 1;
-pub const PERTHREAD_SSP: i32 = 1;
-pub const COMPAT_FREEBSD32: i32 = 1;
-pub const LINUX_BOOT_ABI: i32 = 1;
-pub const INTRNG: i32 = 1;
-pub const RCTL: i32 = 1;
-pub const RACCT: i32 = 1;
-pub const DEV_NETMAP: i32 = 1;
-pub const NUMA: i32 = 1;
-pub const INVARIANTS: i32 = 1;
-pub const TCP_HHOOK: i32 = 1;
-pub const NETLINK: i32 = 1;
-pub const DEBUGNET: i32 = 1;
-pub const MAC: i32 = 1;
-pub const KDTRACE_HOOKS: i32 = 1;
-pub const COMPAT_FREEBSD13: i32 = 1;
-pub const COMPAT_FREEBSD11: i32 = 1;
-pub const AUDIT: i32 = 1;
-pub const KDB: i32 = 1;
+pub const RANDOM_ENABLE_KBD: i32 = 1;
+pub const RANDOM_ENABLE_TPM: i32 = 1;
 pub const EXTERR_STRINGS: i32 = 1;
+pub const KDB: i32 = 1;
+pub const AUDIT: i32 = 1;
+pub const COMPAT_FREEBSD11: i32 = 1;
+pub const COMPAT_FREEBSD13: i32 = 1;
+pub const KDTRACE_HOOKS: i32 = 1;
+pub const MAC: i32 = 1;
+pub const DEBUGNET: i32 = 1;
+pub const NETLINK: i32 = 1;
+pub const TCP_HHOOK: i32 = 1;
+pub const INVARIANTS: i32 = 1;
+pub const NUMA: i32 = 1;
+pub const DEV_NETMAP: i32 = 1;
+pub const RACCT: i32 = 1;
+pub const RCTL: i32 = 1;
+pub const INTRNG: i32 = 1;
+pub const LINUX_BOOT_ABI: i32 = 1;
+pub const COMPAT_FREEBSD32: i32 = 1;
+pub const PERTHREAD_SSP: i32 = 1;
+pub const VFP: i32 = 1;
+pub const ARM64: i32 = 1;
+pub const RACCT_DEFAULT_TO_DISABLED: i32 = 1;
+pub const VIMAGE: i32 = 1;
+pub const WITNESS: i32 = 1;
+pub const SMP: i32 = 1;
+pub const INVARIANT_SUPPORT: i32 = 1;
+pub const TCP_BLACKBOX: i32 = 1;
+pub const NETDUMP: i32 = 1;
+pub const PCI_IOV: i32 = 1;
+pub const KDTRACE_MIB_SDT: i32 = 1;
+pub const COMPAT_FREEBSD14: i32 = 1;
+pub const COMPAT_FREEBSD12: i32 = 1;
+pub const CC_CUBIC: i32 = 1;
+pub const QUEUE_MACRO_DEBUG_TRASH: i32 = 1;
+pub const FULL_BUF_TRACKING: i32 = 1;
+pub const BUF_TRACKING: i32 = 1;
+pub const RANDOM_ENABLE_MOUSE: i32 = 1;
 pub const FDT: i32 = 1;
 pub const __CC_SUPPORTS___INLINE: i32 = 1;
 pub const __CC_SUPPORTS_SYMVER: i32 = 1;
@@ -4070,6 +4073,20 @@ pub const QUIRK_DELAY_B4_CHK_RDY: i32 = 1;
 pub const QUIRK_DISABLE_TIMEOUT: i32 = 2;
 pub const QUIRK_INTEL_ALIGNMENT: i32 = 4;
 pub const QUIRK_AHCI: i32 = 8;
+pub const IRQ_TYPE_NONE: i32 = 0;
+pub const IRQ_TYPE_EDGE_RISING: i32 = 1;
+pub const IRQ_TYPE_EDGE_FALLING: i32 = 2;
+pub const IRQ_TYPE_EDGE_BOTH: i32 = 3;
+pub const IRQ_TYPE_LEVEL_HIGH: i32 = 4;
+pub const IRQ_TYPE_LEVEL_LOW: i32 = 8;
+pub const AIC_IRQ: i32 = 0;
+pub const AIC_FIQ: i32 = 1;
+pub const AIC_TMR_HV_PHYS: i32 = 0;
+pub const AIC_TMR_HV_VIRT: i32 = 1;
+pub const AIC_TMR_GUEST_PHYS: i32 = 2;
+pub const AIC_TMR_GUEST_VIRT: i32 = 3;
+pub const AIC_CPU_PMU_E: i32 = 4;
+pub const AIC_CPU_PMU_P: i32 = 5;
 pub type __int8_t = ::core::ffi::c_schar;
 pub type __uint8_t = ::core::ffi::c_uchar;
 pub type __int16_t = ::core::ffi::c_short;
@@ -9232,6 +9249,34 @@ impl Default for rman_head {
         }
     }
 }
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct sglist_seg {
+    pub ss_paddr: vm_paddr_t,
+    pub ss_len: usize,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct sglist {
+    pub sg_segs: *mut sglist_seg,
+    pub sg_refs: u_int,
+    pub sg_nseg: u_short,
+    pub sg_maxseg: u_short,
+}
+impl Default for sglist {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct mbuf {
+    _unused: [u8; 0],
+}
 pub const TOPO_TYPE_DUMMY: topo_node_type = 0;
 pub const TOPO_TYPE_PU: topo_node_type = 1;
 pub const TOPO_TYPE_CORE: topo_node_type = 2;
@@ -10107,11 +10152,6 @@ pub struct cryptop {
 }
 #[repr(C)]
 #[derive(Debug)]
-pub struct mbuf {
-    _unused: [u8; 0],
-}
-#[repr(C)]
-#[derive(Debug)]
 pub struct pmap {
     _unused: [u8; 0],
 }
@@ -10563,11 +10603,6 @@ impl Default for virtio_pnp_match {
 #[repr(C)]
 #[derive(Debug)]
 pub struct virtqueue {
-    _unused: [u8; 0],
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct sglist {
     _unused: [u8; 0],
 }
 pub type virtqueue_intr_t =
@@ -16816,6 +16851,74 @@ unsafe extern "C" {
     pub fn rman_set_type(_r: *mut resource, _type: ::core::ffi::c_int);
     pub fn rman_set_virtual(_r: *mut resource, _v: *mut ::core::ffi::c_void);
     pub static mut rman_head: rman_head;
+    #[link_name = "sglist_init__extern"]
+    pub fn sglist_init(sg: *mut sglist, maxsegs: u_short, segs: *mut sglist_seg);
+    #[link_name = "sglist_reset__extern"]
+    pub fn sglist_reset(sg: *mut sglist);
+    #[link_name = "sglist_hold__extern"]
+    pub fn sglist_hold(sg: *mut sglist) -> *mut sglist;
+    pub fn sglist_alloc(nsegs: ::core::ffi::c_int, mflags: ::core::ffi::c_int) -> *mut sglist;
+    pub fn sglist_append(
+        sg: *mut sglist,
+        buf: *mut ::core::ffi::c_void,
+        len: usize,
+    ) -> ::core::ffi::c_int;
+    pub fn sglist_append_bio(sg: *mut sglist, bp: *mut bio) -> ::core::ffi::c_int;
+    pub fn sglist_append_mbuf(sg: *mut sglist, m0: *mut mbuf) -> ::core::ffi::c_int;
+    pub fn sglist_append_mbuf_epg(
+        sg: *mut sglist,
+        m0: *mut mbuf,
+        off: usize,
+        len: usize,
+    ) -> ::core::ffi::c_int;
+    pub fn sglist_append_phys(sg: *mut sglist, paddr: vm_paddr_t, len: usize)
+    -> ::core::ffi::c_int;
+    pub fn sglist_append_sglist(
+        sg: *mut sglist,
+        source: *mut sglist,
+        offset: usize,
+        length: usize,
+    ) -> ::core::ffi::c_int;
+    pub fn sglist_append_single_mbuf(sg: *mut sglist, m: *mut mbuf) -> ::core::ffi::c_int;
+    pub fn sglist_append_uio(sg: *mut sglist, uio: *mut uio) -> ::core::ffi::c_int;
+    pub fn sglist_append_user(
+        sg: *mut sglist,
+        buf: *mut ::core::ffi::c_void,
+        len: usize,
+        td: *mut thread,
+    ) -> ::core::ffi::c_int;
+    pub fn sglist_append_vmpages(
+        sg: *mut sglist,
+        m: *mut vm_page_t,
+        pgoff: usize,
+        len: usize,
+    ) -> ::core::ffi::c_int;
+    pub fn sglist_build(
+        buf: *mut ::core::ffi::c_void,
+        len: usize,
+        mflags: ::core::ffi::c_int,
+    ) -> *mut sglist;
+    pub fn sglist_clone(sg: *mut sglist, mflags: ::core::ffi::c_int) -> *mut sglist;
+    pub fn sglist_consume_uio(sg: *mut sglist, uio: *mut uio, resid: usize) -> ::core::ffi::c_int;
+    pub fn sglist_count(buf: *mut ::core::ffi::c_void, len: usize) -> ::core::ffi::c_int;
+    pub fn sglist_count_mbuf_epg(m: *mut mbuf, off: usize, len: usize) -> ::core::ffi::c_int;
+    pub fn sglist_count_vmpages(m: *mut vm_page_t, pgoff: usize, len: usize) -> ::core::ffi::c_int;
+    pub fn sglist_free(sg: *mut sglist);
+    pub fn sglist_join(first: *mut sglist, second: *mut sglist) -> ::core::ffi::c_int;
+    pub fn sglist_length(sg: *mut sglist) -> usize;
+    pub fn sglist_slice(
+        original: *mut sglist,
+        slice: *mut *mut sglist,
+        offset: usize,
+        length: usize,
+        mflags: ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int;
+    pub fn sglist_split(
+        original: *mut sglist,
+        head: *mut *mut sglist,
+        length: usize,
+        mflags: ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int;
     pub fn topo_init_node(node: *mut topo_node);
     pub fn topo_init_root(root: *mut topo_node);
     pub fn topo_add_node_by_hwid(
