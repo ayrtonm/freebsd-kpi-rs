@@ -63,21 +63,55 @@ impl<T> sealed::ScatterBufPrivate for Vec<T> {
     }
 }
 
+pub type ScatterListPtr = SyncPtr<sglist>;
+
+/// A handle to a buffer in a scatter-gather list
+///
+/// This has both ownership of the buffer and owns a refcount to the list. Since the buffer has
+/// aliasing pointers in the list this type does not allow access to the buffer until the list is
+/// reset. Once the list has been reset the buffer can be accessed by calling
+/// `list_buffer.get_buffer()`.
 pub struct ListBuffer<B: ScatterBuf> {
-    buffer: B,
-    list: SyncPtr<sglist>,
+    buffer: Option<B>,
+    list: ScatterListPtr,
 }
 
 impl<B: ScatterBuf> ListBuffer<B> {
-    pub fn get(self) -> B {
+    /// Create a handle to a buffer in a scatter-gather list.
+    pub fn new(buffer: B, sg: &ScatterList) -> Self {
+        sglist_hold(sg);
+        Self {
+            buffer: Some(buffer),
+            list: sg.list,
+        }
+    }
+
+    pub fn get_buffer(mut self) -> B {
         assert!(unsafe { bindings::sglist_length(self.list.as_ptr()) } == 0);
+        self.buffer.take().unwrap()
+        // Drop impl calls sglist_free to release the sglist refcount
+    }
+
+    pub fn leak_buffer(self) {
+        // Release the sglist reference
         unsafe { bindings::sglist_free(self.list.as_ptr()) };
-        self.buffer
+        forget(self);
+    }
+}
+
+impl<B: ScatterBuf> Drop for ListBuffer<B> {
+    fn drop(&mut self) {
+        unsafe { bindings::sglist_free(self.list.as_ptr()) };
+        if self.buffer.is_some() {
+            panic!(
+                "Either call `list_buffer.get_buffer()` or `list_buffer.leak_buffer()` instead of dropping it"
+            );
+        }
     }
 }
 
 pub struct ScatterList {
-    list: SyncPtr<sglist>,
+    list: ScatterListPtr,
 }
 
 impl ScatterList {
@@ -86,7 +120,7 @@ impl ScatterList {
         if list.is_null() {
             return Err(ENOMEM);
         }
-        let list = SyncPtr::new(list);
+        let list = ScatterListPtr::new(list);
         Ok(Self { list })
     }
 
@@ -102,10 +136,14 @@ pub use wrappers::*;
 pub mod wrappers {
     use super::*;
 
+    /// Creates a new scatter-gather list with `nsegs` segments.
     pub fn sglist_alloc(nsegs: usize, flags: MallocFlags) -> Result<ScatterList> {
         ScatterList::new(nsegs, flags)
     }
 
+    /// Append the virtual addresses spanned by `buffer` to the scatter-gather list.
+    ///
+    /// This returns a `ListBuffer` to access the buffer after the list has been reset.
     pub fn sglist_append<B: ScatterBuf>(sg: &mut ScatterList, buffer: B) -> Result<ListBuffer<B>> {
         let (ptr, size) = buffer.get_buf();
         let res = unsafe { bindings::sglist_append(sg.list.as_ptr(), ptr, size) };
@@ -113,11 +151,7 @@ pub mod wrappers {
             forget(buffer);
             return Err(ErrCode::from(res));
         }
-        sglist_hold(sg);
-        Ok(ListBuffer {
-            buffer,
-            list: sg.list,
-        })
+        Ok(ListBuffer::new(buffer, sg))
     }
 
     pub fn sglist_reset(sg: &mut ScatterList) {
