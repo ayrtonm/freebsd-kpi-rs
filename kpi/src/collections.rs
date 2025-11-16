@@ -59,7 +59,7 @@ impl<T> sealed::ScatterBufPrivate for Box<T> {
 impl<T> sealed::ScatterBufPrivate for Vec<T> {
     fn get_buf(&self) -> (*mut c_void, usize) {
         let ptr = self.as_ptr().cast_mut();
-        (ptr.cast::<c_void>(), self.len())
+        (ptr.cast::<c_void>(), self.capacity())
     }
 }
 
