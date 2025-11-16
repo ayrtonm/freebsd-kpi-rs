@@ -34,31 +34,32 @@ use crate::prelude::*;
 use crate::vec::Vec;
 use core::ffi::c_void;
 use core::mem::{forget, size_of};
-use core::ops::Deref;
+use core::ops::{Deref, DerefMut};
 
 mod sealed {
     use super::*;
 
     pub trait ScatterBufPrivate {
-        fn get_buf(&self) -> (*mut c_void, usize);
+        fn get_buf(&mut self) -> (*mut c_void, usize);
     }
 }
 
 pub trait ScatterBuf: sealed::ScatterBufPrivate {}
 
 impl<T> ScatterBuf for Box<T> {}
-impl<T> ScatterBuf for Vec<T> {}
+impl<T: Default> ScatterBuf for Vec<T> {}
 
 impl<T> sealed::ScatterBufPrivate for Box<T> {
-    fn get_buf(&self) -> (*mut c_void, usize) {
-        let ptr = self.deref() as *const T;
-        (ptr.cast::<c_void>().cast_mut(), size_of::<T>())
+    fn get_buf(&mut self) -> (*mut c_void, usize) {
+        let ptr = self.deref_mut() as *mut T;
+        (ptr.cast::<c_void>(), size_of::<T>())
     }
 }
 
-impl<T> sealed::ScatterBufPrivate for Vec<T> {
-    fn get_buf(&self) -> (*mut c_void, usize) {
+impl<T: Default> sealed::ScatterBufPrivate for Vec<T> {
+    fn get_buf(&mut self) -> (*mut c_void, usize) {
         let ptr = self.as_ptr().cast_mut();
+        self.len = self.capacity;
         (ptr.cast::<c_void>(), self.capacity())
     }
 }
@@ -149,7 +150,7 @@ pub mod wrappers {
     /// Append the virtual addresses spanned by `buffer` to the scatter-gather list.
     ///
     /// This returns a `ListBuffer` to access the buffer after the list has been reset.
-    pub fn sglist_append<B: ScatterBuf>(sg: &mut ScatterList, buffer: B) -> Result<ListBuffer<B>> {
+    pub fn sglist_append<B: ScatterBuf>(sg: &mut ScatterList, mut buffer: B) -> Result<ListBuffer<B>> {
         let (ptr, size) = buffer.get_buf();
         let res = unsafe { bindings::sglist_append(sg.list.as_ptr(), ptr, size) };
         if res != 0 {

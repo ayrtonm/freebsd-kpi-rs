@@ -61,8 +61,9 @@ use core::{fmt, slice};
 #[repr(C)]
 pub struct Vec<T> {
     ptr: NonNull<T>,
-    len: usize,
-    capacity: usize,
+    // TODO: Make these private again. It's only pub(crate) for Vec<T>'s ScatterBuf impl
+    pub(crate) len: usize,
+    pub(crate) capacity: usize,
 }
 
 impl<T: Debug> Debug for Vec<T> {
