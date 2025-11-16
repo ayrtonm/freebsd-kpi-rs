@@ -76,6 +76,10 @@
 #include "ofw_bus_if.h"
 #endif // FDT
 
+#if __has_include("channel_if.h")
+#include <dev/sound/pcm/sound.h>
+#endif
+
 #include <dev/virtio/virtio.h>
 #include <dev/virtio/virtqueue.h>
 

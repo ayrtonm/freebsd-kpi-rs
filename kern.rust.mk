@@ -58,6 +58,17 @@ BINDGEN_FLAGS= \
 	--blocklist-item 'mcontext_t' \
 	--blocklist-item 'vfpstate' \
 	--blocklist-item 'pcb' \
+	--blocklist-function 'fo_read' \
+	--blocklist-function 'fo_write' \
+	--blocklist-function 'fo_truncate' \
+	--blocklist-function 'fo_ioctl' \
+	--blocklist-function 'fo_poll' \
+	--blocklist-function 'fo_kqfilter' \
+	--blocklist-function 'fo_stat' \
+	--blocklist-function 'fo_close' \
+	--blocklist-function 'fo_chmod' \
+	--blocklist-function 'fo_chown' \
+	--blocklist-function 'fo_sendfile' \
 	--no-debug mdproc \
 	--no-debug nvme_namespace_data \
 	--no-debug pcpu \
