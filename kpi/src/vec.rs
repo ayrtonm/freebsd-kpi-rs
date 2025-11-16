@@ -34,10 +34,11 @@ use crate::prelude::*;
 use core::alloc::Layout;
 use core::cmp::max;
 use core::ffi::c_void;
+use core::fmt::{Debug, Formatter};
 use core::mem::{align_of, replace};
 use core::ops::{Deref, DerefMut};
 use core::ptr::{NonNull, drop_in_place, read, write};
-use core::slice;
+use core::{fmt, slice};
 
 /// A growable array of some type T.
 ///
@@ -58,11 +59,17 @@ use core::slice;
 /// `alignof(T) < alignof(malloc_type *)`). Also the `Vec<T>` pointer is always either non-null,
 /// dangling or points to the first `T`.
 #[repr(C)]
-#[derive(Debug)]
 pub struct Vec<T> {
     ptr: NonNull<T>,
     len: usize,
     capacity: usize,
+}
+
+impl<T: Debug> Debug for Vec<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        // Use Vec<T>'s Deref impl since it returns a &[T]
+        Debug::fmt(self.deref(), f)
+    }
 }
 
 impl<T> Vec<T> {
