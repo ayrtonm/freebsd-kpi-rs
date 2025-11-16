@@ -316,6 +316,10 @@ impl<T> SyncPtr<T> {
     pub fn as_ptr(self) -> *mut T {
         self.0
     }
+
+    pub fn is_null(&self) -> bool {
+        self.0.is_null()
+    }
 }
 
 // SAFETY: `SyncPtr` is intended for cases where `Sync` is intentionally desired on the pointer
