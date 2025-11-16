@@ -115,6 +115,11 @@ pub struct ScatterList {
 }
 
 impl ScatterList {
+    pub unsafe fn from_raw(ptr: *mut sglist) -> Self {
+        Self {
+            list: ScatterListPtr::new(ptr),
+        }
+    }
     pub fn new(nsegs: usize, flags: MallocFlags) -> Result<Self> {
         let list = unsafe { bindings::sglist_alloc(nsegs.try_into().unwrap(), flags.0) };
         if list.is_null() {
