@@ -358,7 +358,7 @@ impl<const N: usize> CString<N> {
 
     pub fn as_bytes(&self) -> &[u8] {
         match self {
-            Self::Small(s) => s.as_slice(),
+            Self::Small(s) => &s.as_slice()[0..self.len()],
             Self::Heap(s) => s.as_slice(),
         }
     }
