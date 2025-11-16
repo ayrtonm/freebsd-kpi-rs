@@ -62,6 +62,14 @@ macro_rules! gen_newtype {
 /// races when modifying any fields and are language-agnostic.
 #[macro_export]
 macro_rules! base {
+    (& $sub:ident) => {
+        {
+            use core::ops::Deref;
+            use $crate::ffi::SubClass;
+            let subclass: &SubClass<_, _> = &$sub;
+            SubClass::as_base_ptr($sub.deref())
+        }
+    };
     (& $sub:ident -> $field:ident) => {
         {
             let base_ptr = $crate::ffi::SubClass::as_base_ptr(&$sub);
