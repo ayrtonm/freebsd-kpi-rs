@@ -141,6 +141,11 @@ DECL_IFACE_METHOD(nvme_sq_leave);
 DECL_IFACE_METHOD(nvme_cq_done);
 #endif
 
+#if __has_include("channel_if.h")
+#include "channel_if.h"
+DECL_IFACE_METHOD(channel_init);
+#endif
+
 #if defined(__aarch64__)
 extern struct bus_space memmap_bus;
 #endif

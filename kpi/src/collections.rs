@@ -150,7 +150,10 @@ pub mod wrappers {
     /// Append the virtual addresses spanned by `buffer` to the scatter-gather list.
     ///
     /// This returns a `ListBuffer` to access the buffer after the list has been reset.
-    pub fn sglist_append<B: ScatterBuf>(sg: &mut ScatterList, mut buffer: B) -> Result<ListBuffer<B>> {
+    pub fn sglist_append<B: ScatterBuf>(
+        sg: &mut ScatterList,
+        mut buffer: B,
+    ) -> Result<ListBuffer<B>> {
         let (ptr, size) = buffer.get_buf();
         let res = unsafe { bindings::sglist_append(sg.list.as_ptr(), ptr, size) };
         if res != 0 {

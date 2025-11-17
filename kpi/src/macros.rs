@@ -103,11 +103,14 @@ macro_rules! define_interface {
             #[macro_export]
             macro_rules! $fn_name {
                 ($driver_ty:ident $impl_fn_name:ident) => {
-                    $crate::export_function! {
+                    $crate::define_c_function! {
                         $driver_ty $impl_fn_name
                         $fn_name($($arg_name: $arg,)*) $(-> $ret)*;
                         with init glue {
                             $($($init_glue)*)*
+                            use $crate::bindings;
+                            use $crate::ffi::RefCounted;
+
                             let _sc_as_void_ptr = unsafe { bindings::device_get_softc($crate::get_first!($($arg_name)*)) };
                             let _rust_sc_ptr = _sc_as_void_ptr.cast::<RefCounted<<$driver_ty as DeviceIf>::Softc>>();
                             let _sc = unsafe { _rust_sc_ptr.as_ref().unwrap() };
@@ -116,6 +119,165 @@ macro_rules! define_interface {
                         with prefix args { _sc }
                     }
                 };
+            }
+        )*
+    };
+}
+
+macro_rules! define_c_interface {
+    (fn $($fn_name:ident ($($arg_name:ident: $arg:ty$(,)?)*) $(-> $ret:ty)?
+     $(, with init glue { $($init_glue:tt)* })?
+     $(, with drop glue { $($drop_glue:tt)* })?
+     $(, c returns $ret_as_c_ty:ty )?
+     ;)*) => {
+        $(
+            #[doc(hidden)]
+            #[macro_export]
+            macro_rules! $fn_name {
+                ($driver_ty:ident $impl_fn_name:ident) => {
+                    $crate::define_c_function! {
+                        $driver_ty $impl_fn_name
+                        $fn_name($($arg_name: $arg,)*) $(-> $ret)*;
+                        with init glue { $($($init_glue)*)* }
+                        with drop glue { $($($drop_glue)*)* }
+                        $(c returns $ret_as_c_ty)*
+                    }
+                };
+            }
+        )*
+    };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! define_c_function {
+    (
+        $driver_ty:ident $impl:ident
+        $fn_name:ident($($arg_name:ident: $arg:ty$(,)?)*);
+        $(with init glue { $($init_glue:tt)* })?
+        $(with drop glue { $($drop_glue:tt)* })?
+        $(with prefix args { $($prefix_args:ident)* })?
+    ) => {
+        #[allow(unused_mut)]
+        #[unsafe(no_mangle)]
+        pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) {
+            // Checks that this extern "C" function matches the declaration in bindings.h
+            const _TYPES_MATCH: unsafe extern "C" fn($($arg,)*) = $crate::bindings::$fn_name;
+
+            // Convert all arguments from C types to rust types
+            $(let mut $arg_name: _ = $arg_name.as_rust_type();)*
+
+            // Call init glue if any
+            $($($init_glue)*)*;
+
+            // Call the rust implementation
+            $driver_ty::$fn_name($($($prefix_args,)*)* $($arg_name,)*);
+
+            // Call drop glue if any
+            $($($drop_glue)*)*;
+        }
+    };
+    (
+        $driver_ty:ident $impl:ident
+        $fn_name:ident($($arg_name:ident: $arg:ty$(,)?)*) -> $ret:ty;
+        $(with init glue { $($init_glue:tt)* })?
+        $(with drop glue { $($drop_glue:tt)* })?
+        $(with prefix args { $($prefix_args:ident)* })?
+        $(rust returns $ret_as_rust_ty:ty)?
+    ) => {
+        #[allow(unused_mut)]
+        #[unsafe(no_mangle)]
+        pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) -> $ret {
+            // Checks that this extern "C" function matches the declaration in bindings.h
+            const _TYPES_MATCH: unsafe extern "C" fn($($arg,)*) -> $ret = $crate::bindings::$fn_name;
+
+            // Convert all arguments from C types to rust types
+            $(let mut $arg_name: _ = $arg_name.as_rust_type();)*
+
+            // Call init glue if any
+            $($($init_glue)*)*
+
+            // Call the rust implementation, coercing to the result type if specified
+            let res$(: $crate::Result<$ret_as_rust_ty>)* = $driver_ty::$fn_name($($($prefix_args,)*)* $($arg_name,)*);
+
+            // Call drop glue if any
+            $($($drop_glue)*)*
+
+            // Convert return value from rust type to a C type
+            match res {
+                Ok(r) => r.as_c_type(),
+                Err(e) => e.as_c_type(),
+            }
+        }
+    };
+    (
+        $driver_ty:ident $impl:ident
+        $fn_name:ident($($arg_name:ident: $arg:ty$(,)?)*) -> $ret:ty;
+        $(with init glue { $($init_glue:tt)* })?
+        $(with drop glue { $($drop_glue:tt)* })?
+        $(with prefix args { $($prefix_args:ident)* })?
+        infallible
+    ) => {
+        #[allow(unused_mut)]
+        #[unsafe(no_mangle)]
+        pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) -> $ret {
+            // Checks that this extern "C" function matches the declaration in bindings.h
+            const _TYPES_MATCH: unsafe extern "C" fn($($arg,)*) -> $ret = $crate::bindings::$fn_name;
+
+            // Convert all arguments from C types to rust types
+            $(let mut $arg_name: _ = $arg_name.as_rust_type();)*
+
+            // Call init glue if any
+            $($($init_glue)*)*
+
+            // Call the rust implementation, coercing to the result type if specified
+            let res = $driver_ty::$fn_name($($($prefix_args,)*)* $($arg_name,)*);
+
+            // Call drop glue if any
+            $($($drop_glue)*)*
+
+            res
+        }
+    };
+    (
+        $driver_ty:ident $impl:ident
+        $fn_name:ident($($arg_name:ident: $arg:ty$(,)?)*);
+        $(with init glue { $($init_glue:tt)* })?
+        $(with drop glue { $($drop_glue:tt)* })?
+        $(with prefix args { $($prefix_args:ident)* })?
+        $(c returns $ret_as_c_ty:ty)?
+    ) => {
+        #[allow(unused_mut)]
+        #[unsafe(no_mangle)]
+        pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) -> $($ret_as_c_ty)* {
+            // Checks that this extern "C" function matches the declaration in bindings.h
+            const _TYPES_MATCH: unsafe extern "C" fn($($arg,)*) -> $($ret_as_c_ty)* = $crate::bindings::$fn_name;
+
+            // Convert all arguments from C types to rust types
+            $(let mut $arg_name: _ = $arg_name.as_rust_type();)*
+
+            // Call init glue if any
+            $($($init_glue)*)*
+
+            // Call the rust implementation, coercing to the result type if specified
+            $driver_ty::$fn_name($($($prefix_args,)*)* $($arg_name,)*);
+
+            // Call drop glue if any
+            $($($drop_glue)*)*
+        }
+    };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! define_stub_syms {
+    ($($sym:ident)*) => {
+        $(
+            #[linkage = "weak"]
+            #[doc(hidden)]
+            #[unsafe(no_mangle)]
+            pub extern "C" fn $sym() {
+                panic!("uh oh")
             }
         )*
     };

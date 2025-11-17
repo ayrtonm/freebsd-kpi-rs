@@ -26,49 +26,54 @@
  * SUCH DAMAGE.
  */
 
-use crate::bindings::{nvme_qpair, nvme_tracker};
+use crate::bindings::{kobj, pcm_channel, pcmchan_caps, pcmchan_matrix, snd_dbuf};
 use crate::prelude::*;
-
-define_interface! {
-    nvme_delayed_attach(dev: device_t, ctrlr: *mut nvme_controller) -> int;
-    nvme_enable(dev: device_t);
-    nvme_sq_leave(dev: device_t, qpair: *mut nvme_qpair, tr: *mut nvme_tracker);
-    nvme_cq_done(dev: device_t, qpair: *mut nvme_qpair, tr: *mut nvme_tracker);
-    nvme_qpair_construct(dev: device_t, qpair: *mut nvme_qpair, num_entries: u32, num_trackers: u32, ctrlr: *mut nvme_controller) -> int;
-}
+use core::ffi::c_void;
 
 #[doc(hidden)]
 #[macro_export]
-macro_rules! nvme_sq_enter {
+macro_rules! channel_init {
     ($driver_ty:ident $impl_fn_name:ident) => {
-        $crate::define_c_function! {
-            $driver_ty $impl_fn_name
-            nvme_sq_enter(dev: device_t, qpair: *mut nvme_qpair, tr: *mut nvme_tracker) -> u32;
-            with init glue {
-                let sc_as_void_ptr = unsafe { bindings::device_get_softc(dev) };
-                let sc_ptr = sc_as_void_ptr.cast::<RefCounted<<$driver_ty as DeviceIf>::Softc>>();
-                let _sc = unsafe { sc_ptr.as_ref().unwrap() };
-            }
-            with prefix args { _sc }
-            infallible
+        pub unsafe extern "C" fn $impl_fn_name(
+            _obj: *mut kobj,
+            devinfo: *mut void,
+            b: *mut snd_dbuf,
+            c: *mut pcm_channel,
+            dir: int,
+        ) -> *mut void {
+            const _TYPES_MATCH: $crate::bindings::channel_init_t = Some($impl_fn_name);
+            let c_devinfo = devinfo;
+            let devinfo = devinfo.as_rust_type();
+            let b = b.as_rust_type();
+            let c = c.as_rust_type();
+            let dir = dir.as_rust_type();
+
+            $driver_ty::channel_init(devinfo, b, c, dir);
+
+            return c_devinfo;
         }
     };
 }
 
-impl<'a> AsRustType<&'a nvme_qpair> for *mut nvme_qpair {
-    fn as_rust_type(self) -> &'a nvme_qpair {
-        unsafe { self.as_ref().unwrap() }
+impl<'a, T> AsRustType<&'a T> for *mut c_void {
+    fn as_rust_type(self) -> &'a T {
+        unsafe { self.cast::<T>().as_ref().unwrap() }
     }
 }
 
-impl<'a> AsRustType<&'a mut nvme_qpair> for *mut nvme_qpair {
-    fn as_rust_type(self) -> &'a mut nvme_qpair {
-        unsafe { self.as_mut().unwrap() }
+pub trait ChannelIf {
+    type DevInfo;
+    fn channel_init(devinfo: &Self::DevInfo, b: *mut snd_dbuf, c: *mut pcm_channel, dir: i32);
+    fn channel_setspeed(devinfo: &Self::DevInfo, speed: u32) -> Result<()> {
+        todo!("")
     }
-}
-
-impl<'a> AsRustType<&'a nvme_tracker> for *mut nvme_tracker {
-    fn as_rust_type(self) -> &'a nvme_tracker {
-        unsafe { self.as_ref().unwrap() }
+    fn channel_setformat(devinfo: &Self::DevInfo, format: u32) -> Result<()> {
+        todo!("")
+    }
+    fn channel_getcaps(devinfo: &Self::DevInfo) -> &pcmchan_caps {
+        todo!("")
+    }
+    fn channel_getmatrix(devinfo: &Self::DevInfo, format: u32) -> &pcmchan_matrix {
+        todo!("")
     }
 }

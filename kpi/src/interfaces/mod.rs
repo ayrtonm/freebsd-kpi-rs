@@ -27,3 +27,9 @@
  */
 
 mod nvme;
+mod sound;
+
+pub use crate::device::DeviceIf;
+#[cfg(feature = "intrng")]
+pub use crate::intr::PicIf;
+pub use sound::ChannelIf;

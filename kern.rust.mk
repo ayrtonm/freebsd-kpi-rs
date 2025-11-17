@@ -101,10 +101,12 @@ RUST_KPI_SOURCES= \
 	${SRCTOP}/sys/rust/kpi/src/intr/mod.rs \
 	${SRCTOP}/sys/rust/kpi/src/device.rs \
 	${SRCTOP}/sys/rust/kpi/src/interfaces/nvme.rs \
+	${SRCTOP}/sys/rust/kpi/src/interfaces/sound.rs \
 	${SRCTOP}/sys/rust/kpi/src/interfaces/mod.rs \
 	${SRCTOP}/sys/rust/kpi/src/arm64.rs \
 	${SRCTOP}/sys/rust/kpi/src/bindings.rs \
 	${SRCTOP}/sys/rust/kpi/src/driver.rs \
+	${SRCTOP}/sys/rust/kpi/src/kobj.rs \
 	${SRCTOP}/sys/rust/kpi/src/macros.rs \
 	${SRCTOP}/sys/rust/kpi/src/boxed.rs \
 	${SRCTOP}/sys/rust/kpi/src/panic.rs \

@@ -27,7 +27,7 @@
  */
 
 use crate::bindings::{device_state_t, device_t, driver_t};
-use crate::driver::DriverIf;
+use crate::driver::Driver;
 use crate::ffi::{CString, Ptr, RefCountData, RefCounted, UninitPtr};
 use crate::prelude::*;
 use core::ffi::{CStr, c_int};
@@ -86,7 +86,7 @@ macro_rules! device_get_softc {
 #[macro_export]
 macro_rules! device_probe {
     ($driver_ty:ident $impl_fn_name:ident) => {
-        $crate::export_function! {
+        $crate::define_c_function! {
             $driver_ty $impl_fn_name
             device_probe(dev: device_t) -> int;
         }
@@ -97,10 +97,13 @@ macro_rules! device_probe {
 #[macro_export]
 macro_rules! device_attach {
     ($driver_ty:ident $impl_fn_name:ident) => {
-        $crate::export_function! {
+        $crate::define_c_function! {
             $driver_ty $impl_fn_name
             device_attach(dev: device_t) -> int;
             with init glue {
+                use $crate::bindings;
+                use $crate::ffi::{RefCounted, RefCountData};
+
                 let sc_as_void_ptr = unsafe { bindings::device_get_softc(dev) };
                 let sc_ptr = sc_as_void_ptr.cast::<RefCounted<<$driver_ty as DeviceIf>::Softc>>();
                 let metadata_ptr = RefCounted::metadata_ptr(sc_ptr);
@@ -108,7 +111,7 @@ macro_rules! device_attach {
                 //let count_ptr = RefCountData::count_ptr(metadata_ptr);
                 //unsafe { bindings::refcount_init(count_ptr, 1) };
                 let drop_fn_ptr = RefCountData::drop_fn_ptr(metadata_ptr);
-                unsafe { core::ptr::write(drop_fn_ptr, <$driver_ty as $crate::driver::DriverIf>::DROP_FN) };
+                unsafe { core::ptr::write(drop_fn_ptr, <$driver_ty as $crate::driver::Driver>::drop_softc) };//<$driver_ty as $crate::driver::Driver>::DROP_FN) };
 
                 // Claim the softc to opt it into refcounting
                 $crate::device::device_claim_softc(dev);
@@ -129,10 +132,13 @@ macro_rules! device_attach {
 #[macro_export]
 macro_rules! device_detach {
     ($driver_ty:ident $impl_fn_name:ident) => {
-        $crate::export_function! {
+        $crate::define_c_function! {
             $driver_ty $impl_fn_name
             device_detach(dev: device_t) -> int;
             with init glue {
+                use $crate::bindings;
+                use $crate::ffi::{RefCounted, RefCountData};
+
                 let sc_as_void_ptr = unsafe { bindings::device_get_softc(dev) };
                 let sc_ptr = sc_as_void_ptr.cast::<RefCounted<<$driver_ty as DeviceIf>::Softc>>();
                 let _sc = unsafe { sc_ptr.as_ref().unwrap() };
@@ -218,7 +224,7 @@ impl DeviceIf for {Self} {{
 ```
 ")]
 #[allow(unused_variables)]
-pub trait DeviceIf<State = ()>: DriverIf {
+pub trait DeviceIf<State = ()>: Driver {
     /// The softc associated with the driver.
     ///
     /// If the driver is a subclass of another, then this must be an appropriate
