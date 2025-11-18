@@ -436,7 +436,11 @@ impl<B, F> SubClass<B, F> {
         sub.base_class.get()
     }
 
-    pub unsafe fn from_base_ptr<'a>(ptr: *mut B) -> &'a mut Self {
+    pub unsafe fn from_base_ptr<'a>(ptr: *mut B) -> &'a Self {
+        unsafe { ptr.cast::<Self>().as_ref().unwrap() }
+    }
+
+    pub unsafe fn from_base_ptr_mut<'a>(ptr: *mut B) -> &'a mut Self {
         unsafe { ptr.cast::<Self>().as_mut().unwrap() }
     }
 }

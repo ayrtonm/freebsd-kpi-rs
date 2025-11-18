@@ -26,6 +26,10 @@
  * SUCH DAMAGE.
  */
 
+use crate::ffi::SubClass;
+use core::any::TypeId;
+use core::ffi::c_void;
+
 mod nvme;
 
 pub use crate::device::DeviceIf;
@@ -38,7 +42,7 @@ pub trait AsCType<T> {
     fn as_c_type(self) -> T;
 }
 
-pub trait AsRustType<T> {
+pub trait AsRustType<T, U = ()> {
     fn as_rust_type(self) -> T;
 }
 
@@ -48,28 +52,34 @@ impl<T> AsRustType<T> for T {
     }
 }
 
-use core::any::TypeId;
-
-impl<'a, IN: 'static, OUT: 'static> AsRustType<&'a OUT> for *mut IN {
+impl<'a, IN: 'static, OUT: 'static, F> AsRustType<&'a OUT, F> for *mut IN {
     fn as_rust_type(self) -> &'a OUT {
         // TODO: Make this check const
-        if TypeId::of::<IN>() != TypeId::of::<OUT>()
-            && TypeId::of::<IN>() != TypeId::of::<core::ffi::c_void>()
-        {
-            panic!("uh oh");
+        let same_type = TypeId::of::<IN>() == TypeId::of::<OUT>();
+        let is_subclass = TypeId::of::<OUT>() == TypeId::of::<SubClass<IN, F>>();
+        let from_void_ptr = TypeId::of::<IN>() == TypeId::of::<c_void>();
+        if same_type || from_void_ptr {
+            unsafe { self.cast::<OUT>().as_ref().unwrap() }
+        } else if is_subclass {
+            unsafe { SubClass::from_base_ptr(self) }
+        } else {
+            panic!("uh oh")
         }
-        unsafe { self.cast::<OUT>().as_ref().unwrap() }
     }
 }
 
-impl<'a, IN: 'static, OUT: 'static> AsRustType<&'a mut OUT> for *mut IN {
+impl<'a, IN: 'static, OUT: 'static, F> AsRustType<&'a mut OUT, F> for *mut IN {
     fn as_rust_type(self) -> &'a mut OUT {
         // TODO: Make this check const
-        if TypeId::of::<IN>() != TypeId::of::<OUT>()
-            && TypeId::of::<IN>() != TypeId::of::<core::ffi::c_void>()
-        {
-            panic!("uh oh");
+        let same_type = TypeId::of::<IN>() == TypeId::of::<OUT>();
+        let is_subclass = TypeId::of::<OUT>() == TypeId::of::<SubClass<IN, F>>();
+        let from_void_ptr = TypeId::of::<IN>() == TypeId::of::<c_void>();
+        if same_type || from_void_ptr {
+            unsafe { self.cast::<OUT>().as_mut().unwrap() }
+        } else if is_subclass {
+            unsafe { SubClass::from_base_ptr_mut(self) }
+        } else {
+            panic!("uh oh")
         }
-        unsafe { self.cast::<OUT>().as_mut().unwrap() }
     }
 }

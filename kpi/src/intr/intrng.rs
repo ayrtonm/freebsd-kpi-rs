@@ -45,12 +45,6 @@ pub struct IntrRoot(c_int);
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct IntrIsrcf(c_int);
 
-impl<'a, T> AsRustType<&'a mut IrqSrc<T>> for *mut intr_irqsrc {
-    fn as_rust_type(self) -> &'a mut IrqSrc<T> {
-        unsafe { IrqSrc::from_base_ptr(self) }
-    }
-}
-
 impl AsRustType<MapData> for *mut intr_map_data {
     fn as_rust_type(self) -> MapData {
         MapData::new(self)
