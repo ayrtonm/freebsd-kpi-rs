@@ -27,7 +27,7 @@
  */
 
 use crate::ErrCode;
-use crate::bindings::{device_t, ich_func_t, intr_config_hook};
+use crate::bindings::{ich_func_t, intr_config_hook};
 use crate::boxed::Box;
 use crate::ffi::{RefCountData, RefCounted, SharedPtr, SyncPtr};
 use crate::malloc::{MallocFlags, MallocType};
@@ -121,6 +121,7 @@ mod tests {
     use crate::driver;
     use crate::ffi::UninitPtr;
     use crate::tests::{DriverManager, LoudDrop};
+    use crate::bindings::device_t;
 
     #[repr(C)]
     pub struct HookSoftc {

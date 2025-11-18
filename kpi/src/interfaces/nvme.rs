@@ -31,7 +31,7 @@ use crate::prelude::*;
 
 pub trait NvmeIf {}
 
-define_interface! {
+define_dev_interface! {
     in NvmeIf
     fn nvme_delayed_attach(dev: device_t, ctrlr: *mut nvme_controller) -> int;
     fn nvme_enable(dev: device_t);

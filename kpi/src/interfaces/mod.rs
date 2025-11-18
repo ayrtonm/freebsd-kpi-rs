@@ -34,4 +34,4 @@ pub use crate::device::DeviceIf;
 pub use crate::intr::PicIf;
 
 pub use nvme::NvmeIf;
-pub use sound::ChannelIf;
+//pub use sound::ChannelIf;

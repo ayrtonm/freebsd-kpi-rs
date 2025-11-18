@@ -34,7 +34,7 @@ use crate::prelude::*;
 use crate::vec::Vec;
 use core::ffi::c_void;
 use core::mem::{forget, size_of};
-use core::ops::{Deref, DerefMut};
+use core::ops::DerefMut;
 
 mod sealed {
     use super::*;

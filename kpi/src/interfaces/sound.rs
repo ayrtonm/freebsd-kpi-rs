@@ -26,34 +26,34 @@
  * SUCH DAMAGE.
  */
 
-use crate::bindings::{kobj, pcm_channel, pcmchan_caps, pcmchan_matrix, snd_dbuf};
+//use crate::bindings::{kobj, pcm_channel, pcmchan_caps, pcmchan_matrix, snd_dbuf};
 use crate::prelude::*;
 use core::ffi::c_void;
 
-#[doc(hidden)]
-#[macro_export]
-macro_rules! channel_init {
-    ($driver_ty:ident $impl_fn_name:ident) => {
-        pub unsafe extern "C" fn $impl_fn_name(
-            _obj: *mut kobj,
-            devinfo: *mut void,
-            b: *mut snd_dbuf,
-            c: *mut pcm_channel,
-            dir: int,
-        ) -> *mut void {
-            const _TYPES_MATCH: $crate::bindings::channel_init_t = Some($impl_fn_name);
-            let c_devinfo = devinfo;
-            let devinfo = devinfo.as_rust_type();
-            let b = b.as_rust_type();
-            let c = c.as_rust_type();
-            let dir = dir.as_rust_type();
-
-            $driver_ty::channel_init(devinfo, b, c, dir);
-
-            return c_devinfo;
-        }
-    };
-}
+//#[doc(hidden)]
+//#[macro_export]
+//macro_rules! channel_init {
+//    ($driver_ty:ident $impl_fn_name:ident) => {
+//        pub unsafe extern "C" fn $impl_fn_name(
+//            _obj: *mut kobj,
+//            devinfo: *mut void,
+//            b: *mut snd_dbuf,
+//            c: *mut pcm_channel,
+//            dir: int,
+//        ) -> *mut void {
+//            const _TYPES_MATCH: $crate::bindings::channel_init_t = Some($impl_fn_name);
+//            let c_devinfo = devinfo;
+//            let devinfo = devinfo.as_rust_type();
+//            let b = b.as_rust_type();
+//            let c = c.as_rust_type();
+//            let dir = dir.as_rust_type();
+//
+//            $driver_ty::channel_init(devinfo, b, c, dir);
+//
+//            return c_devinfo;
+//        }
+//    };
+//}
 
 impl<'a, T> AsRustType<&'a T> for *mut c_void {
     fn as_rust_type(self) -> &'a T {
@@ -61,19 +61,19 @@ impl<'a, T> AsRustType<&'a T> for *mut c_void {
     }
 }
 
-pub trait ChannelIf {
-    type DevInfo;
-    fn channel_init(devinfo: &Self::DevInfo, b: *mut snd_dbuf, c: *mut pcm_channel, dir: i32);
-    fn channel_setspeed(devinfo: &Self::DevInfo, speed: u32) -> Result<()> {
-        todo!("")
-    }
-    fn channel_setformat(devinfo: &Self::DevInfo, format: u32) -> Result<()> {
-        todo!("")
-    }
-    fn channel_getcaps(devinfo: &Self::DevInfo) -> &pcmchan_caps {
-        todo!("")
-    }
-    fn channel_getmatrix(devinfo: &Self::DevInfo, format: u32) -> &pcmchan_matrix {
-        todo!("")
-    }
-}
+//pub trait ChannelIf {
+//    type DevInfo;
+//    fn channel_init(devinfo: &Self::DevInfo, b: *mut snd_dbuf, c: *mut pcm_channel, dir: i32);
+//    fn channel_setspeed(devinfo: &Self::DevInfo, speed: u32) -> Result<()> {
+//        todo!("")
+//    }
+//    fn channel_setformat(devinfo: &Self::DevInfo, format: u32) -> Result<()> {
+//        todo!("")
+//    }
+//    fn channel_getcaps(devinfo: &Self::DevInfo) -> &pcmchan_caps {
+//        todo!("")
+//    }
+//    fn channel_getmatrix(devinfo: &Self::DevInfo, format: u32) -> &pcmchan_matrix {
+//        todo!("")
+//    }
+//}

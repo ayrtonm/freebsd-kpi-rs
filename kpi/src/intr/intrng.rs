@@ -65,7 +65,7 @@ impl AsRustType<IntrRoot> for u32 {
 
 pub type IrqFilter<T> = extern "C" fn(&'static T) -> Filter;
 
-define_interface! {
+define_dev_interface! {
     in trait PicIf
     fn pic_setup_intr(dev: device_t, isrc: *mut intr_irqsrc, res: *mut resource, data: *mut intr_map_data) -> int;
     fn pic_teardown_intr(dev: device_t, isrc: *mut intr_irqsrc, res: *mut resource, data: *mut intr_map_data) -> int;

@@ -27,7 +27,6 @@
  */
 
 use crate::bindings::{driver_t, u_int};
-use crate::prelude::*;
 
 #[doc(hidden)]
 pub trait Driver {
@@ -76,7 +75,7 @@ macro_rules! driver {
         $crate::define_class!($driver_sym, $driver_name, $driver_ty, $method_table $(inherit from $($base_classes)*,)*);
         $crate::method_table!($driver_sym, $driver_ty, $method_table = { $($if_fn $impl_name,)* };);
 
-        impl $crate::kobj::KobjClass for $driver_ty {
+        impl $crate::objects::KobjClass for $driver_ty {
             const SIZE: usize = {
                 use core::alloc::Layout;
                 use $crate::ffi::RefCounted;

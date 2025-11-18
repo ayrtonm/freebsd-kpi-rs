@@ -161,7 +161,7 @@ macro_rules! device_detach {
     };
 }
 
-define_interface! {
+define_dev_interface! {
     in DeviceIf
     fn device_shutdown(dev: device_t) -> int;
     fn device_suspend(dev: device_t) -> int;

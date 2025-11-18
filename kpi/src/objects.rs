@@ -69,87 +69,37 @@ unsafe impl<const N: usize> Sync for BaseClasses<N> {}
 pub struct MethodTable<const N: usize>(pub [bindings::kobj_method_t; N]);
 unsafe impl<const N: usize> Sync for MethodTable<N> {}
 
-#[macro_export]
-macro_rules! define_class {
-    ($class_sym:ident, $class_name:expr, $class_ty:ident, $method_table:ident
-        $(inherit from $($base_classes:ident)*,)?
-    ) => {
-        #[repr(C)]
-        #[derive(Debug)]
-        pub struct $class_ty($crate::bindings::kobj_class);
-
-        // Rust cannot access the only instance of $driver_ty created so we can impl Sync to allow
-        // creating a static
-        unsafe impl Sync for $class_ty {}
-
-        #[unsafe(no_mangle)]
-        static mut $class_sym: $class_ty = $class_ty($crate::bindings::kobj_class {
-            name: {
-                let c: &'static core::ffi::CStr = $class_name;
-                c.as_ptr()
-            },
-            methods: unsafe { &raw const $method_table.0[0] },
-            size: <$class_ty as $crate::kobj::KobjClass>::SIZE,
-            baseclasses: {
-                $crate::expand_if_something_or_else_null!({
-                    // expand to this
-                    static mut BASE_CLASSES: BaseClasses<{$crate::count!($($base_classes)*) + 1 }> = $crate::kobj::BaseClasses([
-                        $(&raw mut $crate::bindings::$base_classes,)*
-                        core::ptr::null_mut(),
-                    ]);
-                    BASE_CLASSES.0.as_mut_ptr()
-                },
-                // if this is something
-                $($($base_classes)*)*)
-            },
-            refs: 0,
-            ops: core::ptr::null_mut(),
-        });
-    };
-}
-
-#[macro_export]
-macro_rules! method_table {
-    ($class_sym:ident, $class_ty:ident, $method_table:ident = {
-        $($if_fn:ident $impl:ident,)*
-    };) => {
-        #[unsafe(no_mangle)]
-        static mut $method_table: $crate::kobj::MethodTable<{ $crate::count!($($impl)*) + 1 }> =
-            $crate::kobj::MethodTable([
-                $(
-                    {
-                        let desc = {
-                            use $crate::bindings::*;
-                            &raw mut ${concat($if_fn, _desc)}
-                        };
-                        let func_as_ptr = $class_sym::$impl as *const ();
-                        type MethodTableFn = Option<unsafe extern "C" fn()>;
-                        let func = unsafe { core::mem::transmute::<*const (), MethodTableFn>(func_as_ptr) };
-                        $crate::bindings::kobj_method_t { desc, func }
-                    },
-                )*
-                $crate::bindings::kobj_method_t { desc: core::ptr::null_mut(), func: None }
-            ]);
-        mod $class_sym {
-            use super::$class_ty;
-            use $crate::bindings::*;
-            use $crate::{AsRustType, AsCType};
-            use $crate::interfaces::*;
-            $(
-                use $crate::$if_fn;
-                $if_fn!($class_ty $impl);
-            )*
-        }
-    };
-}
-
+#[allow(unused_macros)]
 macro_rules! get_first {
     ($x:ident $($rest:ident)*) => {
         $x
     };
 }
 
+#[macro_export]
 macro_rules! define_interface {
+    (in $trait:ident
+     $(fn $fn_name:ident($($arg_name:ident: $arg:ty$(,)?)*) $(-> $ret:ty)?
+     $(, with init glue { $($init_glue:tt)* })?
+     $(, with drop glue { $($drop_glue:tt)* })? ;)*) => {
+        $(
+            #[doc(hidden)]
+            #[macro_export]
+            macro_rules! $fn_name {
+                ($driver_ty:ident $impl_fn_name:ident) => {
+                    $crate::define_c_function! {
+                        $driver_ty $impl_fn_name
+                        $fn_name($($arg_name: $arg,)*) $(-> $ret)*;
+                        with init glue { $($($init_glue)*)* }
+                        with drop glue { $($($drop_glue)*)* }
+                    }
+                };
+            }
+        )*
+    };
+}
+#[macro_export]
+macro_rules! define_dev_interface {
     (in $trait:ident
      $(fn $fn_name:ident($($arg_name:ident: $arg:ty$(,)?)*) $(-> $ret:ty)?
      $(, with init glue { $($init_glue:tt)* })?
@@ -180,7 +130,6 @@ macro_rules! define_interface {
     };
 }
 
-#[doc(hidden)]
 #[macro_export]
 macro_rules! define_c_function {
     (
@@ -269,6 +218,81 @@ macro_rules! define_c_function {
             $($($drop_glue)*)*
 
             res
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! define_class {
+    ($class_sym:ident, $class_name:expr, $class_ty:ident, $method_table:ident
+        $(inherit from $($base_classes:ident)*,)?
+    ) => {
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct $class_ty($crate::bindings::kobj_class);
+
+        // Rust cannot access the only instance of $driver_ty created so we can impl Sync to allow
+        // creating a static
+        unsafe impl Sync for $class_ty {}
+
+        #[unsafe(no_mangle)]
+        static mut $class_sym: $class_ty = $class_ty($crate::bindings::kobj_class {
+            name: {
+                let c: &'static core::ffi::CStr = $class_name;
+                c.as_ptr()
+            },
+            methods: unsafe { &raw const $method_table.0[0] },
+            size: <$class_ty as $crate::objects::KobjClass>::SIZE,
+            baseclasses: {
+                $crate::expand_if_something_or_else_null!({
+                    // expand to this
+                    static mut BASE_CLASSES: BaseClasses<{$crate::count!($($base_classes)*) + 1 }> = $crate::objects::BaseClasses([
+                        $(&raw mut $crate::bindings::$base_classes,)*
+                        core::ptr::null_mut(),
+                    ]);
+                    BASE_CLASSES.0.as_mut_ptr()
+                },
+                // if this is something
+                $($($base_classes)*)*)
+            },
+            refs: 0,
+            ops: core::ptr::null_mut(),
+        });
+    };
+}
+
+#[macro_export]
+macro_rules! method_table {
+    ($class_sym:ident, $class_ty:ident, $method_table:ident = {
+        $($if_fn:ident $impl:ident,)*
+    }; $(with imports { $($extra_imports:path$(,)?)* };)? ) => {
+        #[unsafe(no_mangle)]
+        static mut $method_table: $crate::objects::MethodTable<{ $crate::count!($($impl)*) + 1 }> =
+            $crate::objects::MethodTable([
+                $(
+                    {
+                        let desc = {
+                            use $crate::bindings::*;
+                            &raw mut ${concat($if_fn, _desc)}
+                        };
+                        let func_as_ptr = $class_sym::$impl as *const ();
+                        type MethodTableFn = Option<unsafe extern "C" fn()>;
+                        let func = unsafe { core::mem::transmute::<*const (), MethodTableFn>(func_as_ptr) };
+                        $crate::bindings::kobj_method_t { desc, func }
+                    },
+                )*
+                $crate::bindings::kobj_method_t { desc: core::ptr::null_mut(), func: None }
+            ]);
+        mod $class_sym {
+            use super::$class_ty;
+            use $crate::bindings::*;
+            use $crate::{AsRustType, AsCType};
+            use $crate::interfaces::*;
+            // Import all macros from this crate
+            use $crate::*;
+            // Import all macros from extra imports
+            $($(use $extra_imports::*;)*)*
+            $($if_fn!($class_ty $impl);)*
         }
     };
 }

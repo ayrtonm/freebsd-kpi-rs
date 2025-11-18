@@ -106,7 +106,7 @@ RUST_KPI_SOURCES= \
 	${SRCTOP}/sys/rust/kpi/src/arm64.rs \
 	${SRCTOP}/sys/rust/kpi/src/bindings.rs \
 	${SRCTOP}/sys/rust/kpi/src/driver.rs \
-	${SRCTOP}/sys/rust/kpi/src/kobj.rs \
+	${SRCTOP}/sys/rust/kpi/src/objects.rs \
 	${SRCTOP}/sys/rust/kpi/src/macros.rs \
 	${SRCTOP}/sys/rust/kpi/src/boxed.rs \
 	${SRCTOP}/sys/rust/kpi/src/panic.rs \

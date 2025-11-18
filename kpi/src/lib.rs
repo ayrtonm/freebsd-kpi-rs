@@ -110,7 +110,7 @@ extern crate std;
 mod macros;
 
 #[macro_use]
-pub mod kobj;
+pub mod objects;
 
 /// Arch-specific functions for ARM64
 #[cfg(target_arch = "aarch64")]
