@@ -75,7 +75,7 @@ macro_rules! driver {
         $crate::define_class!($driver_sym, $driver_name, $driver_ty, $method_table $(inherit from $($base_classes)*,)*);
         $crate::method_table!($driver_sym, $driver_ty, $method_table = { $($if_fn $impl_name,)* };);
 
-        impl $crate::objects::KobjClass for $driver_ty {
+        impl $crate::objects::KobjClassSize for $driver_ty {
             const SIZE: usize = {
                 use core::alloc::Layout;
                 use $crate::ffi::RefCounted;
@@ -92,7 +92,7 @@ macro_rules! driver {
         }
 
         impl $crate::driver::Driver for $driver_ty {
-            const DRIVER: *mut $crate::bindings::driver_t = unsafe { (&raw mut $driver_sym.0) };
+            const DRIVER: *mut $crate::bindings::driver_t = unsafe { $driver_sym.0.get() };
             // The driver drop fn uses a pointer to the refcount to find the softc pointer and drops
             // it
             unsafe fn drop_softc(count_ptr: *mut $crate::bindings::u_int) {

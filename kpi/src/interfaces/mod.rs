@@ -27,11 +27,49 @@
  */
 
 mod nvme;
-mod sound;
 
 pub use crate::device::DeviceIf;
 #[cfg(feature = "intrng")]
 pub use crate::intr::PicIf;
 
 pub use nvme::NvmeIf;
-//pub use sound::ChannelIf;
+
+pub trait AsCType<T> {
+    fn as_c_type(self) -> T;
+}
+
+pub trait AsRustType<T> {
+    fn as_rust_type(self) -> T;
+}
+
+impl<T> AsRustType<T> for T {
+    fn as_rust_type(self) -> T {
+        self
+    }
+}
+
+use core::any::TypeId;
+
+impl<'a, IN: 'static, OUT: 'static> AsRustType<&'a OUT> for *mut IN {
+    fn as_rust_type(self) -> &'a OUT {
+        // TODO: Make this check const
+        if TypeId::of::<IN>() != TypeId::of::<OUT>()
+            && TypeId::of::<IN>() != TypeId::of::<core::ffi::c_void>()
+        {
+            panic!("uh oh");
+        }
+        unsafe { self.cast::<OUT>().as_ref().unwrap() }
+    }
+}
+
+impl<'a, IN: 'static, OUT: 'static> AsRustType<&'a mut OUT> for *mut IN {
+    fn as_rust_type(self) -> &'a mut OUT {
+        // TODO: Make this check const
+        if TypeId::of::<IN>() != TypeId::of::<OUT>()
+            && TypeId::of::<IN>() != TypeId::of::<core::ffi::c_void>()
+        {
+            panic!("uh oh");
+        }
+        unsafe { self.cast::<OUT>().as_mut().unwrap() }
+    }
+}

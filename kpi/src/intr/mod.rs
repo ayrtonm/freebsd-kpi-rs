@@ -117,11 +117,11 @@ pub mod wrappers {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bindings::device_t;
     use crate::device::{BusProbe, DeviceIf};
     use crate::driver;
     use crate::ffi::UninitPtr;
     use crate::tests::{DriverManager, LoudDrop};
-    use crate::bindings::device_t;
 
     #[repr(C)]
     pub struct HookSoftc {

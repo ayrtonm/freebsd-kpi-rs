@@ -57,21 +57,3 @@ macro_rules! nvme_sq_enter {
         }
     };
 }
-
-impl<'a> AsRustType<&'a nvme_qpair> for *mut nvme_qpair {
-    fn as_rust_type(self) -> &'a nvme_qpair {
-        unsafe { self.as_ref().unwrap() }
-    }
-}
-
-impl<'a> AsRustType<&'a mut nvme_qpair> for *mut nvme_qpair {
-    fn as_rust_type(self) -> &'a mut nvme_qpair {
-        unsafe { self.as_mut().unwrap() }
-    }
-}
-
-impl<'a> AsRustType<&'a nvme_tracker> for *mut nvme_tracker {
-    fn as_rust_type(self) -> &'a nvme_tracker {
-        unsafe { self.as_ref().unwrap() }
-    }
-}

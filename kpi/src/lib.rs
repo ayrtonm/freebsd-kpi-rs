@@ -165,20 +165,6 @@ mod tests;
 /// A result where the `Err` is always a FreeBSD [`ErrCode`]
 pub type Result<T> = core::result::Result<T, ErrCode>;
 
-pub trait AsCType<T> {
-    fn as_c_type(self) -> T;
-}
-
-pub trait AsRustType<T> {
-    fn as_rust_type(self) -> T;
-}
-
-impl<T> AsRustType<T> for T {
-    fn as_rust_type(self) -> T {
-        self
-    }
-}
-
 /// A catch-all module for miscellaneous functions
 #[allow(non_snake_case)]
 #[cfg(not(target_arch = "aarch64"))]
@@ -302,6 +288,7 @@ pub mod prelude {
     pub use crate::arm64::*;
 
     pub use crate::bindings::device_t;
+    pub use crate::interfaces::{AsCType, AsRustType};
     pub use crate::{ErrCode, Result, base, bindings, device_get_softc};
     #[cfg(target_arch = "aarch64")]
     pub use crate::{
@@ -352,9 +339,6 @@ pub mod prelude {
 
     #[doc(inline)]
     pub use crate::collections::*;
-
-    // These are implemented widely throughout the KPI crate
-    pub use crate::{AsCType, AsRustType};
 }
 
 macro_rules! err_codes {
@@ -363,6 +347,7 @@ macro_rules! err_codes {
         use core::fmt;
         use core::fmt::{Debug, Display, Formatter};
         use core::num::NonZeroI32;
+        use crate::interfaces::AsCType;
 
         /// A FreeBSD error code.
         ///

@@ -101,7 +101,6 @@ RUST_KPI_SOURCES= \
 	${SRCTOP}/sys/rust/kpi/src/intr/mod.rs \
 	${SRCTOP}/sys/rust/kpi/src/device.rs \
 	${SRCTOP}/sys/rust/kpi/src/interfaces/nvme.rs \
-	${SRCTOP}/sys/rust/kpi/src/interfaces/sound.rs \
 	${SRCTOP}/sys/rust/kpi/src/interfaces/mod.rs \
 	${SRCTOP}/sys/rust/kpi/src/arm64.rs \
 	${SRCTOP}/sys/rust/kpi/src/bindings.rs \

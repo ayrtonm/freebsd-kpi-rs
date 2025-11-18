@@ -26,7 +26,9 @@
  * SUCH DAMAGE.
  */
 
+use crate::bindings::{kobj_class, kobj_class_t, kobj_method_t};
 use crate::prelude::*;
+use core::cell::UnsafeCell;
 
 /// Expands to an expression if $condition is passed in. Otherwise expands to null_mut()
 #[doc(hidden)]
@@ -55,18 +57,23 @@ macro_rules! count {
     };
 }
 
-pub trait KobjClass {
+pub trait KobjClassSize {
     const SIZE: usize;
+}
+
+pub trait KobjClass: KobjClassSize {
+    fn get_class(&self) -> *mut kobj_class;
 }
 
 #[doc(hidden)]
 #[repr(C)]
-pub struct BaseClasses<const N: usize>(pub [bindings::kobj_class_t; N]);
+pub struct BaseClasses<const N: usize>(pub [kobj_class_t; N]);
 unsafe impl<const N: usize> Sync for BaseClasses<N> {}
 
+// UnsafeCell needed to ensure static ends up in .data
 #[doc(hidden)]
 #[repr(C)]
-pub struct MethodTable<const N: usize>(pub [bindings::kobj_method_t; N]);
+pub struct MethodTable<const N: usize>(pub UnsafeCell<[kobj_method_t; N]>);
 unsafe impl<const N: usize> Sync for MethodTable<N> {}
 
 #[allow(unused_macros)]
@@ -227,22 +234,29 @@ macro_rules! define_class {
     ($class_sym:ident, $class_name:expr, $class_ty:ident, $method_table:ident
         $(inherit from $($base_classes:ident)*,)?
     ) => {
+        // UnsafeCell needed to ensure static ends up in .data
         #[repr(C)]
         #[derive(Debug)]
-        pub struct $class_ty($crate::bindings::kobj_class);
+        pub struct $class_ty(core::cell::UnsafeCell<$crate::bindings::kobj_class>);
+
+        impl $crate::objects::KobjClass for $class_ty {
+            fn get_class(&self) -> *mut $crate::bindings::kobj_class {
+                self.0.get()
+            }
+        }
 
         // Rust cannot access the only instance of $driver_ty created so we can impl Sync to allow
         // creating a static
         unsafe impl Sync for $class_ty {}
 
         #[unsafe(no_mangle)]
-        static mut $class_sym: $class_ty = $class_ty($crate::bindings::kobj_class {
+        static $class_sym: $class_ty = $class_ty(core::cell::UnsafeCell::new($crate::bindings::kobj_class {
             name: {
                 let c: &'static core::ffi::CStr = $class_name;
                 c.as_ptr()
             },
-            methods: unsafe { &raw const $method_table.0[0] },
-            size: <$class_ty as $crate::objects::KobjClass>::SIZE,
+            methods: $method_table.0.get().cast::<$crate::bindings::kobj_method_t>(),
+            size: <$class_ty as $crate::objects::KobjClassSize>::SIZE,
             baseclasses: {
                 $crate::expand_if_something_or_else_null!({
                     // expand to this
@@ -257,7 +271,7 @@ macro_rules! define_class {
             },
             refs: 0,
             ops: core::ptr::null_mut(),
-        });
+        }));
     };
 }
 
@@ -267,8 +281,8 @@ macro_rules! method_table {
         $($if_fn:ident $impl:ident,)*
     }; $(with imports { $($extra_imports:path$(,)?)* };)? ) => {
         #[unsafe(no_mangle)]
-        static mut $method_table: $crate::objects::MethodTable<{ $crate::count!($($impl)*) + 1 }> =
-            $crate::objects::MethodTable([
+        static $method_table: $crate::objects::MethodTable<{ $crate::count!($($impl)*) + 1 }> =
+            $crate::objects::MethodTable(core::cell::UnsafeCell::new([
                 $(
                     {
                         let desc = {
@@ -282,11 +296,11 @@ macro_rules! method_table {
                     },
                 )*
                 $crate::bindings::kobj_method_t { desc: core::ptr::null_mut(), func: None }
-            ]);
+            ]));
         mod $class_sym {
             use super::$class_ty;
             use $crate::bindings::*;
-            use $crate::{AsRustType, AsCType};
+            // Import all interfaces known in the KPI crate and AsRustType/AsCType
             use $crate::interfaces::*;
             // Import all macros from this crate
             use $crate::*;
