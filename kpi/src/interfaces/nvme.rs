@@ -29,12 +29,15 @@
 use crate::bindings::{nvme_qpair, nvme_tracker};
 use crate::prelude::*;
 
+pub trait NvmeIf {}
+
 define_interface! {
-    nvme_delayed_attach(dev: device_t, ctrlr: *mut nvme_controller) -> int;
-    nvme_enable(dev: device_t);
-    nvme_sq_leave(dev: device_t, qpair: *mut nvme_qpair, tr: *mut nvme_tracker);
-    nvme_cq_done(dev: device_t, qpair: *mut nvme_qpair, tr: *mut nvme_tracker);
-    nvme_qpair_construct(dev: device_t, qpair: *mut nvme_qpair, num_entries: u32, num_trackers: u32, ctrlr: *mut nvme_controller) -> int;
+    in NvmeIf
+    fn nvme_delayed_attach(dev: device_t, ctrlr: *mut nvme_controller) -> int;
+    fn nvme_enable(dev: device_t);
+    fn nvme_sq_leave(dev: device_t, qpair: *mut nvme_qpair, tr: *mut nvme_tracker);
+    fn nvme_cq_done(dev: device_t, qpair: *mut nvme_qpair, tr: *mut nvme_tracker);
+    fn nvme_qpair_construct(dev: device_t, qpair: *mut nvme_qpair, num_entries: u32, num_trackers: u32, ctrlr: *mut nvme_controller) -> int;
 }
 
 #[doc(hidden)]
@@ -42,8 +45,8 @@ define_interface! {
 macro_rules! nvme_sq_enter {
     ($driver_ty:ident $impl_fn_name:ident) => {
         $crate::define_c_function! {
-            $driver_ty $impl_fn_name
-            nvme_sq_enter(dev: device_t, qpair: *mut nvme_qpair, tr: *mut nvme_tracker) -> u32;
+            $driver_ty impls $impl_fn_name in DeviceIf as
+            fn nvme_sq_enter(dev: device_t, qpair: *mut nvme_qpair, tr: *mut nvme_tracker) -> u32;
             with init glue {
                 let sc_as_void_ptr = unsafe { bindings::device_get_softc(dev) };
                 let sc_ptr = sc_as_void_ptr.cast::<RefCounted<<$driver_ty as DeviceIf>::Softc>>();

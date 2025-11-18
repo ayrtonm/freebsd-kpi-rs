@@ -87,8 +87,8 @@ macro_rules! device_get_softc {
 macro_rules! device_probe {
     ($driver_ty:ident $impl_fn_name:ident) => {
         $crate::define_c_function! {
-            $driver_ty $impl_fn_name
-            device_probe(dev: device_t) -> int;
+            $driver_ty impls $impl_fn_name in DeviceIf as
+            fn device_probe(dev: device_t) -> int;
         }
     };
 }
@@ -98,8 +98,8 @@ macro_rules! device_probe {
 macro_rules! device_attach {
     ($driver_ty:ident $impl_fn_name:ident) => {
         $crate::define_c_function! {
-            $driver_ty $impl_fn_name
-            device_attach(dev: device_t) -> int;
+            $driver_ty impls $impl_fn_name in DeviceIf as
+            fn device_attach(dev: device_t) -> int;
             with init glue {
                 use $crate::bindings;
                 use $crate::ffi::{RefCounted, RefCountData};
@@ -133,8 +133,8 @@ macro_rules! device_attach {
 macro_rules! device_detach {
     ($driver_ty:ident $impl_fn_name:ident) => {
         $crate::define_c_function! {
-            $driver_ty $impl_fn_name
-            device_detach(dev: device_t) -> int;
+            $driver_ty impls $impl_fn_name in DeviceIf as
+            fn device_detach(dev: device_t) -> int;
             with init glue {
                 use $crate::bindings;
                 use $crate::ffi::{RefCounted, RefCountData};
@@ -162,11 +162,12 @@ macro_rules! device_detach {
 }
 
 define_interface! {
-    device_shutdown(dev: device_t) -> int;
-    device_suspend(dev: device_t) -> int;
-    device_resume(dev: device_t) -> int;
-    device_quiesce(dev: device_t) -> int;
-    device_register(dev: device_t) -> int;
+    in DeviceIf
+    fn device_shutdown(dev: device_t) -> int;
+    fn device_suspend(dev: device_t) -> int;
+    fn device_resume(dev: device_t) -> int;
+    fn device_quiesce(dev: device_t) -> int;
+    fn device_register(dev: device_t) -> int;
 }
 
 /// The device interface defined by device_if.m

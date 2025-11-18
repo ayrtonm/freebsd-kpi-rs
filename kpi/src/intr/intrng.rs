@@ -66,17 +66,18 @@ impl AsRustType<IntrRoot> for u32 {
 pub type IrqFilter<T> = extern "C" fn(&'static T) -> Filter;
 
 define_interface! {
-    pic_setup_intr(dev: device_t, isrc: *mut intr_irqsrc, res: *mut resource, data: *mut intr_map_data) -> int;
-    pic_teardown_intr(dev: device_t, isrc: *mut intr_irqsrc, res: *mut resource, data: *mut intr_map_data) -> int;
-    pic_enable_intr(dev: device_t, isrc: *mut intr_irqsrc);
-    pic_disable_intr(dev: device_t, isrc: *mut intr_irqsrc);
-    pic_post_filter(dev: device_t, isrc: *mut intr_irqsrc);
-    pic_post_ithread(dev: device_t, isrc: *mut intr_irqsrc);
-    pic_pre_ithread(dev: device_t, isrc: *mut intr_irqsrc);
-    pic_bind_intr(dev: device_t, isrc: *mut intr_irqsrc) -> int;
-    pic_init_secondary(dev: device_t, root: u32);
-    pic_ipi_send(dev: device_t, isrc: *mut intr_irqsrc, cpus: cpuset_t, ipi: u32);
-    pic_map_intr(dev: device_t, data: *mut intr_map_data, isrcp: *mut *mut intr_irqsrc) -> int,
+    in trait PicIf
+    fn pic_setup_intr(dev: device_t, isrc: *mut intr_irqsrc, res: *mut resource, data: *mut intr_map_data) -> int;
+    fn pic_teardown_intr(dev: device_t, isrc: *mut intr_irqsrc, res: *mut resource, data: *mut intr_map_data) -> int;
+    fn pic_enable_intr(dev: device_t, isrc: *mut intr_irqsrc);
+    fn pic_disable_intr(dev: device_t, isrc: *mut intr_irqsrc);
+    fn pic_post_filter(dev: device_t, isrc: *mut intr_irqsrc);
+    fn pic_post_ithread(dev: device_t, isrc: *mut intr_irqsrc);
+    fn pic_pre_ithread(dev: device_t, isrc: *mut intr_irqsrc);
+    fn pic_bind_intr(dev: device_t, isrc: *mut intr_irqsrc) -> int;
+    fn pic_init_secondary(dev: device_t, root: u32);
+    fn pic_ipi_send(dev: device_t, isrc: *mut intr_irqsrc, cpus: cpuset_t, ipi: u32);
+    fn pic_map_intr(dev: device_t, data: *mut intr_map_data, isrcp: *mut *mut intr_irqsrc) -> int,
         with init glue {
             // Store the pointer passed to the extern "C" function so we can reference it later
             let mut c_isrcp = isrcp;
@@ -95,7 +96,7 @@ define_interface! {
                 None => { return EDOOFUS; },
             }
         };
-    pic_ipi_setup(dev: device_t, ipi: u32, isrcp: *mut *mut intr_irqsrc) -> int,
+    fn pic_ipi_setup(dev: device_t, ipi: u32, isrcp: *mut *mut intr_irqsrc) -> int,
         with init glue {
             let mut c_isrcp = isrcp;
 

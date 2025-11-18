@@ -109,6 +109,9 @@ extern crate std;
 #[macro_use]
 mod macros;
 
+#[macro_use]
+pub mod kobj;
+
 /// Arch-specific functions for ARM64
 #[cfg(target_arch = "aarch64")]
 pub mod arm64;
@@ -119,12 +122,9 @@ pub mod boxed;
 pub mod bus;
 pub mod collections;
 /// Device driver and softc functions
-#[macro_use]
 pub mod device;
 pub mod driver;
 pub mod ffi;
-pub mod kobj;
-#[macro_use]
 pub mod interfaces;
 /// Interrupt functions and config hook
 pub mod intr;
@@ -143,6 +143,21 @@ pub mod taskq;
 #[doc(hidden)]
 pub mod tty;
 pub mod vec;
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! define_stub_syms {
+    ($($sym:ident)*) => {
+        $(
+            #[linkage = "weak"]
+            #[doc(hidden)]
+            #[unsafe(no_mangle)]
+            pub extern "C" fn $sym() {
+                panic!("uh oh")
+            }
+        )*
+    };
+}
 
 #[cfg(test)]
 mod tests;
