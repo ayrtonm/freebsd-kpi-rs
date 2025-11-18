@@ -60,7 +60,7 @@ impl AsRustType<IntrRoot> for u32 {
 pub type IrqFilter<T> = extern "C" fn(&'static T) -> Filter;
 
 define_dev_interface! {
-    in trait PicIf
+    in PicIf
     fn pic_setup_intr(dev: device_t, isrc: *mut intr_irqsrc, res: *mut resource, data: *mut intr_map_data) -> int;
     fn pic_teardown_intr(dev: device_t, isrc: *mut intr_irqsrc, res: *mut resource, data: *mut intr_map_data) -> int;
     fn pic_enable_intr(dev: device_t, isrc: *mut intr_irqsrc);
@@ -383,8 +383,8 @@ mod tests {
         }
     }
 
-    driver!(intc_driver, c"intc_driver", IntcDriver, intc_driver_methods,
-            INTERFACES {
+    driver!(intc_driver, c"intc_driver", IntcDriver,
+            intc_driver_methods = {
                 device_probe intc_driver_probe,
                 device_attach intc_driver_attach,
                 device_detach intc_driver_detach,

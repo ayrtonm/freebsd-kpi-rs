@@ -441,13 +441,13 @@ pub mod tests {
             Ok(())
         }
     }
-    driver!(test_driver, c"test_driver", TestDriver, test_driver_methods,
-            inherit from simplebus_driver,
-            INTERFACES {
+    driver!(test_driver, c"test_driver", TestDriver,
+            test_driver_methods = {
                 device_probe test_driver_probe,
                 device_attach test_driver_attach,
                 device_detach test_driver_detach,
-            }
+            },
+            inherit from simplebus_driver,
     );
 
     // repr(C) isn't strictly necessary but the test harness device_free_softc does rely on
@@ -491,8 +491,8 @@ pub mod tests {
             Ok(())
         }
     }
-    driver!(another_driver, c"another_driver", AnotherDriver, another_driver_methods,
-            INTERFACES {
+    driver!(another_driver, c"another_driver", AnotherDriver,
+            another_driver_methods = {
                 device_probe another_driver_probe,
                 device_attach another_driver_attach,
                 device_detach another_driver_detach,
@@ -533,14 +533,4 @@ pub mod tests {
         m.attach_all();
         DriverManager::detach_devices(&mut m.devices.iter_mut().rev());
     }
-
-    // The following have to be in this module for very dumb reasons
-    // https://github.com/rust-lang/rust/pull/52234
-    driver!(irq_driver, c"irq_driver", IrqDriver, irq_driver_methods,
-            INTERFACES {
-                device_probe irq_driver_probe,
-                device_attach irq_driver_attach,
-                device_detach irq_driver_detach,
-            }
-    );
 }

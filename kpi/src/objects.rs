@@ -27,7 +27,6 @@
  */
 
 use crate::bindings::{kobj_class, kobj_class_t, kobj_method_t};
-use crate::prelude::*;
 use core::cell::UnsafeCell;
 
 /// Expands to an expression if $condition is passed in. Otherwise expands to null_mut()
@@ -65,9 +64,10 @@ pub trait KobjClass: KobjClassSize {
     fn get_class(&self) -> *mut kobj_class;
 }
 
+// UnsafeCell needed to ensure static ends up in .data
 #[doc(hidden)]
 #[repr(C)]
-pub struct BaseClasses<const N: usize>(pub [kobj_class_t; N]);
+pub struct BaseClasses<const N: usize>(pub UnsafeCell<[kobj_class_t; N]>);
 unsafe impl<const N: usize> Sync for BaseClasses<N> {}
 
 // UnsafeCell needed to ensure static ends up in .data
@@ -76,7 +76,8 @@ unsafe impl<const N: usize> Sync for BaseClasses<N> {}
 pub struct MethodTable<const N: usize>(pub UnsafeCell<[kobj_method_t; N]>);
 unsafe impl<const N: usize> Sync for MethodTable<N> {}
 
-#[allow(unused_macros)]
+#[doc(hidden)]
+#[macro_export]
 macro_rules! get_first {
     ($x:ident $($rest:ident)*) => {
         $x
@@ -95,8 +96,8 @@ macro_rules! define_interface {
             macro_rules! $fn_name {
                 ($driver_ty:ident $impl_fn_name:ident) => {
                     $crate::define_c_function! {
-                        $driver_ty $impl_fn_name
-                        $fn_name($($arg_name: $arg,)*) $(-> $ret)*;
+                        $driver_ty impls $impl_fn_name in $trait as
+                        fn $fn_name($($arg_name: $arg,)*) $(-> $ret)*;
                         with init glue { $($($init_glue)*)* }
                         with drop glue { $($($drop_glue)*)* }
                     }
@@ -117,8 +118,8 @@ macro_rules! define_dev_interface {
             macro_rules! $fn_name {
                 ($driver_ty:ident $impl_fn_name:ident) => {
                     $crate::define_c_function! {
-                        $driver_ty $impl_fn_name
-                        $fn_name($($arg_name: $arg,)*) $(-> $ret)*;
+                        $driver_ty impls $impl_fn_name in $trait as
+                        fn $fn_name($($arg_name: $arg,)*) $(-> $ret)*;
                         with init glue {
                             $($($init_glue)*)*
                             use $crate::bindings;
@@ -260,11 +261,11 @@ macro_rules! define_class {
             baseclasses: {
                 $crate::expand_if_something_or_else_null!({
                     // expand to this
-                    static mut BASE_CLASSES: BaseClasses<{$crate::count!($($base_classes)*) + 1 }> = $crate::objects::BaseClasses([
-                        $(&raw mut $crate::bindings::$base_classes,)*
+                    static BASE_CLASSES: $crate::objects::BaseClasses<{$crate::count!($($($base_classes)*)*) + 1 }> = $crate::objects::BaseClasses(core::cell::UnsafeCell::new([
+                        $(&raw mut $crate::bindings::$($base_classes)*,)*
                         core::ptr::null_mut(),
-                    ]);
-                    BASE_CLASSES.0.as_mut_ptr()
+                    ]));
+                    BASE_CLASSES.0.get().cast::<$crate::bindings::kobj_class_t>()
                 },
                 // if this is something
                 $($($base_classes)*)*)

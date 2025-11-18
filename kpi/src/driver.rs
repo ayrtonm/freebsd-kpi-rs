@@ -69,7 +69,7 @@ pub trait Driver {
 /// implementing them
 #[macro_export]
 macro_rules! driver {
-    ($driver_sym:ident, $driver_name:expr, $driver_ty:ident, $method_table:ident = { $($if_fn:ident $impl_name:ident,)* }
+    ($driver_sym:ident, $driver_name:expr, $driver_ty:ident, $method_table:ident = { $($if_fn:ident $impl_name:ident$(,)?)* }
         $(,inherit from $($base_classes:ident)*,)?
     ) => {
         $crate::define_class!($driver_sym, $driver_name, $driver_ty, $method_table $(inherit from $($base_classes)*,)*);
@@ -92,7 +92,7 @@ macro_rules! driver {
         }
 
         impl $crate::driver::Driver for $driver_ty {
-            const DRIVER: *mut $crate::bindings::driver_t = unsafe { $driver_sym.0.get() };
+            const DRIVER: *mut $crate::bindings::driver_t = $driver_sym.0.get();
             // The driver drop fn uses a pointer to the refcount to find the softc pointer and drops
             // it
             unsafe fn drop_softc(count_ptr: *mut $crate::bindings::u_int) {

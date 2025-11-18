@@ -26,9 +26,6 @@
  * SUCH DAMAGE.
  */
 
-use crate::bindings::{nvme_qpair, nvme_tracker};
-use crate::prelude::*;
-
 pub trait NvmeIf {}
 
 define_dev_interface! {

@@ -168,8 +168,8 @@ mod tests {
         m.detach_all();
     }
 
-    driver!(hook_driver, c"hook_driver", HookDriver, hook_driver_methods,
-            INTERFACES {
+    driver!(hook_driver, c"hook_driver", HookDriver,
+            hook_driver_methods = {
                 device_probe hook_driver_probe,
                 device_attach hook_driver_attach,
                 device_detach hook_driver_detach,

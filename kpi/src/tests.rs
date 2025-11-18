@@ -35,7 +35,7 @@ use crate::bindings::{
     device_attach_t, device_detach_t, device_probe_t, device_state_t, device_t, driver_filter_t,
     driver_intr_t, driver_t, intr_config_hook, kobjop_desc, resource, u_int,
 };
-use crate::driver::DriverIf;
+use crate::driver::Driver;
 use core::mem::transmute;
 use std::ffi::{CStr, CString, c_void};
 use std::ptr::{null, null_mut};
@@ -124,7 +124,7 @@ impl DriverManager {
         }
     }
 
-    pub fn add_test_driver<D: DriverIf>(&mut self) {
+    pub fn add_test_driver<D: Driver>(&mut self) {
         self.drivers.push(D::DRIVER);
     }
 

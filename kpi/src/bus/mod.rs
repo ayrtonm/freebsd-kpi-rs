@@ -448,8 +448,8 @@ pub mod wrappers {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::device::tests::IrqDriver;
     use crate::device::{BusProbe, DeviceIf};
+    use crate::driver;
     use crate::ffi::{Ptr, UninitPtr};
     use crate::tests::{DriverManager, LoudDrop};
 
@@ -528,6 +528,14 @@ mod tests {
             println!("called handler {sc:x?}");
         }
     }
+
+    driver!(irq_driver, c"irq_driver", IrqDriver,
+            irq_driver_methods = {
+                device_probe irq_driver_probe,
+                device_attach irq_driver_attach,
+                device_detach irq_driver_detach,
+            }
+    );
 
     #[test]
     fn filter_only() {
