@@ -4,10 +4,31 @@ BINDGEN_VERSION= ${:!${BINDGEN} --version!}
 .warn unexpected bindgen version: ${BINDGEN_VERSION}, expected: ${BINDGEN_VERSION_EXPECT}
 .endif
 
-RUSTC_VERSION_EXPECT= rustc 1.90.0-nightly (a7a1618e6 2025-07-22)
-RUSTC_VERSION= ${:!${RUSTC} --version!}
-.if ${RUSTC_VERSION} != ${RUSTC_VERSION_EXPECT}
-.error wrong rust compiler version: ${RUSTC_VERSION}, expected: ${RUSTC_VERSION_EXPECT}
+RUST_COMPILER_DIR= ${SRCTOP}/sys/rust/compiler
+RUSTC_BIN_INFO_CMD= ${RUSTC} --version --verbose
+# Figure out the rust repo commit hash that the host compiler was built from
+RUSTC_BIN_HASH= ${:!${RUSTC_BIN_INFO_CMD}!:[*]:C/.*commit-hash://:[@]:[1]}
+
+# Check if the host rust compiler is a nightly release
+RUSTC_BIN_NIGHTLY= ${:!${RUSTC_BIN_INFO_CMD}!:[2]:M*nightly}
+.if ${RUSTC_BIN_NIGHTLY} == ""
+.error Host rust compiler must be a nightly release
+.endif
+
+# Check if the user cloned the rust repo into sys/rust/compiler
+.if !exists(${RUST_COMPILER_DIR})
+.error Did not find rust compiler repo in expected location. Run\
+	`git clone --depth 1 https://github.com/rust-lang/rust sys/rust/compiler` and checkout the\
+	required commit for the host rust compiler (${RUSTC_BIN_HASH}).
+.endif
+
+# Figure out the currently checked out rust repo commit
+RUSTC_REPO_HASH= ${:!${GIT_CMD} -C ${RUST_COMPILER_DIR} rev-parse HEAD!}
+
+# Check if the user checked out the correct rust repo commit for the host compiler
+.if ${RUSTC_BIN_HASH} != ${RUSTC_REPO_HASH}
+.error Rust compiler repo checkout does not match host rust compiler. Go to `sys/rust/compiler`\
+	and run `git fetch --depth 1 origin ${RUSTC_BIN_HASH}; git checkout FETCH_HEAD`.
 .endif
 
 # crate-independent build flags
@@ -76,7 +97,6 @@ BINDGEN_FLAGS= \
 	--wrap-static-fns \
 	--wrap-static-fns-path ${BINDGEN_INLINE_SRC}
 
-RUST_COMPILER_DIR= ${SRCTOP}/sys/rust/compiler
 # An arbitrary directory for the sysroot
 RUST_SYSROOT= rust_sysroot
 # sysroot path required by rustc
@@ -128,17 +148,17 @@ RLIB_RULE= ${RUSTC} ${RUSTFLAGS} -Cdebuginfo=full --crate-type rlib --sysroot=$(
 NORMAL_R= ${RLIB_RULE} ${RUST_KPI_FEATURES} -o ${.TARGET} ${.ALLSRC:M*.rs} \
 	${.ALLSRC:T:Nlibcore.rlib:Nlibcompiler_builtins.rlib:M*.rlib:C/.rlib$//:C/^lib//:C/.*/--extern \0=lib\0.rlib/}
 
-${RUST_CORE}:
+${RUST_CORE}: ${RUST_MAKEFILE}
 	${RUSTC} ${RUSTFLAGS} --crate-name core ${RUST_COMPILER_DIR}/library/core/src/lib.rs \
 		--crate-type rlib --out-dir ${RUST_LIBDIR} \
 		-Cstrip=debuginfo -Cembed-bitcode=no -Zforce-unstable-if-unmarked
 
-${RUST_FAKE_BUILTINS}: ${RUST_CORE}
+${RUST_FAKE_BUILTINS}: ${RUST_CORE} ${RUST_MAKEFILE}
 	${RUSTC} ${RUSTFLAGS} ${SRCTOP}/sys/rust/compiler_builtins.rs --crate-type rlib \
 		--extern core=${RUST_CORE} \
 		-o ${RUST_LIBDIR}/libcompiler_builtins.rlib
 
-${BINDGEN_INLINE_SRC}: ${BINDINGS_RS}
+${BINDGEN_INLINE_SRC}: ${BINDINGS_RS} ${RUST_MAKEFILE}
 
 ${BINDINGS_RS}: ${SRCTOP}/sys/rust/bindings.h ${RUST_MAKEFILE}
 	${BINDGEN} ${BINDGEN_FLAGS} ${SRCTOP}/sys/rust/bindings.h -- ${CFLAGS} -DBINDGEN > bindings.rs
