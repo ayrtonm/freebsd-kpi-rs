@@ -16,11 +16,22 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Run aarch64 tests
+    # Test with newest nightly known to work
+    - name: Run aarch64 tests with rustc 1.93.0-nightly (2025-11-24)
       working-directory: ./kpi
-      run: RUST_BACKTRACE=1 cargo test --verbose --lib --features aarch64_tests
+      run: RUST_BACKTRACE=1 cargo +nightly-2025-11-24 test --verbose --lib --features aarch64_tests
 
-    # Need non-ofw device_probe to enable
+    # Test with oldest nightly expected to work
+    - name: Run aarch64 tests with rustc 1.89.0-nightly (2025-05-19)
+      working-directory: ./kpi
+      run: RUST_BACKTRACE=1 cargo +nightly-2025-05-19 test --verbose --lib --features aarch64_tests
+
+    # Test with today's nightly
+    - name: Run aarch64 tests with rustc 1.93.0-nightly
+      working-directory: ./kpi
+      run: RUST_BACKTRACE=1 cargo +nightly test --verbose --lib --features aarch64_tests
+
+    # Need non-ofw device_probe to enable tests with x86 bindings
     #- name: Run x86_64 tests
     #  working-directory: ./kpi
     #  run: RUST_BACKTRACE=1 cargo test --verbose --lib --features x86_64_tests
