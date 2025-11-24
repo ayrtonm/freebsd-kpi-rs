@@ -144,6 +144,14 @@ DECL_IFACE_METHOD(nvme_cq_done);
 #if __has_include("channel_if.h")
 #include "channel_if.h"
 DECL_IFACE_METHOD(channel_init);
+DECL_IFACE_METHOD(channel_setformat);
+DECL_IFACE_METHOD(channel_setspeed);
+DECL_IFACE_METHOD(channel_setblocksize);
+DECL_IFACE_METHOD(channel_setfragments);
+DECL_IFACE_METHOD(channel_trigger);
+DECL_IFACE_METHOD(channel_getptr);
+DECL_IFACE_METHOD(channel_getcaps);
+DECL_IFACE_METHOD(channel_getmatrix);
 #endif
 
 #if defined(__aarch64__)
