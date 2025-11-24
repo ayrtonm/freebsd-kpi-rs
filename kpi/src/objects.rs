@@ -89,7 +89,8 @@ macro_rules! define_interface {
     (in $trait:ident
      $(fn $fn_name:ident($($arg_name:ident: $arg:ty$(,)?)*) $(-> $ret:ty)?
      $(, with init glue { $($init_glue:tt)* })?
-     $(, with drop glue { $($drop_glue:tt)* })? ;)*) => {
+     $(, with drop glue { $($drop_glue:tt)* })?
+     $(, $infallible:ident )? ;)*) => {
         $(
             #[doc(hidden)]
             #[macro_export]
@@ -100,6 +101,7 @@ macro_rules! define_interface {
                         fn $fn_name($($arg_name: $arg,)*) $(-> $ret)*;
                         with init glue { $($($init_glue)*)* }
                         with drop glue { $($($drop_glue)*)* }
+                        $($infallible)*
                     }
                 };
             }
@@ -160,7 +162,7 @@ macro_rules! define_c_function {
             $($($init_glue)*)*;
 
             // Call the rust implementation
-            <$driver_ty as $crate::interfaces::$trait>::$fn_name($($($prefix_args,)*)* $($arg_name,)*);
+            <$driver_ty as $trait>::$fn_name($($($prefix_args,)*)* $($arg_name,)*);
 
             // Call drop glue if any
             $($($drop_glue)*)*;
@@ -187,7 +189,7 @@ macro_rules! define_c_function {
             $($($init_glue)*)*
 
             // Call the rust implementation, coercing to the result type if specified
-            let res$(: $crate::Result<$ret_as_rust_ty>)* = <$driver_ty as $crate::interfaces::$trait>::$fn_name($($($prefix_args,)*)* $($arg_name,)*);
+            let res$(: $crate::Result<$ret_as_rust_ty>)* = <$driver_ty as $trait>::$fn_name($($($prefix_args,)*)* $($arg_name,)*);
 
             // Call drop glue if any
             $($($drop_glue)*)*
@@ -220,7 +222,7 @@ macro_rules! define_c_function {
             $($($init_glue)*)*
 
             // Call the rust implementation, coercing to the result type if specified
-            let res = <$driver_ty as $crate::interfaces::$trait>::$fn_name($($($prefix_args,)*)* $($arg_name,)*);
+            let res = <$driver_ty as $trait>::$fn_name($($($prefix_args,)*)* $($arg_name,)*);
 
             // Call drop glue if any
             $($($drop_glue)*)*
