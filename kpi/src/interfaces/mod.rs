@@ -42,44 +42,53 @@ pub trait AsCType<T> {
     fn as_c_type(self) -> T;
 }
 
-pub trait AsRustType<T> {
+pub trait AsRustType<T, X = ()> {
     fn as_rust_type(self) -> T;
 }
 
+// Allow passing through C types into rust unchanged
 impl<T> AsRustType<T> for T {
     fn as_rust_type(self) -> T {
         self
     }
 }
 
-impl<'a, IN: 'static, OUT: 'static> AsRustType<&'a OUT> for *mut IN {
-    fn as_rust_type(self) -> &'a OUT {
-        // TODO: Make this check const
-        let same_type = TypeId::of::<IN>() == TypeId::of::<OUT>();
-        //let is_subclass = TypeId::of::<OUT>() == TypeId::of::<SubClass<IN, F>>();
-        let from_void_ptr = TypeId::of::<IN>() == TypeId::of::<c_void>();
-        if same_type || from_void_ptr {
-            unsafe { self.cast::<OUT>().as_ref().unwrap() }
-        //} else if is_subclass {
-        //    unsafe { SubClass::from_base_ptr(self) }
-        } else {
-            panic!("uh oh")
-        }
+// Allow turning pointers to shared references
+impl<'a, T> AsRustType<&'a T> for *mut T {
+    fn as_rust_type(self) -> &'a T {
+        unsafe { self.as_ref().unwrap() }
     }
 }
 
-impl<'a, IN: 'static, OUT: 'static> AsRustType<&'a mut OUT> for *mut IN {
-    fn as_rust_type(self) -> &'a mut OUT {
-        // TODO: Make this check const
-        let same_type = TypeId::of::<IN>() == TypeId::of::<OUT>();
-        //let is_subclass = TypeId::of::<OUT>() == TypeId::of::<SubClass<IN, F>>();
-        let from_void_ptr = TypeId::of::<IN>() == TypeId::of::<c_void>();
-        if same_type || from_void_ptr {
-            unsafe { self.cast::<OUT>().as_mut().unwrap() }
-        //} else if is_subclass {
-        //    unsafe { SubClass::from_base_ptr_mut(self) }
-        } else {
-            panic!("uh oh")
-        }
+// Allow casting void pointers then turning them to shared references
+impl<'a, T> AsRustType<&'a T, c_void> for *mut c_void {
+    fn as_rust_type(self) -> &'a T {
+        unsafe { self.cast::<T>().as_ref().unwrap() }
+    }
+}
+
+// Allow turning pointers to a base type to shared references to a SubClass<B, _>
+impl<'a, B, F> AsRustType<&'a SubClass<B, F>> for *mut B {
+    fn as_rust_type(self) -> &'a SubClass<B, F> {
+        unsafe { SubClass::from_base_ptr(self) }
+    }
+}
+
+// Allow the previous three operations for unique references
+impl<'a, T> AsRustType<&'a mut T> for *mut T {
+    fn as_rust_type(self) -> &'a mut T {
+        unsafe { self.as_mut().unwrap() }
+    }
+}
+
+impl<'a, T> AsRustType<&'a mut T, c_void> for *mut c_void {
+    fn as_rust_type(self) -> &'a mut T {
+        unsafe { self.cast::<T>().as_mut().unwrap() }
+    }
+}
+
+impl<'a, B, F> AsRustType<&'a mut SubClass<B, F>> for *mut B {
+    fn as_rust_type(self) -> &'a mut SubClass<B, F> {
+        unsafe { SubClass::from_base_ptr_mut(self) }
     }
 }
