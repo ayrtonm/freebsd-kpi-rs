@@ -372,8 +372,25 @@ mod tests {
             Ok(())
         }
     }
+
+    #[repr(C)]
+    #[derive(Debug)]
+    pub struct IntcIrqSrc { x: u32 }
+
     impl PicIf for IntcDriver {
-        type IrqSrcFields = ();
+        type IrqSrcFields = IntcIrqSrc;
+
+        fn pic_setup_intr(
+            sc: &RefCounted<Self::Softc>,
+            dev: device_t,
+            isrc: &mut IrqSrc<Self::IrqSrcFields>,
+            res: Resource,
+            data: MapData,
+        ) -> Result<()> {
+            println!("called setup intr {isrc:x?}");
+            assert_eq!(isrc.x, 0xdeadbeef);
+            Ok(())
+        }
     }
 
     impl IntcDriver {
@@ -401,5 +418,19 @@ mod tests {
         m.attach_all();
         m.trigger_pic_root(dev);
         m.detach_all();
+    }
+
+    #[test]
+    fn run_setup_intr() {
+        let mut m = DriverManager::new();
+        let dev = m.add_test_device(c"intr,intc_driver").dev;
+        m.add_test_driver::<IntcDriver>();
+        m.probe_all();
+        m.attach_all();
+        // SAFETY: The irqsrc is ABI-compatible with SubClass<intr_irqsrc, u32> since the PicIf impl
+        // has an IrqSrcFields that is ABI-compatible with a u32.
+        unsafe {
+            m.setup_intr();
+        }
     }
 }

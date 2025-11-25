@@ -33,9 +33,10 @@ use crate::bindings;
 use crate::bindings::intr_irq_filter_t;
 use crate::bindings::{
     device_attach_t, device_detach_t, device_probe_t, device_state_t, device_t, driver_filter_t,
-    driver_intr_t, driver_t, intr_config_hook, kobjop_desc, resource, u_int,
+    driver_intr_t, driver_t, intr_config_hook, kobjop_desc, pic_setup_intr_t, resource, u_int,
 };
 use crate::driver::Driver;
+use crate::ffi::SubClass;
 use core::mem::transmute;
 use std::ffi::{CStr, CString, c_void};
 use std::ptr::{null, null_mut};
@@ -105,6 +106,11 @@ impl driver_t {
     fn get_detach_fn(driver: *mut Self) -> device_detach_t {
         // The desc is a function in the test binary so `as` is needd to convert it to a pointer
         let desc_addr = device_detach_desc as *mut kobjop_desc;
+        let func = Self::get_interface_fn(driver, desc_addr);
+        unsafe { transmute(func) }
+    }
+    fn get_setup_intr_fn(driver: *mut Self) -> pic_setup_intr_t {
+        let desc_addr = pic_setup_intr_desc as *mut kobjop_desc;
         let func = Self::get_interface_fn(driver, desc_addr);
         unsafe { transmute(func) }
     }
@@ -206,6 +212,28 @@ impl DriverManager {
                         dev.state = bindings::DS_NOTPRESENT;
                     }
                 }
+            }
+        }
+    }
+
+    /// # Safety
+    ///
+    /// The caller must ensure that the irqsrc is ABI-compatible with SubClass<intr_irqsrc, u32>. Or
+    /// in other words that the PicIf impl has an IrqSrcFields that is ABI-compatible with a u32.
+    pub unsafe fn setup_intr(&mut self) {
+        for dev in &mut self.devices {
+            if let Some(driver) = dev.assigned_driver {
+                let setup_intr_fn = driver_t::get_setup_intr_fn(driver).unwrap();
+                let mut isrc = bindings::intr_irqsrc::default();
+                let mut isrc_sub = SubClass::new_with_base(isrc, 0xdeadbeefu32);
+                let mut map_data = bindings::intr_map_data::default();
+                map_data.type_ = bindings::INTR_MAP_DATA_MSI;
+                let res = unsafe {
+                    setup_intr_fn(dev.dev, base!(&isrc_sub), null_mut(), &raw mut map_data)
+                };
+                if res != 0 {
+                    dev.is_ok = false;
+                };
             }
         }
     }

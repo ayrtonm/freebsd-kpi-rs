@@ -64,10 +64,9 @@ macro_rules! gen_newtype {
 macro_rules! base {
     (& $sub:ident) => {
         {
-            use core::ops::Deref;
             use $crate::ffi::SubClass;
             let subclass: &SubClass<_, _> = &$sub;
-            SubClass::as_base_ptr($sub.deref())
+            SubClass::as_base_ptr(subclass)
         }
     };
     (& $sub:ident -> $field:ident) => {
