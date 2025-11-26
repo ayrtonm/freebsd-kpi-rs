@@ -78,14 +78,15 @@
 
 #if __has_include("channel_if.h")
 #include <dev/sound/pcm/sound.h>
-#endif
-
-#include <dev/virtio/virtio.h>
-#include <dev/virtio/virtqueue.h>
 
 #if __has_include(<dev/virtio/sound/virtio_snd.h>)
 #include <dev/virtio/sound/virtio_snd.h>
 #endif
+
+#endif // has channel_if.h
+
+#include <dev/virtio/virtio.h>
+#include <dev/virtio/virtqueue.h>
 
 #if __has_include("gpio_if.h")
 #include <dev/gpio/gpiobusvar.h>
