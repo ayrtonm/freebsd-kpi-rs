@@ -560,6 +560,8 @@ define_stub_syms! {
     sgx_encls
     __floatdisf
     __floatdidf
+    __extendhfsf2
+    __truncsfhf2
 
     // stubs for KERNCONF=APPLE
     virtio_read_device_config
