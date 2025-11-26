@@ -35,7 +35,7 @@ RUSTC_REPO_HASH= ${:!${GIT_CMD} -C ${RUST_COMPILER_DIR} rev-parse HEAD!}
 .endif
 
 # crate-independent build flags
-RUSTFLAGS= --target=${RUST_TARGET} --edition 2024 -Copt-level=3
+RUSTFLAGS= --target=${RUST_TARGET} --edition 2024 -Copt-level=3 -Ccodegen-units=1
 
 .if ${TARGET_ARCH} == aarch64
 
@@ -167,4 +167,4 @@ ${BINDINGS_RS}: ${SRCTOP}/sys/rust/bindings.h ${RUST_MAKEFILE}
 	${BINDGEN} ${BINDGEN_FLAGS} ${SRCTOP}/sys/rust/bindings.h -- ${CFLAGS} -DBINDGEN > bindings.rs
 
 ${RUST_KPI}: ${RUST_FAKE_BUILTINS} ${BINDINGS_RS} ${RUST_KPI_SOURCES}
-	OUT_DIR=$(PWD) ${RLIB_RULE} ${RUST_KPI_FEATURES} ${SRCTOP}/sys/rust/kpi/src/lib.rs -o ${.TARGET}
+	OUT_DIR=$(PWD) ${RLIB_RULE} --crate-name kpi ${RUST_KPI_FEATURES} ${SRCTOP}/sys/rust/kpi/src/lib.rs -o ${.TARGET}
