@@ -15,6 +15,9 @@ RUSTC_BIN_NIGHTLY= ${:!${RUSTC_BIN_INFO_CMD}!:[2]:M*nightly}
 .error Host rust compiler must be a nightly release
 .endif
 
+# Get the host rust compiler version
+RUSTC_BIN_VERSION= ${:!${RUSTC_BIN_INFO_CMD}!:[2]:R}
+
 # Check if the user cloned the rust repo into sys/rust/compiler
 .if !exists(${RUST_COMPILER_DIR})
 .error Did not find rust compiler repo in expected location. Run\
@@ -27,8 +30,8 @@ RUSTC_REPO_HASH= ${:!${GIT_CMD} -C ${RUST_COMPILER_DIR} rev-parse HEAD!}
 
 # Check if the user checked out the correct rust repo commit for the host compiler
 .if ${RUSTC_BIN_HASH} != ${RUSTC_REPO_HASH}
-.error Rust compiler repo checkout does not match host rust compiler. Go to `sys/rust/compiler`\
-	and run `git fetch --depth 1 origin ${RUSTC_BIN_HASH}; git checkout FETCH_HEAD`.
+.error Rust compiler repo checkout does not match host rust compiler. Please run\
+	`git -C sys/rust/compiler fetch --depth 1 origin ${RUSTC_BIN_HASH} && git -C sys/rust/compiler checkout FETCH_HEAD`.
 .endif
 
 # crate-independent build flags
@@ -58,7 +61,7 @@ RUSTFLAGS+= -Ccode-model=kernel \
 
 .else
 
-.error Unknown TARGET_ARCH: ${TARGET_ARCH}
+.error Unsupported TARGET_ARCH: ${TARGET_ARCH}
 
 .endif
 
@@ -66,7 +69,7 @@ BINDGEN_INLINE_SRC = inlines.c
 BINDGEN_FLAGS= \
 	--use-core \
 	--rust-edition 2024 \
-	--rust-target 1.90 \
+	--rust-target ${RUSTC_BIN_VERSION} \
 	--no-prepend-enum-name \
 	--no-layout-tests \
 	--with-derive-default \
