@@ -1,9 +1,45 @@
 # FreeBSD KPI rust bindings
 
-These are WIP bindings for writing FreeBSD kernel modules in rust. They are intended for use with
-the latest version of FreeBSD and rust 2024 Edition. Note that since the FreeBSD KPI is a moving
-target this repository may be broken on the FreeBSD-src tip of tree. For a commit known to produce a
-working build see my [mk-rs branch](https://github.com/ayrtonm/freebsd-src/tree/mk-rs).
+This repo contains bindings and makefiles for using rust in the FreeBSD kernel. It intends to
+provide an on-ramp for developers that want to try using rust for new kernel code. It's currently
+used out-of-tree for the
+[virtio sound driver](https://github.com/ayrtonm/freebsd-src/tree/virtio_snd) and various
+[Apple Silicon drivers](https://github.com/ayrtonm/freebsd-src/tree/apple).
+
+## Why?
+
+The goal of this experiment is to allow developers to use mostly safe rust for new code to avoid the
+silly issues that are so common in C. This includes things like encoding existing ownership
+semantics for pointers in the type system and avoiding data races. When the language helps catch
+issues like these developers can focus on implementing the functionality that they actually care
+about.
+
+## Stability and non-goals
+
+Spending time writing code is a risk if a developer can't rely on being able to build it in the
+future. To enable maximal stability once the KPI bindings are in suitable shape, this repo only
+depends on the rust [`core` library](https://doc.rust-lang.org/core/). This library is provided as
+part of the rust compiler repo and cannot dynamically allocate memory. The KPI crate will only
+allocate using malloc(9) if a function explicitly takes both
+
+It does not depend on any
+third-party code from the broader rust ecosystem (e.g. crates.io) and adding support for using cargo
+in kernel builds will not be considered.
+
+
+
+The bindings are intended for use with FreeBSD src tip of tree. The FreeBSD KPI is a moving target
+so for a commit known to produce working builds see
+[this branch](https://github.com/ayrtonm/freebsd-src/tree/main).
+
+## Getting started
+
+
+They are intended for use with the latest version of FreeBSD and rust 2024 edition. Note that since
+the FreeBSD KPI is a moving target this repository may be broken on the FreeBSD src tip of tree. For
+a commit known to produce working builds see my
+[virtio_snd branch](https://github.com/ayrtonm/freebsd-src/tree/virtio_snd).
+
 
 This repo is not ready for general developer use yet since it is currently missing a lot of
 functionality and proper documentation. It is primarily being used with my

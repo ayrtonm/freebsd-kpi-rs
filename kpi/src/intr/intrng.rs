@@ -375,7 +375,9 @@ mod tests {
 
     #[repr(C)]
     #[derive(Debug)]
-    pub struct IntcIrqSrc { x: u32 }
+    pub struct IntcIrqSrc {
+        x: u32,
+    }
 
     impl PicIf for IntcDriver {
         type IrqSrcFields = IntcIrqSrc;

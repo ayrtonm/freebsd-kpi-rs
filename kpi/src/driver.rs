@@ -28,7 +28,6 @@
 
 use crate::bindings::{driver_t, u_int};
 
-#[doc(hidden)]
 pub trait Driver {
     const DRIVER: *mut driver_t;
     unsafe fn drop_softc(count_ptr: *mut u_int);
@@ -69,11 +68,11 @@ pub trait Driver {
 /// implementing them
 #[macro_export]
 macro_rules! driver {
-    ($driver_sym:ident, $driver_name:expr, $driver_ty:ident, $method_table:ident = { $($if_fn:ident $impl_name:ident$(,)?)* }
+    ($driver_sym:ident, $driver_name:expr, $driver_ty:ident, $method_table:ident = { $($if_fn:ident $impl_name:ident $(defined in $lang:ident)?,)* }
         $(,inherit from $($base_classes:ident)*,)?
     ) => {
         $crate::define_class!($driver_sym, $driver_name, $driver_ty, $method_table $(inherit from $($base_classes)*,)*);
-        $crate::method_table!($driver_sym, $driver_ty, $method_table = { $($if_fn $impl_name,)* };);
+        $crate::method_table!($driver_sym, $driver_ty, $method_table = { $($if_fn $impl_name $(defined in $lang)*,)* };);
 
         impl $crate::objects::KobjClassSize for $driver_ty {
             const SIZE: usize = {
@@ -103,7 +102,7 @@ macro_rules! driver {
                 let metadata_offset = RefCounted::<<$driver_ty as DeviceIf>::Softc>::metadata_offset();
                 let count_offset = metadata_offset + RefCountData::count_offset();
                 // Get a pointer to the start of the softc
-                let sc_void_ptr = unsafe { count_ptr.cast::<c_void>().byte_sub(count_offset) };
+                let sc_void_ptr = unsafe { count_ptr.cast::<core::ffi::c_void>().byte_sub(count_offset) };
                 // Cast it to the right type
                 let sc_ptr = sc_void_ptr.cast::<RefCounted<<$driver_ty as DeviceIf>::Softc>>();
                 // Drop the RefCounted<T> (softc plus count and drop function) without freeing the softc memory.

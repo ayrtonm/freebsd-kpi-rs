@@ -119,6 +119,12 @@ impl<T: ?Sized> Drop for Box<T> {
 }
 
 impl<T> Box<T> {
+    pub fn new(t: T, ty: MallocType, flags: MallocFlags) -> Self {
+        assert!(flags.contains(M_WAITOK));
+        assert!(!flags.contains(M_NOWAIT));
+        Self::try_new(t, ty, flags).unwrap()
+    }
+
     pub fn try_new(t: T, ty: MallocType, flags: MallocFlags) -> Result<Self> {
         if flags.contains(M_NOWAIT) && flags.contains(M_WAITOK) {
             return Err(EDOOFUS);

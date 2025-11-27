@@ -29,6 +29,26 @@
 use crate::bindings::{kobj_class, kobj_class_t, kobj_method_t};
 use core::cell::UnsafeCell;
 
+/// Expands to a statement if $condition is not passed in.
+#[doc(hidden)]
+#[macro_export]
+macro_rules! expand_if_not_something {
+    ($thing:item; ) => {
+        $thing
+    };
+    ($thing:item; $condition:ident) => {};
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! path_if {
+    ($module:ident, $thing:ident, ) => {
+        $module::$thing
+    };
+    ($module:ident, $thing:ident, $condition:ident) => {
+        $crate::bindings::$thing
+    };
+}
 /// Expands to an expression if $condition is passed in. Otherwise expands to null_mut()
 #[doc(hidden)]
 #[macro_export]
@@ -281,8 +301,8 @@ macro_rules! define_class {
 #[macro_export]
 macro_rules! method_table {
     ($class_sym:ident, $class_ty:ident, $method_table:ident = {
-        $($if_fn:ident $impl:ident,)*
-    }; $(with imports { $($extra_imports:path$(,)?)* };)? ) => {
+        $($if_fn:ident $impl:ident $(defined in $lang:ident)?,)*
+    }; $(with interfaces from { $($extra_imports:path$(,)?)* };)? ) => {
         #[unsafe(no_mangle)]
         static $method_table: $crate::objects::MethodTable<{ $crate::count!($($impl)*) + 1 }> =
             $crate::objects::MethodTable(core::cell::UnsafeCell::new([
@@ -292,7 +312,7 @@ macro_rules! method_table {
                             use $crate::bindings::*;
                             &raw mut ${concat($if_fn, _desc)}
                         };
-                        let func_as_ptr = $class_sym::$impl as *const ();
+                        let func_as_ptr = $crate::path_if!($class_sym, $impl, $($lang)*) as *const ();
                         type MethodTableFn = Option<unsafe extern "C" fn()>;
                         let func = unsafe { core::mem::transmute::<*const (), MethodTableFn>(func_as_ptr) };
                         $crate::bindings::kobj_method_t { desc, func }
@@ -309,7 +329,10 @@ macro_rules! method_table {
             use $crate::*;
             // Import all macros from extra imports
             $($(use $extra_imports::*;)*)*
-            $($if_fn!($class_ty $impl);)*
+            $($crate::expand_if_not_something!(
+                $if_fn!($class_ty $impl);;
+                $($lang)*
+            );)*
         }
     };
 }

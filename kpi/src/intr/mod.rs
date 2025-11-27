@@ -58,6 +58,12 @@ unsafe impl Sync for ConfigHook {}
 pub type ConfigHookFn<T> = extern "C" fn(&RefCounted<T>);
 
 impl ConfigHook {
+    pub fn new(ty: MallocType, flags: MallocFlags) -> Self {
+        assert!(flags.contains(M_WAITOK));
+        assert!(!flags.contains(M_NOWAIT));
+        Self::try_new(ty, flags).unwrap()
+    }
+
     pub fn try_new(ty: MallocType, flags: MallocFlags) -> Result<Self> {
         let c_hook = Box::try_new(UnsafeCell::new(intr_config_hook::default()), ty, flags)?;
         Ok(Self {

@@ -93,6 +93,7 @@ BINDGEN_FLAGS= \
 	--blocklist-function 'fo_chmod' \
 	--blocklist-function 'fo_chown' \
 	--blocklist-function 'fo_sendfile' \
+	--no-debug _device \
 	--no-debug mdproc \
 	--no-debug nvme_namespace_data \
 	--no-debug pcpu \

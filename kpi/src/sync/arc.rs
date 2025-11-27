@@ -47,6 +47,12 @@ struct InternalArc<T> {
 pub struct Arc<T>(NonNull<BoxedThing<InternalArc<T>>>);
 
 impl<T> Arc<T> {
+    pub fn new(t: T, ty: MallocType, flags: MallocFlags) -> Self {
+        assert!(flags.contains(M_WAITOK));
+        assert!(!flags.contains(M_NOWAIT));
+        Self::try_new(t, ty, flags).unwrap()
+    }
+
     pub fn try_new(t: T, ty: MallocType, flags: MallocFlags) -> Result<Self> {
         let internal_arc = InternalArc { count: 0, t };
         let boxed_arc: Box<InternalArc<T>> = Box::try_new(internal_arc, ty, flags)?;

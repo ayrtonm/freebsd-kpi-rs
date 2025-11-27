@@ -33,7 +33,7 @@ use core::ops::BitOr;
 use core::ptr::null_mut;
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
 pub struct MallocFlags(pub(crate) c_int);
 
 #[repr(C)]

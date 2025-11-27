@@ -233,13 +233,17 @@ pub trait DeviceIf<State = ()>: Driver {
     type Softc: 'static + Sync;
 
     /// Used to probe whether the given device is supported by the driver.
-    fn device_probe(dev: device_t) -> Result<BusProbe>;
+    fn device_probe(dev: device_t) -> Result<BusProbe> {
+        unimplemented!()
+    }
 
     /// Used to initialize a driver.
     ///
     /// All implementations must call [`init`][crate::ffi::Uninit::init] on the `uninit_sc` argument
     /// before this function returns to avoid a panic at runtime.
-    fn device_attach(uninit_sc: UninitPtr<Self::Softc>, dev: device_t) -> Result<()>;
+    fn device_attach(uninit_sc: UninitPtr<Self::Softc>, dev: device_t) -> Result<()> {
+        unimplemented!()
+    }
 
     /// Used to remove a driver.
     ///

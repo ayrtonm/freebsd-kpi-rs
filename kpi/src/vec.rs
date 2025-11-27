@@ -120,6 +120,11 @@ impl<T> Vec<T> {
         }
     }
 
+    pub fn with_capacity(capacity: usize, ty: MallocType, flags: MallocFlags) -> Self {
+        assert!(flags.contains(M_WAITOK));
+        assert!(!flags.contains(M_NOWAIT));
+        Self::try_with_capacity(capacity, ty, flags).unwrap()
+    }
     /// Constructs an empty `Vec<T>` with *exactly* the specified capacity.
     pub fn try_with_capacity(capacity: usize, ty: MallocType, flags: MallocFlags) -> Result<Self> {
         let align = max(align_of::<T>(), align_of::<MallocType>());

@@ -283,6 +283,7 @@ unsafe impl<T: Sync> Sync for Ptr<T> {}
 /// This is useful for creating pointer types that are expected to be shared between threads without
 /// explicit synchronization.
 #[repr(C)]
+#[derive(Debug)]
 pub struct SyncPtr<T>(pub(crate) *mut T);
 
 impl<T> Default for SyncPtr<T> {
