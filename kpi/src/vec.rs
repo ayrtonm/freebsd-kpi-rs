@@ -253,6 +253,14 @@ impl<T> DerefMut for Vec<T> {
     }
 }
 
+impl<'a, T> IntoIterator for &'a Vec<T> {
+    type Item = &'a T;
+    type IntoIter = slice::Iter<'a, T>;
+    fn into_iter(self) -> <&'a Vec<T> as IntoIterator>::IntoIter {
+        // Rely on DerefMut<[T]> to use core::slice impl
+        self.iter()
+    }
+}
 impl<'a, T> IntoIterator for &'a mut Vec<T> {
     type Item = &'a mut T;
     type IntoIter = slice::IterMut<'a, T>;

@@ -27,7 +27,6 @@
  */
 
 use crate::ffi::SubClass;
-use core::any::TypeId;
 use core::ffi::c_void;
 
 mod nvme;
