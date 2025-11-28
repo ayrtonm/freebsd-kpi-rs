@@ -49,7 +49,8 @@ pub use intrng::*;
 
 #[derive(Debug)]
 pub struct ConfigHook {
-    c_hook: Box<UnsafeCell<intr_config_hook>>,
+    inner: UnsafeCell<intr_config_hook>,
+    init_addr: Option<*mut intr_config_hook>,
     metadata_ptr: SyncPtr<RefCountData>,
 }
 
@@ -58,18 +59,23 @@ unsafe impl Sync for ConfigHook {}
 pub type ConfigHookFn<T> = extern "C" fn(&RefCounted<T>);
 
 impl ConfigHook {
-    pub fn new(ty: MallocType, flags: MallocFlags) -> Self {
-        assert!(flags.contains(M_WAITOK));
-        assert!(!flags.contains(M_NOWAIT));
-        Self::try_new(ty, flags).unwrap()
+    pub fn new() -> Self {
+        let inner = UnsafeCell::new(intr_config_hook::default());
+        Self {
+            inner,
+            init_addr: None,
+            metadata_ptr: SyncPtr::null(),
+        }
     }
 
-    pub fn try_new(ty: MallocType, flags: MallocFlags) -> Result<Self> {
-        let c_hook = Box::try_new(UnsafeCell::new(intr_config_hook::default()), ty, flags)?;
-        Ok(Self {
-            c_hook,
-            metadata_ptr: SyncPtr::null(),
-        })
+    pub fn init<T, P: SharedPtr<T>>(&mut self, func: ConfigHookFn<T>, arg: P) {
+        let func = unsafe { transmute::<Option<ConfigHookFn<T>>, ich_func_t>(Some(func)) };
+        let (arg_ptr, metadata_ptr) = SharedPtr::into_raw_parts(arg);
+        let c_hook = self.inner.get_mut();
+        c_hook.ich_func = func;
+        c_hook.ich_arg = arg_ptr.cast::<c_void>();
+        self.metadata_ptr = SyncPtr::new(metadata_ptr);
+        self.init_addr = Some(self.inner.get());
     }
 }
 
@@ -95,17 +101,9 @@ pub mod wrappers {
     #[cfg(feature = "intrng")]
     pub use intrng::wrappers::*;
 
-    pub fn config_intrhook_establish<T, P: SharedPtr<T>>(
-        hook: &mut ConfigHook,
-        func: ConfigHookFn<T>,
-        arg: P,
-    ) -> Result<()> {
-        let func = unsafe { transmute::<Option<ConfigHookFn<T>>, ich_func_t>(Some(func)) };
-        let (arg_ptr, metadata_ptr) = SharedPtr::into_raw_parts(arg);
-        let c_hook = hook.c_hook.get_mut();
-        c_hook.ich_func = func;
-        c_hook.ich_arg = arg_ptr.cast::<c_void>();
-        hook.metadata_ptr = SyncPtr::new(metadata_ptr);
+    pub fn config_intrhook_establish(hook: &ConfigHook) -> Result<()> {
+        let c_hook = hook.inner.get();
+        assert!(hook.init_addr.unwrap() == c_hook);
         let res = unsafe { bindings::config_intrhook_establish(c_hook) };
         if res != 0 {
             return Err(ErrCode::from(res));
@@ -114,7 +112,7 @@ pub mod wrappers {
     }
 
     pub fn config_intrhook_disestablish(hook: &ConfigHook) {
-        unsafe { bindings::config_intrhook_disestablish(hook.c_hook.get()) };
+        unsafe { bindings::config_intrhook_disestablish(hook.inner.get()) };
 
         unsafe { RefCountData::release_ref(hook.metadata_ptr.as_ptr()) }
     }
@@ -144,11 +142,12 @@ mod tests {
             Ok(BUS_PROBE_DEFAULT)
         }
         fn device_attach(uninit_sc: UninitPtr<Self::Softc>, dev: device_t) -> Result<()> {
-            let hook = ConfigHook::try_new(M_DEVBUF, M_WAITOK).unwrap();
+            let mut hook = ConfigHook::new();
             let loud = LoudDrop;
             let mut sc = uninit_sc.init(HookSoftc { dev, hook, loud });
             let hook_ctx = sc.weak_ref();
-            config_intrhook_establish(&mut sc.hook, HookDriver::deferred_attach, hook_ctx).unwrap();
+            sc.hook.init(HookDriver::deferred_attach, hook_ctx);
+            config_intrhook_establish(&sc.hook).unwrap();
             Ok(())
         }
         fn device_detach(_sc: &RefCounted<Self::Softc>, _dev: device_t) -> Result<()> {
