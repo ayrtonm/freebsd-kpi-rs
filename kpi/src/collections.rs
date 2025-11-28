@@ -36,14 +36,6 @@ use core::ffi::c_void;
 use core::mem::{forget, size_of};
 use core::ops::DerefMut;
 
-mod sealed {
-    use super::*;
-
-    pub trait ScatterBufPrivate {
-        fn get_buf(&mut self) -> (*mut c_void, usize);
-    }
-}
-
 pub unsafe trait Pod: Sized {}
 macro_rules! impl_trait_for {
     ($trait:ident $($ty:ty)*) => {
@@ -56,43 +48,37 @@ impl_trait_for! {
     i8 i16 i32 i64 i128
 }
 
-pub trait ScatterBuf: sealed::ScatterBufPrivate {}
-
-impl<T: Pod> ScatterBuf for Box<T> {}
-
-impl<T: Default + Pod> ScatterBuf for Vec<T> {}
-
-impl<'a, T: Pod> ScatterBuf for &'a T {}
-
-impl<'a, T: Pod> ScatterBuf for &'a mut T {}
-
-impl<'a, T: Pod> sealed::ScatterBufPrivate for &'a T {
-    fn get_buf(&mut self) -> (*mut c_void, usize) {
-        let ptr = self as *mut Self;
-        (ptr.cast::<c_void>(), size_of::<T>())
-    }
+pub trait ScatterBuf {
+    fn get_buf(&mut self) -> (*mut c_void, usize);
 }
 
-impl<'a, T: Pod> sealed::ScatterBufPrivate for &'a mut T {
-    fn get_buf(&mut self) -> (*mut c_void, usize) {
-        let ptr = self as *mut Self;
-        (ptr.cast::<c_void>(), size_of::<T>())
-    }
-}
-
-impl<T> sealed::ScatterBufPrivate for Box<T> {
+impl<T: Pod> ScatterBuf for Box<T> {
     fn get_buf(&mut self) -> (*mut c_void, usize) {
         let ptr = self.deref_mut() as *mut T;
         (ptr.cast::<c_void>(), size_of::<T>())
     }
 }
 
-impl<T: Default> sealed::ScatterBufPrivate for Vec<T> {
+impl<T: Default + Pod> ScatterBuf for Vec<T> {
     fn get_buf(&mut self) -> (*mut c_void, usize) {
         // TODO: Fill with default
         let ptr = self.as_ptr().cast_mut();
         self.len = self.capacity;
         (ptr.cast::<c_void>(), self.capacity() * size_of::<T>())
+    }
+}
+
+impl<'a, T: Pod> ScatterBuf for &'a T {
+    fn get_buf(&mut self) -> (*mut c_void, usize) {
+        let ptr = self as *mut Self;
+        (ptr.cast::<c_void>(), size_of::<T>())
+    }
+}
+
+impl<'a, T: Pod> ScatterBuf for &'a mut T {
+    fn get_buf(&mut self) -> (*mut c_void, usize) {
+        let ptr = self as *mut Self;
+        (ptr.cast::<c_void>(), size_of::<T>())
     }
 }
 
