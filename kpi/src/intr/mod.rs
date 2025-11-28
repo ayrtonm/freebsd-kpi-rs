@@ -27,10 +27,10 @@
  */
 
 use crate::ErrCode;
-use crate::bindings::{ich_func_t, intr_config_hook};
-use crate::boxed::Box;
+use crate::bindings::{
+    C_HARDCLOCK, callout, callout_func_t, ich_func_t, intr_config_hook, sbintime_t, tick_sbt,
+};
 use crate::ffi::{RefCountData, RefCounted, SharedPtr, SyncPtr};
-use crate::malloc::{MallocFlags, MallocType};
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::ffi::{c_uint, c_void};
@@ -47,7 +47,7 @@ pub struct IntrType(pub c_uint);
 #[cfg(feature = "intrng")]
 pub use intrng::*;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ConfigHook {
     inner: UnsafeCell<intr_config_hook>,
     init_addr: Option<*mut intr_config_hook>,
@@ -76,6 +76,32 @@ impl ConfigHook {
         c_hook.ich_arg = arg_ptr.cast::<c_void>();
         self.metadata_ptr = SyncPtr::new(metadata_ptr);
         self.init_addr = Some(self.inner.get());
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct Callout {
+    inner: UnsafeCell<callout>,
+    init_addr: Option<*mut callout>,
+}
+
+unsafe impl Sync for Callout {}
+
+impl Callout {
+    pub fn new() -> Self {
+        let inner = UnsafeCell::new(callout::default());
+        Self {
+            inner,
+            init_addr: None,
+        }
+    }
+
+    pub fn init(&mut self) {
+        let c_callout = self.inner.get();
+        self.init_addr = Some(c_callout);
+        unsafe {
+            bindings::callout_init(c_callout, 1 /* always mpsafe */)
+        }
     }
 }
 
@@ -115,6 +141,34 @@ pub mod wrappers {
         unsafe { bindings::config_intrhook_disestablish(hook.inner.get()) };
 
         unsafe { RefCountData::release_ref(hook.metadata_ptr.as_ptr()) }
+    }
+
+    pub fn callout_init(c: &mut Callout) {
+        c.init()
+    }
+
+    pub fn callout_reset(
+        c: &Callout,
+        ticks: sbintime_t,
+        func: callout_func_t,
+        arg: *mut c_void,
+    ) -> Result<()> {
+        let time = ticks * unsafe { tick_sbt };
+        let res = unsafe {
+            bindings::callout_reset_sbt_on(c.inner.get(), time, 0, func, arg, -1, C_HARDCLOCK)
+        };
+        if res != 0 {
+            return Err(ErrCode::from(res));
+        }
+        Ok(())
+    }
+
+    pub fn callout_schedule(c: &Callout, ticks: sbintime_t) -> Result<()> {
+        let res = unsafe { bindings::callout_schedule(c.inner.get(), ticks.try_into().unwrap()) };
+        if res != 0 {
+            return Err(ErrCode::from(res));
+        }
+        Ok(())
     }
 }
 

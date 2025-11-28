@@ -27,12 +27,10 @@
  */
 
 use crate::bindings::{MTX_DEF, MTX_SPIN, mtx};
-use crate::boxed::Box;
-use crate::malloc::{MallocFlags, MallocType};
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::ffi::CStr;
-use core::mem::{MaybeUninit, drop};
+use core::mem::drop;
 use core::ops::{Deref, DerefMut};
 use core::ptr::null_mut;
 
