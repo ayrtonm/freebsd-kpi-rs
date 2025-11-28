@@ -6529,7 +6529,6 @@ pub type rman_res_t = __rman_res_t;
 pub type syscallarg_t = __register_t;
 pub type boolean_t = ::core::ffi::c_uint;
 #[repr(C)]
-#[derive(Debug)]
 pub struct _device {
     _unused: [u8; 0],
 }
@@ -26168,6 +26167,10 @@ unsafe extern "C" {
     pub fn sndstat_unregister(dev: device_t) -> ::core::ffi::c_int;
     pub fn sound_oss_sysinfo(arg1: *mut oss_sysinfo);
     pub fn sound_oss_card_info(arg1: *mut oss_card_info) -> ::core::ffi::c_int;
+    #[link_name = "snd_format__extern"]
+    pub fn snd_format(f: u32, c: u32, e: u32) -> u32;
+    pub fn vtsnd_device_probe(dev: device_t) -> ::core::ffi::c_int;
+    pub static vtsnd_playfmts: [u32; 4usize];
     #[link_name = "be16dec__extern"]
     pub fn be16dec(pp: *const ::core::ffi::c_void) -> u16;
     #[link_name = "be32dec__extern"]
@@ -26330,29 +26333,6 @@ unsafe extern "C" {
     ) -> ::core::ffi::c_int;
     pub fn virtqueue_dequeue(vq: *mut virtqueue, len: *mut u32) -> *mut ::core::ffi::c_void;
     pub fn virtqueue_poll(vq: *mut virtqueue, len: *mut u32) -> *mut ::core::ffi::c_void;
-    pub fn vtsnd_device_probe(dev: device_t) -> ::core::ffi::c_int;
-    pub fn vtsnd_get_chan_class() -> *mut kobj_class;
-    pub fn vtsnd_chan_init_rust(
-        devinfo: *mut ::core::ffi::c_void,
-        b: *mut snd_dbuf,
-        c: *mut pcm_channel,
-        dir: ::core::ffi::c_int,
-    ) -> ::core::ffi::c_int;
-    pub fn vtsnd_chan_setformat(
-        obj: kobj_t,
-        data: *mut ::core::ffi::c_void,
-        format: u32,
-    ) -> ::core::ffi::c_int;
-    pub fn vtsnd_chan_setspeed_rust(
-        obj: kobj_t,
-        data: *mut ::core::ffi::c_void,
-        speed: u32,
-    ) -> ::core::ffi::c_int;
-    pub fn vtsnd_chan_getcaps_rust(
-        devinfo: *mut ::core::ffi::c_void,
-        outp: *mut *mut pcmchan_caps,
-    ) -> ::core::ffi::c_int;
-    pub fn vtsnd_get_fmt() -> *mut u32;
     #[doc = " @brief Unique descriptor for the GPIO_GET_BUS() method"]
     pub static mut gpio_get_bus_desc: kobjop_desc;
     #[link_name = "GPIO_GET_BUS__extern"]
