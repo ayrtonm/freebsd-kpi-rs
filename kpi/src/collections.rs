@@ -44,10 +44,41 @@ mod sealed {
     }
 }
 
+pub unsafe trait Pod: Sized {}
+macro_rules! impl_trait_for {
+    ($trait:ident $($ty:ty)*) => {
+        $(unsafe impl $trait for $ty {})*
+    };
+}
+impl_trait_for! {
+    Pod
+    u8 u16 u32 u64 u128
+    i8 i16 i32 i64 i128
+}
+
 pub trait ScatterBuf: sealed::ScatterBufPrivate {}
 
-impl<T> ScatterBuf for Box<T> {}
-impl<T: Default> ScatterBuf for Vec<T> {}
+impl<T: Pod> ScatterBuf for Box<T> {}
+
+impl<T: Default + Pod> ScatterBuf for Vec<T> {}
+
+impl<'a, T: Pod> ScatterBuf for &'a T {}
+
+impl<'a, T: Pod> ScatterBuf for &'a mut T {}
+
+impl<'a, T: Pod> sealed::ScatterBufPrivate for &'a T {
+    fn get_buf(&mut self) -> (*mut c_void, usize) {
+        let ptr = self as *mut Self;
+        (ptr.cast::<c_void>(), size_of::<T>())
+    }
+}
+
+impl<'a, T: Pod> sealed::ScatterBufPrivate for &'a mut T {
+    fn get_buf(&mut self) -> (*mut c_void, usize) {
+        let ptr = self as *mut Self;
+        (ptr.cast::<c_void>(), size_of::<T>())
+    }
+}
 
 impl<T> sealed::ScatterBufPrivate for Box<T> {
     fn get_buf(&mut self) -> (*mut c_void, usize) {
@@ -58,6 +89,7 @@ impl<T> sealed::ScatterBufPrivate for Box<T> {
 
 impl<T: Default> sealed::ScatterBufPrivate for Vec<T> {
     fn get_buf(&mut self) -> (*mut c_void, usize) {
+        // TODO: Fill with default
         let ptr = self.as_ptr().cast_mut();
         self.len = self.capacity;
         (ptr.cast::<c_void>(), self.capacity() * size_of::<T>())
