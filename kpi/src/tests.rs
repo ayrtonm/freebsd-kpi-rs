@@ -37,6 +37,7 @@ use crate::bindings::{
 };
 use crate::driver::Driver;
 use crate::ffi::SubClass;
+use core::cell::UnsafeCell;
 use core::mem::transmute;
 use std::ffi::{CStr, CString, c_void};
 use std::ptr::{null, null_mut};
@@ -225,11 +226,16 @@ impl DriverManager {
             if let Some(driver) = dev.assigned_driver {
                 let setup_intr_fn = driver_t::get_setup_intr_fn(driver).unwrap();
                 let isrc = bindings::intr_irqsrc::default();
-                let mut isrc_sub = SubClass::new_with_base(isrc, 0xdeadbeefu32);
+                let isrc_sub = UnsafeCell::new(SubClass::new_with_base(isrc, 0xdeadbeefu32));
                 let mut map_data = bindings::intr_map_data::default();
                 map_data.type_ = bindings::INTR_MAP_DATA_MSI;
                 let res = unsafe {
-                    setup_intr_fn(dev.dev, base!(&isrc_sub), null_mut(), &raw mut map_data)
+                    setup_intr_fn(
+                        dev.dev,
+                        SubClass::base_ptr_from_raw(isrc_sub.get()),
+                        null_mut(),
+                        &raw mut map_data,
+                    )
                 };
                 if res != 0 {
                     dev.is_ok = false;
