@@ -76,11 +76,11 @@ macro_rules! count {
     };
 }
 
-pub trait KobjClassSize {
-    const SIZE: usize;
+pub trait KobjContext {
+    type Context;
 }
 
-pub trait KobjClass: KobjClassSize {
+pub trait KobjClass: KobjContext {
     fn get_class(&self) -> *mut kobj_class;
 }
 
@@ -279,7 +279,7 @@ macro_rules! define_class {
                 c.as_ptr()
             },
             methods: $method_table.0.get().cast::<$crate::bindings::kobj_method_t>(),
-            size: <$class_ty as $crate::objects::KobjClassSize>::SIZE,
+            size: core::mem::size_of::<<$class_ty as $crate::objects::KobjContext>::Context>(),
             baseclasses: {
                 $crate::expand_if_something_or_else_null!({
                     // expand to this

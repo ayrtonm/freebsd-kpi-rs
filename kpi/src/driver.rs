@@ -74,20 +74,8 @@ macro_rules! driver {
         $crate::define_class!($driver_sym, $driver_name, $driver_ty, $method_table $(inherit from $($base_classes)*,)*);
         $crate::method_table!($driver_sym, $driver_ty, $method_table = { $($if_fn $impl_name $(defined in $lang)*,)* };);
 
-        impl $crate::objects::KobjClassSize for $driver_ty {
-            const SIZE: usize = {
-                use core::alloc::Layout;
-                use $crate::ffi::RefCounted;
-                use $crate::interfaces::DeviceIf;
-
-                let sc_layout = Layout::new::<RefCounted<<$driver_ty as DeviceIf>::Softc>>();
-                // TODO: replace usize with size_t and check if this is the right value for FreeBSD
-                // TODO: figure out why NVMe requires somewhere between an 8 and 16 factor
-                //if sc_layout.align() > 2 * align_of::<usize>() {
-                //    panic!("softc requires more alignment than can malloc provides");
-                //}
-                sc_layout.size()
-            };
+        impl $crate::objects::KobjContext for $driver_ty {
+            type Context = $crate::ffi::RefCounted<<$driver_ty as DeviceIf>::Softc>;
         }
 
         impl $crate::driver::Driver for $driver_ty {
