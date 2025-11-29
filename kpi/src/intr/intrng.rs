@@ -31,9 +31,10 @@ use crate::bindings::{
     device_t, intr_irq_filter_t, intr_irqsrc, intr_map_data, intr_map_data_fdt, pcell_t, trapframe,
 };
 use crate::bus::{Filter, Resource};
-use crate::ffi::{RefCounted, SubClass};
+use crate::ffi::SubClass;
 use crate::ofw::XRef;
 use crate::prelude::*;
+use crate::sync::arc::Arc;
 use core::ffi::{CStr, c_int, c_void};
 use core::mem::transmute;
 
@@ -115,7 +116,7 @@ pub type IrqSrc<T> = SubClass<intr_irqsrc, T>;
 pub trait PicIf: DeviceIf {
     type IrqSrcFields;
     fn pic_setup_intr(
-        sc: &RefCounted<Self::Softc>,
+        sc: &Arc<Self::Softc>,
         dev: device_t,
         isrc: &mut IrqSrc<Self::IrqSrcFields>,
         res: Resource,
@@ -124,7 +125,7 @@ pub trait PicIf: DeviceIf {
         unimplemented!()
     }
     fn pic_teardown_intr(
-        sc: &RefCounted<Self::Softc>,
+        sc: &Arc<Self::Softc>,
         dev: device_t,
         isrc: &mut IrqSrc<Self::IrqSrcFields>,
         res: Resource,
@@ -133,7 +134,7 @@ pub trait PicIf: DeviceIf {
         unimplemented!()
     }
     fn pic_map_intr<'a>(
-        sc: &'a RefCounted<Self::Softc>,
+        sc: &'a Arc<Self::Softc>,
         dev: device_t,
         data: MapData,
         isrcp: &mut Option<&'a IrqSrc<Self::IrqSrcFields>>,
@@ -141,52 +142,52 @@ pub trait PicIf: DeviceIf {
         unimplemented!()
     }
     fn pic_enable_intr(
-        sc: &RefCounted<Self::Softc>,
+        sc: &Arc<Self::Softc>,
         dev: device_t,
         isrc: &mut IrqSrc<Self::IrqSrcFields>,
     ) {
         unimplemented!()
     }
     fn pic_disable_intr(
-        sc: &RefCounted<Self::Softc>,
+        sc: &Arc<Self::Softc>,
         dev: device_t,
         isrc: &mut IrqSrc<Self::IrqSrcFields>,
     ) {
         unimplemented!()
     }
     fn pic_post_filter(
-        sc: &RefCounted<Self::Softc>,
+        sc: &Arc<Self::Softc>,
         dev: device_t,
         isrc: &mut IrqSrc<Self::IrqSrcFields>,
     ) {
         unimplemented!()
     }
     fn pic_post_ithread(
-        sc: &RefCounted<Self::Softc>,
+        sc: &Arc<Self::Softc>,
         dev: device_t,
         isrc: &mut IrqSrc<Self::IrqSrcFields>,
     ) {
         unimplemented!()
     }
     fn pic_pre_ithread(
-        sc: &RefCounted<Self::Softc>,
+        sc: &Arc<Self::Softc>,
         dev: device_t,
         isrc: &mut IrqSrc<Self::IrqSrcFields>,
     ) {
         unimplemented!()
     }
     fn pic_bind_intr(
-        sc: &RefCounted<Self::Softc>,
+        sc: &Arc<Self::Softc>,
         dev: device_t,
         isrc: &mut IrqSrc<Self::IrqSrcFields>,
     ) -> Result<()> {
         unimplemented!()
     }
-    fn pic_init_secondary(sc: &RefCounted<Self::Softc>, dev: device_t, root: IntrRoot) {
+    fn pic_init_secondary(sc: &Arc<Self::Softc>, dev: device_t, root: IntrRoot) {
         unimplemented!()
     }
     fn pic_ipi_setup<'a>(
-        sc: &'a RefCounted<Self::Softc>,
+        sc: &'a Arc<Self::Softc>,
         dev: device_t,
         ipi: u32,
         isrcp: &mut Option<&'a IrqSrc<Self::IrqSrcFields>>,
@@ -194,7 +195,7 @@ pub trait PicIf: DeviceIf {
         unimplemented!()
     }
     fn pic_ipi_send(
-        sc: &RefCounted<Self::Softc>,
+        sc: &Arc<Self::Softc>,
         dev: device_t,
         isrc: &mut IrqSrc<Self::IrqSrcFields>,
         cpus: bindings::cpuset_t,
@@ -342,7 +343,7 @@ mod tests {
     use super::*;
     use crate::device::{BusProbe, DeviceIf};
     use crate::driver;
-    use crate::ffi::UninitPtr;
+    use crate::sync::arc::{Arc, UninitArc};
     use crate::tests::DriverManager;
 
     #[repr(C)]
@@ -358,17 +359,17 @@ mod tests {
             }
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: UninitPtr<Self::Softc>, dev: device_t) -> Result<()> {
+        fn device_attach(uninit_sc: UninitArc<Self::Softc>, dev: device_t) -> Result<()> {
             let sc = uninit_sc.init(IntcSoftc { dev });
             intr_pic_claim_root(
                 dev,
                 XRef(0),
                 IntcDriver::handle_irq,
-                sc.leak_ref(),
+                Arc::leak(sc.into_arc()),
                 INTR_ROOT_IRQ,
             )
         }
-        fn device_detach(_sc: &RefCounted<Self::Softc>, _dev: device_t) -> Result<()> {
+        fn device_detach(_sc: &Arc<Self::Softc>, _dev: device_t) -> Result<()> {
             Ok(())
         }
     }
@@ -383,11 +384,11 @@ mod tests {
         type IrqSrcFields = IntcIrqSrc;
 
         fn pic_setup_intr(
-            sc: &RefCounted<Self::Softc>,
-            dev: device_t,
+            _sc: &Arc<Self::Softc>,
+            _dev: device_t,
             isrc: &mut IrqSrc<Self::IrqSrcFields>,
-            res: Resource,
-            data: MapData,
+            _res: Resource,
+            _data: MapData,
         ) -> Result<()> {
             println!("called setup intr {isrc:x?}");
             assert_eq!(isrc.x, 0xdeadbeef);
@@ -425,7 +426,7 @@ mod tests {
     #[test]
     fn run_setup_intr() {
         let mut m = DriverManager::new();
-        let dev = m.add_test_device(c"intr,intc_driver").dev;
+        let _dev = m.add_test_device(c"intr,intc_driver").dev;
         m.add_test_driver::<IntcDriver>();
         m.probe_all();
         m.attach_all();

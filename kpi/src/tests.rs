@@ -224,7 +224,7 @@ impl DriverManager {
         for dev in &mut self.devices {
             if let Some(driver) = dev.assigned_driver {
                 let setup_intr_fn = driver_t::get_setup_intr_fn(driver).unwrap();
-                let mut isrc = bindings::intr_irqsrc::default();
+                let isrc = bindings::intr_irqsrc::default();
                 let mut isrc_sub = SubClass::new_with_base(isrc, 0xdeadbeefu32);
                 let mut map_data = bindings::intr_map_data::default();
                 map_data.type_ = bindings::INTR_MAP_DATA_MSI;

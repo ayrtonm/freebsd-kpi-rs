@@ -76,11 +76,11 @@ macro_rules! count {
     };
 }
 
-pub trait KobjContext {
-    type Context;
+pub trait KobjLayout {
+    type Layout;
 }
 
-pub trait KobjClass: KobjContext {
+pub trait KobjClass: KobjLayout {
     fn get_class(&self) -> *mut kobj_class;
 }
 
@@ -145,13 +145,18 @@ macro_rules! define_dev_interface {
                         with init glue {
                             $($($init_glue)*)*
                             use $crate::bindings;
-                            use $crate::ffi::RefCounted;
+                            use $crate::objects::KobjLayout;
+                            use $crate::sync::arc::Arc;
 
-                            let _sc_as_void_ptr = unsafe { bindings::device_get_softc($crate::get_first!($($arg_name)*)) };
-                            let _rust_sc_ptr = _sc_as_void_ptr.cast::<RefCounted<<$driver_ty as DeviceIf>::Softc>>();
-                            let _sc = unsafe { _rust_sc_ptr.as_ref().unwrap() };
+                            let _void_ptr = unsafe { bindings::device_get_softc($crate::get_first!($($arg_name)*)) };
+                            let _sc_ptr = _void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
+                            let _sc_arc = unsafe { Arc::from_raw(_sc_ptr) };
+                            let _sc = &_sc_arc;
                         }
-                        with drop glue { $($($drop_glue)*)* }
+                        with drop glue {
+                            Arc::into_raw(_sc_arc);
+                            $($($drop_glue)*)*
+                        }
                         with prefix args { _sc }
                     }
                 };
@@ -279,7 +284,7 @@ macro_rules! define_class {
                 c.as_ptr()
             },
             methods: $method_table.0.get().cast::<$crate::bindings::kobj_method_t>(),
-            size: core::mem::size_of::<<$class_ty as $crate::objects::KobjContext>::Context>(),
+            size: core::mem::size_of::<<$class_ty as $crate::objects::KobjLayout>::Layout>(),
             baseclasses: {
                 $crate::expand_if_something_or_else_null!({
                     // expand to this

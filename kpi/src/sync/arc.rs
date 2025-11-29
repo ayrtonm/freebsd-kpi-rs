@@ -32,22 +32,86 @@ use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::ffi::c_void;
 use core::marker::PhantomData;
-use core::ops::Deref;
+use core::mem::{MaybeUninit, forget};
+use core::ops::{Deref, DerefMut};
 use core::ptr;
 use core::ptr::{NonNull, drop_in_place};
 
 #[repr(u64)]
-enum ArcMetadata {
-    DropFn(Option<unsafe fn(*mut u_int)>) = 0,
+enum ArcMetadata<T> {
+    DropFn(Option<unsafe fn(*mut InnerArc<T>)>) = 0,
     Malloc(MallocType) = 1,
 }
 
 #[repr(C)]
-struct InnerArc<T> {
+pub struct InnerArc<T> {
     // This field must be first to support subclasses properly
-    thing: T,
-    metadata: ArcMetadata,
+    thing: MaybeUninit<T>,
+    metadata: ArcMetadata<T>,
     count: UnsafeCell<u_int>,
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct ArcRef<'a, T>(NonNull<InnerArc<T>>, PhantomData<&'a T>);
+
+impl<'a, T> ArcRef<'a, T> {
+    pub fn into_arc(&self) -> Arc<T> {
+        Arc::new_from_raw(self.0.as_ptr())
+    }
+}
+
+impl<'a, T> Deref for ArcRef<'a, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        let inner_ref = unsafe { self.0.as_ref() };
+        unsafe { inner_ref.thing.assume_init_ref() }
+    }
+}
+
+#[derive(Debug)]
+pub struct UniqueArc<T>(NonNull<InnerArc<T>>);
+
+impl<T> Deref for UniqueArc<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        let inner_ref = unsafe { self.0.as_ref() };
+        unsafe { inner_ref.thing.assume_init_ref() }
+    }
+}
+
+impl<T> DerefMut for UniqueArc<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        let inner_ref = unsafe { self.0.as_mut() };
+        unsafe { inner_ref.thing.assume_init_mut() }
+    }
+}
+
+impl<T> UniqueArc<T> {
+    pub fn into_arc(self) -> Arc<T> {
+        Arc(self.0, PhantomData)
+    }
+}
+
+#[derive(Debug)]
+pub struct UninitArc<T>(NonNull<InnerArc<T>>);
+
+impl<T> UninitArc<T> {
+    pub fn from_raw(inner_ptr: *mut InnerArc<T>) -> Self {
+        Self(NonNull::new(inner_ptr).unwrap())
+    }
+
+    pub fn init(self, t: T) -> UniqueArc<T> {
+        let inner_ptr = self.0.as_ptr();
+        let thing_ptr = unsafe { &raw mut (*inner_ptr).thing };
+        unsafe { ptr::write(thing_ptr.cast::<T>(), t) };
+        let inner_ref = unsafe { inner_ptr.as_ref().unwrap() };
+        let count_ptr = inner_ref.count.get();
+        unsafe { bindings::refcount_init(count_ptr, 1) };
+        UniqueArc(self.0)
+    }
 }
 
 #[derive(Debug)]
@@ -55,6 +119,40 @@ struct InnerArc<T> {
 pub struct Arc<T>(NonNull<InnerArc<T>>, PhantomData<T>);
 
 impl<T> Arc<T> {
+    pub fn set_drop_fn(inner_ptr: *mut InnerArc<T>, drop_fn: unsafe fn(*mut InnerArc<T>)) {
+        let metadata = ArcMetadata::DropFn(Some(drop_fn));
+        unsafe {
+            inner_ptr.write(InnerArc {
+                thing: MaybeUninit::zeroed(),
+                metadata,
+                count: UnsafeCell::new(0),
+            })
+        };
+    }
+
+    pub fn leak(x: Self) -> &'static T {
+        let res = unsafe { x.0.as_ref().thing.assume_init_ref() };
+        forget(x);
+        res
+    }
+
+    pub unsafe fn from_raw(ptr: *mut InnerArc<T>) -> Self {
+        Self(NonNull::new(ptr).unwrap(), PhantomData)
+    }
+
+    pub fn into_raw(x: Self) -> *mut InnerArc<T> {
+        let res = x.0.as_ptr();
+        forget(x);
+        res
+    }
+
+    pub fn new_from_raw(ptr: *mut InnerArc<T>) -> Self {
+        let res = unsafe { Arc::from_raw(ptr) };
+        let count_ptr = Arc::get_count_ptr(res.0);
+        unsafe { bindings::refcount_acquire(count_ptr) };
+        res
+    }
+
     pub fn new(thing: T, ty: MallocType, flags: MallocFlags) -> Self {
         assert!(flags.contains(M_WAITOK));
         assert!(!flags.contains(M_NOWAIT));
@@ -75,7 +173,7 @@ impl<T> Arc<T> {
         let metadata = ArcMetadata::Malloc(ty);
         unsafe {
             inner_ptr.write(InnerArc {
-                thing,
+                thing: MaybeUninit::new(thing),
                 metadata,
                 count: UnsafeCell::new(0),
             })
@@ -86,22 +184,25 @@ impl<T> Arc<T> {
         Ok(Self(NonNull::new(inner_ptr).unwrap(), PhantomData))
     }
 
-    fn get_count_ptr(&self) -> *mut u_int {
-        unsafe { self.0.as_ref().count.get() }
+    pub(crate) fn get_count_ptr(ptr: NonNull<InnerArc<T>>) -> *mut u_int {
+        unsafe { ptr.as_ref().count.get() }
+    }
+
+    pub fn get_count(ptr: *mut InnerArc<T>) -> u_int {
+        let count_ptr = unsafe { ptr.as_ref().unwrap().count.get() };
+        unsafe { ptr::read(count_ptr) }
     }
 
     #[cfg(test)]
     pub(super) fn snapshot_refcount(&self) -> u_int {
-        let count_ptr = self.get_count_ptr();
+        let count_ptr = Arc::get_count_ptr(self.0);
         unsafe { bindings::refcount_load(count_ptr) }
     }
 }
 
 impl<T> Clone for Arc<T> {
     fn clone(&self) -> Self {
-        let count_ptr = self.get_count_ptr();
-        unsafe { bindings::refcount_acquire(count_ptr) };
-        Self(self.0, PhantomData)
+        Arc::new_from_raw(self.0.as_ptr())
     }
 }
 
@@ -113,28 +214,30 @@ impl<T> Deref for Arc<T> {
 
     fn deref(&self) -> &Self::Target {
         let inner_ref = unsafe { self.0.as_ref() };
-        &inner_ref.thing
+        unsafe { inner_ref.thing.assume_init_ref() }
     }
 }
 
 impl<T> Drop for Arc<T> {
     fn drop(&mut self) {
-        let count_ptr = self.get_count_ptr();
+        let count_ptr = Arc::get_count_ptr(self.0);
         let last = unsafe { bindings::refcount_release(count_ptr) };
         if last {
             let inner_ptr = self.0.as_ptr();
+
             let metadata_ptr = unsafe { &raw mut (*inner_ptr).metadata };
             let metadata = unsafe { ptr::read(metadata_ptr) };
+
+            let maybeuninit_thing_ptr = unsafe { &raw mut (*inner_ptr).thing };
+            let thing_ptr = maybeuninit_thing_ptr.cast::<T>();
+            unsafe { drop_in_place(thing_ptr) };
+
             match metadata {
                 ArcMetadata::DropFn(func) => {
                     let func = func.unwrap();
-                    unsafe { func(count_ptr) }
+                    unsafe { func(inner_ptr) }
                 }
-                ArcMetadata::Malloc(ty) => {
-                    let thing_ptr = unsafe { &raw mut (*inner_ptr).thing };
-                    unsafe { drop_in_place(thing_ptr) };
-                    unsafe { free(inner_ptr.cast::<c_void>(), ty) }
-                }
+                ArcMetadata::Malloc(ty) => unsafe { free(inner_ptr.cast::<c_void>(), ty) },
             }
         }
     }

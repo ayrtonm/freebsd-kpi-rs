@@ -325,6 +325,7 @@ impl<T> SyncPtr<T> {
 
 // SAFETY: `SyncPtr` is intended for cases where `Sync` is intentionally desired on the pointer
 unsafe impl<T> Sync for SyncPtr<T> {}
+unsafe impl<T> Send for SyncPtr<T> {}
 
 impl Debug for SyncPtr<RefCountData> {
     fn fmt(&self, _f: &mut Formatter<'_>) -> fmt::Result {

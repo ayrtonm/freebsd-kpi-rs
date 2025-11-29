@@ -30,11 +30,13 @@ use crate::ErrCode;
 use crate::bindings::{
     C_HARDCLOCK, callout, callout_func_t, ich_func_t, intr_config_hook, sbintime_t, tick_sbt,
 };
-use crate::ffi::{RefCountData, RefCounted, SharedPtr, SyncPtr};
 use crate::prelude::*;
+use crate::sync::arc::{Arc, ArcRef};
 use core::cell::UnsafeCell;
 use core::ffi::{c_uint, c_void};
 use core::mem::transmute;
+use core::ptr::null_mut;
+use core::sync::atomic::{AtomicPtr, Ordering};
 
 #[cfg(feature = "intrng")]
 mod intrng;
@@ -50,32 +52,34 @@ pub use intrng::*;
 #[derive(Debug, Default)]
 pub struct ConfigHook {
     inner: UnsafeCell<intr_config_hook>,
-    init_addr: Option<*mut intr_config_hook>,
-    metadata_ptr: SyncPtr<RefCountData>,
+    init_addr: AtomicPtr<intr_config_hook>,
+    //init_addr: Option<*mut intr_config_hook>,
+    //metadata_ptr: SyncPtr<RefCountData>,
 }
 
 unsafe impl Sync for ConfigHook {}
 
-pub type ConfigHookFn<T> = extern "C" fn(&RefCounted<T>);
+pub type ConfigHookFn<T> = extern "C" fn(ArcRef<T>);
 
 impl ConfigHook {
     pub fn new() -> Self {
         let inner = UnsafeCell::new(intr_config_hook::default());
         Self {
             inner,
-            init_addr: None,
-            metadata_ptr: SyncPtr::null(),
+            init_addr: AtomicPtr::new(null_mut()),
+            //metadata_ptr: SyncPtr::null(),
         }
     }
 
-    pub fn init<T, P: SharedPtr<T>>(&mut self, func: ConfigHookFn<T>, arg: P) {
+    pub fn init<T>(&self, func: ConfigHookFn<T>, arg: Arc<T>) {
         let func = unsafe { transmute::<Option<ConfigHookFn<T>>, ich_func_t>(Some(func)) };
-        let (arg_ptr, metadata_ptr) = SharedPtr::into_raw_parts(arg);
-        let c_hook = self.inner.get_mut();
-        c_hook.ich_func = func;
-        c_hook.ich_arg = arg_ptr.cast::<c_void>();
-        self.metadata_ptr = SyncPtr::new(metadata_ptr);
-        self.init_addr = Some(self.inner.get());
+        ////let (arg_ptr, metadata_ptr) = SharedPtr::into_raw_parts(arg);
+        let arg_ptr = Arc::into_raw(arg);
+        let c_hook = self.inner.get();
+        unsafe { (*c_hook).ich_func = func };
+        unsafe { (*c_hook).ich_arg = arg_ptr.cast::<c_void>() };
+        //self.metadata_ptr = SyncPtr::new(metadata_ptr);
+        self.init_addr.store(c_hook, Ordering::Relaxed);
     }
 }
 
@@ -129,7 +133,7 @@ pub mod wrappers {
 
     pub fn config_intrhook_establish(hook: &ConfigHook) -> Result<()> {
         let c_hook = hook.inner.get();
-        assert!(hook.init_addr.unwrap() == c_hook);
+        assert!(hook.init_addr.load(Ordering::Relaxed) == c_hook);
         let res = unsafe { bindings::config_intrhook_establish(c_hook) };
         if res != 0 {
             return Err(ErrCode::from(res));
@@ -140,7 +144,7 @@ pub mod wrappers {
     pub fn config_intrhook_disestablish(hook: &ConfigHook) {
         unsafe { bindings::config_intrhook_disestablish(hook.inner.get()) };
 
-        unsafe { RefCountData::release_ref(hook.metadata_ptr.as_ptr()) }
+        //unsafe { RefCountData::release_ref(hook.metadata_ptr.as_ptr()) }
     }
 
     pub fn callout_init(c: &mut Callout) {
@@ -178,7 +182,7 @@ mod tests {
     use crate::bindings::device_t;
     use crate::device::{BusProbe, DeviceIf};
     use crate::driver;
-    use crate::ffi::UninitPtr;
+    use crate::sync::arc::{Arc, UninitArc};
     use crate::tests::{DriverManager, LoudDrop};
 
     #[repr(C)]
@@ -195,22 +199,21 @@ mod tests {
             }
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: UninitPtr<Self::Softc>, dev: device_t) -> Result<()> {
-            let mut hook = ConfigHook::new();
+        fn device_attach(uninit_sc: UninitArc<Self::Softc>, dev: device_t) -> Result<()> {
+            let hook = ConfigHook::new();
             let loud = LoudDrop;
-            let mut sc = uninit_sc.init(HookSoftc { dev, hook, loud });
-            let hook_ctx = sc.weak_ref();
-            sc.hook.init(HookDriver::deferred_attach, hook_ctx);
+            let sc = uninit_sc.init(HookSoftc { dev, hook, loud }).into_arc();
+            sc.hook.init(HookDriver::deferred_attach, sc.clone());
             config_intrhook_establish(&sc.hook).unwrap();
             Ok(())
         }
-        fn device_detach(_sc: &RefCounted<Self::Softc>, _dev: device_t) -> Result<()> {
+        fn device_detach(_sc: &Arc<Self::Softc>, _dev: device_t) -> Result<()> {
             Ok(())
         }
     }
 
     impl HookDriver {
-        extern "C" fn deferred_attach(sc: &RefCounted<HookSoftc>) {
+        extern "C" fn deferred_attach(sc: ArcRef<HookSoftc>) {
             println!("called config hook rust function/deferred_attach");
             config_intrhook_disestablish(&sc.hook);
         }

@@ -26,11 +26,11 @@
  * SUCH DAMAGE.
  */
 
-use crate::bindings::{driver_t, u_int};
+use crate::bindings::driver_t;
+use crate::objects::KobjClass;
 
-pub trait Driver {
+pub trait Driver: KobjClass {
     const DRIVER: *mut driver_t;
-    unsafe fn drop_softc(count_ptr: *mut u_int);
 }
 
 /// Defines a driver
@@ -74,31 +74,12 @@ macro_rules! driver {
         $crate::define_class!($driver_sym, $driver_name, $driver_ty, $method_table $(inherit from $($base_classes)*,)*);
         $crate::method_table!($driver_sym, $driver_ty, $method_table = { $($if_fn $impl_name $(defined in $lang)*,)* };);
 
-        impl $crate::objects::KobjContext for $driver_ty {
-            type Context = $crate::ffi::RefCounted<<$driver_ty as DeviceIf>::Softc>;
+        impl $crate::objects::KobjLayout for $driver_ty {
+            type Layout = $crate::sync::arc::InnerArc<<$driver_ty as DeviceIf>::Softc>;
         }
 
         impl $crate::driver::Driver for $driver_ty {
             const DRIVER: *mut $crate::bindings::driver_t = $driver_sym.0.get();
-            // The driver drop fn uses a pointer to the refcount to find the softc pointer and drops
-            // it
-            unsafe fn drop_softc(count_ptr: *mut $crate::bindings::u_int) {
-                use $crate::ffi::{RefCounted, RefCountData};
-                use $crate::interfaces::DeviceIf;
-
-                // Find the offset of the refcount within the RefCounted<T> for this driver
-                let metadata_offset = RefCounted::<<$driver_ty as DeviceIf>::Softc>::metadata_offset();
-                let count_offset = metadata_offset + RefCountData::count_offset();
-                // Get a pointer to the start of the softc
-                let sc_void_ptr = unsafe { count_ptr.cast::<core::ffi::c_void>().byte_sub(count_offset) };
-                // Cast it to the right type
-                let sc_ptr = sc_void_ptr.cast::<RefCounted<<$driver_ty as DeviceIf>::Softc>>();
-                // Drop the RefCounted<T> (softc plus count and drop function) without freeing the softc memory.
-                unsafe {
-                    core::ptr::drop_in_place(sc_ptr)
-                };
-                unsafe { $crate::bindings::device_free_softc(sc_void_ptr) }
-            }
         }
     };
 }
