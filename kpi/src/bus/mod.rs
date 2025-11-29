@@ -30,6 +30,7 @@ use crate::ErrCode;
 use crate::bindings::{bus_size_t, device_t, resource, resource_spec};
 use crate::prelude::*;
 use crate::sync::arc::{Arc, ArcRef};
+use core::cell::UnsafeCell;
 use core::ffi::{c_int, c_void};
 use core::mem::transmute;
 use core::ops::BitOr;
@@ -129,12 +130,13 @@ impl Register {
 
 #[derive(Debug, Default)]
 pub struct Irq {
-    res: *mut resource,
-    cookie: *mut c_void,
+    pub res: *mut resource,
+    pub cookie: UnsafeCell<*mut c_void>,
     //metadata_ptr: AtomicPtr<RefCountData>,
 }
 
 unsafe impl Sync for Irq {}
+unsafe impl Send for Irq {}
 
 #[derive(Debug)]
 pub struct ResourceSpec {
@@ -161,7 +163,7 @@ impl Resource {
         }
         Ok(Irq {
             res: self.res,
-            cookie: null_mut(),
+            cookie: UnsafeCell::new(null_mut()),
             //metadata_ptr: AtomicPtr::new(null_mut()),
         })
     }
@@ -272,7 +274,7 @@ pub mod wrappers {
         let handler = unsafe { transmute::<Handler<T>, RawHandler>(handler_arg) };
 
         // FIXME: cookie could move
-        let cookiep = &raw const irq.cookie;
+        let cookiep = irq.cookie.get();
         let arg_ptr = Arc::into_raw(arg);
         //let (arg_ptr, metadata_ptr) = SharedPtr::into_raw_parts(arg);
         //irq.metadata_ptr.store(metadata_ptr, Ordering::Relaxed);
@@ -285,7 +287,7 @@ pub mod wrappers {
                 filter,
                 handler,
                 arg_ptr.cast::<c_void>(),
-                cookiep.cast_mut(),
+                cookiep,
             )
         };
         if res != 0 {
@@ -295,7 +297,9 @@ pub mod wrappers {
     }
 
     pub fn bus_teardown_intr(dev: device_t, irq: &Irq) -> Result<()> {
-        let res = unsafe { bindings::bus_teardown_intr(dev, irq.res, irq.cookie) };
+        let cookiep = irq.cookie.get();
+        let cookie = unsafe { *cookiep };
+        let res = unsafe { bindings::bus_teardown_intr(dev, irq.res, cookie) };
         if res != 0 {
             Err(ErrCode::from(res))
         } else {

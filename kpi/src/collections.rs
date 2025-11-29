@@ -35,6 +35,7 @@ use crate::vec::Vec;
 use core::ffi::c_void;
 use core::mem::{forget, size_of};
 use core::ops::DerefMut;
+use core::slice;
 
 pub unsafe trait Pod: Sized {}
 macro_rules! impl_trait_for {
@@ -95,6 +96,22 @@ impl<'a, T: Pod> Appendable for &'a mut T {
 
     fn reconstruct(ptr: Self::Appended) -> Self {
         unsafe { ptr.as_mut().unwrap() }
+    }
+}
+
+impl<'a, T: Pod> Appendable for &'a mut [T] {
+    type Appended = (*mut T, usize);
+
+    fn append(self) -> (Self::Appended, *mut c_void, usize) {
+        let ptr = self.as_mut_ptr();
+        let deconstructed = (ptr, self.len());
+
+        let size = self.len() * size_of::<T>();
+        (deconstructed, ptr.cast::<c_void>(), size)
+    }
+
+    fn reconstruct((ptr, len): Self::Appended) -> Self {
+        unsafe { slice::from_raw_parts_mut(ptr, len) }
     }
 }
 

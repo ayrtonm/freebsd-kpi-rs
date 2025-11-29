@@ -94,6 +94,10 @@ impl<T> Vec<T> {
         unsafe { slice::from_raw_parts(self.ptr.as_ptr(), self.len) }
     }
 
+    pub const fn as_mut_slice(&mut self) -> &mut [T] {
+        unsafe { slice::from_raw_parts_mut(self.ptr.as_ptr(), self.len) }
+    }
+
     fn array_ptr_offset() -> usize {
         let metadata_layout = Layout::new::<MallocType>();
         let item_layout = Layout::new::<T>();

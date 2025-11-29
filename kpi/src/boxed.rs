@@ -150,7 +150,13 @@ impl<T: ?Sized> Box<T> {
         unsafe { ptr.as_mut() }
     }
 
-    pub(crate) unsafe fn from_raw(raw: NonNull<BoxedThing<T>>) -> Self {
+    pub fn into_raw(b: Self) -> *mut BoxedThing<T> {
+        let res = b.0.as_ptr();
+        forget(b);
+        res
+    }
+
+    pub unsafe fn from_raw(raw: NonNull<BoxedThing<T>>) -> Self {
         Self(raw)
     }
 

@@ -78,6 +78,7 @@ impl<T> OnceInit<T> {
 }
 
 unsafe impl<T: Sync> Sync for OnceInit<T> {}
+unsafe impl<T: Sync + Send> Send for OnceInit<T> {}
 
 /// A value borrow-checked at runtime
 ///
@@ -106,7 +107,8 @@ impl<T: Debug> Debug for Mutable<T> {
     }
 }
 
-unsafe impl<T: Sync> Sync for Mutable<T> {}
+unsafe impl<T: Sync + Send> Sync for Mutable<T> {}
+unsafe impl<T: Sync + Send> Send for Mutable<T> {}
 
 impl<T> Mutable<T> {
     /// Creates a new `Mutable<T>`

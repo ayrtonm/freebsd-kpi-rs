@@ -173,7 +173,8 @@ impl<B, F: Debug> Debug for SubClass<B, F> {
 }
 
 // SAFETY: &SubClass provides no direct access to the &UnsafeCell<B>
-unsafe impl<B, F: Sync> Sync for SubClass<B, F> {}
+unsafe impl<B, F: Sync + Send> Sync for SubClass<B, F> {}
+unsafe impl<B, F: Sync + Send> Send for SubClass<B, F> {}
 
 impl<B: Default, F> SubClass<B, F> {
     pub fn new(sub_fields: F) -> Self {

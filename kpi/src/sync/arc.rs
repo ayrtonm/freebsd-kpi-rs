@@ -56,6 +56,16 @@ pub struct InnerArc<T> {
 pub struct ArcRef<'a, T>(NonNull<InnerArc<T>>, PhantomData<&'a T>);
 
 impl<'a, T> ArcRef<'a, T> {
+    pub unsafe fn from_raw(ptr: *mut InnerArc<T>) -> Self {
+        Self(NonNull::new(ptr).unwrap(), PhantomData)
+    }
+
+    pub fn into_raw(x: Self) -> *mut InnerArc<T> {
+        let res = x.0.as_ptr();
+        forget(x);
+        res
+    }
+
     pub fn into_arc(&self) -> Arc<T> {
         Arc::new_from_raw(self.0.as_ptr())
     }
@@ -71,9 +81,9 @@ impl<'a, T> Deref for ArcRef<'a, T> {
 }
 
 #[derive(Debug)]
-pub struct UniqueArc<T>(NonNull<InnerArc<T>>);
+pub struct UniqueArcRef<T>(NonNull<InnerArc<T>>);
 
-impl<T> Deref for UniqueArc<T> {
+impl<T> Deref for UniqueArcRef<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -82,14 +92,24 @@ impl<T> Deref for UniqueArc<T> {
     }
 }
 
-impl<T> DerefMut for UniqueArc<T> {
+impl<T> DerefMut for UniqueArcRef<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         let inner_ref = unsafe { self.0.as_mut() };
         unsafe { inner_ref.thing.assume_init_mut() }
     }
 }
 
-impl<T> UniqueArc<T> {
+impl<T> UniqueArcRef<T> {
+    pub unsafe fn from_raw(ptr: *mut InnerArc<T>) -> Self {
+        Self(NonNull::new(ptr).unwrap())
+    }
+
+    pub fn into_raw(x: Self) -> *mut InnerArc<T> {
+        let res = x.0.as_ptr();
+        forget(x);
+        res
+    }
+
     pub fn into_arc(self) -> Arc<T> {
         Arc(self.0, PhantomData)
     }
@@ -103,14 +123,14 @@ impl<T> UninitArc<T> {
         Self(NonNull::new(inner_ptr).unwrap())
     }
 
-    pub fn init(self, t: T) -> UniqueArc<T> {
+    pub fn init(self, t: T) -> UniqueArcRef<T> {
         let inner_ptr = self.0.as_ptr();
         let thing_ptr = unsafe { &raw mut (*inner_ptr).thing };
         unsafe { ptr::write(thing_ptr.cast::<T>(), t) };
         let inner_ref = unsafe { inner_ptr.as_ref().unwrap() };
         let count_ptr = inner_ref.count.get();
         unsafe { bindings::refcount_init(count_ptr, 1) };
-        UniqueArc(self.0)
+        UniqueArcRef(self.0)
     }
 }
 

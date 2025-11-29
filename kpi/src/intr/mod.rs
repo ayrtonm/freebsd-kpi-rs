@@ -58,6 +58,7 @@ pub struct ConfigHook {
 }
 
 unsafe impl Sync for ConfigHook {}
+unsafe impl Send for ConfigHook {}
 
 pub type ConfigHookFn<T> = extern "C" fn(ArcRef<T>);
 
@@ -83,6 +84,8 @@ impl ConfigHook {
     }
 }
 
+pub type CalloutFn<T> = extern "C" fn(ArcRef<T>);
+
 #[derive(Debug, Default)]
 pub struct Callout {
     inner: UnsafeCell<callout>,
@@ -90,6 +93,7 @@ pub struct Callout {
 }
 
 unsafe impl Sync for Callout {}
+unsafe impl Send for Callout {}
 
 impl Callout {
     pub fn new() -> Self {
@@ -151,15 +155,17 @@ pub mod wrappers {
         c.init()
     }
 
-    pub fn callout_reset(
+    pub fn callout_reset<T>(
         c: &Callout,
         ticks: sbintime_t,
-        func: callout_func_t,
-        arg: *mut c_void,
+        func: CalloutFn<T>,
+        arg: Arc<T>,
     ) -> Result<()> {
         let time = ticks * unsafe { tick_sbt };
+        let func = unsafe { transmute::<Option<CalloutFn<T>>, callout_func_t>(Some(func)) };
+        let arg_ptr = Arc::into_raw(arg).cast::<c_void>();
         let res = unsafe {
-            bindings::callout_reset_sbt_on(c.inner.get(), time, 0, func, arg, -1, C_HARDCLOCK)
+            bindings::callout_reset_sbt_on(c.inner.get(), time, 0, func, arg_ptr, -1, C_HARDCLOCK)
         };
         if res != 0 {
             return Err(ErrCode::from(res));
