@@ -29,6 +29,7 @@
 use core::cell::UnsafeCell;
 use core::fmt;
 use core::fmt::{Debug, Formatter};
+use core::mem::MaybeUninit;
 use core::ops::{Deref, DerefMut};
 use core::ptr::read;
 use core::sync::atomic::{AtomicBool, Ordering};
@@ -37,6 +38,46 @@ use core::sync::atomic::{AtomicBool, Ordering};
 pub mod arc;
 /// Mutex and SpinLock backed by mtx(9)
 pub mod mtx;
+
+#[derive(Debug)]
+pub struct OnceInit<T> {
+    t: UnsafeCell<MaybeUninit<T>>,
+    init: AtomicBool,
+}
+
+impl<T> OnceInit<T> {
+    pub fn uninit() -> Self {
+        Self {
+            t: UnsafeCell::new(MaybeUninit::uninit()),
+            init: AtomicBool::new(false),
+        }
+    }
+
+    pub fn new(t: T) -> Self {
+        Self {
+            t: UnsafeCell::new(MaybeUninit::new(t)),
+            init: AtomicBool::new(true),
+        }
+    }
+
+    pub fn init(&self, t: T) -> &mut T {
+        if !self
+            .init
+            .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
+            .is_ok()
+        {
+            panic!("already init");
+        }
+        unsafe { self.t.get().as_mut().unwrap().write(t) }
+    }
+
+    pub fn get(&self) -> &T {
+        assert!(self.init.load(Ordering::Relaxed));
+        unsafe { self.t.get().as_ref().unwrap().assume_init_ref() }
+    }
+}
+
+unsafe impl<T: Sync> Sync for OnceInit<T> {}
 
 /// A value borrow-checked at runtime
 ///
