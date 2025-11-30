@@ -332,7 +332,7 @@ pub mod prelude {
     pub use crate::taskq::wrappers::*;
 
     pub use crate::device::{BusProbe, DeviceIf};
-    pub use crate::sync::arc::{Arc, UninitArc};
+    pub use crate::sync::arc::{Arc, ArcRef, UninitArc};
 
     #[doc(inline)]
     pub use crate::misc::*;

@@ -146,15 +146,13 @@ macro_rules! define_dev_interface {
                             $($($init_glue)*)*
                             use $crate::bindings;
                             use $crate::objects::KobjLayout;
-                            use $crate::sync::arc::Arc;
+                            use $crate::sync::arc::ArcRef;
 
                             let _void_ptr = unsafe { bindings::device_get_softc($crate::get_first!($($arg_name)*)) };
                             let _sc_ptr = _void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
-                            let _sc_arc = unsafe { Arc::from_raw(_sc_ptr) };
-                            let _sc = &_sc_arc;
+                            let _sc = unsafe { ArcRef::from_raw(_sc_ptr) };
                         }
                         with drop glue {
-                            Arc::into_raw(_sc_arc);
                             $($($drop_glue)*)*
                         }
                         with prefix args { _sc }
@@ -212,7 +210,6 @@ macro_rules! define_c_function {
         pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) -> $ret {
             use core::any::{Any, TypeId};
             let typedef_val = {
-                use $crate::bindings;
                 ${concat($fn_name, _t)}::default()
             };
             let typedef_id = typedef_val.type_id();

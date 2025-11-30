@@ -426,7 +426,7 @@ pub mod tests {
             println!("{:x?}", sc);
             Ok(())
         }
-        fn device_detach(sc: &Arc<Self::Softc>, dev: device_t) -> Result<()> {
+        fn device_detach(sc: Arc<Self::Softc>, dev: device_t) -> Result<()> {
             assert!(sc.const_data == 0xdeadbeef);
             Ok(())
         }
@@ -477,7 +477,7 @@ pub mod tests {
             }
             Ok(())
         }
-        fn device_detach(sc: &Arc<Self::Softc>, dev: device_t) -> Result<()> {
+        fn device_detach(sc: Arc<Self::Softc>, dev: device_t) -> Result<()> {
             Ok(())
         }
     }
