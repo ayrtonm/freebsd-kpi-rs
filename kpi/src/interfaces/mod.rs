@@ -145,48 +145,48 @@ impl<T> AsRustType<UniqueArcRef<T>, c_void> for *mut c_void {
 
 impl<T> AsCType<*mut T> for Box<T> {
     fn as_c_type(self) -> *mut T {
-        unsafe { Box::into_raw(self).cast::<T>() }
+        Box::into_raw(self).cast::<T>()
     }
 }
 
 impl<T> AsCType<*mut T> for Arc<T> {
     fn as_c_type(self) -> *mut T {
-        unsafe { Arc::into_raw(self).cast::<T>() }
+        Arc::into_raw(self).cast::<T>()
     }
 }
 
 impl<'a, T> AsCType<*mut T> for ArcRef<'a, T> {
     fn as_c_type(self) -> *mut T {
-        unsafe { ArcRef::into_raw(self).cast::<T>() }
+        ArcRef::into_raw(self).cast::<T>()
     }
 }
 
 impl<T> AsCType<*mut T> for UniqueArcRef<T> {
     fn as_c_type(self) -> *mut T {
-        unsafe { UniqueArcRef::into_raw(self).cast::<T>() }
+        UniqueArcRef::into_raw(self).cast::<T>()
     }
 }
 
 impl<T> AsCType<*mut c_void, c_void> for Box<T> {
     fn as_c_type(self) -> *mut c_void {
-        unsafe { Box::into_raw(self).cast::<c_void>() }
+        Box::into_raw(self).cast::<c_void>()
     }
 }
 
 impl<T> AsCType<*mut c_void, c_void> for Arc<T> {
     fn as_c_type(self) -> *mut c_void {
-        unsafe { Arc::into_raw(self).cast::<c_void>() }
+        Arc::into_raw(self).cast::<c_void>()
     }
 }
 
 impl<'a, T> AsCType<*mut c_void, c_void> for ArcRef<'a, T> {
     fn as_c_type(self) -> *mut c_void {
-        unsafe { ArcRef::into_raw(self).cast::<c_void>() }
+        ArcRef::into_raw(self).cast::<c_void>()
     }
 }
 
 impl<T> AsCType<*mut c_void, c_void> for UniqueArcRef<T> {
     fn as_c_type(self) -> *mut c_void {
-        unsafe { UniqueArcRef::into_raw(self).cast::<c_void>() }
+        UniqueArcRef::into_raw(self).cast::<c_void>()
     }
 }
