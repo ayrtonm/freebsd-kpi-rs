@@ -105,54 +105,18 @@
 #include <dt-bindings/interrupt-controller/apple-aic.h>
 #endif
 
-#define DECL_IFACE_METHOD(func) func ## _t func;
-
 #include "device_if.h"
-DECL_IFACE_METHOD(device_probe);
-DECL_IFACE_METHOD(device_attach);
-DECL_IFACE_METHOD(device_detach);
-DECL_IFACE_METHOD(device_shutdown);
-DECL_IFACE_METHOD(device_suspend);
-DECL_IFACE_METHOD(device_resume);
-DECL_IFACE_METHOD(device_quiesce);
-DECL_IFACE_METHOD(device_register);
 
 #if __has_include("pic_if.h")
 #include "pic_if.h"
-DECL_IFACE_METHOD(pic_setup_intr);
-DECL_IFACE_METHOD(pic_teardown_intr);
-DECL_IFACE_METHOD(pic_enable_intr);
-DECL_IFACE_METHOD(pic_disable_intr);
-DECL_IFACE_METHOD(pic_post_filter);
-DECL_IFACE_METHOD(pic_post_ithread);
-DECL_IFACE_METHOD(pic_pre_ithread);
-DECL_IFACE_METHOD(pic_bind_intr);
-DECL_IFACE_METHOD(pic_init_secondary);
-DECL_IFACE_METHOD(pic_ipi_send);
-DECL_IFACE_METHOD(pic_map_intr);
-DECL_IFACE_METHOD(pic_ipi_setup);
 #endif
 
 #if __has_include("nvme_if.h")
 #include "nvme_if.h"
-DECL_IFACE_METHOD(nvme_delayed_attach);
-DECL_IFACE_METHOD(nvme_enable);
-DECL_IFACE_METHOD(nvme_sq_enter);
-DECL_IFACE_METHOD(nvme_sq_leave);
-DECL_IFACE_METHOD(nvme_cq_done);
 #endif
 
 #if __has_include("channel_if.h")
 #include "channel_if.h"
-DECL_IFACE_METHOD(channel_init);
-DECL_IFACE_METHOD(channel_setformat);
-DECL_IFACE_METHOD(channel_setspeed);
-DECL_IFACE_METHOD(channel_setblocksize);
-DECL_IFACE_METHOD(channel_setfragments);
-DECL_IFACE_METHOD(channel_trigger);
-DECL_IFACE_METHOD(channel_getptr);
-DECL_IFACE_METHOD(channel_getcaps);
-DECL_IFACE_METHOD(channel_getmatrix);
 #endif
 
 #if defined(__aarch64__)

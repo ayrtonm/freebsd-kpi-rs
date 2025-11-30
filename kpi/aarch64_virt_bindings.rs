@@ -6259,13 +6259,16 @@ pub type __uint_least64_t = __uint64_t;
 pub type __uintmax_t = __uint64_t;
 pub type __intptr_t = __int64_t;
 pub type __intfptr_t = __int64_t;
+pub type __int64ptr_t = __int64_t;
 pub type __uintptr_t = __uint64_t;
 pub type __uintfptr_t = __uint64_t;
-pub type __vm_offset_t = __uint64_t;
-pub type __vm_size_t = __uint64_t;
+pub type __uint64ptr_t = __uint64_t;
 pub type __size_t = __uint64_t;
 pub type __ssize_t = __int64_t;
 pub type __ptrdiff_t = __int64_t;
+pub type __ptraddr_t = __size_t;
+pub type __vm_offset_t = __ptraddr_t;
+pub type __vm_size_t = __size_t;
 pub type __clock_t = __int32_t;
 pub type __critical_t = __int64_t;
 pub type __double_t = f64;
@@ -6325,6 +6328,8 @@ pub type __cpuwhich_t = ::core::ffi::c_int;
 pub type __cpulevel_t = ::core::ffi::c_int;
 pub type __cpusetid_t = ::core::ffi::c_int;
 pub type __daddr_t = __int64_t;
+pub type __intcap_t = __intptr_t;
+pub type __uintcap_t = __uintptr_t;
 pub type __ct_rune_t = ::core::ffi::c_int;
 pub type __rune_t = __ct_rune_t;
 pub type __wint_t = __ct_rune_t;
@@ -6332,11 +6337,21 @@ pub type __char16_t = __uint_least16_t;
 pub type __char32_t = __uint_least32_t;
 #[repr(C)]
 #[repr(align(16))]
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct __max_align_t {
     pub __max_align1: ::core::ffi::c_longlong,
     pub __bindgen_padding_0: u64,
     pub __max_align2: u128,
+    pub __max_align3: *mut ::core::ffi::c_void,
+}
+impl Default for __max_align_t {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 pub type __acl_tag_t = __uint32_t;
 pub type __acl_perm_t = __uint32_t;
@@ -6351,6 +6366,7 @@ pub type __fixpt_t = __uint32_t;
 pub struct __mbstate_t {
     pub __mbstate8: __BindgenUnionField<[::core::ffi::c_char; 128usize]>,
     pub _mbstateL: __BindgenUnionField<__int64_t>,
+    pub _mbstateP: __BindgenUnionField<__intptr_t>,
     pub bindgen_union_field: [u64; 16usize],
 }
 impl Default for __mbstate_t {
@@ -6460,6 +6476,8 @@ pub type u_char = ::core::ffi::c_uchar;
 pub type u_short = ::core::ffi::c_ushort;
 pub type u_int = ::core::ffi::c_uint;
 pub type u_long = ::core::ffi::c_ulong;
+pub type int64ptr_t = __int64ptr_t;
+pub type uint64ptr_t = __uint64ptr_t;
 pub type intmax_t = __intmax_t;
 pub type uintmax_t = __uintmax_t;
 pub type u_int8_t = __uint8_t;
@@ -21992,6 +22010,7 @@ unsafe extern "C" {
     pub fn device_get_unit(dev: device_t) -> ::core::ffi::c_int;
     pub fn device_get_sysctl_ctx(dev: device_t) -> *mut sysctl_ctx_list;
     pub fn device_get_sysctl_tree(dev: device_t) -> *mut sysctl_oid;
+    pub fn device_has_children(dev: device_t) -> bool_;
     pub fn device_has_quiet_children(dev: device_t) -> ::core::ffi::c_int;
     pub fn device_is_alive(dev: device_t) -> ::core::ffi::c_int;
     pub fn device_is_attached(dev: device_t) -> ::core::ffi::c_int;
@@ -26107,7 +26126,6 @@ unsafe extern "C" {
         left_step: ::core::ffi::c_int,
         right_step: ::core::ffi::c_int,
     );
-    pub fn mixer_busy(m: *mut snd_mixer) -> ::core::ffi::c_int;
     pub fn mix_set(m: *mut snd_mixer, dev: u_int, left: u_int, right: u_int) -> ::core::ffi::c_int;
     pub fn mix_get(m: *mut snd_mixer, dev: u_int) -> ::core::ffi::c_int;
     pub fn mix_setrecsrc(m: *mut snd_mixer, src: u_int32_t) -> ::core::ffi::c_int;
@@ -26170,7 +26188,7 @@ unsafe extern "C" {
     #[link_name = "snd_format__extern"]
     pub fn snd_format(f: u32, c: u32, e: u32) -> u32;
     pub fn vtsnd_device_probe(dev: device_t) -> ::core::ffi::c_int;
-    pub static vtsnd_playfmts: [u32; 4usize];
+    pub fn vtsnd_get_mixer_class() -> kobj_class_t;
     #[link_name = "be16dec__extern"]
     pub fn be16dec(pp: *const ::core::ffi::c_void) -> u16;
     #[link_name = "be32dec__extern"]
@@ -27498,9 +27516,6 @@ unsafe extern "C" {
     pub fn nvme_ctrlr_poll(ctrlr: *mut nvme_controller);
     pub fn nvme_ctrlr_suspend(ctrlr: *mut nvme_controller) -> ::core::ffi::c_int;
     pub fn nvme_ctrlr_resume(ctrlr: *mut nvme_controller) -> ::core::ffi::c_int;
-    pub fn device_suspend(dev: device_t) -> ::core::ffi::c_int;
-    pub fn device_resume(dev: device_t) -> ::core::ffi::c_int;
-    pub fn device_register(dev: device_t) -> *mut ::core::ffi::c_void;
     #[doc = " @brief Unique descriptor for the PIC_ACTIVATE_INTR() method"]
     pub static mut pic_activate_intr_desc: kobjop_desc;
     #[link_name = "PIC_ACTIVATE_INTR__extern"]
@@ -27585,76 +27600,6 @@ unsafe extern "C" {
         ipi: u_int,
         isrcp: *mut *mut intr_irqsrc,
     ) -> ::core::ffi::c_int;
-    pub fn pic_setup_intr(
-        dev: device_t,
-        isrc: *mut intr_irqsrc,
-        res: *mut resource,
-        data: *mut intr_map_data,
-    ) -> ::core::ffi::c_int;
-    pub fn pic_teardown_intr(
-        dev: device_t,
-        isrc: *mut intr_irqsrc,
-        res: *mut resource,
-        data: *mut intr_map_data,
-    ) -> ::core::ffi::c_int;
-    pub fn pic_enable_intr(dev: device_t, isrc: *mut intr_irqsrc);
-    pub fn pic_disable_intr(dev: device_t, isrc: *mut intr_irqsrc);
-    pub fn pic_post_filter(dev: device_t, isrc: *mut intr_irqsrc);
-    pub fn pic_post_ithread(dev: device_t, isrc: *mut intr_irqsrc);
-    pub fn pic_pre_ithread(dev: device_t, isrc: *mut intr_irqsrc);
-    pub fn pic_bind_intr(dev: device_t, isrc: *mut intr_irqsrc) -> ::core::ffi::c_int;
-    pub fn pic_init_secondary(dev: device_t, rootnum: u32);
-    pub fn pic_ipi_send(dev: device_t, isrc: *mut intr_irqsrc, cpus: cpuset_t, ipi: u_int);
-    pub fn pic_map_intr(
-        dev: device_t,
-        data: *mut intr_map_data,
-        isrcp: *mut *mut intr_irqsrc,
-    ) -> ::core::ffi::c_int;
-    pub fn pic_ipi_setup(
-        dev: device_t,
-        ipi: u_int,
-        isrcp: *mut *mut intr_irqsrc,
-    ) -> ::core::ffi::c_int;
-    pub fn channel_init(
-        obj: kobj_t,
-        devinfo: *mut ::core::ffi::c_void,
-        b: *mut snd_dbuf,
-        c: *mut pcm_channel,
-        dir: ::core::ffi::c_int,
-    ) -> *mut ::core::ffi::c_void;
-    pub fn channel_setformat(
-        obj: kobj_t,
-        data: *mut ::core::ffi::c_void,
-        format: u_int32_t,
-    ) -> ::core::ffi::c_int;
-    pub fn channel_setspeed(
-        obj: kobj_t,
-        data: *mut ::core::ffi::c_void,
-        speed: u_int32_t,
-    ) -> u_int32_t;
-    pub fn channel_setblocksize(
-        obj: kobj_t,
-        data: *mut ::core::ffi::c_void,
-        blocksize: u_int32_t,
-    ) -> u_int32_t;
-    pub fn channel_setfragments(
-        obj: kobj_t,
-        data: *mut ::core::ffi::c_void,
-        blocksize: u_int32_t,
-        blockcount: u_int32_t,
-    ) -> ::core::ffi::c_int;
-    pub fn channel_trigger(
-        obj: kobj_t,
-        data: *mut ::core::ffi::c_void,
-        go: ::core::ffi::c_int,
-    ) -> ::core::ffi::c_int;
-    pub fn channel_getptr(obj: kobj_t, data: *mut ::core::ffi::c_void) -> u_int32_t;
-    pub fn channel_getcaps(obj: kobj_t, data: *mut ::core::ffi::c_void) -> *mut pcmchan_caps;
-    pub fn channel_getmatrix(
-        obj: kobj_t,
-        data: *mut ::core::ffi::c_void,
-        format: u_int32_t,
-    ) -> *mut pcmchan_matrix;
     pub static mut memmap_bus: bus_space;
     pub fn rust_bindings_CPU_SET(cpu: u_int, set: *mut cpuset_t);
     pub fn rust_bindings_CPU_ISSET(cpu: u_int, set: *mut cpuset_t) -> bool_;

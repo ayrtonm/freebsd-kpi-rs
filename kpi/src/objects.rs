@@ -177,8 +177,14 @@ macro_rules! define_c_function {
         #[allow(unused_mut)]
         #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) {
-            // Checks that this extern "C" function matches the declaration in bindings.h
-            const _TYPES_MATCH: unsafe extern "C" fn($($arg,)*) = $crate::bindings::$fn_name;
+            use core::any::{Any, TypeId};
+            let typedef_val = {
+                use $crate::bindings;
+                ${concat($fn_name, _t)}::default()
+            };
+            let typedef_id = typedef_val.type_id();
+            let this_fn_id = TypeId::of::<Option<unsafe extern "C" fn($($arg,)*) -> $ret>>();
+            assert!(typedef_id == this_fn_id);
 
             // Convert all arguments from C types to rust types
             $(let mut $arg_name: _ = $arg_name.as_rust_type();)*
@@ -204,8 +210,14 @@ macro_rules! define_c_function {
         #[allow(unused_mut)]
         #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) -> $ret {
-            // Checks that this extern "C" function matches the declaration in bindings.h
-            const _TYPES_MATCH: unsafe extern "C" fn($($arg,)*) -> $ret = $crate::bindings::$fn_name;
+            use core::any::{Any, TypeId};
+            let typedef_val = {
+                use $crate::bindings;
+                ${concat($fn_name, _t)}::default()
+            };
+            let typedef_id = typedef_val.type_id();
+            let this_fn_id = TypeId::of::<Option<unsafe extern "C" fn($($arg,)*) -> $ret>>();
+            assert!(typedef_id == this_fn_id);
 
             // Convert all arguments from C types to rust types
             $(let mut $arg_name: _ = $arg_name.as_rust_type();)*
@@ -237,8 +249,14 @@ macro_rules! define_c_function {
         #[allow(unused_mut)]
         #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) -> $ret {
-            // Checks that this extern "C" function matches the declaration in bindings.h
-            const _TYPES_MATCH: unsafe extern "C" fn($($arg,)*) -> $ret = $crate::bindings::$fn_name;
+            use core::any::{Any, TypeId};
+            let typedef_val = {
+                use $crate::bindings;
+                ${concat($fn_name, _t)}::default()
+            };
+            let typedef_id = typedef_val.type_id();
+            let this_fn_id = TypeId::of::<Option<unsafe extern "C" fn($($arg,)*) -> $ret>>();
+            assert!(typedef_id == this_fn_id);
 
             // Convert all arguments from C types to rust types
             $(let mut $arg_name: _ = $arg_name.as_rust_type();)*
