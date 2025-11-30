@@ -369,7 +369,7 @@ mod tests {
                 INTR_ROOT_IRQ,
             )
         }
-        fn device_detach(_sc: &Arc<Self::Softc>, _dev: device_t) -> Result<()> {
+        fn device_detach(_sc: Arc<Self::Softc>, _dev: device_t) -> Result<()> {
             Ok(())
         }
     }

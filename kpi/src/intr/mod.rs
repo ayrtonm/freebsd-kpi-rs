@@ -213,7 +213,7 @@ mod tests {
             config_intrhook_establish(&sc.hook).unwrap();
             Ok(())
         }
-        fn device_detach(_sc: &Arc<Self::Softc>, _dev: device_t) -> Result<()> {
+        fn device_detach(_sc: Arc<Self::Softc>, _dev: device_t) -> Result<()> {
             Ok(())
         }
     }

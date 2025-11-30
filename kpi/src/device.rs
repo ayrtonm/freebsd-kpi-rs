@@ -142,8 +142,7 @@ macro_rules! device_detach {
                 let sc_ptr = void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
                 // This Arc gets dropped at the end of this function to release the device
                 // interface's refcount
-                let sc_arc = unsafe { Arc::from_raw(sc_ptr) };
-                let sc = &sc_arc;
+                let sc = unsafe { Arc::from_raw(sc_ptr) };
             }
             with prefix args { sc }
         }
@@ -242,7 +241,7 @@ pub trait DeviceIf<State = ()>: Driver {
     /// example, if a softc struct includes a `Box<T>` field (i.e. a pointer to the heap with
     /// ownership of a `T`) the `T` in the heap will also be freed. This applies recursively through
     /// any number of layers of indirection.
-    fn device_detach(sc: &Arc<Self::Softc>, dev: device_t) -> Result<()> {
+    fn device_detach(sc: Arc<Self::Softc>, dev: device_t) -> Result<()> {
         unimplemented!()
     }
     fn device_shutdown(sc: &Arc<Self::Softc>, dev: device_t) -> Result<()> {

@@ -511,7 +511,7 @@ mod tests {
             }
             Ok(())
         }
-        fn device_detach(sc: &Arc<Self::Softc>, dev: device_t) -> Result<()> {
+        fn device_detach(sc: Arc<Self::Softc>, dev: device_t) -> Result<()> {
             if ofw_bus_is_compatible(dev, c"irq_driver,teardown_intr") {
                 bus_teardown_intr(dev, &sc.irq).unwrap();
             }
