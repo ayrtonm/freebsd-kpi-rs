@@ -36,95 +36,48 @@
 
 //! This crate provides access to [FreeBSD kernel interfaces](https://man.freebsd.org/cgi/man.cgi).
 //!
-//! It exposes similar interfaces to the C equivalents with differences mainly to provide ergonomic
-//! or safety benefits. This crate only relies on the rust
-//! [`core` library](https://doc.rust-lang.org/core/) and will not allocate using
-//! [`malloc(9)`](https://man.freebsd.org/cgi/man.cgi?malloc(9)) unless
-//! [`MallocFlags`][malloc::MallocFlags] are explicitly passed in. It does not rely on any 3rd-party
-//! crates (e.g. [`crates.io`](<https://crates.io>)).
-//!
-//! The **main goal** is to let developers use mostly
-//! [safe rust](https://doc.rust-lang.org/nomicon/what-unsafe-does.html) to define clear
-//! [ownership semantics](https://doc.rust-lang.org/nomicon/ownership.html) and avoid
-//! [data races](https://doc.rust-lang.org/nomicon/races.html). This should minimize the chance of
-//! mis-using interfaces so developers can focus on implementing the functionality they actually
-//! care about.
-//!
 //! # Navigating the docs
 //!
-//! The suggested way to use these docs to call a given function is to first check if it's in
-//! [`prelude`]. That module provides safe rust wrappers for C functions under similar names. The
-//! wrapper argument types often differ to improve ergonomics and prevent mis-use. Searching
-//! unfamiliar argument types will show if they have constructors or are returned by other
-//! functions. Arguments may also require
-//! [trait bounds](https://doc.rust-lang.org/rust-by-example/generics/bounds.html) which will
-//! document how to construct them.
-//!
-//! For example, [`device_probe`](https://man.freebsd.org/cgi/man.cgi?query=DEVICE_PROBE) may need
-//! to check if a `device_t`'s devicetree `"compatible"` string matches a driver using
-//! [`ofw_bus_search_compatible`](https://man.freebsd.org/cgi/man.cgi?query=ofw_bus_search_compatible).
-//! The rust [`ofw_bus_search_compatible`][prelude::ofw_bus_search_compatible] wrapper is exported
-//! by both [`ofw`] (where it's defined) and [`prelude`] (avoiding the need to explicitly import
-//! every function used). Rather than use `struct ofw_compat_data` pointers, the rust wrapper takes
-//! an [`OfwCompatData`][crate::ofw::OfwCompatData] reference and returns a `&'static T` to the
-//! field the caller cares about. The developer can then create an
-//! [`OfwCompatData`][crate::ofw::OfwCompatData] using
-//! [`OfwCompatData::new`][crate::ofw::OfwCompatData::new], call
-//! [`ofw_bus_search_compatible`][prelude::ofw_bus_search_compatible] and get back a reference to
-//! the entry with a matching `"compatible"` string. Unless otherwise specified this crate will
-//! ensure that lifetime and memory layouts are constrained as necessary.
+//! The suggested way to use these docs is to first check if the function you want to call is in
+//! [`prelude`]. That module provides safe rust wrappers for the C KPI under similar names. The
+//! wrapper argument and return types often differ to prevent mis-use. Searching unfamiliar types
+//! will show if they have constructors or are returned by other functions. Arguments may also be
+//! generic with [trait bounds](https://doc.rust-lang.org/rust-by-example/generics/bounds.html). The
+//! trait documentation which will show types that implement them or how to implement them for
+//! custom types.
 //!
 //! If a function is not available in [`prelude`], the C version can be accessed from the
-//! [`bindings`] module. This can be useful for prototyping rust in different areas of the kernel,
-//! but consider creating safe wrappers before proliferating the use of the C functions across a
-//! codebase.
-//!
-//! # Driver development
-//!
-//! This crate's initial purpose was for developing kernel drivers. These docs do not intend to be
-//! an exhaustive guide on writing drivers, but the most relevant points are:
-//!
-//! - the [`driver!`] macro for defining the driver kobj class and method table
-//! - the [`DeviceIf`][device::DeviceIf] trait to define the driver softc
-//! - the [`AsCType`]/[`AsRustType`] traits to make the driver's exported functions ergonomic
-//!
-//! [`driver!`] is used to define the driver kobj class and its method table (i.e. the equivalent of
-//! the `DEFINE_CLASS` macro and `device_method_t` in C). This crate does not define an equivalent
-//! of the `DRIVER_MODULE`/`EARLY_DRIVER_MODULE` C macros so they must be invoked in .c files for
-//! each rust driver.
-//!
-//! # Other use-cases
-//!
-//! Nothing precludes using this crate for things other than drivers in the kernel. Defining a
-//! useful boundary between rust and C is very application-specific, but in general the starting
-//! point is defining an
-//! [`extern "C"`](https://doc.rust-lang.org/nomicon/ffi.html#calling-rust-code-from-c) function to
-//! call rust from C.
+//! [`bindings`] module. This can be helpful for prototyping rust in the kernel, but consider
+//! adding a safe rust wrapper before proliferating the use of C functions across a codebase.
 
 // This is only for userspace unit tests.
 #[cfg(feature = "std")]
 extern crate std;
 
+// These modules must be first since the following modules use macros they define.
 #[macro_use]
 mod macros;
-
 #[macro_use]
 pub mod kobj;
 
 /// Arch-specific functions for ARM64
 #[cfg(target_arch = "aarch64")]
 pub mod arm64;
-/// Declarations for using C functions, types and variables directly.
+/// Declarations for using C functions, types and variables directly
 pub mod bindings;
+/// The `Box` type for heap allocations
 pub mod boxed;
 /// Resource bus functions
 pub mod bus;
+/// sglist
 pub mod collections;
 /// Device driver and softc functions
 pub mod device;
+/// Contains a macro and trait for defining drivers
 pub mod driver;
+/// `CString`, `SubClass` and other FFI utilities
 pub mod ffi;
-/// Interrupt functions and config hook
+/// Interrupt functions, config hook, callout and tsleep
 pub mod intr;
 /// Malloc flags and types
 pub mod malloc;
@@ -140,6 +93,7 @@ pub mod taskq;
 // This module only exports macros
 #[doc(hidden)]
 pub mod tty;
+/// The `Vec` type to manage a contiguous growable array on the heap
 pub mod vec;
 
 #[doc(hidden)]
@@ -221,9 +175,10 @@ pub mod misc {
     }
 }
 
-/// Glob imports commonly-used items.
+/// Contains all rust wrappers for C KPI functions.
 ///
-/// This must be explicitly imported with `use kpi::prelude::*`.
+/// Also contains the KPI `Result`. Unlike the standard rust prelude this must be explicitly
+/// imported with `use kpi::prelude::*`.
 pub mod prelude {
     #[doc(inline)]
     #[cfg(target_arch = "aarch64")]
@@ -239,7 +194,6 @@ pub mod prelude {
     #[cfg(feature = "std")]
     pub use std::{print, println};
 
-    // Error code macros
     #[doc(inline)]
     pub use crate::err_codes::*;
 
@@ -257,7 +211,6 @@ pub mod prelude {
     #[doc(inline)]
     pub use crate::intr::wrappers::*;
 
-    // M_* macros
     #[doc(inline)]
     pub use crate::malloc::wrappers::*;
 

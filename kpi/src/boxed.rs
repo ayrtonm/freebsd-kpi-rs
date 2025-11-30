@@ -38,7 +38,7 @@ use core::ops::{Deref, DerefMut};
 use core::ptr::{NonNull, drop_in_place};
 use core::{fmt, slice};
 
-/// To avoid adding an extra, generic malloc_type parameter on Box<T> things on the heap store the
+/// To avoid adding an extra, generic malloc_type parameter on `Box<T>` things on the heap store the
 /// malloc_type they were allocated with on the heap. This is then used when free is called when the
 /// boxed thing is dropped. This means that the layout of a heap-allocated type is equivalent to
 /// ```c
@@ -48,7 +48,7 @@ use core::{fmt, slice};
 /// };
 /// ```
 /// While the extra pointer in the heap adds per allocation overhead this avoids the cognitive
-/// overhead of another generic parameter on Box<T>.
+/// overhead of another generic parameter on `Box<T>`.
 #[repr(C)]
 pub struct InnerBox<T: ?Sized> {
     pub(crate) ty: MallocType,

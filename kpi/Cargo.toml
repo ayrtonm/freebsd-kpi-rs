@@ -1,3 +1,16 @@
+# This file provides a way to build the KPI crate using cargo and a pre-generated bindings.rs. This
+# is only intended for userspace unit tests and generating docs. Please **do not** link any
+# artifacts produced with cargo into any kernel and instead use the makefile in the parent
+# directory.
+#
+# To run aarch64 tests on any host run `cargo test --features aarch64_tests --lib`. This produces an
+# executable for the host target which runs tests using a bindings.rs generated from an aarch64
+# kernel build with KERNCONF=VIRT.
+#
+# To generate documentation run `cargo doc --target $ARCH` where $ARCH is either
+# x86_64-unknown-linux-gnu or aarch64-unknown-linux-gnu. Note that these archs are used because they
+# simplify the process of generating docs, but kernel builds use the proper bare-metal targets.
+
 [package]
 name = "kpi"
 version = "0.0.1"
@@ -15,4 +28,5 @@ fdt = []
 # new interrupt framework support
 intrng = []
 aarch64_tests = ["fdt", "intrng"]
+# FIXME: x86 tests currently not supported since all tests use ofw for device_probe
 x86_64_tests = []

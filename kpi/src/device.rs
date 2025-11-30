@@ -182,36 +182,25 @@ define_dev_interface! {
 /// This is used to match devices to drivers during autoconfiguration and allow drivers to handle
 /// system events such as suspend, resume and shutdown.
 ///
-/// All drivers defined by [`driver!`][crate::driver] must implement this trait to define at least
-/// their softc, [`device_probe`][DeviceIf::device_probe] and
-/// [`device_attach`][DeviceIf::device_attach] methods. Any methods left unimplemented will just
-/// panic if called.
+/// All drivers defined by [`driver!`][crate::driver!] must implement this trait to at least define
+/// their softc type. Any methods left unimplemented will just panic if called.
 ///
-/// The softc type associated with each [`DeviceIf`] impl has the bounds `'static + Sync`. `'static`
+/// The softc type associated with each `DeviceIf` impl has the bounds `'static + Sync`. `'static`
 /// means any references in the softc must always point to global data. The softc will generally own
-/// or share the data it contains rather than use references so this is typically not a problem. The
+/// or share the data it contains rather than use references so this is usually not a problem. The
 /// `Sync` bound roughly means that all fields in the softc must be safe to share between multiple
 /// threads.
 ///
 /// In contrast to the C equivalent, the softc is passed as an argument to the methods in which the
 /// driver is allowed to access it (all except [`device_probe`][DeviceIf::device_probe]). In
 /// [`device_attach`][DeviceIf::device_attach] it must be initialized by calling the argument's
-/// [`init`][crate::ffi::Uninit::init] method. That returns a mutable reference to the softc
-/// (`UniqueArcRef<Softc>`) which can be used for the duration of the function. If a softc reference
-/// is not sufficient (e.g. it needs to be passed to a callback that may be called after the function returns), the
-/// [`grab_ref()`][crate::ffi::RefCounted::grab_ref] method can be used to get a pointer to the
-/// softc and increase its refcount. Grabbing a refcount ensures that the softc will live as long
-/// as necessary. Also note that all kobj interface methods collectively own one refcount to the
-/// softc. That is, methods like those in this trait and [`PicIf`] can access the softc without
-/// the cost of grabbing and releasing a refcount. The [`device_attach`][DeviceIf::device_attach]
-/// and [`device_detach`][DeviceIf::device_detach] methods define when this shared refcount is
-/// acquired and released, respectively. After [`device_detach`][DeviceIf::device_detach], this
-/// crate's glue code releases a reference which may or may not free all memory owned by the softc
-/// depending on whether there are other refcounts which haven't been released.
-///
-/// For cases where it may be easier to pipe a `device_t` than a softc pointer through an interface
-/// [`device_get_softc`][crate::device::device_get_softc()] is also provided to get a softc pointer
-/// from the `device_t`. This always grabs a refcount so it should be avoided whenever possible.
+/// [`init`][crate::sync::arc::UninitArc::init] method. That returns a
+/// [`UniqueArcRef`][crate::sync::arc::UniqueArcRef] providing mutable access to the softc. If
+/// multiple pointers to the softc are needed in `device_attach`, the
+/// [`into_arc`][crate::sync::arc::UniqueArcRef::into_arc] method can be used to grab a refcount
+/// and turn it into an [`Arc`]. That `Arc` then provides a [`clone`][crate::sync::arc::Arc::clone]
+/// method to grab additional refcounts and create new `Arc`s.
+
 #[diagnostic::on_unimplemented(message = "
 Implement the device interface trait and define the softc as follows
 
@@ -240,8 +229,8 @@ pub trait DeviceIf</*State = ()*/>: Driver {
 
     /// Used to initialize a driver.
     ///
-    /// All implementations must call [`init`][crate::ffi::Uninit::init] on the `uninit_sc` argument
-    /// before this function returns to avoid a panic at runtime.
+    /// All implementations must call [`init`][crate::sync::arc::UninitArc::init] on the `uninit_sc`
+    /// argument before this function returns to avoid a panic at runtime.
     fn device_attach(uninit_sc: UninitArc<Self::Softc>, dev: device_t) -> Result<()> {
         unimplemented!()
     }
