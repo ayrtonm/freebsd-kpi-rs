@@ -154,12 +154,12 @@ impl<T> Vec<T> {
     }
 
     /// Returns the total number of elements the vector can hold without reallocating.
-    pub fn capacity(&self) -> usize {
+    pub const fn capacity(&self) -> usize {
         self.capacity
     }
 
     /// Returns the number of elements in the vector.
-    pub fn length(&self) -> usize {
+    pub const fn length(&self) -> usize {
         self.len
     }
 
@@ -241,6 +241,14 @@ impl<T> Vec<T> {
         //forget(self);
         ////Box(fat_ptr)
         //todo!("")
+    }
+}
+
+impl<T: Default> Vec<T> {
+    pub fn expand_to_capacity(&mut self) {
+        for _ in self.len..self.capacity {
+            self.push(T::default())
+        }
     }
 }
 
