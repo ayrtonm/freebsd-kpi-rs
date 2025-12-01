@@ -29,24 +29,24 @@
 use crate::bindings::{kobj_class, kobj_class_t, kobj_method_t};
 use core::cell::UnsafeCell;
 
-/// Expands to a statement if $condition is not passed in.
+/// Expands to aif $condition is not passed in.
 #[doc(hidden)]
 #[macro_export]
-macro_rules! expand_if_not_something {
-    ($thing:item; ) => {
-        $thing
+macro_rules! expand_if_not_c {
+    ($function:item, ) => {
+        $function
     };
-    ($thing:item; $condition:ident) => {};
+    ($function:item, $condition:ident) => {};
 }
 
 #[doc(hidden)]
 #[macro_export]
-macro_rules! path_if {
-    ($module:ident, $thing:ident, ) => {
-        $module::$thing
+macro_rules! from_bindings_if_c {
+    ($var_name:ident, ) => {
+        $var_name
     };
-    ($module:ident, $thing:ident, $condition:ident) => {
-        $crate::bindings::$thing
+    ($var_name:ident, $condition:ident) => {
+        $crate::bindings::$var_name
     };
 }
 /// Expands to an expression if $condition is passed in. Otherwise expands to null_mut()
@@ -108,6 +108,7 @@ macro_rules! get_first {
 macro_rules! define_interface {
     (in $trait:ident
      $(fn $fn_name:ident($($arg_name:ident: $arg:ty$(,)?)*) $(-> $ret:ty)?
+     , with desc $desc:ident and typedef $typedef:ident
      $(, with init glue { $($init_glue:tt)* })?
      $(, with drop glue { $($drop_glue:tt)* })?
      $(, $infallible:ident )? ;)*) => {
@@ -115,6 +116,8 @@ macro_rules! define_interface {
             #[doc(hidden)]
             #[macro_export]
             macro_rules! $fn_name {
+                (get_typedef) => { $crate::bindings::$typedef };
+                (get_desc) => { $crate::bindings::$desc };
                 ($driver_ty:ident $impl_fn_name:ident) => {
                     $crate::define_c_function! {
                         $driver_ty impls $impl_fn_name in $trait as
@@ -132,12 +135,15 @@ macro_rules! define_interface {
 macro_rules! define_dev_interface {
     (in $trait:ident
      $(fn $fn_name:ident($($arg_name:ident: $arg:ty$(,)?)*) $(-> $ret:ty)?
+     , with desc $desc:ident and typedef $typedef:ident
      $(, with init glue { $($init_glue:tt)* })?
      $(, with drop glue { $($drop_glue:tt)* })? ;)*) => {
         $(
             #[doc(hidden)]
             #[macro_export]
             macro_rules! $fn_name {
+                (get_typedef) => { $crate::bindings::$typedef };
+                (get_desc) => { $crate::bindings::$desc };
                 ($driver_ty:ident $impl_fn_name:ident) => {
                     $crate::define_c_function! {
                         $driver_ty impls $impl_fn_name in $trait as
@@ -176,10 +182,7 @@ macro_rules! define_c_function {
         #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) {
             use core::any::{Any, TypeId};
-            let typedef_val = {
-                use $crate::bindings;
-                ${concat($fn_name, _t)}::default()
-            };
+            let typedef_val = <$fn_name!(get_typedef)>::default();
             let typedef_id = typedef_val.type_id();
             let this_fn_id = TypeId::of::<Option<unsafe extern "C" fn($($arg,)*) -> $ret>>();
             assert!(typedef_id == this_fn_id);
@@ -209,9 +212,7 @@ macro_rules! define_c_function {
         #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) -> $ret {
             use core::any::{Any, TypeId};
-            let typedef_val = {
-                ${concat($fn_name, _t)}::default()
-            };
+            let typedef_val = <$fn_name!(get_typedef)>::default();
             let typedef_id = typedef_val.type_id();
             let this_fn_id = TypeId::of::<Option<unsafe extern "C" fn($($arg,)*) -> $ret>>();
             assert!(typedef_id == this_fn_id);
@@ -247,10 +248,7 @@ macro_rules! define_c_function {
         #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) -> $ret {
             use core::any::{Any, TypeId};
-            let typedef_val = {
-                use $crate::bindings;
-                ${concat($fn_name, _t)}::default()
-            };
+            let typedef_val = <$fn_name!(get_typedef)>::default();
             let typedef_id = typedef_val.type_id();
             let this_fn_id = TypeId::of::<Option<unsafe extern "C" fn($($arg,)*) -> $ret>>();
             assert!(typedef_id == this_fn_id);
@@ -298,7 +296,7 @@ macro_rules! define_class {
                 let c: &'static core::ffi::CStr = $class_name;
                 c.as_ptr()
             },
-            methods: $method_table.0.get().cast::<$crate::bindings::kobj_method_t>(),
+            methods: $class_sym::$method_table.0.get().cast::<$crate::bindings::kobj_method_t>(),
             size: core::mem::size_of::<<$class_ty as $crate::objects::KobjLayout>::Layout>(),
             baseclasses: {
                 $crate::expand_if_something_or_else_null!({
@@ -323,36 +321,63 @@ macro_rules! method_table {
     ($class_sym:ident, $class_ty:ident, $method_table:ident = {
         $($if_fn:ident $impl:ident $(defined in $lang:ident)?,)*
     }; $(with interfaces from { $($extra_imports:path$(,)?)* };)? ) => {
-        #[unsafe(no_mangle)]
-        static $method_table: $crate::objects::MethodTable<{ $crate::count!($($impl)*) + 1 }> =
-            $crate::objects::MethodTable(core::cell::UnsafeCell::new([
-                $(
-                    {
-                        let desc = {
-                            use $crate::bindings::*;
-                            &raw mut ${concat($if_fn, _desc)}
-                        };
-                        let func_as_ptr = $crate::path_if!($class_sym, $impl, $($lang)*) as *const ();
-                        type MethodTableFn = Option<unsafe extern "C" fn()>;
-                        let func = unsafe { core::mem::transmute::<*const (), MethodTableFn>(func_as_ptr) };
-                        $crate::bindings::kobj_method_t { desc, func }
-                    },
-                )*
-                $crate::bindings::kobj_method_t { desc: core::ptr::null_mut(), func: None }
-            ]));
+
+        // Define a new module to avoid polluting the namespace in which this macro was invoked.
+        // Arbitrarily choose $class_sym (a unique ELF symbol) as the module name to allow using
+        // this macro multiple times in one source file.
         mod $class_sym {
+
+            use core::cell::UnsafeCell;
+            use core::ptr::null_mut;
+            use core::mem::transmute;
+            use $crate::bindings::kobj_method_t;
+            use $crate::objects::MethodTable;
+            use $crate::from_bindings_if_c;
+            use $crate::expand_if_not_c;
+
+            // Import the class type
             use super::$class_ty;
+
+            // Make everything from bindings available to simplify the extern "C" function
+            // definitions
             use $crate::bindings::*;
-            // Import all interfaces known in the KPI crate and AsRustType/AsCType
+
+            // Import all interfaces in the KPI crate and the AsRustType/AsCType traits since the
+            // extern "C" functions use them.
             use $crate::interfaces::*;
+
             // Import all macros from this crate
             use $crate::*;
-            // Import all macros from extra imports
+
+            // Import all macros and interfaces from extra imports
             $($(use $extra_imports::*;)*)*
-            $($crate::expand_if_not_something!(
-                $if_fn!($class_ty $impl);;
+
+            const NUM_METHODS: usize = $crate::count!($($impl)*);
+
+            type MethodTableFn = Option<unsafe extern "C" fn()>;
+
+            #[unsafe(no_mangle)]
+            pub static $method_table: MethodTable<{ NUM_METHODS + 1 }> =
+                MethodTable(UnsafeCell::new([
+                    // Repeat the following for each $if_fn $impl pair
+                    $(
+                        {
+                            let desc = &raw mut $if_fn!(get_desc);
+                            let func_as_ptr = from_bindings_if_c!($impl, $($lang)*) as *const ();
+                            let func = unsafe { transmute::<*const (), MethodTableFn>(func_as_ptr) };
+                            kobj_method_t { desc, func }
+                        },
+                    )*
+                    // Add the method table's null-terminator
+                    kobj_method_t { desc: null_mut(), func: None }
+            ]));
+            $(expand_if_not_c! {
+                // Invoke the interface function macro with two identifiers so it expands to the
+                // extern "C" functions that were inserted in the method table and call the
+                // corresponding interface trait methods
+                $if_fn!($class_ty $impl);,
                 $($lang)*
-            );)*
+            })*
         }
     };
 }

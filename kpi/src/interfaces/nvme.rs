@@ -30,11 +30,21 @@ pub trait NvmeIf {}
 
 define_dev_interface! {
     in NvmeIf
-    fn nvme_delayed_attach(dev: device_t, ctrlr: *mut nvme_controller) -> int;
-    fn nvme_enable(dev: device_t);
-    fn nvme_sq_leave(dev: device_t, qpair: *mut nvme_qpair, tr: *mut nvme_tracker);
-    fn nvme_cq_done(dev: device_t, qpair: *mut nvme_qpair, tr: *mut nvme_tracker);
-    fn nvme_qpair_construct(dev: device_t, qpair: *mut nvme_qpair, num_entries: u32, num_trackers: u32, ctrlr: *mut nvme_controller) -> int;
+    fn nvme_delayed_attach(dev: device_t, ctrlr: *mut nvme_controller) -> int,
+        with desc nvme_delayed_attach_desc
+        and typedef nvme_delayed_attach_t;
+    fn nvme_enable(dev: device_t),
+        with desc nvme_enable_desc
+        and typedef nvme_enable_t;
+    fn nvme_sq_leave(dev: device_t, qpair: *mut nvme_qpair, tr: *mut nvme_tracker),
+        with desc nvme_sq_leave_desc
+        and typedef nvme_sq_leave_t;
+    fn nvme_cq_done(dev: device_t, qpair: *mut nvme_qpair, tr: *mut nvme_tracker),
+        with desc nvme_cq_done_desc
+        and typedef nvme_cq_done_t;
+    fn nvme_qpair_construct(dev: device_t, qpair: *mut nvme_qpair, num_entries: u32, num_trackers: u32, ctrlr: *mut nvme_controller) -> int,
+        with desc nvme_qpair_construct_desc
+        and typedef nvme_qpair_construct_t;
 }
 
 #[doc(hidden)]

@@ -62,17 +62,39 @@ pub type IrqFilter<T> = extern "C" fn(&'static T) -> Filter;
 
 define_dev_interface! {
     in PicIf
-    fn pic_setup_intr(dev: device_t, isrc: *mut intr_irqsrc, res: *mut resource, data: *mut intr_map_data) -> int;
-    fn pic_teardown_intr(dev: device_t, isrc: *mut intr_irqsrc, res: *mut resource, data: *mut intr_map_data) -> int;
-    fn pic_enable_intr(dev: device_t, isrc: *mut intr_irqsrc);
-    fn pic_disable_intr(dev: device_t, isrc: *mut intr_irqsrc);
-    fn pic_post_filter(dev: device_t, isrc: *mut intr_irqsrc);
-    fn pic_post_ithread(dev: device_t, isrc: *mut intr_irqsrc);
-    fn pic_pre_ithread(dev: device_t, isrc: *mut intr_irqsrc);
-    fn pic_bind_intr(dev: device_t, isrc: *mut intr_irqsrc) -> int;
-    fn pic_init_secondary(dev: device_t, root: u32);
-    fn pic_ipi_send(dev: device_t, isrc: *mut intr_irqsrc, cpus: cpuset_t, ipi: u32);
+    fn pic_setup_intr(dev: device_t, isrc: *mut intr_irqsrc, res: *mut resource, data: *mut intr_map_data) -> int,
+        with desc pic_setup_intr_desc
+        and typedef pic_setup_intr_t;
+    fn pic_teardown_intr(dev: device_t, isrc: *mut intr_irqsrc, res: *mut resource, data: *mut intr_map_data) -> int,
+        with desc pic_teardown_intr_desc
+        and typedef pic_teardown_intr_t;
+    fn pic_enable_intr(dev: device_t, isrc: *mut intr_irqsrc),
+        with desc pic_enable_intr_desc
+        and typedef pic_enable_intr_t;
+    fn pic_disable_intr(dev: device_t, isrc: *mut intr_irqsrc),
+        with desc pic_disable_intr_desc
+        and typedef pic_disable_intr_t;
+    fn pic_post_filter(dev: device_t, isrc: *mut intr_irqsrc),
+        with desc pic_post_filter_desc
+        and typedef pic_post_filter_t;
+    fn pic_post_ithread(dev: device_t, isrc: *mut intr_irqsrc),
+        with desc pic_post_ithread_desc
+        and typedef pic_post_ithread_t;
+    fn pic_pre_ithread(dev: device_t, isrc: *mut intr_irqsrc),
+        with desc pic_pre_ithread_desc
+        and typedef pic_pre_ithread_t;
+    fn pic_bind_intr(dev: device_t, isrc: *mut intr_irqsrc)
+        -> int, with
+        desc pic_bind_intr_desc and typedef pic_bind_intr_t;
+    fn pic_init_secondary(dev: device_t, root: u32),
+        with desc pic_init_secondary_desc
+        and typedef pic_init_secondary_t;
+    fn pic_ipi_send(dev: device_t, isrc: *mut intr_irqsrc, cpus: cpuset_t, ipi: u32),
+        with desc pic_ipi_send_desc
+        and typedef pic_ipi_send_t;
     fn pic_map_intr(dev: device_t, data: *mut intr_map_data, isrcp: *mut *mut intr_irqsrc) -> int,
+        with desc pic_map_intr_desc
+        and typedef pic_map_intr_t,
         with init glue {
             // Store the pointer passed to the extern "C" function so we can reference it later
             let mut c_isrcp = isrcp;
@@ -92,6 +114,8 @@ define_dev_interface! {
             }
         };
     fn pic_ipi_setup(dev: device_t, ipi: u32, isrcp: *mut *mut intr_irqsrc) -> int,
+        with desc pic_ipi_setup_desc
+        and typedef pic_ipi_setup_t,
         with init glue {
             let mut c_isrcp = isrcp;
 

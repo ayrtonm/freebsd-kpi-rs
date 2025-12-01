@@ -87,6 +87,12 @@ macro_rules! device_get_softc {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! device_probe {
+    (get_typedef) => {
+        device_probe_t
+    };
+    (get_desc) => {
+        device_probe_desc
+    };
     ($driver_ty:ident $impl_fn_name:ident) => {
         $crate::define_c_function! {
             $driver_ty impls $impl_fn_name in DeviceIf as
@@ -98,6 +104,12 @@ macro_rules! device_probe {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! device_attach {
+    (get_typedef) => {
+        device_attach_t
+    };
+    (get_desc) => {
+        device_attach_desc
+    };
     ($driver_ty:ident $impl_fn_name:ident) => {
         $crate::define_c_function! {
             $driver_ty impls $impl_fn_name in DeviceIf as
@@ -129,6 +141,12 @@ macro_rules! device_attach {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! device_detach {
+    (get_typedef) => {
+        device_detach_t
+    };
+    (get_desc) => {
+        device_detach_desc
+    };
     ($driver_ty:ident $impl_fn_name:ident) => {
         $crate::define_c_function! {
             $driver_ty impls $impl_fn_name in DeviceIf as
@@ -151,11 +169,21 @@ macro_rules! device_detach {
 
 define_dev_interface! {
     in DeviceIf
-    fn device_shutdown(dev: device_t) -> int;
-    fn device_suspend(dev: device_t) -> int;
-    fn device_resume(dev: device_t) -> int;
-    fn device_quiesce(dev: device_t) -> int;
-    fn device_register(dev: device_t) -> int;
+    fn device_shutdown(dev: device_t) -> int,
+        with desc device_shutdown_desc
+        and typedef device_shutdown_t;
+    fn device_suspend(dev: device_t) -> int,
+        with desc device_suspend_desc
+        and typedef device_suspend_t;
+    fn device_resume(dev: device_t) -> int,
+        with desc device_resume_desc
+        and typedef device_resume_t;
+    fn device_quiesce(dev: device_t) -> int,
+        with desc device_quiesce_desc
+        and typedef device_quiesce_t;
+    fn device_register(dev: device_t) -> int,
+        with desc device_register_desc
+        and typedef device_register_t;
 }
 
 /// The device interface defined by device_if.m

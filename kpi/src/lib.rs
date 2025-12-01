@@ -33,7 +33,7 @@
     unreachable_patterns,
     unsafe_op_in_unsafe_fn
 )]
-#![feature(macro_metavar_expr_concat, linkage)]
+#![feature(linkage)]
 
 //! This crate provides access to [FreeBSD kernel interfaces](https://man.freebsd.org/cgi/man.cgi).
 //!
