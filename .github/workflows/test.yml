@@ -17,17 +17,17 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     # Test with newest nightly known to work
-    - name: Run aarch64 tests with rustc 1.93.0-nightly (2025-11-24)
+    - name: Run aarch64 tests with newest version known to work (1.93.0-nightly 2025-11-24)
       working-directory: ./kpi
       run: RUST_BACKTRACE=1 cargo +nightly-2025-11-24 test --verbose --lib --features aarch64_tests
 
     # Test with oldest nightly expected to work
-    - name: Run aarch64 tests with rustc 1.89.0-nightly (2025-05-19)
+    - name: Run aarch64 tests with oldest version expected to work (1.89.0-nightly 2025-05-19)
       working-directory: ./kpi
       run: RUST_BACKTRACE=1 cargo +nightly-2025-05-19 test --verbose --lib --features aarch64_tests
 
     # Test with today's nightly
-    - name: Run aarch64 tests with rustc 1.93.0-nightly
+    - name: Run aarch64 tests with today's nightly
       working-directory: ./kpi
       run: RUST_BACKTRACE=1 cargo +nightly test --verbose --lib --features aarch64_tests
 
