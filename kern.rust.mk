@@ -1,3 +1,15 @@
+.ifndef BINDGEN
+.error Please set the BINDGEN environment variable
+.endif
+
+.ifndef RUSTC
+.error Please set the RUSTC environment variable
+.endif
+
+.ifndef RUSTFMT
+.error Please set the RUSTFMT environment variable
+.endif
+
 BINDGEN_VERSION_EXPECT= bindgen 0.72.0
 BINDGEN_VERSION= ${:!${BINDGEN} --version!}
 .if ${BINDGEN_VERSION} != ${BINDGEN_VERSION_EXPECT}
