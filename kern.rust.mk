@@ -135,7 +135,7 @@ RUST_KPI_SOURCES= \
 	${SRCTOP}/sys/rust/kpi/src/kobj/casts.rs \
 	${SRCTOP}/sys/rust/kpi/src/kobj/define_class.rs \
 	${SRCTOP}/sys/rust/kpi/src/kobj/method_table.rs \
-	${SRCTOP}/sys/rust/kpi/src/kobj/macros.rs \
+	${SRCTOP}/sys/rust/kpi/src/kobj/define_interface.rs \
 	${SRCTOP}/sys/rust/kpi/src/kobj/mod.rs \
 	${SRCTOP}/sys/rust/kpi/src/sync/mtx.rs \
 	${SRCTOP}/sys/rust/kpi/src/sync/arc.rs \

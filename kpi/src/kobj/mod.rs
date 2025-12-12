@@ -31,7 +31,7 @@ use core::cell::UnsafeCell;
 
 mod casts;
 mod define_class;
-mod macros;
+mod define_interface;
 mod method_table;
 
 pub mod interfaces {
