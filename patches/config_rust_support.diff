@@ -1,19 +1,18 @@
-commit 33801dcf6a03549a9beed640e3686f6634404eb2
+commit c7f920f3fa744e7fa10697f4ad119f246224b7d2
 Author: Ayrton Munoz <a.munoz3327@gmail.com>
 Date:   Mon Nov 10 21:03:21 2025 -0500
 
     config: Add support for single-file rust crates
 
 diff --git a/usr.sbin/config/config.h b/usr.sbin/config/config.h
-index 6085c52d1b9..2c652ffd063 100644
+index 6085c52d1b9..2ba3a5825c5 100644
 --- a/usr.sbin/config/config.h
 +++ b/usr.sbin/config/config.h
-@@ -135,6 +135,8 @@ struct files_name {
+@@ -135,6 +135,7 @@ struct files_name {
  #define BEFORE_DEPEND	4
  #define NOWERROR	16
  #define NO_CTFCONVERT	32
 +#define SINGLE_RS	64
-+#define RUST_CRATE	128
  
  struct device {
  	int	d_done;			/* processed */

@@ -1,7 +1,7 @@
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
  *
- * Copyright (c) 2024 Ayrton Muñoz
+ * Copyright (c) 2025 Ayrton Muñoz
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,109 +26,10 @@
  * SUCH DAMAGE.
  */
 
-//! Utilities related to FFI with C.
-
-use crate::malloc::{MallocFlags, MallocType};
-use crate::prelude::*;
-use crate::vec::Vec;
 use core::cell::UnsafeCell;
-use core::ffi::CStr;
 use core::fmt;
 use core::fmt::{Debug, Formatter};
 use core::ops::{Deref, DerefMut};
-use core::ptr::null_mut;
-
-/// A pointer type implementing `Sync`.
-///
-/// This is useful for creating pointer types that are expected to be shared between threads without
-/// explicit synchronization.
-#[repr(C)]
-#[derive(Debug)]
-pub struct SyncPtr<T>(pub(crate) *mut T);
-
-impl<T> Default for SyncPtr<T> {
-    fn default() -> Self {
-        Self(null_mut())
-    }
-}
-
-// Allows explicitly cloning a `SyncPtr` just like a regular raw pointer
-impl<T> Clone for SyncPtr<T> {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-
-// Allows implicitly copying a `SyncPtr` just like a raw pointer
-impl<T> Copy for SyncPtr<T> {}
-
-impl<T> SyncPtr<T> {
-    /// Creates a new null `SyncPtr`
-    pub const fn null() -> Self {
-        Self(null_mut())
-    }
-
-    /// Creates a new `SyncPtr` from a raw pointer.
-    pub const fn new(ptr: *mut T) -> Self {
-        Self(ptr)
-    }
-
-    /// Get a raw pointer for the `SyncPtr`
-    pub fn as_ptr(self) -> *mut T {
-        self.0
-    }
-
-    pub fn is_null(&self) -> bool {
-        self.0.is_null()
-    }
-}
-
-// SAFETY: `SyncPtr` is intended for cases where `Sync` is intentionally desired on the pointer
-unsafe impl<T> Sync for SyncPtr<T> {}
-unsafe impl<T> Send for SyncPtr<T> {}
-
-pub enum CString<const N: usize = 16> {
-    Small([u8; N]),
-    Heap(Vec<u8>),
-}
-
-impl<const N: usize> CString<N> {
-    pub fn new(msg: &str, ty: MallocType, flags: MallocFlags) -> Result<Self> {
-        let mut buf = Vec::try_with_capacity(msg.as_bytes().len() + 1, ty, flags).unwrap();
-        for &b in msg.as_bytes() {
-            buf.try_push(b);
-        }
-        buf.try_push(0);
-        Ok(Self::Heap(buf))
-    }
-
-    pub fn as_c_str(&self) -> &CStr {
-        match self {
-            Self::Small(_) => todo!(""),
-            Self::Heap(s) => unsafe { CStr::from_ptr(s.as_ptr().cast()) },
-        }
-    }
-
-    pub fn len(&self) -> usize {
-        match self {
-            Self::Small(s) => unsafe { CStr::from_ptr(s.as_ptr().cast()).count_bytes() },
-            Self::Heap(s) => s.len() - 1,
-        }
-    }
-
-    pub fn as_bytes(&self) -> &[u8] {
-        match self {
-            Self::Small(s) => &s.as_slice()[0..self.len()],
-            Self::Heap(s) => s.as_slice(),
-        }
-    }
-}
-
-impl<const N: usize> From<[u8; N]> for CString<N> {
-    fn from(array: [u8; N]) -> Self {
-        Self::Small(array)
-    }
-}
 
 /// A struct containing a base class `B` followed by extra fields `F`.
 ///

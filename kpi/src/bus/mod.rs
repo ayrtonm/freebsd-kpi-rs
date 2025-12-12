@@ -104,6 +104,7 @@ pub struct Register {
 }
 
 // Sync is explicitly not implemented for Register
+unsafe impl Send for Register {}
 
 impl Register {
     pub fn new(res: Resource) -> Result<Self> {
@@ -323,7 +324,7 @@ pub mod wrappers {
     pub fn bus_alloc_resource_any(
         dev: device_t,
         ty: SysRes,
-        mut rid: c_int,
+        rid: c_int,
         flags: ResFlags,
     ) -> Result<Resource> {
         // TODO: as u32 needed because bindgen flag makes macros default to signed, but RF_ACTIVE is
@@ -332,7 +333,7 @@ pub mod wrappers {
             bindings::bus_alloc_resource(
                 dev,
                 ty.0,
-                &mut rid,
+                rid,
                 0,
                 !0, /* this is bitwise neg */
                 1,

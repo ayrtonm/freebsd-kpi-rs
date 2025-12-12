@@ -30,6 +30,7 @@
 macro_rules! gen_enum {
     ($(#[$($meta:meta)*])* $pub:vis enum $enum:ident { $($macro_name:ident$(,)?)* }) => {
         $(#[$($meta)*])*
+        #[allow(non_camel_case_types)]
         $pub enum $enum {
             $($macro_name = $crate::bindings::$macro_name as _,)*
         }

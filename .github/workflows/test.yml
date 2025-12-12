@@ -31,7 +31,7 @@ jobs:
       working-directory: ./kpi
       run: RUST_BACKTRACE=1 cargo +nightly test --verbose --lib --features aarch64_tests
 
-    # Need non-ofw device_probe to enable tests with x86 bindings
-    #- name: Run x86_64 tests
-    #  working-directory: ./kpi
-    #  run: RUST_BACKTRACE=1 cargo test --verbose --lib --features x86_64_tests
+    # TODO: Add non-ofw device_probe to enable tests with x86 bindings
+    - name: Check x86_64 build
+      working-directory: ./kpi
+      run: RUST_BACKTRACE=1 cargo check --verbose --lib --features x86_64_tests

@@ -31,12 +31,13 @@ use crate::bindings::{
     C_HARDCLOCK, callout, callout_func_t, ich_func_t, intr_config_hook, sbintime_t, tick_sbt,
 };
 use crate::prelude::*;
+use crate::sync::Mutable;
 use crate::sync::arc::{Arc, ArcRef};
 use core::cell::UnsafeCell;
 use core::ffi::{c_uint, c_void};
 use core::mem::transmute;
 use core::ptr::null_mut;
-use core::sync::atomic::{AtomicPtr, Ordering};
+use core::sync::atomic::{AtomicPtr, AtomicU8, AtomicU16, AtomicU32, AtomicU64, Ordering};
 
 #[cfg(feature = "intrng")]
 mod intrng;
@@ -113,12 +114,93 @@ impl Callout {
     }
 }
 
+pub trait Sleepable {
+    fn as_ptr(&self) -> *mut c_void;
+}
+
+impl<T> Sleepable for Mutable<T> {
+    fn as_ptr(&self) -> *mut c_void {
+        self.as_ptr().cast::<c_void>()
+    }
+}
+
+impl Sleepable for AtomicU8 {
+    fn as_ptr(&self) -> *mut c_void {
+        self.as_ptr().cast::<c_void>()
+    }
+}
+
+impl Sleepable for AtomicU16 {
+    fn as_ptr(&self) -> *mut c_void {
+        self.as_ptr().cast::<c_void>()
+    }
+}
+
+impl Sleepable for AtomicU32 {
+    fn as_ptr(&self) -> *mut c_void {
+        self.as_ptr().cast::<c_void>()
+    }
+}
+
+impl Sleepable for AtomicU64 {
+    fn as_ptr(&self) -> *mut c_void {
+        self.as_ptr().cast::<c_void>()
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct Priority(i32);
+
+gen_newtype! {
+    Priority,
+    PRI_MIN,
+    PRI_MAX,
+    PRI_MIN_ITHD,
+    //PRI_MAX_ITHD,
+    PI_REALTIME,
+    PI_INTR,
+    PI_AV,
+    PI_NET,
+    PI_DISK,
+    PI_TTY,
+    PI_DULL,
+    PI_SOFT,
+    PI_SOFTCLOCK,
+    //PI_SWI,
+
+    PRI_MIN_REALTIME,
+    //PRI_MAX_REALTIME,
+
+    PRI_MIN_KERN,
+    //PRI_MAX_KERN,
+
+    PSWP,
+    PVM,
+    PINOD,
+    PRIBIO,
+    PVFS,
+    PZERO,
+    PSOCK,
+    PWAIT,
+    PLOCK,
+    PPAUSE,
+
+    PRI_MIN_TIMESHARE,
+    //PRI_MAX_TIMESHARE,
+
+    PUSER,
+
+    PRI_MIN_IDLE,
+    PRI_MAX_IDLE,
+}
+
 #[doc(inline)]
 pub use wrappers::*;
 
 #[doc(hidden)]
 pub mod wrappers {
     use super::*;
+    use core::ffi::CStr;
 
     gen_newtype! {
         IntrType,
@@ -179,6 +261,40 @@ pub mod wrappers {
             return Err(ErrCode::from(res));
         }
         Ok(())
+    }
+
+    pub fn tsleep<T: Sleepable>(
+        chan: &T,
+        new_priority: Option<Priority>,
+        wmesg: &CStr,
+        timo: i32,
+    ) -> Result<()> {
+        let chan_ptr = chan.as_ptr();
+        let wmesg_ptr = wmesg.as_ptr();
+        let priority = match new_priority {
+            Some(Priority(p)) => p,
+            None => 0,
+        };
+        let res = unsafe {
+            bindings::_sleep(
+                chan_ptr,
+                null_mut(),
+                priority,
+                wmesg_ptr,
+                bindings::tick_sbt * timo as i64,
+                0,
+                bindings::C_HARDCLOCK,
+            )
+        };
+        if res != 0 {
+            return Err(ErrCode::from(res));
+        }
+        Ok(())
+    }
+
+    pub fn wakeup<T: Sleepable>(chan: &T) {
+        let chan_ptr = chan.as_ptr();
+        unsafe { bindings::wakeup(chan_ptr) }
     }
 }
 

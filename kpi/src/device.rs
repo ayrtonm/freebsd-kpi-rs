@@ -27,6 +27,7 @@
  */
 
 use crate::bindings::{device_state_t, device_t, driver_t};
+use crate::define_dev_interface;
 use crate::driver::Driver;
 use crate::ffi::CString;
 use crate::prelude::*;
@@ -71,19 +72,6 @@ impl Debug for device_t {
     }
 }
 
-/// Calls [`device_get_softc()`] using `Self` as the generic type parameter for the driver.
-///
-/// This is shorthand for calling `device_get_softc::<Self>(dev)` since that function is mainly
-/// expected to be called devices in its own methods. `Self` may not be the correct generic type
-/// parameter in cases where one driver's methods the softc of another. In those cases
-/// [`device_get_softc()`] should be called directly.
-#[macro_export]
-macro_rules! device_get_softc {
-    ($dev:expr) => {
-        $crate::device::device_get_softc::<Self>($dev)
-    };
-}
-
 #[doc(hidden)]
 #[macro_export]
 macro_rules! device_probe {
@@ -116,8 +104,8 @@ macro_rules! device_attach {
             fn device_attach(dev: device_t) -> int;
             with init glue {
                 use $crate::bindings;
-                use $crate::objects::KobjLayout;
-                use $crate::interfaces::DeviceIf;
+                use $crate::kobj::KobjLayout;
+                use $crate::kobj::interfaces::DeviceIf;
                 use $crate::sync::arc::{Arc, UninitArc};
 
                 let void_ptr = unsafe { bindings::device_get_softc(dev) };
@@ -153,7 +141,7 @@ macro_rules! device_detach {
             fn device_detach(dev: device_t) -> int;
             with init glue {
                 use $crate::bindings;
-                use $crate::objects::KobjLayout;
+                use $crate::kobj::KobjLayout;
                 use $crate::sync::arc::Arc;
 
                 let void_ptr = unsafe { bindings::device_get_softc(dev) };
@@ -241,7 +229,7 @@ impl DeviceIf for {Self} {{
 ```
 ")]
 #[allow(unused_variables)]
-pub trait DeviceIf<State = ()>: Driver {
+pub trait DeviceIf</*State = ()*/>: Driver {
     /// The softc associated with the driver.
     ///
     /// If the driver is a subclass of another, then this must be an appropriate
@@ -272,21 +260,21 @@ pub trait DeviceIf<State = ()>: Driver {
     fn device_detach(sc: Arc<Self::Softc>, dev: device_t) -> Result<()> {
         unimplemented!()
     }
-    fn device_shutdown(sc: &Arc<Self::Softc>, dev: device_t) -> Result<()> {
+    fn device_shutdown(sc: ArcRef<Self::Softc>, dev: device_t) -> Result<()> {
         unimplemented!()
     }
-    fn device_suspend(sc: &Arc<Self::Softc>, dev: device_t) -> Result<()> {
+    fn device_suspend(sc: ArcRef<Self::Softc>, dev: device_t) -> Result<()> {
         unimplemented!()
     }
-    fn device_resume(sc: &Arc<Self::Softc>, dev: device_t) -> Result<()> {
+    fn device_resume(sc: ArcRef<Self::Softc>, dev: device_t) -> Result<()> {
         unimplemented!()
     }
-    fn device_quiesce(sc: &Arc<Self::Softc>, dev: device_t) -> Result<()> {
+    fn device_quiesce(sc: ArcRef<Self::Softc>, dev: device_t) -> Result<()> {
         unimplemented!()
     }
-    fn device_register(sc: &Arc<Self::Softc>, dev: device_t) -> Result<&'static State> {
-        unimplemented!()
-    }
+    //fn device_register(sc: ArcRef<Self::Softc>, dev: device_t) -> Result<&'static State> {
+    //    unimplemented!()
+    //}
 }
 
 #[doc(inline)]
@@ -334,40 +322,23 @@ pub mod wrappers {
         unsafe { CStr::from_ptr(name) }
     }
 
-    pub fn device_get_nameunit(dev: device_t) -> CString {
-        let mut res = [0; 16];
+    /// Returns a copy of the device nameunit
+    pub fn device_get_nameunit(dev: device_t) -> Result<CString> {
         let name_ptr = unsafe { bindings::device_get_nameunit(dev) };
-        let name = unsafe { CStr::from_ptr(name_ptr) };
-        // count_bytes does not include null-terminator
-        let name_len = name.count_bytes();
-        let out_buf = res.get_mut(0..name_len);
-        match out_buf {
-            // to_bytes does not include null-terminator so this can't panic
-            Some(buf) => buf.copy_from_slice(name.to_bytes()),
-            None => {
-                let out_len = res.len();
-                res[0..out_len].copy_from_slice(&name.to_bytes()[0..out_len])
-            }
+        if name_ptr.is_null() {
+            return Err(ENULLPTR);
         }
-        CString::Small(res)
+        let name = unsafe { CStr::from_ptr(name_ptr) };
+        CString::try_new_small(name)
     }
 
     pub fn device_get_driver(dev: device_t) -> *mut driver_t {
         unsafe { bindings::device_get_driver(dev) }
     }
 
+    // TODO: This is racy and a lock is needed to serialize softc drop and this operation.
+    // It's good enough for now
     /// Get a pointer to a device's softc.
-    ///
-    /// This function grabs a refcount to a device's softc and returns a [`Ptr`][crate::ffi::Ptr] to
-    /// it. The caller must ensure that the generic type parameter `D` is the same type as the
-    /// driver which was attached to the device. The caller must also ensure that the device has
-    /// been attached and the softc refcount has not dropped to zero. Failure to meet these
-    /// requirements will cause a panic at runtime.
-    ///
-    /// Note since this function is a much heavier operation than device_get_softc in C, the
-    /// preferred way to access a softc is through the argument passed to kobj interface methods and
-    /// piping those pointers where necessary. This method is mainly provided as a last resort for
-    /// when there is no good way to pipe softc pointers to a given context.
     pub fn device_get_softc<D: DeviceIf>(dev: device_t) -> Arc<D::Softc> {
         let state = device_get_state(dev);
         if state != bindings::DS_ATTACHED {
@@ -391,7 +362,7 @@ pub mod wrappers {
 
 #[allow(dead_code, unused)]
 #[cfg(test)]
-pub mod tests {
+mod tests {
     use super::*;
     use crate::driver;
     use crate::sync::Mutable;

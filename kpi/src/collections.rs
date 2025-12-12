@@ -37,7 +37,7 @@ use core::mem::{forget, size_of};
 use core::ops::DerefMut;
 use core::slice;
 
-pub unsafe trait Pod: Sized {}
+pub unsafe trait Pod: Sized + Copy {}
 macro_rules! impl_trait_for {
     ($trait:ident $($ty:ty)*) => {
         $(unsafe impl $trait for $ty {})*
@@ -75,8 +75,7 @@ impl<T: Default + Pod> Appendable for Vec<T> {
 
     fn append(mut self) -> (Self, *mut c_void, usize) {
         let ptr = self.as_ptr().cast_mut();
-        // TODO: Fill with default
-        self.len = self.capacity;
+        self.fill_to_capacity(T::default());
         let size = self.capacity() * size_of::<T>();
         (self, ptr.cast::<c_void>(), size)
     }

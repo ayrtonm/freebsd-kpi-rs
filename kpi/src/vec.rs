@@ -28,57 +28,40 @@
 
 //! The `Vec<T>` type for contiguous growable arrays allocated in the heap.
 
-use crate::boxed::Box;
+use crate::boxed::InnerBox;
 use crate::malloc::{MallocFlags, MallocType};
 use crate::prelude::*;
 use core::alloc::Layout;
-use core::cmp::max;
 use core::ffi::c_void;
 use core::fmt::{Debug, Formatter};
-use core::mem::{align_of, replace};
+use core::mem::replace;
 use core::ops::{Deref, DerefMut};
 use core::ptr::{NonNull, drop_in_place, read, write};
 use core::{fmt, slice};
 
 /// A growable array of some type T.
-///
-/// The memory layout of this type is equivalent to
-/// ```c
-/// struct vec {
-///     T *ptr;
-///     size_t len;
-///     size_t capacity;
-/// };
-/// ```
-/// while the pointee is laid out as follows
-/// ```
-/// [malloc_type *][padding][T][T][T][padding]
-/// ```
-/// where padding 1 is that necessary to align the first `T` and padding 2 is that necessary to
-/// align the whole `Vec<T>` (note: this is only present when
-/// `alignof(T) < alignof(malloc_type *)`). Also the `Vec<T>` pointer is always either non-null,
-/// dangling or points to the first `T`.
-#[repr(C)]
 pub struct Vec<T> {
-    ptr: NonNull<T>,
-    // TODO: Make these private again. It's only pub(crate) for Vec<T>'s ScatterBuf impl
-    pub(crate) len: usize,
-    pub(crate) capacity: usize,
+    ptr: NonNull<InnerBox<T>>,
+    len: usize,
+    capacity: usize,
 }
 
 impl<T: Debug> Debug for Vec<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         // Use Vec<T>'s Deref impl since it returns a &[T]
-        Debug::fmt(self.deref(), f)
+        f.debug_struct("Vec")
+            .field("contents", &self.deref())
+            .field("len", &self.len)
+            .field("capacity", &self.capacity)
+            .finish()
     }
 }
 
 impl<T> Vec<T> {
     /// Constructs an empty `Vec<T>`.
     ///
-    /// The vector will not allocate unless a method takes a `MallocFlags` argument.
+    /// This method does not allocate.
     pub const fn new() -> Self {
-        // TODO: Document that this doesn't store the MallocType
         Self {
             ptr: NonNull::dangling(),
             len: 0,
@@ -86,71 +69,18 @@ impl<T> Vec<T> {
         }
     }
 
+    // Get a pointer to the contents
     pub const fn as_ptr(&self) -> *const T {
-        self.ptr.as_ptr()
+        let inner_box_ptr = self.ptr.as_ptr();
+        unsafe { &raw mut (*inner_box_ptr).thing }
     }
 
     pub const fn as_slice(&self) -> &[T] {
-        unsafe { slice::from_raw_parts(self.ptr.as_ptr(), self.len) }
+        unsafe { slice::from_raw_parts(self.as_ptr(), self.len) }
     }
 
     pub const fn as_mut_slice(&mut self) -> &mut [T] {
-        unsafe { slice::from_raw_parts_mut(self.ptr.as_ptr(), self.len) }
-    }
-
-    fn array_ptr_offset() -> usize {
-        let metadata_layout = Layout::new::<MallocType>();
-        let item_layout = Layout::new::<T>();
-        let (_concat_layout, offsetof_array) = metadata_layout.extend(item_layout).unwrap();
-        offsetof_array
-    }
-
-    fn size_for_n_elements(n: usize) -> usize {
-        // Get metadata layout
-        let metadata_layout = Layout::new::<MallocType>();
-        // Get layout of a Vec<T> with n elements
-        let item_layout = Layout::array::<T>(n).unwrap();
-        // Concatenate layouts and pad end
-        let (concat_layout, _offsetof_array) = metadata_layout.extend(item_layout).unwrap();
-        let whole_layout = concat_layout.pad_to_align();
-        whole_layout.size()
-    }
-
-    fn get_metadata_ptr(&self) -> NonNull<MallocType> {
-        unsafe {
-            self.ptr
-                .byte_sub(Self::array_ptr_offset())
-                .cast::<MallocType>()
-        }
-    }
-
-    pub fn with_capacity(capacity: usize, ty: MallocType, flags: MallocFlags) -> Self {
-        assert!(flags.contains(M_WAITOK));
-        assert!(!flags.contains(M_NOWAIT));
-        Self::try_with_capacity(capacity, ty, flags).unwrap()
-    }
-    /// Constructs an empty `Vec<T>` with *exactly* the specified capacity.
-    pub fn try_with_capacity(capacity: usize, ty: MallocType, flags: MallocFlags) -> Result<Self> {
-        let align = max(align_of::<T>(), align_of::<MallocType>());
-        let void_ptr: *mut c_void =
-            malloc_aligned(Self::size_for_n_elements(capacity), align, ty, flags);
-        match NonNull::new(void_ptr) {
-            Some(nonnull_void_ptr) => {
-                let metadata_ptr = nonnull_void_ptr.cast::<MallocType>();
-                unsafe { metadata_ptr.write(ty) };
-                let ptr = unsafe {
-                    nonnull_void_ptr
-                        .byte_add(Self::array_ptr_offset())
-                        .cast::<T>()
-                };
-                Ok(Self {
-                    ptr,
-                    len: 0,
-                    capacity,
-                })
-            }
-            None => Err(ENOMEM),
-        }
+        unsafe { slice::from_raw_parts_mut(self.as_ptr().cast_mut(), self.len) }
     }
 
     /// Returns the total number of elements the vector can hold without reallocating.
@@ -163,10 +93,36 @@ impl<T> Vec<T> {
         self.len
     }
 
-    /// Tries to reserve capacity for exactly `additional` more elements to be inserted in the given
-    /// `Vec<T>`. The collection will never speculatively reserve more space. After calling
-    /// `try_reserve`, the capacity will equal `self.len() + additional` if it returns `Ok(())`.
-    /// Does nothing if capacity is already sufficient.
+    pub fn with_capacity(capacity: usize, ty: MallocType, flags: MallocFlags) -> Self {
+        assert!(flags.contains(M_WAITOK));
+        assert!(!flags.contains(M_NOWAIT));
+        Self::try_with_capacity(capacity, ty, flags).unwrap()
+    }
+
+    /// Constructs an empty `Vec<T>` with *exactly* the specified capacity.
+    pub fn try_with_capacity(capacity: usize, ty: MallocType, flags: MallocFlags) -> Result<Self> {
+        if flags.contains(M_NOWAIT) && flags.contains(M_WAITOK) {
+            return Err(EDOOFUS);
+        };
+
+        let whole_layout = Self::inner_layout(capacity);
+
+        let void_ptr = malloc_aligned(whole_layout.size(), whole_layout.align(), ty, flags);
+        match NonNull::new(void_ptr) {
+            Some(nonnull_void_ptr) => {
+                // malloc_aligned's result points to the MallocType
+                let ptr = nonnull_void_ptr.cast::<MallocType>();
+                unsafe { ptr.write(ty) };
+                Ok(Self {
+                    ptr: ptr.cast::<InnerBox<T>>(),
+                    len: 0,
+                    capacity,
+                })
+            }
+            None => Err(ENOMEM),
+        }
+    }
+
     pub fn try_reserve(
         &mut self,
         additional: usize,
@@ -178,29 +134,29 @@ impl<T> Vec<T> {
             return Ok(());
         }
         if self.capacity == 0 {
-            let new_vec = Vec::try_with_capacity(additional, ty, flags)?;
+            let new_vec = Self::try_with_capacity(additional, ty, flags)?;
             let _old_vec = replace(self, new_vec);
             // _old_vec gets dropped but since it had capacity 0 that's a no-op
             return Ok(());
         }
-        let metadata_ptr = self.get_metadata_ptr().as_ptr();
-        let malloc_ptr = metadata_ptr.cast::<c_void>();
-        let new_size = Self::size_for_n_elements(new_capacity);
-        let stored_ty = unsafe { *metadata_ptr };
-        if ty != stored_ty {
+        // We can only call get_malloc_type if capacity is non-zero
+        if self.get_malloc_type() != ty {
             return Err(EDOOFUS);
         }
-        // Allocate a larger block and copy over contents. This includes the metadata, all elements
-        // (including uninitialized) and padding.
-        let new_ptr = unsafe { realloc(malloc_ptr, new_size, ty, flags) };
-        match NonNull::new(new_ptr) {
+
+        let whole_layout = Self::inner_layout(new_capacity);
+
+        let void_ptr = unsafe {
+            realloc(
+                self.ptr.as_ptr().cast::<c_void>(),
+                whole_layout.size(),
+                ty,
+                flags,
+            )
+        };
+        match NonNull::new(void_ptr) {
             Some(nonnull_void_ptr) => {
-                let new_ptr = unsafe {
-                    nonnull_void_ptr
-                        .byte_add(Self::array_ptr_offset())
-                        .cast::<T>()
-                };
-                self.ptr = new_ptr;
+                self.ptr = nonnull_void_ptr.cast::<InnerBox<T>>();
                 self.capacity = new_capacity;
                 Ok(())
             }
@@ -208,22 +164,11 @@ impl<T> Vec<T> {
         }
     }
 
-    pub fn pop(&mut self) -> Option<T> {
-        if self.len == 0 {
-            return None;
-        }
-        self.len -= 1;
-        Some(unsafe { read(self.ptr.add(self.len).as_ptr()) })
-    }
-
-    pub fn push(&mut self, value: T) {
-        assert!(self.try_push(value).is_none());
-    }
-
-    pub fn try_push(&mut self, value: T) -> Option<T> {
+    /// Appends `value` returning `Some(value)` if there is not enough space to do so without resizing.
+    pub fn push(&mut self, value: T) -> Option<T> {
         if self.len < self.capacity {
             unsafe {
-                let next_ptr = self.ptr.add(self.len).as_ptr();
+                let next_ptr = self.item_ptr(self.len);
                 write(next_ptr, value);
             }
             self.len += 1;
@@ -233,21 +178,41 @@ impl<T> Vec<T> {
         }
     }
 
-    pub fn into_boxed_slice(self) -> Box<[T]> {
-        todo!("")
-        //// TODO: Ensure the excess capacity is not leaked
-        //let fat_ptr = NonNull::slice_from_raw_parts(self.ptr, self.len);
-        //// Ownership is transferred to Box which is now responsible for dropping all the initialized contents
-        //forget(self);
-        ////Box(fat_ptr)
-        //todo!("")
+    pub fn pop(&mut self) -> Option<T> {
+        if self.len == 0 {
+            return None;
+        }
+        self.len -= 1;
+        Some(unsafe { read(self.item_ptr(self.len)) })
+    }
+
+    fn inner_layout(capacity: usize) -> Layout {
+        let header_layout = Layout::new::<MallocType>();
+        let contents_layout = Layout::array::<T>(capacity).unwrap();
+        // Get the layout of struct { MallocType, [T; n] } minus the padding at the end
+        let (whole_layout, _offset_of_contents) = header_layout.extend(contents_layout).unwrap();
+        whole_layout
+    }
+
+    fn item_ptr(&self, n: usize) -> *mut T {
+        let ptr = self.ptr.as_ptr();
+        unsafe {
+            let item_ptr = &raw mut (*ptr).thing;
+            item_ptr.add(n)
+        }
+    }
+
+    fn get_malloc_type(&self) -> MallocType {
+        let ptr = self.ptr.as_ptr();
+        let metadata_ptr = unsafe { &raw mut (*ptr).ty };
+        unsafe { *metadata_ptr }
     }
 }
 
-impl<T: Default> Vec<T> {
-    pub fn expand_to_capacity(&mut self) {
+impl<T: Copy> Vec<T> {
+    pub fn fill_to_capacity(&mut self, value: T) {
         for _ in self.len..self.capacity {
-            self.push(T::default())
+            self.push(value);
         }
     }
 }
@@ -255,13 +220,13 @@ impl<T: Default> Vec<T> {
 impl<T> Deref for Vec<T> {
     type Target = [T];
     fn deref(&self) -> &Self::Target {
-        unsafe { slice::from_raw_parts(self.ptr.as_ptr(), self.len) }
+        self.as_slice()
     }
 }
 
 impl<T> DerefMut for Vec<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { slice::from_raw_parts_mut(self.ptr.as_ptr(), self.len) }
+        self.as_mut_slice()
     }
 }
 
@@ -290,20 +255,16 @@ impl<T> Drop for Vec<T> {
         // Drop the initialized elements in place
         for n in 0..self.len {
             unsafe {
-                let ptr = self.ptr.add(n).as_ptr();
-                drop_in_place(ptr);
+                drop_in_place(self.item_ptr(n));
             }
         }
         // Don't need to drop the excess capacity or MallocType pointer in place
-
-        // Get the MallocType to free the entire thing
-        let metadata_ptr = self.get_metadata_ptr().as_ptr();
-        let ty = unsafe { *metadata_ptr };
-        unsafe { free(metadata_ptr.cast::<c_void>(), ty) }
+        unsafe { free(self.ptr.as_ptr().cast::<c_void>(), self.get_malloc_type()) }
     }
 }
 
 unsafe impl<T: Sync> Sync for Vec<T> {}
+unsafe impl<T: Send> Send for Vec<T> {}
 
 #[cfg(test)]
 mod tests {

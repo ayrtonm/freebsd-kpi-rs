@@ -109,11 +109,16 @@ RUST_CORE= ${RUST_LIBDIR}/libcore.rlib
 RUST_FAKE_BUILTINS= ${RUST_LIBDIR}/libcompiler_builtins.rlib
 RUST_KPI= libkpi.rlib
 RUST_KPI_SOURCES= \
-	${SRCTOP}/sys/rust/kpi/src/collections.rs \
+	${SRCTOP}/sys/rust/kpi/src/kobj/casts.rs \
+	${SRCTOP}/sys/rust/kpi/src/kobj/define_class.rs \
+	${SRCTOP}/sys/rust/kpi/src/kobj/method_table.rs \
+	${SRCTOP}/sys/rust/kpi/src/kobj/macros.rs \
+	${SRCTOP}/sys/rust/kpi/src/kobj/mod.rs \
 	${SRCTOP}/sys/rust/kpi/src/sync/mtx.rs \
 	${SRCTOP}/sys/rust/kpi/src/sync/arc.rs \
 	${SRCTOP}/sys/rust/kpi/src/sync/mod.rs \
 	${SRCTOP}/sys/rust/kpi/src/ofw.rs \
+	${SRCTOP}/sys/rust/kpi/src/collections.rs \
 	${SRCTOP}/sys/rust/kpi/src/bus/dma.rs \
 	${SRCTOP}/sys/rust/kpi/src/bus/mod.rs \
 	${SRCTOP}/sys/rust/kpi/src/lib.rs \
@@ -123,16 +128,15 @@ RUST_KPI_SOURCES= \
 	${SRCTOP}/sys/rust/kpi/src/intr/intrng.rs \
 	${SRCTOP}/sys/rust/kpi/src/intr/mod.rs \
 	${SRCTOP}/sys/rust/kpi/src/device.rs \
-	${SRCTOP}/sys/rust/kpi/src/interfaces/nvme.rs \
-	${SRCTOP}/sys/rust/kpi/src/interfaces/mod.rs \
 	${SRCTOP}/sys/rust/kpi/src/arm64.rs \
 	${SRCTOP}/sys/rust/kpi/src/bindings.rs \
 	${SRCTOP}/sys/rust/kpi/src/driver.rs \
-	${SRCTOP}/sys/rust/kpi/src/objects.rs \
 	${SRCTOP}/sys/rust/kpi/src/macros.rs \
 	${SRCTOP}/sys/rust/kpi/src/boxed.rs \
 	${SRCTOP}/sys/rust/kpi/src/panic.rs \
-	${SRCTOP}/sys/rust/kpi/src/ffi.rs \
+	${SRCTOP}/sys/rust/kpi/src/ffi/mod.rs \
+	${SRCTOP}/sys/rust/kpi/src/ffi/cstring.rs \
+	${SRCTOP}/sys/rust/kpi/src/ffi/subclass.rs \
 	${SRCTOP}/sys/rust/kpi/src/malloc.rs \
 	${SRCTOP}/sys/rust/kpi/src/tests.rs \
 

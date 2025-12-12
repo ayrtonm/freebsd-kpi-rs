@@ -50,8 +50,8 @@ use core::{fmt, slice};
 /// While the extra pointer in the heap adds per allocation overhead this avoids the cognitive
 /// overhead of another generic parameter on Box<T>.
 #[repr(C)]
-pub(crate) struct BoxedThing<T: ?Sized> {
-    ty: MallocType,
+pub struct InnerBox<T: ?Sized> {
+    pub(crate) ty: MallocType,
     // Must be the last field since its size might not be known at compile-time
     pub(crate) thing: T,
 }
@@ -65,7 +65,7 @@ pub(crate) struct BoxedThing<T: ?Sized> {
 /// ```
 /// though the pointee on the heap has extra metadata preceeding the T.
 #[repr(C)]
-pub struct Box<T: ?Sized>(NonNull<BoxedThing<T>>);
+pub struct Box<T: ?Sized>(pub(crate) NonNull<InnerBox<T>>);
 
 // impl Deref to allow using a Box<T> like a T transparently
 impl<T: ?Sized> Deref for Box<T> {
@@ -113,7 +113,7 @@ impl<T: ?Sized> Drop for Box<T> {
         let thing_ptr = unsafe { &raw mut (*boxed_thing_ptr).thing };
         // Drop anything that T owns
         unsafe { drop_in_place(thing_ptr) };
-        // Deallocate the memory for BoxedThing<T>
+        // Deallocate the memory for InnerBox<T>
         unsafe { free(boxed_thing_ptr.cast::<c_void>(), ty) }
     }
 }
@@ -129,13 +129,13 @@ impl<T> Box<T> {
         if flags.contains(M_NOWAIT) && flags.contains(M_WAITOK) {
             return Err(EDOOFUS);
         };
-        let boxed_t_size = size_of::<BoxedThing<T>>();
-        let boxed_t_align = align_of::<BoxedThing<T>>();
+        let boxed_t_size = size_of::<InnerBox<T>>();
+        let boxed_t_align = align_of::<InnerBox<T>>();
         let void_ptr = malloc_aligned(boxed_t_size, boxed_t_align, ty, flags);
         match NonNull::new(void_ptr) {
             Some(nonnull_void_ptr) => {
-                let boxed_thing_ptr = nonnull_void_ptr.cast::<BoxedThing<T>>();
-                unsafe { boxed_thing_ptr.write(BoxedThing { ty, thing: t }) };
+                let boxed_thing_ptr = nonnull_void_ptr.cast::<InnerBox<T>>();
+                unsafe { boxed_thing_ptr.write(InnerBox { ty, thing: t }) };
                 Ok(Self(boxed_thing_ptr))
             }
             None => Err(ENOMEM),
@@ -144,19 +144,20 @@ impl<T> Box<T> {
 }
 
 impl<T: ?Sized> Box<T> {
-    pub(crate) fn leak<'a>(b: Self) -> &'a mut BoxedThing<T> {
+    #[cfg(test)]
+    pub(crate) fn leak<'a>(b: Self) -> &'a mut InnerBox<T> {
         let mut ptr = b.0;
         forget(b);
         unsafe { ptr.as_mut() }
     }
 
-    pub fn into_raw(b: Self) -> *mut BoxedThing<T> {
+    pub fn into_raw(b: Self) -> *mut InnerBox<T> {
         let res = b.0.as_ptr();
         forget(b);
         res
     }
 
-    pub unsafe fn from_raw(raw: NonNull<BoxedThing<T>>) -> Self {
+    pub unsafe fn from_raw(raw: NonNull<InnerBox<T>>) -> Self {
         Self(raw)
     }
 

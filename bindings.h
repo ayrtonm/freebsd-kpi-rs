@@ -94,6 +94,10 @@
 
 #include <dev/nvme/nvme_private.h>
 
+#if __has_include(<dev/nvme/nvme_ans.h>)
+#include <dev/nvme/nvme_ans.h>
+#endif
+
 #if __has_include(<arm64/apple/apple_rtkit.h>)
 #include <arm64/apple/apple_rtkit.h>
 #endif

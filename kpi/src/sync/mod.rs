@@ -107,8 +107,9 @@ impl<T: Debug> Debug for Mutable<T> {
     }
 }
 
-unsafe impl<T: Sync + Send> Sync for Mutable<T> {}
-unsafe impl<T: Sync + Send> Send for Mutable<T> {}
+unsafe impl<T: Send> Sync for Mutable<T> {}
+
+unsafe impl<T: Send> Send for Mutable<T> {}
 
 impl<T> Mutable<T> {
     /// Creates a new `Mutable<T>`

@@ -61,9 +61,7 @@ impl<'a, T> ArcRef<'a, T> {
     }
 
     pub fn into_raw(x: Self) -> *mut InnerArc<T> {
-        let res = x.0.as_ptr();
-        forget(x);
-        res
+        x.0.as_ptr()
     }
 
     pub fn into_arc(&self) -> Arc<T> {
@@ -77,6 +75,14 @@ impl<'a, T> Deref for ArcRef<'a, T> {
     fn deref(&self) -> &Self::Target {
         let inner_ref = unsafe { self.0.as_ref() };
         unsafe { inner_ref.thing.assume_init_ref() }
+    }
+}
+
+impl<'a, T> Copy for ArcRef<'a, T> {}
+
+impl<'a, T> Clone for ArcRef<'a, T> {
+    fn clone(&self) -> Self {
+        Self(self.0, PhantomData)
     }
 }
 

@@ -27,52 +27,35 @@
  */
 
 use crate::ErrCode;
-use crate::bindings::{task, taskqueue};
-use crate::boxed::{Box, BoxedThing};
+use crate::bindings::{task, task_fn_t, taskqueue};
+use crate::boxed::Box;
 use crate::prelude::*;
+use crate::sync::arc::{Arc, ArcRef};
 use core::cell::UnsafeCell;
 use core::ffi::c_void;
-use core::ptr::NonNull;
+use core::mem::{forget, transmute};
 
-pub type TaskFn<T> = fn(&T, u32) -> Result<()>;
+pub type TaskFn<T> = extern "C" fn(ArcRef<T>, u32);
 
-pub trait Enqueueable {
-    #[doc(hidden)]
-    fn enqueue(self) -> *mut task;
-}
-
-impl<T> Enqueueable for Box<Task<T>> {
-    fn enqueue(self) -> *mut task {
-        let this_task = Box::leak(self);
-        this_task.thing.c_task.get_mut().ta_context =
-            (this_task as *mut BoxedThing<Task<T>>).cast::<c_void>();
-        this_task.thing.c_task.get()
-    }
-}
-
-#[repr(C)]
 #[derive(Debug)]
-pub struct Task<T = ()> {
-    c_task: UnsafeCell<task>,
-    func: TaskFn<T>,
-    ctx: T,
+pub struct Task {
+    inner: UnsafeCell<task>,
 }
 
-impl<T> Task<T> {
-    pub fn new(func: TaskFn<T>, ctx: T) -> Self {
-        let mut c_task = task::default();
-        c_task.ta_func = Some(Self::invoke_rust_func::<T>);
+impl Task {
+    pub fn new() -> Self {
+        let c_task = task::default();
         Self {
-            c_task: UnsafeCell::new(c_task),
-            func,
-            ctx,
+            inner: UnsafeCell::new(c_task),
         }
     }
 
-    extern "C" fn invoke_rust_func<U>(arg: *mut c_void, pending: i32) {
-        let task_ptr = arg.cast::<BoxedThing<Task<U>>>();
-        let this_task = unsafe { Box::from_raw(NonNull::new_unchecked(task_ptr)) };
-        (this_task.func)(&this_task.ctx, pending as u32).unwrap();
+    pub fn init<T>(&mut self, func: TaskFn<T>, arg: Arc<T>) {
+        let func = unsafe { transmute::<Option<TaskFn<T>>, task_fn_t>(Some(func)) };
+        let arg_ptr = Arc::into_raw(arg);
+        let c_task = self.inner.get_mut();
+        c_task.ta_func = func;
+        c_task.ta_context = arg_ptr.cast::<c_void>();
     }
 }
 
@@ -92,9 +75,10 @@ pub mod wrappers {
         Taskqueue(ptr)
     }
 
-    pub fn taskqueue_enqueue<T: Enqueueable>(queue: Taskqueue, task: T) -> Result<()> {
-        let task_ptr = task.enqueue();
-        let res = unsafe { bindings::taskqueue_enqueue(queue.0, task_ptr) };
+    pub fn taskqueue_enqueue(queue: Taskqueue, task: Box<Task>) -> Result<()> {
+        let c_task = task.inner.get();
+        forget(task);
+        let res = unsafe { bindings::taskqueue_enqueue(queue.0, c_task) };
         if res != 0 {
             Err(ErrCode::from(res))
         } else {

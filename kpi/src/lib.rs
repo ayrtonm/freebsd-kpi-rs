@@ -110,7 +110,7 @@ extern crate std;
 mod macros;
 
 #[macro_use]
-pub mod objects;
+pub mod kobj;
 
 /// Arch-specific functions for ARM64
 #[cfg(target_arch = "aarch64")]
@@ -125,7 +125,6 @@ pub mod collections;
 pub mod device;
 pub mod driver;
 pub mod ffi;
-pub mod interfaces;
 /// Interrupt functions and config hook
 pub mod intr;
 /// Malloc flags and types
@@ -167,24 +166,25 @@ pub type Result<T> = core::result::Result<T, ErrCode>;
 
 /// A catch-all module for miscellaneous functions
 #[allow(non_snake_case)]
-#[cfg(not(target_arch = "aarch64"))]
 pub mod misc {
-    pub const PAGE_SIZE: u64 = crate::bindings::PAGE_SIZE as u64;
-    pub const BUS_SPACE_MAXADDR: u64 = crate::bindings::BUS_SPACE_MAXADDR as u64;
-}
-#[allow(non_snake_case)]
-#[cfg(target_arch = "aarch64")]
-pub mod misc {
-    use crate::bindings::{cpuset_t, device_t, u_int};
+    #[cfg(target_arch = "aarch64")]
+    use crate::bindings::device_t;
+    #[cfg(target_arch = "aarch64")]
     use crate::prelude::*;
-    use crate::sync::Mutable;
-    use crate::{ErrCode, bindings};
-    use core::ffi::{CStr, c_int, c_void};
-    use core::ptr::null_mut;
-    use core::sync::atomic::{AtomicU8, AtomicU16, AtomicU32, AtomicU64};
+    #[cfg(target_arch = "aarch64")]
+    use core::sync::atomic::AtomicU32;
+
+    use crate::bindings;
+    use crate::bindings::{cpuset_t, u_int};
+    use core::ffi::c_int;
 
     pub const PAGE_SIZE: u64 = crate::bindings::PAGE_SIZE as u64;
     pub const BUS_SPACE_MAXADDR: u64 = crate::bindings::BUS_SPACE_MAXADDR as u64;
+
+    pub fn cold() -> bool {
+        // nonzero if we are doing a cold boot
+        unsafe { bindings::cold != 0 }
+    }
 
     pub fn hz() -> i32 {
         unsafe { bindings::hz }
@@ -198,9 +198,11 @@ pub mod misc {
         let val = unsafe { bindings::mp_maxid };
         val as usize
     }
+    #[cfg(target_arch = "aarch64")]
     pub fn atomic_readandclear_32(p: &AtomicU32) -> u32 {
         unsafe { bindings::atomic_readandclear_32(p.as_ptr()) }
     }
+    #[cfg(target_arch = "aarch64")]
     pub fn atomic_set_32(p: &AtomicU32, x: u32) {
         unsafe { bindings::atomic_set_32(p.as_ptr(), x) }
     }
@@ -210,6 +212,7 @@ pub mod misc {
     pub fn CPU_ISSET(cpu: u_int, set: &cpuset_t) -> bool {
         unsafe { bindings::rust_bindings_CPU_ISSET(cpu, set as *const cpuset_t as *mut cpuset_t) }
     }
+    #[cfg(target_arch = "aarch64")]
     pub fn gpiobus_add_bus(dev: device_t) -> Result<device_t> {
         let res = unsafe { bindings::gpiobus_add_bus(dev) };
         if res.0.is_null() {
@@ -217,65 +220,6 @@ pub mod misc {
         } else {
             Ok(res)
         }
-    }
-
-    pub trait Sleepable {
-        fn as_ptr(&self) -> *mut c_void;
-    }
-
-    impl<T> Sleepable for Mutable<T> {
-        fn as_ptr(&self) -> *mut c_void {
-            self.as_ptr().cast::<c_void>()
-        }
-    }
-
-    impl Sleepable for AtomicU8 {
-        fn as_ptr(&self) -> *mut c_void {
-            self.as_ptr().cast::<c_void>()
-        }
-    }
-
-    impl Sleepable for AtomicU16 {
-        fn as_ptr(&self) -> *mut c_void {
-            self.as_ptr().cast::<c_void>()
-        }
-    }
-
-    impl Sleepable for AtomicU32 {
-        fn as_ptr(&self) -> *mut c_void {
-            self.as_ptr().cast::<c_void>()
-        }
-    }
-
-    impl Sleepable for AtomicU64 {
-        fn as_ptr(&self) -> *mut c_void {
-            self.as_ptr().cast::<c_void>()
-        }
-    }
-
-    pub fn tsleep<T: Sleepable>(chan: &T, priority: i32, wmesg: &CStr, timo: i32) -> Result<()> {
-        let chan_ptr = chan.as_ptr();
-        let wmesg_ptr = wmesg.as_ptr();
-        let res = unsafe {
-            bindings::_sleep(
-                chan_ptr,
-                null_mut(),
-                priority,
-                wmesg_ptr,
-                bindings::tick_sbt * timo as i64,
-                0,
-                bindings::C_HARDCLOCK,
-            )
-        };
-        if res != 0 {
-            return Err(ErrCode::from(res));
-        }
-        Ok(())
-    }
-
-    pub fn wakeup<T: Sleepable>(chan: &T) {
-        let chan_ptr = chan.as_ptr();
-        unsafe { bindings::wakeup(chan_ptr) }
     }
 }
 
@@ -288,8 +232,8 @@ pub mod prelude {
     pub use crate::arm64::*;
 
     pub use crate::bindings::device_t;
-    pub use crate::interfaces::{AsCType, AsRustType};
-    pub use crate::{ErrCode, Result, base, bindings, device_get_softc};
+    pub use crate::kobj::{AsCType, AsRustType};
+    pub use crate::{ErrCode, Result, base, bindings};
     #[cfg(target_arch = "aarch64")]
     pub use crate::{
         curthread, isb, pcpu_get, pcpu_ptr, read_specialreg, rmb, wmb, write_specialreg,
@@ -347,7 +291,7 @@ macro_rules! err_codes {
         use core::fmt;
         use core::fmt::{Debug, Display, Formatter};
         use core::num::NonZeroI32;
-        use crate::interfaces::AsCType;
+        use crate::kobj::AsCType;
 
         /// A FreeBSD error code.
         ///

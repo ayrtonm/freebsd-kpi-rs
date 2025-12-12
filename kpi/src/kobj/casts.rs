@@ -26,27 +26,12 @@
  * SUCH DAMAGE.
  */
 
-use crate::boxed::{Box, BoxedThing};
+use crate::boxed::{Box, InnerBox};
 use crate::ffi::SubClass;
+use crate::kobj::{AsCType, AsRustType};
 use crate::sync::arc::{Arc, ArcRef, InnerArc, UniqueArcRef};
 use core::ffi::c_void;
 use core::ptr::NonNull;
-
-mod nvme;
-
-pub use crate::device::DeviceIf;
-#[cfg(feature = "intrng")]
-pub use crate::intr::PicIf;
-
-pub use nvme::NvmeIf;
-
-pub trait AsCType<T, X = ()> {
-    fn as_c_type(self) -> T;
-}
-
-pub trait AsRustType<T, X = ()> {
-    fn as_rust_type(self) -> T;
-}
 
 // Allow passing through C types into rust unchanged
 impl<T> AsRustType<T> for T {
@@ -97,7 +82,7 @@ impl<'a, B, F> AsRustType<&'a mut SubClass<B, F>> for *mut B {
 
 impl<T> AsRustType<Box<T>> for *mut T {
     fn as_rust_type(self) -> Box<T> {
-        unsafe { Box::from_raw(NonNull::new(self.cast::<BoxedThing<T>>()).unwrap()) }
+        unsafe { Box::from_raw(NonNull::new(self.cast::<InnerBox<T>>()).unwrap()) }
     }
 }
 
@@ -121,7 +106,7 @@ impl<T> AsRustType<UniqueArcRef<T>> for *mut T {
 
 impl<T> AsRustType<Box<T>, c_void> for *mut c_void {
     fn as_rust_type(self) -> Box<T> {
-        unsafe { Box::from_raw(NonNull::new(self.cast::<BoxedThing<T>>()).unwrap()) }
+        unsafe { Box::from_raw(NonNull::new(self.cast::<InnerBox<T>>()).unwrap()) }
     }
 }
 

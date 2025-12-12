@@ -26,16 +26,16 @@
  * SUCH DAMAGE.
  */
 
-use crate::ErrCode;
 use crate::bindings::{
     device_t, intr_irq_filter_t, intr_irqsrc, intr_map_data, intr_map_data_fdt, pcell_t, trapframe,
 };
 use crate::bus::{Filter, Resource};
-use crate::ffi::SubClass;
+use crate::ffi::{CString, SubClass};
 use crate::ofw::XRef;
 use crate::prelude::*;
-use crate::sync::arc::Arc;
-use core::ffi::{CStr, c_int, c_void};
+use crate::sync::arc::{Arc, ArcRef};
+use crate::{ErrCode, define_dev_interface};
+use core::ffi::{c_int, c_void};
 use core::mem::transmute;
 
 #[repr(C)]
@@ -92,45 +92,87 @@ define_dev_interface! {
     fn pic_ipi_send(dev: device_t, isrc: *mut intr_irqsrc, cpus: cpuset_t, ipi: u32),
         with desc pic_ipi_send_desc
         and typedef pic_ipi_send_t;
-    fn pic_map_intr(dev: device_t, data: *mut intr_map_data, isrcp: *mut *mut intr_irqsrc) -> int,
-        with desc pic_map_intr_desc
-        and typedef pic_map_intr_t,
-        with init glue {
-            // Store the pointer passed to the extern "C" function so we can reference it later
-            let mut c_isrcp = isrcp;
+}
 
-            let mut x = None;
-            // Shadow the variable we pass to the rust method
-            let mut isrcp = &mut x;
-        },
-        with drop glue {
-            use $crate::ffi::SubClass;
-            match isrcp {
-                Some(x) => {
-                    // Write the subclass base pointer to the pointer passed to the extern "C" function
-                    *c_isrcp = SubClass::as_base_ptr(x);
-                },
-                None => { return EDOOFUS; },
-            }
-        };
-    fn pic_ipi_setup(dev: device_t, ipi: u32, isrcp: *mut *mut intr_irqsrc) -> int,
-        with desc pic_ipi_setup_desc
-        and typedef pic_ipi_setup_t,
-        with init glue {
-            let mut c_isrcp = isrcp;
+#[doc(hidden)]
+#[macro_export]
+macro_rules! pic_map_intr {
+    (get_desc) => {
+        $crate::bindings::pic_map_intr_desc
+    };
+    ($driver_ty:ident $impl_fn_name:ident) => {
+        #[allow(unused_mut)]
+        #[unsafe(no_mangle)]
+        pub unsafe extern "C" fn $impl_fn_name(
+            dev: device_t,
+            data: *mut intr_map_data,
+            isrcp: *mut *mut intr_irqsrc,
+        ) -> c_int {
+            //let typedef_val = pic_map_intr_t::default();
+            //let typedef_id = typedef_val.type_id();
+            //let this_fn_id = TypeId::of::<Option<
+            //assert!(typedef_id == this_fn_id);
+            use $crate::bindings;
+            use $crate::kobj::KobjLayout;
+            use $crate::sync::arc::Arc;
 
-            let mut x = None;
-            let mut isrcp = &mut x;
-        },
-        with drop glue {
-            use $crate::ffi::SubClass;
-            match isrcp {
-                Some(x) => {
-                    *c_isrcp = SubClass::as_base_ptr(x);
-                },
-                None => { return EDOOFUS; },
-            }
-        };
+            let void_ptr = unsafe { bindings::device_get_softc(dev) };
+            let sc_ptr = void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
+            let sc = unsafe { Arc::from_raw(sc_ptr) };
+            let data = data.as_rust_type();
+            let res = match <$driver_ty as PicIf>::pic_map_intr(&sc, dev, data) {
+                Ok(isrc_ref) => {
+                    unsafe {
+                        *isrcp = base!(&isrc_ref);
+                    }
+                    0
+                }
+                Err(e) => e.as_c_type(),
+            };
+            Arc::into_raw(sc);
+            return res;
+        }
+    };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! pic_ipi_setup {
+    (get_desc) => {
+        $crate::bindings::pic_ipi_setup_desc
+    };
+    ($driver_ty:ident $impl_fn_name:ident) => {
+        #[allow(unused_mut)]
+        #[unsafe(no_mangle)]
+        pub unsafe extern "C" fn $impl_fn_name(
+            dev: device_t,
+            ipi: u32,
+            isrcp: *mut *mut intr_irqsrc,
+        ) -> c_int {
+            //let typedef_val = pic_ipi_setup_t::default();
+            //let typedef_id = typedef_val.type_id();
+            //let this_fn_id = TypeId::of::<Option<
+            //assert!(typedef_id == this_fn_id);
+            use $crate::bindings;
+            use $crate::kobj::KobjLayout;
+            use $crate::sync::arc::Arc;
+
+            let void_ptr = unsafe { bindings::device_get_softc(dev) };
+            let sc_ptr = void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
+            let sc = unsafe { Arc::from_raw(sc_ptr) };
+            let res = match <$driver_ty as PicIf>::pic_ipi_setup(&sc, dev, ipi) {
+                Ok(isrc_ref) => {
+                    unsafe {
+                        *isrcp = base!(&isrc_ref);
+                    }
+                    0
+                }
+                Err(e) => e.as_c_type(),
+            };
+            Arc::into_raw(sc);
+            return res;
+        }
+    };
 }
 
 pub type IrqSrc<T> = SubClass<intr_irqsrc, T>;
@@ -157,12 +199,11 @@ pub trait PicIf: DeviceIf {
     ) -> Result<()> {
         unimplemented!()
     }
-    fn pic_map_intr<'a>(
-        sc: ArcRef<'a, Self::Softc>,
+    fn pic_map_intr(
+        sc: &Arc<Self::Softc>,
         dev: device_t,
         data: MapData,
-        isrcp: &mut Option<&'a IrqSrc<Self::IrqSrcFields>>,
-    ) -> Result<()> {
+    ) -> Result<&IrqSrc<Self::IrqSrcFields>> {
         unimplemented!()
     }
     fn pic_enable_intr(
@@ -207,15 +248,14 @@ pub trait PicIf: DeviceIf {
     ) -> Result<()> {
         unimplemented!()
     }
-    fn pic_init_secondary(sc: &Arc<Self::Softc>, dev: device_t, root: IntrRoot) {
+    fn pic_init_secondary(sc: ArcRef<Self::Softc>, dev: device_t, root: IntrRoot) {
         unimplemented!()
     }
-    fn pic_ipi_setup<'a>(
-        sc: ArcRef<'a, Self::Softc>,
+    fn pic_ipi_setup(
+        sc: &Arc<Self::Softc>,
         dev: device_t,
         ipi: u32,
-        isrcp: &mut Option<&'a IrqSrc<Self::IrqSrcFields>>,
-    ) -> Result<()> {
+    ) -> Result<&IrqSrc<Self::IrqSrcFields>> {
         unimplemented!()
     }
     fn pic_ipi_send(
@@ -287,23 +327,12 @@ pub mod wrappers {
         isrc: &'static IrqSrc<T>,
         dev: device_t,
         flags: Option<IntrIsrcf>,
-        fmt_str: &'static CStr,
-        arg0: &'static CStr,
-        arg1: u32,
-        arg2: u32,
+        name: &CString,
     ) -> Result<()> {
         let flags = flags.map(|f| f.0 as u32).unwrap_or(0);
         let isrc_ptr = SubClass::as_base_ptr(&isrc);
         let res = unsafe {
-            bindings::intr_isrc_register(
-                isrc_ptr,
-                dev,
-                flags,
-                fmt_str.as_ptr(),
-                arg0.as_ptr(),
-                arg1,
-                arg2,
-            )
+            bindings::intr_isrc_register(isrc_ptr, dev, flags, c"%s".as_ptr(), name.as_c_str())
         };
         if res == 0 {
             Ok(())

@@ -27,7 +27,7 @@
  */
 
 use crate::bindings::driver_t;
-use crate::objects::KobjClass;
+use crate::kobj::KobjClass;
 
 pub trait Driver: KobjClass {
     const DRIVER: *mut driver_t;
@@ -70,11 +70,12 @@ pub trait Driver: KobjClass {
 macro_rules! driver {
     ($driver_sym:ident, $driver_name:expr, $driver_ty:ident, $method_table:ident = { $($if_fn:ident $impl_name:ident $(defined in $lang:ident)?,)* }
         $(,inherit from $($base_classes:ident)*,)?
+        $(with interfaces from { $($extra_imports:path$(,)?)* };)?
     ) => {
         $crate::define_class!($driver_sym, $driver_name, $driver_ty, $method_table $(inherit from $($base_classes)*,)*);
-        $crate::method_table!($driver_sym, $driver_ty, $method_table = { $($if_fn $impl_name $(defined in $lang)*,)* };);
+        $crate::method_table!($driver_sym, $driver_ty, $method_table = { $($if_fn $impl_name $(defined in $lang)*,)* }; $(with interfaces from { $($extra_imports)* };)*);
 
-        impl $crate::objects::KobjLayout for $driver_ty {
+        impl $crate::kobj::KobjLayout for $driver_ty {
             type Layout = $crate::sync::arc::InnerArc<<$driver_ty as DeviceIf>::Softc>;
         }
 
