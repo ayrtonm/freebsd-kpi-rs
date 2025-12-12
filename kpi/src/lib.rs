@@ -33,7 +33,6 @@
     unreachable_patterns,
     unsafe_op_in_unsafe_fn
 )]
-#![feature(linkage)]
 
 //! This crate provides access to [FreeBSD kernel interfaces](https://man.freebsd.org/cgi/man.cgi).
 //!
@@ -148,7 +147,6 @@ pub mod vec;
 macro_rules! define_stub_syms {
     ($($sym:ident)*) => {
         $(
-            #[linkage = "weak"]
             #[doc(hidden)]
             #[unsafe(no_mangle)]
             pub extern "C" fn $sym() {
@@ -506,10 +504,4 @@ define_stub_syms! {
     __floatdidf
     __extendhfsf2
     __truncsfhf2
-
-    // stubs for KERNCONF=APPLE
-    virtio_read_device_config
-    virtio_write_device_config
-    virtio_read_ivar
-    virtio_write_ivar
 }

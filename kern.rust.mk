@@ -64,7 +64,8 @@ RUSTFLAGS+= -Ccode-model=kernel \
 
 .endif
 
-BINDGEN_INLINE_SRC = inlines.c
+BINDGEN_GENERATED_SRC= bindgen_inlines.c
+BINDGEN_INLINE_SRC= inlines.c
 BINDGEN_FLAGS= \
 	--use-core \
 	--rust-edition 2024 \
@@ -98,7 +99,29 @@ BINDGEN_FLAGS= \
 	--no-debug pcpu \
 	--experimental \
 	--wrap-static-fns \
-	--wrap-static-fns-path ${BINDGEN_INLINE_SRC}
+	--wrap-static-fns-path ${BINDGEN_GENERATED_SRC}
+
+# TODO: It would be better to have the existing build system set make flags and preprocessor defines
+# based on the options in the KERNCONF instead of requiring the rust makefile to define these. The
+# current solution should work for general KERNCONFs but adding new headers which are not available
+# for all configs to bindings.h is a slight pain.
+.if ${KERNCONF} == "APPLE"
+BINDGEN_DEFINES= \
+	-DKERNCONF_APPLE \
+
+.elif ${KERNCONF} == "VIRT"
+BINDGEN_DEFINES= \
+	-DWITH_VIRTIO \
+	-DWITH_SOUND \
+
+.elif ${KERNCONF} == "GENERIC"
+BINDGEN_DEFINES= \
+	-DWITH_VIRTIO \
+	-DWITH_SOUND \
+
+.elif ${KERNCONF} == "MINIMAL"
+
+.endif
 
 # An arbitrary directory for the sysroot
 RUST_SYSROOT= rust_sysroot
@@ -166,9 +189,10 @@ ${RUST_FAKE_BUILTINS}: ${RUST_CORE} ${RUST_MAKEFILE}
 		-o ${RUST_LIBDIR}/libcompiler_builtins.rlib
 
 ${BINDGEN_INLINE_SRC}: ${BINDINGS_RS} ${RUST_MAKEFILE}
+	printf "${BINDGEN_DEFINES:C/$/\n/g:C/-D/#define /g}#include \"${BINDGEN_GENERATED_SRC}\"" > ${BINDGEN_INLINE_SRC}
 
 ${BINDINGS_RS}: ${SRCTOP}/sys/rust/bindings.h ${RUST_MAKEFILE}
-	${BINDGEN} ${BINDGEN_FLAGS} ${SRCTOP}/sys/rust/bindings.h -- ${CFLAGS} -DBINDGEN > bindings.rs
+	${BINDGEN} ${BINDGEN_FLAGS} ${SRCTOP}/sys/rust/bindings.h -- ${CFLAGS} ${BINDGEN_DEFINES} > bindings.rs
 
 ${RUST_KPI}: ${RUST_FAKE_BUILTINS} ${BINDINGS_RS} ${RUST_KPI_SOURCES}
 	OUT_DIR=$(PWD) ${RLIB_RULE} --crate-name kpi ${RUST_KPI_FEATURES} ${SRCTOP}/sys/rust/kpi/src/lib.rs -o ${.TARGET}
