@@ -119,8 +119,10 @@ macro_rules! device_attach {
             }
             with drop glue {
                 let count = Arc::get_count(sc_ptr);
-                // TODO: don't do this if attach returned err
-                assert!(count >= 1);
+                // TODO: don't do this check if attach returned err
+                if count == 0 {
+                    panic!("Must call .init() on the UninitArc<Softc> in device_attach")
+                }
             }
             with prefix args { uninit_sc }
         }
