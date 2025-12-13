@@ -30,8 +30,9 @@ use crate::bindings::{device_state_t, device_t, driver_t};
 use crate::define_dev_interface;
 use crate::driver::Driver;
 use crate::ffi::CString;
+use crate::kobj::AsCType;
 use crate::prelude::*;
-use crate::sync::arc::{Arc, InnerArc, UninitArc};
+use crate::sync::arc::{Arc, ArcRef, InnerArc, UninitArc};
 use core::ffi::{CStr, c_int};
 use core::fmt;
 use core::fmt::{Debug, Formatter};
@@ -193,9 +194,9 @@ define_dev_interface! {
 /// In contrast to the C equivalent, the softc is passed as an argument to the methods in which the
 /// driver is allowed to access it (all except [`device_probe`][DeviceIf::device_probe]). In
 /// [`device_attach`][DeviceIf::device_attach] it must be initialized by calling the argument's
-/// [`init`][crate::ffi::Uninit::init] method. That returns a reference to the softc (`&RefCounted<Softc>`)
-/// which can be used for the duration of the function. If a softc reference is not sufficient (e.g.
-/// it needs to be passed to a callback that may be called after the function returns), the
+/// [`init`][crate::ffi::Uninit::init] method. That returns a mutable reference to the softc
+/// (`UniqueArcRef<Softc>`) which can be used for the duration of the function. If a softc reference
+/// is not sufficient (e.g. it needs to be passed to a callback that may be called after the function returns), the
 /// [`grab_ref()`][crate::ffi::RefCounted::grab_ref] method can be used to get a pointer to the
 /// softc and increase its refcount. Grabbing a refcount ensures that the softc will live as long
 /// as necessary. Also note that all kobj interface methods collectively own one refcount to the
@@ -213,18 +214,12 @@ define_dev_interface! {
 Implement the device interface trait and define the softc as follows
 
 ```
-pub struct MyDriverSoftc {{ /* softc fields go here */ }}
+use kpi::device::DeviceIf;
+
+pub struct {Self}Softc {{ /* softc fields go here */ }}
 
 impl DeviceIf for {Self} {{
-    type Softc = MyDriverSoftc;
-
-    fn device_probe(dev: device_t) -> Result<BusProbe> {{
-        /* device_probe impl goes here */
-    }}
-
-    fn device_attach(sc: UninitArc<MyDriverSoftc>, dev: device_t) -> Result<()> {{
-        /* device_attach impl goes here */
-    }}
+    type Softc = {Self}Softc;
 }}
 ```
 ")]

@@ -26,25 +26,30 @@
  * SUCH DAMAGE.
  */
 
-#![allow(non_snake_case)]
+#[doc(inline)]
+pub use wrappers::*;
 
-use crate::bindings;
-use crate::bindings::u_int;
+#[allow(non_snake_case)]
+#[doc(hidden)]
+pub mod wrappers {
+    use crate::bindings;
+    use crate::bindings::u_int;
 
-/// Checks whether the kernel is running in VHE mode.
-pub fn in_vhe() -> bool {
-    unsafe { bindings::in_vhe() }
-}
+    /// Checks whether the kernel is running in VHE mode.
+    pub fn in_vhe() -> bool {
+        unsafe { bindings::in_vhe() }
+    }
 
-pub fn CPU_AFFINITY(cpu: u_int) -> u64 {
-    unsafe { bindings::rust_bindings_CPU_AFFINITY(cpu) }
-}
+    pub fn CPU_AFFINITY(cpu: u_int) -> u64 {
+        unsafe { bindings::rust_bindings_CPU_AFFINITY(cpu) }
+    }
 
-pub fn CPU_AFF0(mpidr: u64) -> u64 {
-    unsafe { bindings::rust_bindings_CPU_AFF0(mpidr) }
-}
-pub fn CPU_AFF1(mpidr: u64) -> u64 {
-    unsafe { bindings::rust_bindings_CPU_AFF1(mpidr) }
+    pub fn CPU_AFF0(mpidr: u64) -> u64 {
+        unsafe { bindings::rust_bindings_CPU_AFF0(mpidr) }
+    }
+    pub fn CPU_AFF1(mpidr: u64) -> u64 {
+        unsafe { bindings::rust_bindings_CPU_AFF1(mpidr) }
+    }
 }
 
 #[macro_export]

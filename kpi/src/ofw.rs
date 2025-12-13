@@ -28,6 +28,7 @@
 
 use crate::ErrCode;
 use crate::bindings::{device_t, ofw_compat_data, phandle_t};
+use crate::kobj::AsRustType;
 use crate::prelude::*;
 use core::ffi::{CStr, c_char, c_int};
 use core::mem::{MaybeUninit, align_of, offset_of, size_of};

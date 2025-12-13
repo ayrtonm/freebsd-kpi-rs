@@ -30,7 +30,9 @@ use crate::bindings::{
     device_t, intr_irq_filter_t, intr_irqsrc, intr_map_data, intr_map_data_fdt, pcell_t, trapframe,
 };
 use crate::bus::{Filter, Resource};
+use crate::device::DeviceIf;
 use crate::ffi::{CString, SubClass};
+use crate::kobj::AsRustType;
 use crate::ofw::XRef;
 use crate::prelude::*;
 use crate::sync::arc::{Arc, ArcRef};

@@ -227,11 +227,9 @@ pub mod misc {
 pub mod prelude {
     #[doc(inline)]
     #[cfg(target_arch = "aarch64")]
-    pub use crate::arm64::*;
+    pub use crate::arm64::wrappers::*;
 
-    pub use crate::bindings::device_t;
-    pub use crate::kobj::{AsCType, AsRustType};
-    pub use crate::{ErrCode, Result, base, bindings};
+    pub use crate::{Result, bindings};
     #[cfg(target_arch = "aarch64")]
     pub use crate::{
         curthread, isb, pcpu_get, pcpu_ptr, read_specialreg, rmb, wmb, write_specialreg,
@@ -273,9 +271,6 @@ pub mod prelude {
     #[doc(inline)]
     pub use crate::taskq::wrappers::*;
 
-    pub use crate::device::{BusProbe, DeviceIf};
-    pub use crate::sync::arc::{Arc, ArcRef, UninitArc};
-
     #[doc(inline)]
     pub use crate::misc::*;
 
@@ -312,10 +307,10 @@ macro_rules! err_codes {
                 $(assert!(bindings::$name != i32::MIN);)*
                 $(assert!(bindings::$name != i32::MIN + 1);)*
             };
-            $(pub const $name: ErrCode = ErrCode(unsafe { NonZeroI32::new_unchecked(bindings::$name) });)*
+            $(pub const $name: ErrCode = ErrCode(NonZeroI32::new(bindings::$name).unwrap());)*
             // TODO: make overlap checking less error-prone before adding more KPI crate errors
-            pub const ENULLPTR: ErrCode = ErrCode(unsafe { NonZeroI32::new_unchecked(i32::MIN) });
-            pub const EBADFFI: ErrCode = ErrCode(unsafe { NonZeroI32::new_unchecked(i32::MIN + 1) });
+            pub const ENULLPTR: ErrCode = ErrCode(NonZeroI32::new(i32::MIN).unwrap());
+            pub const EBADFFI: ErrCode = ErrCode(NonZeroI32::new(i32::MIN + 1).unwrap());
         }
 
         impl AsCType<c_int> for () {

@@ -26,6 +26,7 @@
  * SUCH DAMAGE.
  */
 
+use crate::ErrCode;
 use crate::bindings::sglist;
 use crate::boxed::Box;
 use crate::ffi::SyncPtr;

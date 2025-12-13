@@ -26,6 +26,7 @@
  * SUCH DAMAGE.
  */
 
+use crate::ErrCode;
 use crate::bindings::{bus_addr_t, bus_dma_lock_t, bus_dma_tag_t, bus_dmamap_t, bus_size_t};
 use crate::prelude::*;
 use core::ffi::{c_int, c_void};

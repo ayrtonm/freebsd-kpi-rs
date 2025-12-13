@@ -28,6 +28,7 @@
 
 use crate::ErrCode;
 use crate::bindings::{bus_size_t, device_t, resource, resource_spec};
+use crate::kobj::{AsCType, AsRustType};
 use crate::prelude::*;
 use crate::sync::arc::{Arc, ArcRef};
 use core::cell::UnsafeCell;

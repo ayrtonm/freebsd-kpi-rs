@@ -76,7 +76,7 @@ macro_rules! driver {
         $crate::method_table!($driver_sym, $driver_ty, $method_table = { $($if_fn $impl_name $(defined in $lang)*,)* }; $(with interfaces from { $($extra_imports)* };)*);
 
         impl $crate::kobj::KobjLayout for $driver_ty {
-            type Layout = $crate::sync::arc::InnerArc<<$driver_ty as DeviceIf>::Softc>;
+            type Layout = $crate::sync::arc::InnerArc<<$driver_ty as $crate::device::DeviceIf>::Softc>;
         }
 
         impl $crate::driver::Driver for $driver_ty {
