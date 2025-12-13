@@ -151,49 +151,6 @@ impl Sleepable for AtomicU64 {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Priority(i32);
 
-gen_newtype! {
-    Priority,
-    PRI_MIN,
-    PRI_MAX,
-    PRI_MIN_ITHD,
-    //PRI_MAX_ITHD,
-    PI_REALTIME,
-    PI_INTR,
-    PI_AV,
-    PI_NET,
-    PI_DISK,
-    PI_TTY,
-    PI_DULL,
-    PI_SOFT,
-    PI_SOFTCLOCK,
-    //PI_SWI,
-
-    PRI_MIN_REALTIME,
-    //PRI_MAX_REALTIME,
-
-    PRI_MIN_KERN,
-    //PRI_MAX_KERN,
-
-    PSWP,
-    PVM,
-    PINOD,
-    PRIBIO,
-    PVFS,
-    PZERO,
-    PSOCK,
-    PWAIT,
-    PLOCK,
-    PPAUSE,
-
-    PRI_MIN_TIMESHARE,
-    //PRI_MAX_TIMESHARE,
-
-    PUSER,
-
-    PRI_MIN_IDLE,
-    PRI_MAX_IDLE,
-}
-
 #[doc(inline)]
 pub use wrappers::*;
 
@@ -211,6 +168,49 @@ pub mod wrappers {
         INTR_TYPE_MISC,
         INTR_TYPE_CLK,
         INTR_TYPE_AV,
+    }
+
+    gen_newtype! {
+        Priority,
+        PRI_MIN,
+        PRI_MAX,
+        PRI_MIN_ITHD,
+        //PRI_MAX_ITHD,
+        PI_REALTIME,
+        PI_INTR,
+        PI_AV,
+        PI_NET,
+        PI_DISK,
+        PI_TTY,
+        PI_DULL,
+        PI_SOFT,
+        PI_SOFTCLOCK,
+        //PI_SWI,
+
+        PRI_MIN_REALTIME,
+        //PRI_MAX_REALTIME,
+
+        PRI_MIN_KERN,
+        //PRI_MAX_KERN,
+
+        PSWP,
+        PVM,
+        PINOD,
+        PRIBIO,
+        PVFS,
+        PZERO,
+        PSOCK,
+        PWAIT,
+        PLOCK,
+        PPAUSE,
+
+        PRI_MIN_TIMESHARE,
+        //PRI_MAX_TIMESHARE,
+
+        PUSER,
+
+        PRI_MIN_IDLE,
+        PRI_MAX_IDLE,
     }
 
     #[doc(inline)]
