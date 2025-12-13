@@ -73,8 +73,8 @@
 #endif // FDT
 
 #if defined(WITH_SOUND)
-#include "channel_if.h"
 #include <dev/sound/pcm/sound.h>
+#include "channel_if.h"
 #endif
 
 #if defined(WITH_VIRTIO)
