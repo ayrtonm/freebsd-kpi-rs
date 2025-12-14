@@ -148,6 +148,11 @@ impl<T> UninitArc<T> {
 pub struct Arc<T>(NonNull<InnerArc<T>>, PhantomData<T>);
 
 impl<T> Arc<T> {
+    const LAYOUT_SUPPORTS_SUBCLASSES: () = {
+        if offset_of!(InnerArc<T>, thing) != 0 {
+            panic!("InnerArc layout does not support subclasses")
+        }
+    };
     /// Creates a new `Arc<T>`.
     ///
     /// Allocates space on the heap for the `T` as well as the `Arc`'s metadata. `flags` must
@@ -162,9 +167,8 @@ impl<T> Arc<T> {
     ///
     /// `flags` must contain either `M_NOWAIT` or `M_WAITOK`.
     pub fn try_new(thing: T, ty: MallocType, flags: MallocFlags) -> Result<Self> {
-        if offset_of!(InnerArc<T>, thing) != 0 {
-            panic!("InnerArc layout does not support subclasses")
-        }
+        // compile-time assertion about layout of InnerArc<T>
+        let _ = Self::LAYOUT_SUPPORTS_SUBCLASSES;
         if flags.contains(M_NOWAIT) == flags.contains(M_WAITOK) {
             return Err(EDOOFUS);
         }
