@@ -107,11 +107,24 @@ macro_rules! device_attach {
                 use $crate::bindings;
                 use $crate::kobj::KobjLayout;
                 use $crate::kobj::interfaces::DeviceIf;
-                use $crate::sync::arc::{Arc, UninitArc};
+                use $crate::sync::arc::{Arc, UninitArc, ArcMetadata, InnerArc};
+                use core::mem::offset_of;
+                use core::ptr::drop_in_place;
+                use core::ffi::c_void;
 
                 let void_ptr = unsafe { bindings::device_get_softc(dev) };
                 let sc_ptr = void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
-                Arc::set_drop_fn(sc_ptr, core::ptr::drop_in_place);
+
+                unsafe fn softc_drop_fn<D: DeviceIf>(metadata_ptr: *mut ArcMetadata) {
+                    let metadata_offset = offset_of!(InnerArc<D::Softc>, metadata);
+                    let inner_ptr = unsafe {
+                        metadata_ptr.byte_sub(metadata_offset).cast::<InnerArc<D::Softc>>()
+                    };
+                    unsafe { drop_in_place(inner_ptr) };
+                    unsafe { bindings::device_free_softc(inner_ptr.cast::<c_void>()) };
+                }
+
+                Arc::set_drop_fn(sc_ptr, softc_drop_fn::<$driver_ty>);
                 // Claim the softc to opt it into refcounting
                 $crate::device::device_claim_softc(dev);
 
@@ -357,6 +370,7 @@ mod tests {
     use std::vec::Vec;
 
     /* These are the drivers that will be used in tests */
+    #[repr(C)]
     #[derive(Debug)]
     pub struct TestDriverSoftc {
         dev: device_t,
@@ -422,6 +436,7 @@ mod tests {
             inherit from simplebus_driver,
     );
 
+    #[repr(C)]
     #[derive(Debug)]
     pub struct AnotherDriverSoftc {
         dev: device_t,
