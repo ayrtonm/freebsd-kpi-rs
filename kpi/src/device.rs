@@ -357,9 +357,6 @@ mod tests {
     use std::vec::Vec;
 
     /* These are the drivers that will be used in tests */
-    // repr(C) isn't strictly necessary but the test harness device_free_softc does rely on
-    // device_t being the first field in memory
-    #[repr(C)]
     #[derive(Debug)]
     pub struct TestDriverSoftc {
         dev: device_t,
@@ -425,9 +422,6 @@ mod tests {
             inherit from simplebus_driver,
     );
 
-    // repr(C) isn't strictly necessary but the test harness device_free_softc does rely on
-    // device_t being the first field in memory
-    #[repr(C)]
     #[derive(Debug)]
     pub struct AnotherDriverSoftc {
         dev: device_t,
