@@ -179,35 +179,27 @@ mod tests {
     use crate::bindings::u_int;
     use crate::prelude::*;
     use crate::sync::arc::Arc;
+    use core::sync::atomic::{AtomicU32, Ordering};
 
-    // FIXME: These are totally thread-unsafe functions which are only used for tests
     #[unsafe(no_mangle)]
     fn rust_bindings_refcount_init(count: *mut u_int, value: u_int) {
-        unsafe {
-            *count = value;
-        }
+        unsafe { AtomicU32::from_ptr(count).store(value, Ordering::Relaxed) }
     }
 
     #[unsafe(no_mangle)]
     fn rust_bindings_refcount_load(count: *mut u_int) -> u_int {
-        unsafe { *count }
+        unsafe { AtomicU32::from_ptr(count).load(Ordering::Relaxed) }
     }
 
     #[unsafe(no_mangle)]
     fn rust_bindings_refcount_acquire(count: *mut u_int) -> u_int {
-        unsafe {
-            let old = *count;
-            *count += 1;
-            old
-        }
+        unsafe { AtomicU32::from_ptr(count).fetch_add(1, Ordering::Relaxed) }
     }
 
     #[unsafe(no_mangle)]
     fn rust_bindings_refcount_release(count: *mut u_int) -> bool {
-        unsafe {
-            *count -= 1;
-            *count == 0
-        }
+        let old_val = unsafe { AtomicU32::from_ptr(count).fetch_sub(1, Ordering::Relaxed) };
+        old_val == 1
     }
 
     #[test]
