@@ -26,14 +26,14 @@ Using rust requires `rustc`, [`bindgen`](https://rust-lang.github.io/rust-bindge
 The compiler must be a ["nightly"](https://doc.rust-lang.org/book/appendix-07-nightly-rust.html)
 release since the makefile builds [`core`](https://doc.rust-lang.org/core/) from source and uses
 unstable flags for fixed-x18 and BTI on aarch64. The KPI crate avoids unstable language features and
-APIs though so the exact version doesn't matter as long as the 2024 edition is supported. This means
-the minimum supported rust version (MSRV) is rust 1.85.0 nightly-2024-11-30. For the exact range of
-rust compiler versions which are known to work check this repo's CI workflow file for
-[userspace tests](.github/workflows/userspace_tests.yml).
+APIs though so the exact version doesn't matter as long as the 2024 edition is supported by the
+language and libcore. This means the minimum supported rust version (MSRV) is rust 1.88.0
+nightly-2025-05-01. For the exact range of rust compiler versions which are known to work check this
+repo's CI workflow file for [userspace tests](.github/workflows/userspace_tests.yml).
 
 When building the FreeBSD kernel on a Linux or MacOS host the suggested way of obtaining rust tools
 is `rustup`. For an x86-64 FreeBSD host `pkg` is the easiest way to get these tools. Building on
-aarch64 FreeBSD hosts requires buildings the compiler from source.
+aarch64 FreeBSD hosts requires building the compiler from source.
 
 ### Setup via `pkg`
 
@@ -62,13 +62,17 @@ the rust compiler repo's `library/stdarch` git submodule.
 
 ```
 cd /path/to/src
-git clone https://github/ayrtonm/freebsd-kpi-rs sys/rust
-git clone --depth 1 https://github/rust-lang/rust sys/rust/compiler
+git clone https://github.com/ayrtonm/freebsd-kpi-rs sys/rust
+git clone --depth 1 https://github.com/rust-lang/rust sys/rust/compiler
 
 cd sys/rust/compiler
 git fetch --depth 1 origin `rustc --version --verbose | grep commit-hash | awk '{print $2}'`
 git checkout FETCH_HEAD
 git submodule update --depth 1 --init library/stdarch
+
+# If switching rustc versions it may be necessary to run the following between checking out
+# different commits
+# git submodule deinit -f library/stdarch/
 ```
 
 Next FreeBSD src needs two patches to integrate the makefiles in this repo and support generating

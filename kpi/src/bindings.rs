@@ -28,6 +28,7 @@
 
 // These are allowed for bindgen-generated code
 #![allow(
+    warnings,
     nonstandard_style,
     private_interfaces,
     unused_imports,
