@@ -84,7 +84,7 @@ impl BusDmaTagBuilder {
     }
     /// Allocates a DMA tag and initializes it according to the arguments.
     pub fn build(self) -> Result<BusDmaTag> {
-        let mut tag = bus_dma_tag_t::default();
+        let mut tag: bus_dma_tag_t = null_mut();
         let addr = self.addr.unwrap_or(BUS_SPACE_MAXADDR..BUS_SPACE_MAXADDR);
         let flags = match self.flags {
             Some(flags) => flags.0,
@@ -115,7 +115,7 @@ impl BusDmaTagBuilder {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct BusDmaTag(pub bus_dma_tag_t);
 
 #[derive(Copy, Clone, Debug)]
@@ -171,7 +171,7 @@ pub mod wrappers {
             Some(flags) => flags.0,
             None => 0,
         };
-        let mut map = bus_dmamap_t::default();
+        let mut map: bus_dmamap_t = null_mut();
         let res = unsafe { bindings::bus_dmamap_create(tag.0, flags, &raw mut map) };
         if res != 0 {
             return Err(ErrCode::from(res));
@@ -216,7 +216,7 @@ pub mod wrappers {
         vaddr: *mut *mut c_void,
         flags: BusDmaFlags,
     ) -> Result<bus_dmamap_t> {
-        let mut map = bus_dmamap_t::default();
+        let mut map: bus_dmamap_t = null_mut();
         let res = unsafe { bindings::bus_dmamem_alloc(dmat, vaddr, flags.0, &mut map) };
         if res != 0 {
             Err(ErrCode::from(res))

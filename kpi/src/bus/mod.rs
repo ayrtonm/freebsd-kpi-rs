@@ -130,11 +130,20 @@ impl Register {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Irq {
     pub res: *mut resource,
     pub cookie: UnsafeCell<*mut c_void>,
     //metadata_ptr: AtomicPtr<RefCountData>,
+}
+
+impl Default for Irq {
+    fn default() -> Self {
+        Self {
+            res: null_mut(),
+            cookie: UnsafeCell::new(null_mut()),
+        }
+    }
 }
 
 unsafe impl Sync for Irq {}

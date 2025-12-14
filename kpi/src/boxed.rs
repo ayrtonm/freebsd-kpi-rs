@@ -204,7 +204,8 @@ mod tests {
     fn round_trip_drop() {
         let y = Box::try_new(LoudDrop, M_DEVBUF, M_NOWAIT).unwrap();
         let y_ref = Box::leak(y);
-        let nonnull_y = NonNull::from_ref(y_ref);
+        let y_ptr = y_ref as *const InnerBox<LoudDrop>;
+        let nonnull_y = NonNull::new(y_ptr.cast_mut()).unwrap();
         let _new_y = unsafe { Box::from_raw(nonnull_y) };
     }
 }

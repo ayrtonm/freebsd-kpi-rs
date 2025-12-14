@@ -32,8 +32,7 @@
     private_interfaces,
     unused_imports,
     dead_code,
-    unsafe_op_in_unsafe_fn,
-    unnecessary_transmutes
+    unsafe_op_in_unsafe_fn
 )]
 
 use crate::ffi::SyncPtr;

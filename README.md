@@ -26,7 +26,10 @@ Using rust requires `rustc`, [`bindgen`](https://rust-lang.github.io/rust-bindge
 The compiler must be a ["nightly"](https://doc.rust-lang.org/book/appendix-07-nightly-rust.html)
 release since the makefile builds [`core`](https://doc.rust-lang.org/core/) from source and uses
 unstable flags for fixed-x18 and BTI on aarch64. The KPI crate avoids unstable language features and
-APIs though so the exact version doesn't matter.
+APIs though so the exact version doesn't matter as long as the 2024 edition is supported. This means
+the minimum supported rust version (MSRV) is rust 1.85.0 nightly-2024-11-30. For the exact range of
+rust compiler versions which are known to work check this repo's CI workflow file for
+[userspace tests](.github/workflows/userspace_tests.yml).
 
 When building the FreeBSD kernel on a Linux or MacOS host the suggested way of obtaining rust tools
 is `rustup`. For an x86-64 FreeBSD host `pkg` is the easiest way to get these tools. Building on
