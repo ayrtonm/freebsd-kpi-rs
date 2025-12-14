@@ -226,9 +226,6 @@ pub mod prelude {
 
     #[doc(inline)]
     pub use crate::misc::*;
-
-    #[doc(inline)]
-    pub use crate::collections::*;
 }
 
 macro_rules! err_codes {
