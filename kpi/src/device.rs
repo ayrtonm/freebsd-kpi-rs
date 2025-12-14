@@ -321,7 +321,17 @@ pub mod wrappers {
         unsafe { CStr::from_ptr(name) }
     }
 
-    /// Returns a copy of the device nameunit
+    /// Returns a copy of the device name
+    pub fn device_get_name(dev: device_t) -> Result<CString> {
+        let name_ptr = unsafe { bindings::device_get_name(dev) };
+        if name_ptr.is_null() {
+            return Err(ENULLPTR);
+        }
+        let name = unsafe { CStr::from_ptr(name_ptr) };
+        CString::try_new_small(name)
+    }
+
+    /// Returns a copy of the device name and unit number
     pub fn device_get_nameunit(dev: device_t) -> Result<CString> {
         let name_ptr = unsafe { bindings::device_get_nameunit(dev) };
         if name_ptr.is_null() {
