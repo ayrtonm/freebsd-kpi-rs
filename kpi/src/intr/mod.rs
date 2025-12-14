@@ -32,12 +32,12 @@ use crate::bindings::{
 };
 use crate::prelude::*;
 use crate::sync::Mutable;
-use crate::sync::arc::{Arc, ArcRef};
+use crate::sync::arc::{Arc, ArcRef, ArcRefCount};
 use core::cell::UnsafeCell;
 use core::ffi::{c_uint, c_void};
 use core::mem::transmute;
 use core::ptr::null_mut;
-use core::sync::atomic::{AtomicPtr, AtomicU8, AtomicU16, AtomicU32, AtomicU64, Ordering};
+use core::sync::atomic::{AtomicU8, AtomicU16, AtomicU32, AtomicU64};
 
 #[cfg(feature = "intrng")]
 mod intrng;
@@ -51,46 +51,61 @@ pub struct IntrType(pub c_uint);
 pub use intrng::*;
 
 #[derive(Debug, Default)]
+struct ConfigHookMetadata {
+    init_addr: *mut intr_config_hook,
+    //refcount: Option<ArcRefCount>,
+}
+
+#[derive(Debug, Default)]
 pub struct ConfigHook {
     inner: UnsafeCell<intr_config_hook>,
-    init_addr: AtomicPtr<intr_config_hook>,
-    //init_addr: Option<*mut intr_config_hook>,
-    //metadata_ptr: SyncPtr<RefCountData>,
+    metadata: Mutable<ConfigHookMetadata>,
 }
 
 unsafe impl Sync for ConfigHook {}
 unsafe impl Send for ConfigHook {}
 
-pub type ConfigHookFn<T> = extern "C" fn(ArcRef<T>);
+pub type ConfigHookFn<T> = extern "C" fn(Arc<T>);
 
 impl ConfigHook {
     pub fn new() -> Self {
         let inner = UnsafeCell::new(intr_config_hook::default());
         Self {
             inner,
-            init_addr: AtomicPtr::new(null_mut()),
-            //metadata_ptr: SyncPtr::null(),
+            metadata: Mutable::new(ConfigHookMetadata {
+                init_addr: null_mut(),
+                //refcount: None,
+            }),
         }
     }
 
     pub fn init<T>(&self, func: ConfigHookFn<T>, arg: Arc<T>) {
         let func = unsafe { transmute::<Option<ConfigHookFn<T>>, ich_func_t>(Some(func)) };
-        ////let (arg_ptr, metadata_ptr) = SharedPtr::into_raw_parts(arg);
+        //let (arg_ptr, refcount) = Arc::take_refcount(arg);
         let arg_ptr = Arc::into_raw(arg);
+
         let c_hook = self.inner.get();
         unsafe { (*c_hook).ich_func = func };
         unsafe { (*c_hook).ich_arg = arg_ptr.cast::<c_void>() };
-        //self.metadata_ptr = SyncPtr::new(metadata_ptr);
-        self.init_addr.store(c_hook, Ordering::Relaxed);
+
+        let mut metadata = self.metadata.get_mut();
+        metadata.init_addr = c_hook;
+        //metadata.refcount = Some(refcount);
     }
 }
 
 pub type CalloutFn<T> = extern "C" fn(ArcRef<T>);
 
 #[derive(Debug, Default)]
+struct CalloutMetadata {
+    init_addr: *mut callout,
+    refcount: Option<ArcRefCount>,
+}
+
+#[derive(Debug, Default)]
 pub struct Callout {
     inner: UnsafeCell<callout>,
-    init_addr: Option<*mut callout>,
+    metadata: Mutable<CalloutMetadata>,
 }
 
 unsafe impl Sync for Callout {}
@@ -101,15 +116,10 @@ impl Callout {
         let inner = UnsafeCell::new(callout::default());
         Self {
             inner,
-            init_addr: None,
-        }
-    }
-
-    pub fn init(&mut self) {
-        let c_callout = self.inner.get();
-        self.init_addr = Some(c_callout);
-        unsafe {
-            bindings::callout_init(c_callout, 1 /* always mpsafe */)
+            metadata: Mutable::new(CalloutMetadata {
+                init_addr: null_mut(),
+                refcount: None,
+            }),
         }
     }
 }
@@ -219,7 +229,9 @@ pub mod wrappers {
 
     pub fn config_intrhook_establish(hook: &ConfigHook) -> Result<()> {
         let c_hook = hook.inner.get();
-        assert!(hook.init_addr.load(Ordering::Relaxed) == c_hook);
+        if hook.metadata.get_mut().init_addr != c_hook {
+            return Err(EDOOFUS);
+        }
         let res = unsafe { bindings::config_intrhook_establish(c_hook) };
         if res != 0 {
             return Err(ErrCode::from(res));
@@ -229,12 +241,14 @@ pub mod wrappers {
 
     pub fn config_intrhook_disestablish(hook: &ConfigHook) {
         unsafe { bindings::config_intrhook_disestablish(hook.inner.get()) };
-
-        //unsafe { RefCountData::release_ref(hook.metadata_ptr.as_ptr()) }
     }
 
     pub fn callout_init(c: &mut Callout) {
-        c.init()
+        let c_callout = c.inner.get();
+        c.metadata.get_mut().init_addr = c_callout;
+        unsafe {
+            bindings::callout_init(c_callout, 1 /* always mpsafe */)
+        }
     }
 
     pub fn callout_reset<T>(
@@ -245,9 +259,18 @@ pub mod wrappers {
     ) -> Result<()> {
         let time = ticks * unsafe { tick_sbt };
         let func = unsafe { transmute::<Option<CalloutFn<T>>, callout_func_t>(Some(func)) };
-        let arg_ptr = Arc::into_raw(arg).cast::<c_void>();
+        let (arg_ptr, refcount) = Arc::take_refcount(arg);
+        c.metadata.get_mut().refcount = Some(refcount);
         let res = unsafe {
-            bindings::callout_reset_sbt_on(c.inner.get(), time, 0, func, arg_ptr, -1, C_HARDCLOCK)
+            bindings::callout_reset_sbt_on(
+                c.inner.get(),
+                time,
+                0,
+                func,
+                arg_ptr.cast::<c_void>(),
+                -1,
+                C_HARDCLOCK,
+            )
         };
         if res != 0 {
             return Err(ErrCode::from(res));
@@ -335,7 +358,7 @@ mod tests {
     }
 
     impl HookDriver {
-        extern "C" fn deferred_attach(sc: ArcRef<HookSoftc>) {
+        extern "C" fn deferred_attach(sc: Arc<HookSoftc>) {
             println!("called config hook rust function/deferred_attach");
             config_intrhook_disestablish(&sc.hook);
         }

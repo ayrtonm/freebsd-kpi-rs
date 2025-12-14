@@ -37,6 +37,7 @@ use core::ops::{Deref, DerefMut};
 use core::ptr;
 use core::ptr::{NonNull, drop_in_place};
 
+#[derive(Debug)]
 pub struct ArcRefCount(*mut ArcMetadata);
 
 impl Drop for ArcRefCount {
