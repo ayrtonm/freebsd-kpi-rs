@@ -37,8 +37,8 @@ macro_rules! define_class {
         pub struct $class_ty(core::cell::UnsafeCell<$crate::bindings::kobj_class>);
 
         impl $crate::kobj::KobjClass for $class_ty {
-            fn get_class(&self) -> *mut $crate::bindings::kobj_class {
-                self.0.get()
+            fn get_class() -> *mut $crate::bindings::kobj_class {
+                $class_sym.0.get()
             }
         }
 
@@ -47,7 +47,7 @@ macro_rules! define_class {
         unsafe impl Sync for $class_ty {}
 
         #[unsafe(no_mangle)]
-        static $class_sym: $class_ty = $class_ty(core::cell::UnsafeCell::new($crate::bindings::kobj_class {
+        pub static $class_sym: $class_ty = $class_ty(core::cell::UnsafeCell::new($crate::bindings::kobj_class {
             name: {
                 let c: &'static core::ffi::CStr = $class_name;
                 c.as_ptr()

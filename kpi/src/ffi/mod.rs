@@ -35,7 +35,7 @@ mod cstring;
 mod subclass;
 
 pub use cstring::{CString, ToCString};
-pub use subclass::SubClass;
+pub use subclass::{SubClass, SubClassOf};
 
 /// A pointer type implementing `Sync`.
 ///

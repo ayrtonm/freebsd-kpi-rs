@@ -103,6 +103,7 @@ impl<T: PartialEq> PartialEq for Box<T> {
 impl<T: Eq> Eq for Box<T> {}
 
 unsafe impl<T: Sync + ?Sized> Sync for Box<T> {}
+unsafe impl<T: Send + ?Sized> Send for Box<T> {}
 
 impl<T: ?Sized> Drop for Box<T> {
     fn drop(&mut self) {

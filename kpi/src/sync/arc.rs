@@ -40,6 +40,18 @@ use core::ptr::{NonNull, drop_in_place};
 #[derive(Debug)]
 pub struct ArcRefCount(*mut ArcMetadata);
 
+impl ArcRefCount {
+    pub fn into_raw(x: Self) -> *mut ArcMetadata {
+        let res = x.0;
+        forget(x);
+        res
+    }
+
+    pub unsafe fn from_raw(ptr: *mut ArcMetadata) -> Self {
+        Self(ptr)
+    }
+}
+
 unsafe impl Sync for ArcRefCount {}
 unsafe impl Send for ArcRefCount {}
 

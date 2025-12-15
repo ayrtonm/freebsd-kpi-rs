@@ -76,10 +76,12 @@ RUSTFLAGS+= -Ccode-model=kernel \
 
 .endif
 
+BINDGEN_DEPS= bindgen.d
 BINDGEN_GENERATED_SRC= bindgen_inlines.c
 BINDGEN_INLINE_SRC= inlines.c
 BINDGEN_FLAGS= \
 	--use-core \
+	--depfile ${BINDGEN_DEPS} \
 	--rust-edition 2024 \
 	--rust-target ${RUSTC_BIN_VERSION} \
 	--no-prepend-enum-name \
@@ -185,7 +187,7 @@ RUST_OBJS= ${RUSTROOT_A} ${BINDGEN_INLINE_SRC:S/.c/.o/}
 RUST_MAKEFILE= ${SRCTOP}/sys/rust/kern.rust.mk
 
 RUST_DEFAULT_DEP= ${RUST_KPI} ${RUST_CORE} ${RUST_FAKE_BUILTINS}
-RLIB_RULE= ${RUSTC} ${RUSTFLAGS} -Cdebuginfo=full --crate-type rlib --sysroot=$(PWD)/${RUST_SYSROOT} -L.
+RLIB_RULE= ${RUSTC} ${RUSTFLAGS} -Cdebuginfo=full --crate-type rlib --sysroot=$(PWD)/${RUST_SYSROOT} -L. --emit link,dep-info
 
 NORMAL_R= ${RLIB_RULE} ${RUST_KPI_FEATURES} -o ${.TARGET} ${.ALLSRC:M*.rs} \
 	${.ALLSRC:T:Nlibcore.rlib:Nlibcompiler_builtins.rlib:M*.rlib:C/.rlib$//:C/^lib//:C/.*/--extern \0=lib\0.rlib/}

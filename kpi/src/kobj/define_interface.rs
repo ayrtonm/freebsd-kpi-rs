@@ -88,7 +88,8 @@ macro_rules! define_interface {
      , with desc $desc:ident and typedef $typedef:ident
      $(, with init glue { $($init_glue:tt)* })?
      $(, with drop glue { $($drop_glue:tt)* })?
-     $(, $infallible:ident )? ;)*) => {
+     $(, with prefix args { $($prefix_args:tt)* })?
+     $(, is $infallible:ident )? ;)*) => {
         $(
             #[doc(hidden)]
             #[macro_export]
@@ -101,6 +102,7 @@ macro_rules! define_interface {
                         fn $fn_name($($arg_name: $arg,)*) $(-> $ret)*;
                         with init glue { $($($init_glue)*)* }
                         with drop glue { $($($drop_glue)*)* }
+                        with prefix args { $($($prefix_args)*)* }
                         $($infallible)*
                     }
                 };
@@ -242,7 +244,7 @@ macro_rules! define_c_function {
             // Call drop glue if any
             $($($drop_glue)*)*
 
-            res
+            res.as_c_type()
         }
     };
 }

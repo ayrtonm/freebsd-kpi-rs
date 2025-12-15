@@ -52,6 +52,16 @@ impl AsCType<c_int> for BusProbe {
     }
 }
 
+pub trait Device {
+    fn as_dev(self) -> device_t;
+}
+
+impl Device for device_t {
+    fn as_dev(self) -> Self {
+        self
+    }
+}
+
 impl Debug for device_t {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let driver = unsafe { bindings::device_get_driver(*self) };

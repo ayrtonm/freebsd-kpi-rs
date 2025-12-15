@@ -38,7 +38,14 @@ use core::mem::{forget, size_of};
 use core::ops::DerefMut;
 use core::slice;
 
-pub unsafe trait Pod: Sized + Copy {}
+/// Plain-ol-data which is valid for any bitpattern
+///
+/// # Implementation Safety
+///
+/// This may only be implemented for types that are valid for an arbitrary bitpattern. Typically
+/// this will be a struct, union or tuple consisting of other types implementing `Pod`. Usually
+/// enums cannot implement `Pod` since the arbitrary bitpattern also covers the discriminant.
+pub unsafe trait Pod: Sized + Copy + 'static {}
 macro_rules! impl_trait_for {
     ($trait:ident $($ty:ty)*) => {
         $(unsafe impl $trait for $ty {})*
@@ -128,6 +135,9 @@ pub struct SgBuffer<B: Appendable> {
     list: SgListPtr,
 }
 
+unsafe impl<T: Send + Appendable> Send for SgBuffer<T> {}
+unsafe impl<T: Send + Appendable> Sync for SgBuffer<T> {}
+
 impl<B: Appendable> SgBuffer<B> {
     /// Create a handle to a buffer in a scatter-gather list.
     pub fn new(buffer: B::Appended, sg: &SgList) -> Self {
@@ -183,6 +193,12 @@ impl SgList {
 
     pub fn as_ptr(&self) -> *mut sglist {
         self.list.as_ptr()
+    }
+}
+
+impl Drop for SgList {
+    fn drop(&mut self) {
+        unsafe { bindings::sglist_free(self.as_ptr()) }
     }
 }
 

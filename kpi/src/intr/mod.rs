@@ -33,6 +33,7 @@ use crate::bindings::{
 use crate::prelude::*;
 use crate::sync::Mutable;
 use crate::sync::arc::{Arc, ArcRef, ArcRefCount};
+use crate::sync::mtx::Mutex;
 use core::cell::UnsafeCell;
 use core::ffi::{c_uint, c_void};
 use core::mem::transmute;
@@ -51,15 +52,9 @@ pub struct IntrType(pub c_uint);
 pub use intrng::*;
 
 #[derive(Debug, Default)]
-struct ConfigHookMetadata {
-    init_addr: *mut intr_config_hook,
-    //refcount: Option<ArcRefCount>,
-}
-
-#[derive(Debug, Default)]
 pub struct ConfigHook {
     inner: UnsafeCell<intr_config_hook>,
-    metadata: Mutable<ConfigHookMetadata>,
+    init_addr: Mutable<*mut intr_config_hook>,
 }
 
 unsafe impl Sync for ConfigHook {}
@@ -72,40 +67,31 @@ impl ConfigHook {
         let inner = UnsafeCell::new(intr_config_hook::default());
         Self {
             inner,
-            metadata: Mutable::new(ConfigHookMetadata {
-                init_addr: null_mut(),
-                //refcount: None,
-            }),
+            init_addr: Mutable::new(null_mut()),
         }
     }
 
     pub fn init<T>(&self, func: ConfigHookFn<T>, arg: Arc<T>) {
         let func = unsafe { transmute::<Option<ConfigHookFn<T>>, ich_func_t>(Some(func)) };
-        //let (arg_ptr, refcount) = Arc::take_refcount(arg);
         let arg_ptr = Arc::into_raw(arg);
 
         let c_hook = self.inner.get();
         unsafe { (*c_hook).ich_func = func };
         unsafe { (*c_hook).ich_arg = arg_ptr.cast::<c_void>() };
 
-        let mut metadata = self.metadata.get_mut();
-        metadata.init_addr = c_hook;
-        //metadata.refcount = Some(refcount);
+        *self.init_addr.get_mut() = c_hook;
     }
 }
 
 pub type CalloutFn<T> = extern "C" fn(ArcRef<T>);
 
 #[derive(Debug, Default)]
-struct CalloutMetadata {
-    init_addr: *mut callout,
-    refcount: Option<ArcRefCount>,
-}
-
-#[derive(Debug, Default)]
 pub struct Callout {
     inner: UnsafeCell<callout>,
-    metadata: Mutable<CalloutMetadata>,
+    init_addr: *mut callout,
+    // The Mutable here is really dumb since most callout functions take a &mut Callout, but
+    // callout_drain cannot so we'll have to live with it
+    refcount: Mutable<Option<ArcRefCount>>,
 }
 
 unsafe impl Sync for Callout {}
@@ -116,10 +102,8 @@ impl Callout {
         let inner = UnsafeCell::new(callout::default());
         Self {
             inner,
-            metadata: Mutable::new(CalloutMetadata {
-                init_addr: null_mut(),
-                refcount: None,
-            }),
+            init_addr: null_mut(),
+            refcount: Mutable::new(None),
         }
     }
 }
@@ -229,7 +213,7 @@ pub mod wrappers {
 
     pub fn config_intrhook_establish(hook: &ConfigHook) -> Result<()> {
         let c_hook = hook.inner.get();
-        if hook.metadata.get_mut().init_addr != c_hook {
+        if *hook.init_addr.get_mut() != c_hook {
             return Err(EDOOFUS);
         }
         let res = unsafe { bindings::config_intrhook_establish(c_hook) };
@@ -245,14 +229,14 @@ pub mod wrappers {
 
     pub fn callout_init(c: &mut Callout) {
         let c_callout = c.inner.get();
-        c.metadata.get_mut().init_addr = c_callout;
+        c.init_addr = c_callout;
         unsafe {
             bindings::callout_init(c_callout, 1 /* always mpsafe */)
         }
     }
 
     pub fn callout_reset<T>(
-        c: &Callout,
+        c: &mut Callout,
         ticks: sbintime_t,
         func: CalloutFn<T>,
         arg: Arc<T>,
@@ -260,7 +244,7 @@ pub mod wrappers {
         let time = ticks * unsafe { tick_sbt };
         let func = unsafe { transmute::<Option<CalloutFn<T>>, callout_func_t>(Some(func)) };
         let (arg_ptr, refcount) = Arc::take_refcount(arg);
-        c.metadata.get_mut().refcount = Some(refcount);
+        *c.refcount.get_mut() = Some(refcount);
         let res = unsafe {
             bindings::callout_reset_sbt_on(
                 c.inner.get(),
@@ -278,12 +262,23 @@ pub mod wrappers {
         Ok(())
     }
 
-    pub fn callout_schedule(c: &Callout, ticks: sbintime_t) -> Result<()> {
+    pub fn callout_schedule(c: &mut Callout, ticks: sbintime_t) -> Result<()> {
+        if c.refcount.get_mut().is_none() {
+            return Err(EDOOFUS);
+        }
         let res = unsafe { bindings::callout_schedule(c.inner.get(), ticks.try_into().unwrap()) };
         if res != 0 {
             return Err(ErrCode::from(res));
         }
         Ok(())
+    }
+
+    pub fn callout_drain(c: &Mutex<Callout>) {
+        // TODO: call the C callout_drain, for now this just releases the refcount
+        let callout_ptr = c.data_ptr();
+        let refcount_ptr = unsafe { &raw mut (*callout_ptr).refcount };
+        let refcount_ref = unsafe { refcount_ptr.as_ref().unwrap() };
+        let _drop_refcount: Option<ArcRefCount> = refcount_ref.get_mut().take();
     }
 
     pub fn tsleep<T: Sleepable>(

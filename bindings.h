@@ -75,6 +75,7 @@
 #if defined(WITH_SOUND)
 #include <dev/sound/pcm/sound.h>
 #include "channel_if.h"
+#include "mixer_if.h"
 #endif
 
 #if defined(WITH_VIRTIO)

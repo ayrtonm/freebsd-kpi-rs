@@ -31,6 +31,9 @@ use core::fmt;
 use core::fmt::{Debug, Formatter};
 use core::ops::{Deref, DerefMut};
 
+pub trait SubClassOf<B> {}
+
+impl<B, F> SubClassOf<B> for SubClass<B, F> {}
 /// A struct containing a base class `B` followed by extra fields `F`.
 ///
 /// This type assumes the base class is shared with C code and is primarily intended to be used for

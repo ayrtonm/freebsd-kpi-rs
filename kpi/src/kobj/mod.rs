@@ -45,7 +45,7 @@ pub trait KobjLayout {
 }
 
 pub trait KobjClass: KobjLayout {
-    fn get_class(&self) -> *mut kobj_class;
+    fn get_class() -> *mut kobj_class;
 }
 
 pub trait AsCType<T, X = ()> {

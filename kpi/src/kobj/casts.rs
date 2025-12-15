@@ -30,6 +30,7 @@ use crate::boxed::{Box, InnerBox};
 use crate::ffi::SubClass;
 use crate::kobj::{AsCType, AsRustType};
 use crate::sync::arc::{Arc, ArcRef, InnerArc, UniqueArcRef};
+use core::cell::UnsafeCell;
 use core::ffi::c_void;
 use core::ptr::NonNull;
 
@@ -37,6 +38,19 @@ use core::ptr::NonNull;
 impl<T> AsRustType<T> for T {
     fn as_rust_type(self) -> T {
         self
+    }
+}
+
+impl<T> AsCType<T> for T {
+    fn as_c_type(self) -> T {
+        self
+    }
+}
+
+// Allow turning pointers to shared references behind an UnsafeCell
+impl<'a, T> AsRustType<&'a UnsafeCell<T>> for *mut T {
+    fn as_rust_type(self) -> &'a UnsafeCell<T> {
+        unsafe { self.cast::<UnsafeCell<T>>().as_ref().unwrap() }
     }
 }
 
