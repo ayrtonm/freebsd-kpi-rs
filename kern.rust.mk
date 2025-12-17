@@ -76,6 +76,7 @@ RUSTFLAGS+= -Ccode-model=kernel \
 
 .endif
 
+# TODO: Use the depfile
 BINDGEN_DEPS= bindgen.d
 BINDGEN_GENERATED_SRC= bindgen_inlines.c
 BINDGEN_INLINE_SRC= inlines.c
@@ -187,6 +188,7 @@ RUST_OBJS= ${RUSTROOT_A} ${BINDGEN_INLINE_SRC:S/.c/.o/}
 RUST_MAKEFILE= ${SRCTOP}/sys/rust/kern.rust.mk
 
 RUST_DEFAULT_DEP= ${RUST_KPI} ${RUST_CORE} ${RUST_FAKE_BUILTINS}
+# TODO: Use the depfile
 RLIB_RULE= ${RUSTC} ${RUSTFLAGS} -Cdebuginfo=full --crate-type rlib --sysroot=$(PWD)/${RUST_SYSROOT} -L. --emit link,dep-info
 
 NORMAL_R= ${RLIB_RULE} ${RUST_KPI_FEATURES} -o ${.TARGET} ${.ALLSRC:M*.rs} \

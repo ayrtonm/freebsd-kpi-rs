@@ -3,11 +3,13 @@
 ## Adding rust sources
 
 Rust sources are added the same way as C sources under`src/sys/conf`, but with a .rs suffix instead
-of .c. Each file must begin with `#![no_std]` and is built as a separate crate. Multi-file crates
-are not supported.  Crates may depend on other crates, but dependencies must be explicitly specified
-using `dependency` in the `config(8)` entry and cyclic dependencies are not allowed. For example to
-add a file `src/sys/foo.rs` that depends on `src/sys/bar.rs` and a `src/sys/baz.rs` that's optional
-on a `KERNCONF` setting add the following in `src/sys/conf/files`.
+of .c. Each file must begin with `#![no_std]` and is built as a separate crate. Single-file crates
+are currently suggested since the build system doesn't properly capture dependencies in multi-file
+crates yet. Crates may depend on other crates, but dependencies must be explicitly specified using
+`dependency` and the .rlib name in the `config(8)` entry. Cyclic dependencies between crates are
+forbidden by the rust compiler. For example to add a file `src/sys/foo.rs` that depends on
+`src/sys/bar.rs` and a `src/sys/baz.rs` that's optional on some `KERNCONF` setting add the following
+in `src/sys/conf/files`.
 
 ```
 foo.rs  standard
@@ -70,7 +72,7 @@ fn foo() -> Result<()> {
 ## Dynamic memory allocation
 
 Since `alloc` can't be used the KPI crate provides minimal versions of `Vec`, `Box` and `Arc`. Their
-APIs loosely mirror the standard rust versions, but differ to provide more finer control over memory
+APIs loosely mirror the standard rust versions, but differ to provide finer control over memory
 management and simplify FFI interop with existing C code. In particular `Vec` will never allocate
 more capacity than explicitly requested.
 
