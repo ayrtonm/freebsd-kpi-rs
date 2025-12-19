@@ -36,7 +36,6 @@ use crate::vec::Vec;
 use core::ffi::c_void;
 use core::mem::{forget, size_of};
 use core::ops::DerefMut;
-use core::slice;
 
 /// Plain-ol-data which is valid for any bitpattern
 ///
@@ -46,79 +45,47 @@ use core::slice;
 /// this will be a struct, union or tuple consisting of other types implementing `Pod`. Usually
 /// enums cannot implement `Pod` since the arbitrary bitpattern also covers the discriminant.
 pub unsafe trait Pod: Sized + Copy + 'static {}
-macro_rules! impl_trait_for {
-    ($trait:ident $($ty:ty)*) => {
-        $(unsafe impl $trait for $ty {})*
+
+macro_rules! impl_pod_for {
+    ($($ty:ty)*) => {
+        $(unsafe impl Pod for $ty {})*
+        $(unsafe impl<const N: usize> Pod for [$ty; N] {})*
     };
 }
-impl_trait_for! {
-    Pod
+
+impl_pod_for! {
     u8 u16 u32 u64 u128
     i8 i16 i32 i64 i128
 }
 
-pub trait Appendable: Sized {
-    type Appended: Sized;
-
-    fn append(self) -> (Self::Appended, *mut c_void, usize);
-
-    fn reconstruct(x: Self::Appended) -> Self;
+/// A type owning data which may be appended to an sglist
+///
+/// # Implementation Safety
+///
+/// This may only be implemented for types that have unique access to data which is contiguous in
+/// the kernel virtual address space. The call to get_vaddr_range may modify this memory before it
+/// returns (e.g. the impl for Vec fills  it to capacity with T::Default), but it may not be
+/// acccessed again until SgBuffer::get_buffer is called. For types that own their data directly
+/// (e.g. Box, Vec) this is not a concern since SgBuffer owns the Appendable buffer. For types that
+/// implement Appendable but are a proxy for the real owner, the owner must ensure that it does not
+/// access or drop the memory while the proxy exists.
+pub unsafe trait Appendable {
+    fn get_vaddr_range(&mut self) -> (*mut c_void, usize);
 }
 
-impl<T: Pod> Appendable for Box<T> {
-    type Appended = Box<T>;
-
-    fn append(mut self) -> (Self, *mut c_void, usize) {
+unsafe impl<T: Pod> Appendable for Box<T> {
+    fn get_vaddr_range(&mut self) -> (*mut c_void, usize) {
         let ptr = self.deref_mut() as *mut T;
-        (self, ptr.cast::<c_void>(), size_of::<T>())
-    }
-
-    fn reconstruct(x: Self) -> Self {
-        x
+        (ptr.cast::<c_void>(), size_of::<T>())
     }
 }
 
-impl<T: Default + Pod> Appendable for Vec<T> {
-    type Appended = Vec<T>;
-
-    fn append(mut self) -> (Self, *mut c_void, usize) {
+unsafe impl<T: Default + Pod> Appendable for Vec<T> {
+    fn get_vaddr_range(&mut self) -> (*mut c_void, usize) {
         let ptr = self.as_ptr().cast_mut();
         self.fill_to_capacity(T::default());
         let size = self.capacity() * size_of::<T>();
-        (self, ptr.cast::<c_void>(), size)
-    }
-
-    fn reconstruct(x: Self) -> Self {
-        x
-    }
-}
-
-impl<'a, T: Pod> Appendable for &'a mut T {
-    type Appended = *mut T;
-
-    fn append(self) -> (Self::Appended, *mut c_void, usize) {
-        let ptr = self as *mut T;
-        (ptr, ptr.cast::<c_void>(), size_of::<T>())
-    }
-
-    fn reconstruct(ptr: Self::Appended) -> Self {
-        unsafe { ptr.as_mut().unwrap() }
-    }
-}
-
-impl<'a, T: Pod> Appendable for &'a mut [T] {
-    type Appended = (*mut T, usize);
-
-    fn append(self) -> (Self::Appended, *mut c_void, usize) {
-        let ptr = self.as_mut_ptr();
-        let deconstructed = (ptr, self.len());
-
-        let size = self.len() * size_of::<T>();
-        (deconstructed, ptr.cast::<c_void>(), size)
-    }
-
-    fn reconstruct((ptr, len): Self::Appended) -> Self {
-        unsafe { slice::from_raw_parts_mut(ptr, len) }
+        (ptr.cast::<c_void>(), size)
     }
 }
 
@@ -126,12 +93,13 @@ type SgListPtr = SyncPtr<sglist>;
 
 /// A handle to a buffer in a scatter-gather list
 ///
-/// This has both ownership of the buffer and owns a refcount to the list. Since the buffer has
-/// aliasing pointers in the list this type does not allow access to the buffer until the list is
-/// reset. Once the list has been reset the buffer can be accessed by calling
+/// This has both ownership of the appended buffer and owns a refcount to the list. Since the buffer
+/// has aliasing pointers in the list this type does not allow access to the buffer until the list
+/// is reset. Once the list has been reset the buffer can be accessed by calling
 /// `list_buffer.get_buffer()`.
 pub struct SgBuffer<B: Appendable> {
-    buffer: Option<B::Appended>,
+    // The Option is only necessary to allow taking `buffer` out of the SgBuffer.
+    buffer: Option<B>,
     list: SgListPtr,
 }
 
@@ -140,7 +108,8 @@ unsafe impl<T: Send + Appendable> Sync for SgBuffer<T> {}
 
 impl<B: Appendable> SgBuffer<B> {
     /// Create a handle to a buffer in a scatter-gather list.
-    pub fn new(buffer: B::Appended, sg: &SgList) -> Self {
+    fn new(buffer: B, sg: &SgList) -> Self {
+        // Grab a refcount to the sglist
         sglist_hold(sg);
         Self {
             buffer: Some(buffer),
@@ -149,26 +118,24 @@ impl<B: Appendable> SgBuffer<B> {
     }
 
     pub fn get_buffer(mut self) -> B {
-        assert!(unsafe { bindings::sglist_length(self.list.as_ptr()) } == 0);
-        Appendable::reconstruct(self.buffer.take().unwrap())
+        let len = unsafe { bindings::sglist_length(self.list.as_ptr()) };
+        if len != 0 {
+            panic!("Must call sglist_reset before calling SgBuffer::get_buffer")
+        }
+        // Should not panic because SgBuffer::new always sets this to Some
+        self.buffer.take().unwrap()
         // Drop impl calls sglist_free to release the sglist refcount
-    }
-
-    pub fn leak_buffer(self) {
-        // Release the sglist reference
-        unsafe { bindings::sglist_free(self.list.as_ptr()) };
-        forget(self);
     }
 }
 
 impl<B: Appendable> Drop for SgBuffer<B> {
     fn drop(&mut self) {
-        unsafe { bindings::sglist_free(self.list.as_ptr()) };
-        if self.buffer.is_some() {
-            panic!(
-                "Either call `list_buffer.get_buffer()` or `list_buffer.leak_buffer()` instead of dropping it"
-            );
+        let len = unsafe { bindings::sglist_length(self.list.as_ptr()) };
+        if len != 0 {
+            panic!("Must call sglist_reset before dropping an SgBuffer")
         }
+        // Drop the refcount grabbed in the constructor
+        unsafe { bindings::sglist_free(self.list.as_ptr()) };
     }
 }
 
@@ -182,6 +149,13 @@ impl SgList {
             list: SgListPtr::new(ptr),
         }
     }
+
+    pub fn into_raw(x: Self) -> *mut sglist {
+        let res = x.as_ptr();
+        forget(x);
+        res
+    }
+
     pub fn new(nsegs: usize, flags: MallocFlags) -> Result<Self> {
         let list = unsafe { bindings::sglist_alloc(nsegs.try_into().unwrap(), flags.0) };
         if list.is_null() {
@@ -198,6 +172,7 @@ impl SgList {
 
 impl Drop for SgList {
     fn drop(&mut self) {
+        // If any buffers were appended they also hold refcounts to the sglist just in case
         unsafe { bindings::sglist_free(self.as_ptr()) }
     }
 }
@@ -216,15 +191,27 @@ pub mod wrappers {
 
     /// Append the virtual addresses spanned by `buffer` to the scatter-gather list.
     ///
-    /// This returns a `SgBuffer` to access the buffer after the list has been reset.
-    pub fn sglist_append<B: Appendable>(sg: &mut SgList, buffer: B) -> Result<SgBuffer<B>> {
-        let (appended_buffer, ptr, size) = buffer.append();
+    /// Returns an `SgBuffer` to access the buffer after the list has been reset. Dropping an
+    /// `SgBuffer` before the SgList is reset panics (because we can't free the appended buffer
+    /// while it's in the list and potentially being accessed) so the result of this function
+    /// must always be assigned to a `let` binding to avoid panicking.
+    pub fn sglist_append<B: Appendable>(
+        sg: &mut SgList,
+        buffer_opt: &mut Option<B>,
+    ) -> Result<SgBuffer<B>> {
+        let mut buffer = match buffer_opt.take() {
+            Some(buffer) => buffer,
+            None => {
+                return Err(EDOOFUS);
+            }
+        };
+        let (ptr, size) = buffer.get_vaddr_range();
         let res = unsafe { bindings::sglist_append(sg.list.as_ptr(), ptr, size) };
         if res != 0 {
-            forget(appended_buffer);
+            buffer_opt.replace(buffer);
             return Err(ErrCode::from(res));
         }
-        Ok(SgBuffer::new(appended_buffer, sg))
+        Ok(SgBuffer::new(buffer, sg))
     }
 
     pub fn sglist_reset(sg: &mut SgList) {

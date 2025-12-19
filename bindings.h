@@ -87,6 +87,10 @@
 #include <dev/virtio/sound/virtio_snd.h>
 #endif
 
+#if defined(WITH_VIRTIO)
+#include <dev/virtio/fs/virtio_fs.h>
+#endif
+
 #if defined(__aarch64__)
 #include <dev/gpio/gpiobusvar.h>
 #endif
