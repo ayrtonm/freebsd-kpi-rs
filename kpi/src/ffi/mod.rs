@@ -29,7 +29,9 @@
 //! Utilities related to FFI with C.
 
 use core::fmt::Debug;
-use core::ptr::null_mut;
+use core::marker::PhantomData;
+use core::ops::{Deref, DerefMut};
+use core::ptr::{NonNull, null_mut};
 
 mod cstring;
 mod subclass;
@@ -85,3 +87,77 @@ impl<T> SyncPtr<T> {
 // SAFETY: `SyncPtr` is intended for cases where `Sync` is intentionally desired on the pointer
 unsafe impl<T> Sync for SyncPtr<T> {}
 unsafe impl<T> Send for SyncPtr<T> {}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct UninitDevRef<T>(NonNull<T>);
+
+impl<T> UninitDevRef<T> {
+    pub unsafe fn from_raw(ptr: *mut T) -> Self {
+        Self(NonNull::new(ptr).unwrap())
+    }
+
+    pub fn init(self, t: T) -> UniqueDevRef<T> {
+        unsafe { self.0.write(t) }
+        UniqueDevRef(self.0)
+    }
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct UniqueDevRef<T>(NonNull<T>);
+
+impl<T> UniqueDevRef<T> {
+    pub fn into_ref<'sc>(self) -> DevRef<'sc, T> {
+        DevRef(self.0, PhantomData)
+    }
+
+    pub fn leak(self) -> &'static T {
+        unsafe { self.0.as_ref() }
+    }
+}
+
+impl<T> Deref for UniqueDevRef<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { self.0.as_ref() }
+    }
+}
+
+impl<T> DerefMut for UniqueDevRef<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { self.0.as_mut() }
+    }
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct DevRef<'sc, T>(NonNull<T>, PhantomData<&'sc T>);
+
+impl<'sc, T> Copy for DevRef<'sc, T> {}
+
+impl<'sc, T> Clone for DevRef<'sc, T> {
+    fn clone(&self) -> Self {
+        Self(self.0, self.1)
+    }
+}
+
+impl<'sc, T> DevRef<'sc, T> {
+    pub unsafe fn from_raw(ptr: *mut T) -> Self {
+        Self(NonNull::new(ptr).unwrap(), PhantomData)
+    }
+
+    pub fn map<U, F: FnOnce(&T) -> &U>(&self, f: F) -> DevRef<'_, U> {
+        let new_ptr = f(self.deref()) as *const U;
+        unsafe { DevRef::from_raw(new_ptr.cast_mut()) }
+    }
+}
+
+impl<'sc, T> Deref for DevRef<'sc, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { self.0.as_ref() }
+    }
+}

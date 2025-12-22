@@ -88,7 +88,7 @@ macro_rules! method_table {
                 // Invoke the interface function macro with two identifiers so it expands to the
                 // extern "C" functions that were inserted in the method table and call the
                 // corresponding interface trait methods
-                $if_fn!($class_ty $impl);,
+                $if_fn!($class_ty $class_sym $impl);,
                 $($lang)*
             })*
         }

@@ -40,7 +40,7 @@ pub mod interfaces {
     pub use crate::intr::PicIf;
 }
 
-pub trait KobjLayout {
+pub trait KobjLayout: Sized {
     type Layout;
 }
 

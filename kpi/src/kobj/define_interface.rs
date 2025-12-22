@@ -96,9 +96,9 @@ macro_rules! define_interface {
             macro_rules! $fn_name {
                 (get_typedef) => { $crate::bindings::$typedef };
                 (get_desc) => { $crate::bindings::$desc };
-                ($driver_ty:ident $impl_fn_name:ident) => {
+                ($driver_ty:ident $driver_sym:ident $impl_fn_name:ident) => {
                     $crate::define_c_function! {
-                        $driver_ty impls $impl_fn_name in $trait as
+                        $driver_ty $driver_sym $impl_fn_name in $trait as
                         fn $fn_name($($arg_name: $arg,)*) $(-> $ret)*;
                         with init glue { $($($init_glue)*)* }
                         with drop glue { $($($drop_glue)*)* }
@@ -123,19 +123,19 @@ macro_rules! define_dev_interface {
             macro_rules! $fn_name {
                 (get_typedef) => { $crate::bindings::$typedef };
                 (get_desc) => { $crate::bindings::$desc };
-                ($driver_ty:ident $impl_fn_name:ident) => {
+                ($driver_ty:ident $driver_sym:ident $impl_fn_name:ident) => {
                     $crate::define_c_function! {
-                        $driver_ty impls $impl_fn_name in $trait as
+                        $driver_ty $driver_sym $impl_fn_name in $trait as
                         fn $fn_name($($arg_name: $arg,)*) $(-> $ret)*;
                         with init glue {
                             $($($init_glue)*)*
                             use $crate::bindings;
+                            use $crate::ffi::DevRef;
                             use $crate::kobj::KobjLayout;
-                            use $crate::sync::arc::ArcRef;
 
                             let _void_ptr = unsafe { bindings::device_get_softc($crate::get_first!($($arg_name)*)) };
                             let _sc_ptr = _void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
-                            let _sc = unsafe { ArcRef::from_raw(_sc_ptr) };
+                            let _sc = unsafe { DevRef::from_raw(_sc_ptr) };
                         }
                         with drop glue {
                             $($($drop_glue)*)*
@@ -151,7 +151,7 @@ macro_rules! define_dev_interface {
 #[macro_export]
 macro_rules! define_c_function {
     (
-        $driver_ty:ident impls $impl:ident in $trait:ident as
+        $driver_ty:ident $driver_sym:ident $impl:ident in $trait:ident as
         fn $fn_name:ident($($arg_name:ident: $arg:ty$(,)?)*);
         $(with init glue { $($init_glue:tt)* })?
         $(with drop glue { $($drop_glue:tt)* })?
@@ -180,7 +180,7 @@ macro_rules! define_c_function {
         }
     };
     (
-        $driver_ty:ident impls $impl:ident in $trait:ident as
+        $driver_ty:ident $driver_sym:ident $impl:ident in $trait:ident as
         fn $fn_name:ident($($arg_name:ident: $arg:ty$(,)?)*) -> $ret:ty;
         $(with init glue { $($init_glue:tt)* })?
         $(with drop glue { $($drop_glue:tt)* })?
@@ -216,7 +216,7 @@ macro_rules! define_c_function {
         }
     };
     (
-        $driver_ty:ident impls $impl:ident in $trait:ident as
+        $driver_ty:ident $driver_sym:ident $impl:ident in $trait:ident as
         fn $fn_name:ident($($arg_name:ident: $arg:ty$(,)?)*) -> $ret:ty;
         $(with init glue { $($init_glue:tt)* })?
         $(with drop glue { $($drop_glue:tt)* })?

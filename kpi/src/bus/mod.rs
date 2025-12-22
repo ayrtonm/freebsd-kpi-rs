@@ -28,9 +28,9 @@
 
 use crate::ErrCode;
 use crate::bindings::{bus_size_t, device_t, resource, resource_spec};
+use crate::ffi::DevRef;
 use crate::kobj::{AsCType, AsRustType};
 use crate::prelude::*;
-use crate::sync::arc::{Arc, ArcRef};
 use core::cell::UnsafeCell;
 use core::ffi::{c_int, c_void};
 use core::mem::transmute;
@@ -62,8 +62,8 @@ impl BitOr<ResFlags> for ResFlags {
 pub type RawFilterFn = Option<unsafe extern "C" fn(*mut c_void) -> i32>;
 type RawHandler = Option<unsafe extern "C" fn(*mut c_void)>;
 
-pub type FilterFn<T> = Option<extern "C" fn(ArcRef<T>) -> Filter>;
-type Handler<T> = Option<extern "C" fn(ArcRef<T>)>;
+pub type FilterFn<T> = Option<extern "C" fn(DevRef<T>) -> Filter>;
+pub type Handler<T> = Option<extern "C" fn(DevRef<T>)>;
 
 impl AsRustType<Resource> for *mut resource {
     fn as_rust_type(self) -> Resource {
@@ -272,23 +272,21 @@ pub mod wrappers {
         dev: device_t,
         irq: &Irq,
         flags: u32,
-        filter_arg: FilterFn<T>,
-        handler_arg: Handler<T>,
-        arg: Arc<T>,
+        filter: FilterFn<T>,
+        handler: Handler<T>,
+        arg: DevRef<T>,
     ) -> Result<()> {
-        if filter_arg.is_none() && handler_arg.is_none() {
+        if filter.is_none() && handler.is_none() {
             return Err(EDOOFUS);
         }
         // SAFETY: These types are ABI-compatible
-        let filter = unsafe { transmute::<FilterFn<T>, RawFilterFn>(filter_arg) };
+        let filter = unsafe { transmute::<FilterFn<T>, RawFilterFn>(filter) };
         // SAFETY: These types are ABI-compatible
-        let handler = unsafe { transmute::<Handler<T>, RawHandler>(handler_arg) };
+        let handler = unsafe { transmute::<Handler<T>, RawHandler>(handler) };
 
         // FIXME: cookie could move
         let cookiep = irq.cookie.get();
-        let arg_ptr = Arc::into_raw(arg);
-        //let (arg_ptr, metadata_ptr) = SharedPtr::into_raw_parts(arg);
-        //irq.metadata_ptr.store(metadata_ptr, Ordering::Relaxed);
+        let arg_ptr = (&*arg as *const T).cast_mut().cast::<c_void>();
 
         let res = unsafe {
             bindings::bus_setup_intr(
@@ -297,7 +295,7 @@ pub mod wrappers {
                 flags as c_int,
                 filter,
                 handler,
-                arg_ptr.cast::<c_void>(),
+                arg_ptr,
                 cookiep,
             )
         };
@@ -465,7 +463,7 @@ mod tests {
     use super::*;
     use crate::device::{BusProbe, DeviceIf};
     use crate::driver;
-    use crate::sync::arc::UninitArc;
+    use crate::ffi::{DevRef, UninitDevRef};
     use crate::tests::{DriverManager, LoudDrop};
 
     #[repr(C)]
@@ -477,7 +475,7 @@ mod tests {
     }
 
     impl IrqDriver {
-        fn setup(dev: device_t, sc: &Arc<IrqSoftc>, filter: bool, handler: bool) {
+        fn setup(dev: device_t, sc: DevRef<IrqSoftc>, filter: bool, handler: bool) {
             let filter = if filter {
                 Some(IrqDriver::filter as _)
             } else {
@@ -488,9 +486,10 @@ mod tests {
             } else {
                 None
             };
-            bus_setup_intr(dev, &sc.irq, 0, filter, handler, sc.clone()).unwrap();
+            bus_setup_intr(dev, &sc.irq, 0, filter, handler, sc).unwrap();
         }
     }
+
     impl DeviceIf for IrqDriver {
         type Softc = IrqSoftc;
         fn device_probe(dev: device_t) -> Result<BusProbe> {
@@ -499,30 +498,30 @@ mod tests {
             }
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: UninitArc<Self::Softc>, dev: device_t) -> Result<()> {
+        fn device_attach(uninit_sc: UninitDevRef<Self::Softc>, dev: device_t) -> Result<()> {
             let sc = uninit_sc
                 .init(IrqSoftc {
                     dev,
                     irq: Irq::default(),
                     loud: LoudDrop,
                 })
-                .into_arc();
+                .into_ref();
             assert_eq!(
-                bus_setup_intr(dev, &sc.irq, 0, None, None, sc.clone()),
+                bus_setup_intr(dev, &sc.irq, 0, None, None, sc),
                 Err(EDOOFUS)
             );
             if ofw_bus_is_compatible(dev, c"irq_driver,set_both") {
-                IrqDriver::setup(dev, &sc, true, true);
+                IrqDriver::setup(dev, sc, true, true);
             }
             if ofw_bus_is_compatible(dev, c"irq_driver,set_filter") {
-                IrqDriver::setup(dev, &sc, true, false);
+                IrqDriver::setup(dev, sc, true, false);
             }
             if ofw_bus_is_compatible(dev, c"irq_driver,set_handler") {
-                IrqDriver::setup(dev, &sc, false, true);
+                IrqDriver::setup(dev, sc, false, true);
             }
             Ok(())
         }
-        fn device_detach(sc: Arc<Self::Softc>, dev: device_t) -> Result<()> {
+        fn device_detach(sc: DevRef<Self::Softc>, dev: device_t) -> Result<()> {
             if ofw_bus_is_compatible(dev, c"irq_driver,teardown_intr") {
                 bus_teardown_intr(dev, &sc.irq).unwrap();
             }
@@ -531,7 +530,7 @@ mod tests {
     }
 
     impl IrqDriver {
-        extern "C" fn filter(sc: ArcRef<IrqSoftc>) -> Filter {
+        extern "C" fn filter(sc: DevRef<IrqSoftc>) -> Filter {
             println!("called filter");
             if ofw_bus_is_compatible(sc.dev, c"irq_driver,filter_handled") {
                 FILTER_HANDLED
@@ -539,7 +538,7 @@ mod tests {
                 FILTER_SCHEDULE_THREAD
             }
         }
-        extern "C" fn handler(sc: ArcRef<IrqSoftc>) {
+        extern "C" fn handler(sc: DevRef<IrqSoftc>) {
             println!("called handler {sc:x?}");
         }
     }

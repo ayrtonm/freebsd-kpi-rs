@@ -28,12 +28,12 @@
 
 use crate::ErrCode;
 use crate::bindings::{
-    C_HARDCLOCK, callout, callout_func_t, ich_func_t, intr_config_hook, sbintime_t, tick_sbt,
+    C_HARDCLOCK, callout, callout_func_t, device_t, ich_func_t, intr_config_hook, sbintime_t,
+    tick_sbt,
 };
+use crate::ffi::{DevRef, UniqueDevRef};
 use crate::prelude::*;
 use crate::sync::Mutable;
-use crate::sync::arc::{Arc, ArcRef, ArcRefCount};
-use crate::sync::mtx::Mutex;
 use core::cell::UnsafeCell;
 use core::ffi::{c_uint, c_void};
 use core::mem::transmute;
@@ -54,44 +54,25 @@ pub use intrng::*;
 #[derive(Debug, Default)]
 pub struct ConfigHook {
     inner: UnsafeCell<intr_config_hook>,
-    init_addr: Mutable<*mut intr_config_hook>,
 }
 
 unsafe impl Sync for ConfigHook {}
 unsafe impl Send for ConfigHook {}
 
-pub type ConfigHookFn<T> = extern "C" fn(Arc<T>);
+pub type ConfigHookFn<T> = extern "C" fn(UniqueDevRef<T>);
 
 impl ConfigHook {
     pub fn new() -> Self {
         let inner = UnsafeCell::new(intr_config_hook::default());
-        Self {
-            inner,
-            init_addr: Mutable::new(null_mut()),
-        }
-    }
-
-    pub fn init<T>(&self, func: ConfigHookFn<T>, arg: Arc<T>) {
-        let func = unsafe { transmute::<Option<ConfigHookFn<T>>, ich_func_t>(Some(func)) };
-        let arg_ptr = Arc::into_raw(arg);
-
-        let c_hook = self.inner.get();
-        unsafe { (*c_hook).ich_func = func };
-        unsafe { (*c_hook).ich_arg = arg_ptr.cast::<c_void>() };
-
-        *self.init_addr.get_mut() = c_hook;
+        Self { inner }
     }
 }
 
-pub type CalloutFn<T> = extern "C" fn(ArcRef<T>);
+pub type CalloutFn<T> = extern "C" fn(DevRef<T>);
 
 #[derive(Debug, Default)]
 pub struct Callout {
     inner: UnsafeCell<callout>,
-    init_addr: *mut callout,
-    // The Mutable here is really dumb since most callout functions take a &mut Callout, but
-    // callout_drain cannot so we'll have to live with it
-    refcount: Mutable<Option<ArcRefCount>>,
 }
 
 unsafe impl Sync for Callout {}
@@ -100,11 +81,14 @@ unsafe impl Send for Callout {}
 impl Callout {
     pub fn new() -> Self {
         let inner = UnsafeCell::new(callout::default());
-        Self {
-            inner,
-            init_addr: null_mut(),
-            refcount: Mutable::new(None),
-        }
+        Self { inner }
+    }
+}
+
+impl Drop for Callout {
+    fn drop(&mut self) {
+        let c_callout = self.inner.get();
+        let _res = unsafe { bindings::_callout_stop_safe(c_callout, bindings::CS_DRAIN) };
     }
 }
 
@@ -211,11 +195,17 @@ pub mod wrappers {
     #[cfg(feature = "intrng")]
     pub use intrng::wrappers::*;
 
-    pub fn config_intrhook_establish(hook: &ConfigHook) -> Result<()> {
+    pub fn config_intrhook_establish<T>(
+        hook: &ConfigHook,
+        func: ConfigHookFn<T>,
+        arg: DevRef<T>,
+    ) -> Result<()> {
         let c_hook = hook.inner.get();
-        if *hook.init_addr.get_mut() != c_hook {
-            return Err(EDOOFUS);
+        unsafe {
+            (*c_hook).ich_func = transmute::<Option<ConfigHookFn<T>>, ich_func_t>(Some(func));
+            (*c_hook).ich_arg = (&*arg as *const T).cast_mut().cast::<c_void>();
         }
+        // TODO: Handle case where func will be invoked immediately since it easily triggers rust UB
         let res = unsafe { bindings::config_intrhook_establish(c_hook) };
         if res != 0 {
             return Err(ErrCode::from(res));
@@ -227,34 +217,33 @@ pub mod wrappers {
         unsafe { bindings::config_intrhook_disestablish(hook.inner.get()) };
     }
 
-    pub fn callout_init(c: &mut Callout) {
+    pub fn callout_init(dev: device_t, c: &mut Callout) -> Result<()> {
+        let sc = unsafe { bindings::device_get_softc(dev).addr() };
+        let driver = unsafe { bindings::device_get_driver(dev) };
+        let sc_size = unsafe { (*driver).size };
+
         let c_callout = c.inner.get();
-        c.init_addr = c_callout;
+
+        if c_callout.addr() < sc || sc + sc_size <= c_callout.addr() {
+            return Err(EINVAL);
+        }
         unsafe {
             bindings::callout_init(c_callout, 1 /* always mpsafe */)
         }
+        Ok(())
     }
 
     pub fn callout_reset<T>(
         c: &mut Callout,
         ticks: sbintime_t,
         func: CalloutFn<T>,
-        arg: Arc<T>,
+        arg: DevRef<T>,
     ) -> Result<()> {
         let time = ticks * unsafe { tick_sbt };
         let func = unsafe { transmute::<Option<CalloutFn<T>>, callout_func_t>(Some(func)) };
-        let (arg_ptr, refcount) = Arc::take_refcount(arg);
-        *c.refcount.get_mut() = Some(refcount);
+        let arg_ptr = (&*arg as *const T).cast_mut().cast::<c_void>();
         let res = unsafe {
-            bindings::callout_reset_sbt_on(
-                c.inner.get(),
-                time,
-                0,
-                func,
-                arg_ptr.cast::<c_void>(),
-                -1,
-                C_HARDCLOCK,
-            )
+            bindings::callout_reset_sbt_on(c.inner.get(), time, 0, func, arg_ptr, -1, C_HARDCLOCK)
         };
         if res != 0 {
             return Err(ErrCode::from(res));
@@ -263,22 +252,11 @@ pub mod wrappers {
     }
 
     pub fn callout_schedule(c: &mut Callout, ticks: sbintime_t) -> Result<()> {
-        if c.refcount.get_mut().is_none() {
-            return Err(EDOOFUS);
-        }
         let res = unsafe { bindings::callout_schedule(c.inner.get(), ticks.try_into().unwrap()) };
         if res != 0 {
             return Err(ErrCode::from(res));
         }
         Ok(())
-    }
-
-    pub fn callout_drain(c: &Mutex<Callout>) {
-        // TODO: call the C callout_drain, for now this just releases the refcount
-        let callout_ptr = c.data_ptr();
-        let refcount_ptr = unsafe { &raw mut (*callout_ptr).refcount };
-        let refcount_ref = unsafe { refcount_ptr.as_ref().unwrap() };
-        let _drop_refcount: Option<ArcRefCount> = refcount_ref.get_mut().take();
     }
 
     pub fn tsleep<T: Sleepable>(
@@ -322,7 +300,7 @@ mod tests {
     use crate::bindings::device_t;
     use crate::device::{BusProbe, DeviceIf};
     use crate::driver;
-    use crate::sync::arc::{Arc, UninitArc};
+    use crate::ffi::{DevRef, UninitDevRef};
     use crate::tests::{DriverManager, LoudDrop};
 
     #[repr(C)]
@@ -339,21 +317,20 @@ mod tests {
             }
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: UninitArc<Self::Softc>, dev: device_t) -> Result<()> {
+        fn device_attach(uninit_sc: UninitDevRef<Self::Softc>, dev: device_t) -> Result<()> {
             let hook = ConfigHook::new();
             let loud = LoudDrop;
-            let sc = uninit_sc.init(HookSoftc { dev, hook, loud }).into_arc();
-            sc.hook.init(HookDriver::deferred_attach, sc.clone());
-            config_intrhook_establish(&sc.hook).unwrap();
+            let sc = uninit_sc.init(HookSoftc { dev, hook, loud }).into_ref();
+            config_intrhook_establish(&sc.hook, HookDriver::deferred_attach, sc).unwrap();
             Ok(())
         }
-        fn device_detach(_sc: Arc<Self::Softc>, _dev: device_t) -> Result<()> {
+        fn device_detach(_sc: DevRef<Self::Softc>, _dev: device_t) -> Result<()> {
             Ok(())
         }
     }
 
     impl HookDriver {
-        extern "C" fn deferred_attach(sc: Arc<HookSoftc>) {
+        extern "C" fn deferred_attach(sc: UniqueDevRef<HookSoftc>) {
             println!("called config hook rust function/deferred_attach");
             config_intrhook_disestablish(&sc.hook);
         }

@@ -27,7 +27,7 @@
  */
 
 use crate::boxed::{Box, InnerBox};
-use crate::ffi::SubClass;
+use crate::ffi::{DevRef, SubClass};
 use crate::kobj::{AsCType, AsRustType};
 use crate::sync::arc::{Arc, ArcRef, InnerArc, UniqueArcRef};
 use core::cell::UnsafeCell;
@@ -139,6 +139,12 @@ impl<'a, T> AsRustType<ArcRef<'a, T>, c_void> for *mut c_void {
 impl<T> AsRustType<UniqueArcRef<T>, c_void> for *mut c_void {
     fn as_rust_type(self) -> UniqueArcRef<T> {
         unsafe { UniqueArcRef::from_raw(self.cast::<InnerArc<T>>()) }
+    }
+}
+
+impl<'a, T> AsRustType<DevRef<'a, T>, c_void> for *mut c_void {
+    fn as_rust_type(self) -> DevRef<'a, T> {
+        unsafe { DevRef::from_raw(self.cast::<T>()) }
     }
 }
 

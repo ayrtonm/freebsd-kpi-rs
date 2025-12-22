@@ -100,7 +100,7 @@ macro_rules! device_print {
 macro_rules! device_println {
     ($dev:expr, $($args:tt)*) => {
         {
-            let dev = <_ as $crate::device::Device>::as_dev($dev);
+            let dev: $crate::bindings::device_t = $dev;
             unsafe {
                 bindings::device_printf(dev, c"".as_ptr());
             }

@@ -29,14 +29,13 @@
 use crate::bindings::{device_state_t, device_t, driver_t};
 use crate::define_dev_interface;
 use crate::driver::Driver;
-use crate::ffi::CString;
+use crate::ffi::{CString, DevRef, UninitDevRef};
 use crate::kobj::AsCType;
 use crate::prelude::*;
-use crate::sync::arc::{Arc, ArcRef, InnerArc, UninitArc};
+use crate::sync::arc::Arc;
 use core::ffi::{CStr, c_int};
 use core::fmt;
 use core::fmt::{Debug, Formatter};
-use core::ptr::NonNull;
 
 /// The result of probing a device with a driver.
 ///
@@ -49,16 +48,6 @@ pub struct BusProbe(pub c_int);
 impl AsCType<c_int> for BusProbe {
     fn as_c_type(self) -> c_int {
         self.0
-    }
-}
-
-pub trait Device {
-    fn as_dev(self) -> device_t;
-}
-
-impl Device for device_t {
-    fn as_dev(self) -> Self {
-        self
     }
 }
 
@@ -92,9 +81,9 @@ macro_rules! device_probe {
     (get_desc) => {
         device_probe_desc
     };
-    ($driver_ty:ident $impl_fn_name:ident) => {
+    ($driver_ty:ident $driver_sym:ident $impl_fn_name:ident) => {
         $crate::define_c_function! {
-            $driver_ty impls $impl_fn_name in DeviceIf as
+            $driver_ty $driver_sym $impl_fn_name in DeviceIf as
             fn device_probe(dev: device_t) -> int;
         }
     };
@@ -109,80 +98,72 @@ macro_rules! device_attach {
     (get_desc) => {
         device_attach_desc
     };
-    ($driver_ty:ident $impl_fn_name:ident) => {
+    ($driver_ty:ident $driver_sym:ident $impl_fn_name:ident) => {
         $crate::define_c_function! {
-            $driver_ty impls $impl_fn_name in DeviceIf as
+            $driver_ty $driver_sym $impl_fn_name in DeviceIf as
             fn device_attach(dev: device_t) -> int;
             with init glue {
                 use $crate::bindings;
+                use $crate::ffi::UninitDevRef;
                 use $crate::kobj::KobjLayout;
-                use $crate::kobj::interfaces::DeviceIf;
-                use $crate::sync::arc::{Arc, UninitArc, ArcMetadata, InnerArc};
-                use core::mem::offset_of;
-                use core::ptr::drop_in_place;
-                use core::ffi::c_void;
 
                 let void_ptr = unsafe { bindings::device_get_softc(dev) };
                 let sc_ptr = void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
 
-                unsafe fn softc_drop_fn<D: DeviceIf>(metadata_ptr: *mut ArcMetadata) {
-                    let metadata_offset = offset_of!(InnerArc<D::Softc>, metadata);
-                    let inner_ptr = unsafe {
-                        metadata_ptr.byte_sub(metadata_offset).cast::<InnerArc<D::Softc>>()
-                    };
-                    unsafe { drop_in_place(inner_ptr) };
-                    unsafe { bindings::device_free_softc(inner_ptr.cast::<c_void>()) };
-                }
-
-                Arc::set_drop_fn(sc_ptr, softc_drop_fn::<$driver_ty>);
-                // Claim the softc to opt it into refcounting
-                $crate::device::device_claim_softc(dev);
-
-                let uninit_sc = UninitArc::from_raw(sc_ptr);
+                let uninit_sc = unsafe { UninitDevRef::from_raw(sc_ptr) };
             }
             with drop glue {
-                let count = Arc::get_count(sc_ptr);
-                // TODO: don't do this check if attach returned err
-                if count == 0 {
-                    panic!("Must call .init() on the UninitArc<Softc> in device_attach")
-                }
+                //if !sc_dev_ref.is_init() {
+                //    panic!("Must call .init() on the UninitDevRef<Softc> in device_attach")
+                //}
+                // TODO: drop_in_place
+                //let count = Arc::get_count(sc_ptr);
+                //// TODO: don't do this check if attach returned err
+                //if count == 0 {
+                //    panic!("Must call .init() on the UninitArc<Softc> in device_attach")
+                //}
             }
             with prefix args { uninit_sc }
         }
     };
 }
 
-#[doc(hidden)]
-#[macro_export]
-macro_rules! device_detach {
-    (get_typedef) => {
-        device_detach_t
-    };
-    (get_desc) => {
-        device_detach_desc
-    };
-    ($driver_ty:ident $impl_fn_name:ident) => {
-        $crate::define_c_function! {
-            $driver_ty impls $impl_fn_name in DeviceIf as
-            fn device_detach(dev: device_t) -> int;
-            with init glue {
-                use $crate::bindings;
-                use $crate::kobj::KobjLayout;
-                use $crate::sync::arc::Arc;
-
-                let void_ptr = unsafe { bindings::device_get_softc(dev) };
-                let sc_ptr = void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
-                // This Arc gets dropped at the end of this function to release the device
-                // interface's refcount
-                let sc = unsafe { Arc::from_raw(sc_ptr) };
-            }
-            with prefix args { sc }
-        }
-    };
-}
+//#[doc(hidden)]
+//#[macro_export]
+//macro_rules! device_detach {
+//    (get_typedef) => {
+//        device_detach_t
+//    };
+//    (get_desc) => {
+//        device_detach_desc
+//    };
+//    ($driver_ty:ident $impl_fn_name:ident) => {
+//        $crate::define_c_function! {
+//            $driver_ty impls $impl_fn_name in DeviceIf as
+//            fn device_detach(dev: device_t) -> int;
+//            with init glue {
+//                use $crate::bindings;
+//                use $crate::kobj::KobjLayout;
+//                //use $crate::sync::arc::Arc;
+//
+//                let void_ptr = unsafe { bindings::device_get_softc(dev) };
+//                let sc_ptr = void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
+//                // This Arc gets dropped at the end of this function to release the device
+//                // interface's refcount
+//                let sc = unsafe { Arc::from_raw(sc_ptr) };
+//            }
+//            with prefix args { sc }
+//        }
+//    };
+//}
 
 define_dev_interface! {
     in DeviceIf
+    fn device_detach(dev: device_t) -> int,
+        with desc device_detach_desc
+        and typedef device_detach_t,
+        with drop glue {
+        };
     fn device_shutdown(dev: device_t) -> int,
         with desc device_shutdown_desc
         and typedef device_shutdown_t;
@@ -218,9 +199,9 @@ define_dev_interface! {
 /// driver is allowed to access it (all except [`device_probe`][DeviceIf::device_probe]). In
 /// [`device_attach`][DeviceIf::device_attach] it must be initialized by calling the argument's
 /// [`init`][crate::sync::arc::UninitArc::init] method. That returns a
-/// [`UniqueArcRef`][crate::sync::arc::UniqueArcRef] providing mutable access to the softc. If
+/// [`UniqueDevRef`][crate::sync::arc::UniqueDevRef] providing mutable access to the softc. If
 /// multiple pointers to the softc are needed in `device_attach`, the
-/// [`into_arc`][crate::sync::arc::UniqueArcRef::into_arc] method can be used to grab a refcount
+/// [`into_arc`][crate::sync::arc::UniqueDevRef::into_arc] method can be used to grab a refcount
 /// and turn it into an [`Arc`]. That `Arc` then provides a [`clone`][crate::sync::arc::Arc::clone]
 /// method to grab additional refcounts and create new `Arc`s.
 
@@ -238,7 +219,7 @@ impl DeviceIf for {Self} {{
 ```
 ")]
 #[allow(unused_variables)]
-pub trait DeviceIf</*State = ()*/>: Driver {
+pub trait DeviceIf: Driver {
     /// The softc associated with the driver.
     ///
     /// If the driver is a subclass of another, then this must be an appropriate
@@ -254,7 +235,7 @@ pub trait DeviceIf</*State = ()*/>: Driver {
     ///
     /// All implementations must call [`init`][crate::sync::arc::UninitArc::init] on the `uninit_sc`
     /// argument before this function returns to avoid a panic at runtime.
-    fn device_attach(uninit_sc: UninitArc<Self::Softc>, dev: device_t) -> Result<()> {
+    fn device_attach(uninit_sc: UninitDevRef<Self::Softc>, dev: device_t) -> Result<()> {
         unimplemented!()
     }
 
@@ -266,24 +247,21 @@ pub trait DeviceIf</*State = ()*/>: Driver {
     /// example, if a softc struct includes a `Box<T>` field (i.e. a pointer to the heap with
     /// ownership of a `T`) the `T` in the heap will also be freed. This applies recursively through
     /// any number of layers of indirection.
-    fn device_detach(sc: Arc<Self::Softc>, dev: device_t) -> Result<()> {
+    fn device_detach(sc: DevRef<Self::Softc>, dev: device_t) -> Result<()> {
         unimplemented!()
     }
-    fn device_shutdown(sc: ArcRef<Self::Softc>, dev: device_t) -> Result<()> {
+    fn device_shutdown(sc: DevRef<Self::Softc>, dev: device_t) -> Result<()> {
         unimplemented!()
     }
-    fn device_suspend(sc: ArcRef<Self::Softc>, dev: device_t) -> Result<()> {
+    fn device_suspend(sc: DevRef<Self::Softc>, dev: device_t) -> Result<()> {
         unimplemented!()
     }
-    fn device_resume(sc: ArcRef<Self::Softc>, dev: device_t) -> Result<()> {
+    fn device_resume(sc: DevRef<Self::Softc>, dev: device_t) -> Result<()> {
         unimplemented!()
     }
-    fn device_quiesce(sc: ArcRef<Self::Softc>, dev: device_t) -> Result<()> {
+    fn device_quiesce(sc: DevRef<Self::Softc>, dev: device_t) -> Result<()> {
         unimplemented!()
     }
-    //fn device_register(sc: ArcRef<Self::Softc>, dev: device_t) -> Result<&'static State> {
-    //    unimplemented!()
-    //}
 }
 
 #[doc(inline)]
@@ -358,7 +336,7 @@ pub mod wrappers {
     // TODO: This is racy and a lock is needed to serialize softc drop and this operation.
     // It's good enough for now
     /// Get a pointer to a device's softc.
-    pub fn device_get_softc<D: DeviceIf>(dev: device_t) -> Arc<D::Softc> {
+    pub fn device_get_softc<'sc, D: DeviceIf>(dev: device_t) -> DevRef<'sc, D::Softc> {
         let state = device_get_state(dev);
         if state != bindings::DS_ATTACHED {
             panic!("device_get_softc can only be called after device_attach");
@@ -369,13 +347,8 @@ pub mod wrappers {
         }
 
         let void_ptr = unsafe { bindings::device_get_softc(dev) };
-        let sc_ptr = void_ptr.cast::<InnerArc<<D as DeviceIf>::Softc>>();
-        let count_ptr = Arc::get_count_ptr(NonNull::new(sc_ptr).unwrap());
-        let success = unsafe { bindings::refcount_acquire_if_not_zero(count_ptr) };
-        if !success {
-            panic!("device_get_softc called after softc was dropped");
-        }
-        unsafe { Arc::from_raw(sc_ptr) }
+        let sc_ptr = void_ptr.cast::<<D as DeviceIf>::Softc>();
+        unsafe { DevRef::from_raw(sc_ptr) }
     }
 }
 
@@ -384,6 +357,7 @@ pub mod wrappers {
 mod tests {
     use super::*;
     use crate::driver;
+    use crate::ffi::{DevRef, UninitDevRef};
     use crate::sync::Mutable;
     use crate::tests::{DriverManager, LoudDrop};
     use std::ffi::{CStr, c_void};
@@ -432,7 +406,7 @@ mod tests {
             println!("test_driver: accepted {dev:x?}");
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: UninitArc<Self::Softc>, dev: device_t) -> Result<()> {
+        fn device_attach(uninit_sc: UninitDevRef<Self::Softc>, dev: device_t) -> Result<()> {
             let sc = uninit_sc.init(TestDriverSoftc {
                 dev,
                 const_data: 0xdeadbeef,
@@ -442,7 +416,7 @@ mod tests {
             println!("{:x?}", sc);
             Ok(())
         }
-        fn device_detach(sc: Arc<Self::Softc>, dev: device_t) -> Result<()> {
+        fn device_detach(sc: DevRef<Self::Softc>, dev: device_t) -> Result<()> {
             assert!(sc.const_data == 0xdeadbeef);
             Ok(())
         }
@@ -477,7 +451,7 @@ mod tests {
             println!("another_driver: accepted {dev:x?}");
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: UninitArc<Self::Softc>, dev: device_t) -> Result<()> {
+        fn device_attach(uninit_sc: UninitDevRef<Self::Softc>, dev: device_t) -> Result<()> {
             let sc = uninit_sc.init(AnotherDriverSoftc {
                 dev,
                 loud: LoudDrop,
@@ -491,7 +465,7 @@ mod tests {
             }
             Ok(())
         }
-        fn device_detach(sc: Arc<Self::Softc>, dev: device_t) -> Result<()> {
+        fn device_detach(sc: DevRef<Self::Softc>, dev: device_t) -> Result<()> {
             Ok(())
         }
     }
