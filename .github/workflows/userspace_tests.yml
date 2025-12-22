@@ -2,7 +2,7 @@ name: Run userspace unit tests
 
 on:
   push:
-    branches: [ "main", "dev", "test" ]
+    branches: [ "main", "tests" ]
   pull_request:
     branches: [ "main" ]
 

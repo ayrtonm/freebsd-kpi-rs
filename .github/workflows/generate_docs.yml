@@ -2,7 +2,7 @@ name: Generate and upload docs
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "docs" ]
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
