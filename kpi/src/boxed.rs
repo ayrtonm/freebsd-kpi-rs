@@ -32,11 +32,11 @@ use crate::malloc::{MallocFlags, MallocType};
 use crate::prelude::*;
 use core::cmp::PartialEq;
 use core::ffi::c_void;
+use core::fmt;
 use core::fmt::{Debug, Formatter};
 use core::mem::{forget, size_of};
 use core::ops::{Deref, DerefMut};
 use core::ptr::{NonNull, drop_in_place};
-use core::{fmt, slice};
 
 /// To avoid adding an extra, generic malloc_type parameter on `Box<T>` things on the heap store the
 /// malloc_type they were allocated with on the heap. This is then used when free is called when the
@@ -50,10 +50,9 @@ use core::{fmt, slice};
 /// While the extra pointer in the heap adds per allocation overhead this avoids the cognitive
 /// overhead of another generic parameter on `Box<T>`.
 #[repr(C)]
-pub struct InnerBox<T: ?Sized> {
-    pub(crate) ty: MallocType,
-    // Must be the last field since its size might not be known at compile-time
+pub struct InnerBox<T> {
     pub(crate) thing: T,
+    pub(crate) ty: MallocType,
 }
 
 /// A pointer to something on the heap.
@@ -65,10 +64,10 @@ pub struct InnerBox<T: ?Sized> {
 /// ```
 /// though the pointee on the heap has extra metadata preceeding the T.
 #[repr(C)]
-pub struct Box<T: ?Sized>(pub(crate) NonNull<InnerBox<T>>);
+pub struct Box<T>(pub(crate) NonNull<InnerBox<T>>);
 
 // impl Deref to allow using a Box<T> like a T transparently
-impl<T: ?Sized> Deref for Box<T> {
+impl<T> Deref for Box<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -77,14 +76,14 @@ impl<T: ?Sized> Deref for Box<T> {
     }
 }
 
-impl<T: ?Sized> DerefMut for Box<T> {
+impl<T> DerefMut for Box<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         let boxed_thing_mut_ref = unsafe { self.0.as_mut() };
         &mut boxed_thing_mut_ref.thing
     }
 }
 
-impl<T: Debug + ?Sized> Debug for Box<T> {
+impl<T: Debug> Debug for Box<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         // Use Box<T>'s Deref impl since it returns a &T
         Debug::fmt(self.deref(), f)
@@ -102,10 +101,10 @@ impl<T: PartialEq> PartialEq for Box<T> {
 
 impl<T: Eq> Eq for Box<T> {}
 
-unsafe impl<T: Sync + ?Sized> Sync for Box<T> {}
-unsafe impl<T: Send + ?Sized> Send for Box<T> {}
+unsafe impl<T: Sync> Sync for Box<T> {}
+unsafe impl<T: Send> Send for Box<T> {}
 
-impl<T: ?Sized> Drop for Box<T> {
+impl<T> Drop for Box<T> {
     fn drop(&mut self) {
         // Box<T>'s Deref impl returns the &T but we need the *mut malloc_type so call as_ref
         // directly.
@@ -144,7 +143,7 @@ impl<T> Box<T> {
     }
 }
 
-impl<T: ?Sized> Box<T> {
+impl<T> Box<T> {
     #[cfg(test)]
     pub(crate) fn leak<'a>(b: Self) -> &'a mut InnerBox<T> {
         let mut ptr = b.0;
@@ -164,15 +163,6 @@ impl<T: ?Sized> Box<T> {
 
     pub(crate) fn malloc_type(b: &Self) -> MallocType {
         unsafe { b.0.as_ref().ty }
-    }
-}
-
-impl<'a, T> IntoIterator for &'a mut Box<[T]> {
-    type Item = &'a mut T;
-    type IntoIter = slice::IterMut<'a, T>;
-    fn into_iter(self) -> <&'a mut Box<[T]> as IntoIterator>::IntoIter {
-        // Rely on DerefMut<[T]> to use core::slice impl
-        self.iter_mut()
     }
 }
 
