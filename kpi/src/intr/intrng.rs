@@ -30,6 +30,7 @@ use crate::bindings::{
     device_t, intr_irq_filter_t, intr_irqsrc, intr_map_data, intr_map_data_fdt, pcell_t, trapframe,
 };
 use crate::bus::{Filter, Resource};
+use crate::collections::{Runtime2DArray, RuntimeArray};
 use crate::device::DeviceIf;
 use crate::ffi::{CString, ExtRef, SubClass};
 use crate::kobj::AsRustType;
@@ -323,21 +324,41 @@ pub mod wrappers {
         INTR_ISRCF_BOUND,
     }
     pub fn intr_isrc_register<T>(
-        isrc: ExtRef<IrqSrc<T>>,
+        isrcs: &RuntimeArray<IrqSrc<T>>,
+        i: usize,
         dev: device_t,
         flags: Option<IntrIsrcf>,
         name: &CString,
     ) -> Result<()> {
+        let isrc = &isrcs[i];
         let flags = flags.map(|f| f.0 as u32).unwrap_or(0);
         let isrc_ptr = SubClass::as_base_ptr(&isrc);
         let res = unsafe {
             bindings::intr_isrc_register(isrc_ptr, dev, flags, c"%s".as_ptr(), name.as_c_str())
         };
-        if res == 0 {
-            Ok(())
-        } else {
-            Err(ErrCode::from(res))
+        if res != 0 {
+            return Err(ErrCode::from(res));
         }
+        Ok(())
+    }
+    pub fn intr_isrc_register_2d<T>(
+        isrcs: &Runtime2DArray<IrqSrc<T>>,
+        i: usize,
+        j: usize,
+        dev: device_t,
+        flags: Option<IntrIsrcf>,
+        name: &CString,
+    ) -> Result<()> {
+        let isrc = &isrcs[i][j];
+        let flags = flags.map(|f| f.0 as u32).unwrap_or(0);
+        let isrc_ptr = SubClass::as_base_ptr(&isrc);
+        let res = unsafe {
+            bindings::intr_isrc_register(isrc_ptr, dev, flags, c"%s".as_ptr(), name.as_c_str())
+        };
+        if res != 0 {
+            return Err(ErrCode::from(res));
+        }
+        Ok(())
     }
 
     pub fn intr_pic_register(dev: device_t, xref: XRef) -> Result<()> {
@@ -362,23 +383,21 @@ pub mod wrappers {
         let arg_ptr = (&*arg as *const T).cast_mut().cast::<c_void>();
         let res =
             unsafe { bindings::intr_pic_claim_root(dev, xref, filter, arg_ptr, root.0 as u32) };
-        if res == 0 {
-            Ok(())
-        } else {
-            Err(ErrCode::from(res))
+        if res != 0 {
+            return Err(ErrCode::from(res));
         }
+        Ok(())
     }
 
     pub fn intr_ipi_pic_register(dev: device_t, priority: u32) -> Result<()> {
         let res = unsafe { bindings::intr_ipi_pic_register(dev, priority) };
         if res != 0 {
-            Err(ErrCode::from(res))
-        } else {
-            Ok(())
+            return Err(ErrCode::from(res));
         }
+        Ok(())
     }
 
-    pub fn intr_isrc_dispatch<T>(isrc: ExtRef<IrqSrc<T>>, tf: *mut trapframe) -> c_int {
+    pub fn intr_isrc_dispatch<T>(isrc: &IrqSrc<T>, tf: *mut trapframe) -> c_int {
         let isrc_ptr = SubClass::as_base_ptr(&isrc);
         unsafe { bindings::intr_isrc_dispatch(isrc_ptr, tf) }
     }

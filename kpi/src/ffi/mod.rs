@@ -112,10 +112,6 @@ impl<T> MutExtRef<T> {
     pub fn into_ref<'sc>(self) -> ExtRef<'sc, T> {
         ExtRef(self.0, PhantomData)
     }
-
-    pub fn leak(self) -> &'static T {
-        unsafe { self.0.as_ref() }
-    }
 }
 
 impl<T> Deref for MutExtRef<T> {
@@ -147,11 +143,6 @@ impl<'sc, T> Clone for ExtRef<'sc, T> {
 impl<'sc, T> ExtRef<'sc, T> {
     pub unsafe fn from_raw(ptr: *mut T) -> Self {
         Self(NonNull::new(ptr).unwrap(), PhantomData)
-    }
-
-    pub fn map<U, F: FnOnce(&T) -> &U>(&self, f: F) -> ExtRef<'_, U> {
-        let new_ptr = f(self.deref()) as *const U;
-        unsafe { ExtRef::from_raw(new_ptr.cast_mut()) }
     }
 }
 
