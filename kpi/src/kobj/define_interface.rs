@@ -130,12 +130,12 @@ macro_rules! define_dev_interface {
                         with init glue {
                             $($($init_glue)*)*
                             use $crate::bindings;
-                            use $crate::ffi::DevRef;
+                            use $crate::ffi::ExtRef;
                             use $crate::kobj::KobjLayout;
 
                             let _void_ptr = unsafe { bindings::device_get_softc($crate::get_first!($($arg_name)*)) };
                             let _sc_ptr = _void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
-                            let _sc = unsafe { DevRef::from_raw(_sc_ptr) };
+                            let _sc = unsafe { ExtRef::from_raw(_sc_ptr) };
                         }
                         with drop glue {
                             $($($drop_glue)*)*

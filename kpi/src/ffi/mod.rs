@@ -90,26 +90,27 @@ unsafe impl<T> Send for SyncPtr<T> {}
 
 #[repr(C)]
 #[derive(Debug)]
-pub struct UninitDevRef<T>(NonNull<T>);
+pub struct UninitExtRef<'a, T>(NonNull<T>, &'a mut bool);
 
-impl<T> UninitDevRef<T> {
-    pub unsafe fn from_raw(ptr: *mut T) -> Self {
-        Self(NonNull::new(ptr).unwrap())
+impl<'a, T> UninitExtRef<'a, T> {
+    pub unsafe fn from_raw(ptr: *mut T, init: &'a mut bool) -> Self {
+        Self(NonNull::new(ptr).unwrap(), init)
     }
 
-    pub fn init(self, t: T) -> UniqueDevRef<T> {
+    pub fn init(mut self, t: T) -> MutExtRef<T> {
+        *self.1 = true;
         unsafe { self.0.write(t) }
-        UniqueDevRef(self.0)
+        MutExtRef(self.0)
     }
 }
 
 #[repr(C)]
 #[derive(Debug)]
-pub struct UniqueDevRef<T>(NonNull<T>);
+pub struct MutExtRef<T>(NonNull<T>);
 
-impl<T> UniqueDevRef<T> {
-    pub fn into_ref<'sc>(self) -> DevRef<'sc, T> {
-        DevRef(self.0, PhantomData)
+impl<T> MutExtRef<T> {
+    pub fn into_ref<'sc>(self) -> ExtRef<'sc, T> {
+        ExtRef(self.0, PhantomData)
     }
 
     pub fn leak(self) -> &'static T {
@@ -117,7 +118,7 @@ impl<T> UniqueDevRef<T> {
     }
 }
 
-impl<T> Deref for UniqueDevRef<T> {
+impl<T> Deref for MutExtRef<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -125,7 +126,7 @@ impl<T> Deref for UniqueDevRef<T> {
     }
 }
 
-impl<T> DerefMut for UniqueDevRef<T> {
+impl<T> DerefMut for MutExtRef<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { self.0.as_mut() }
     }
@@ -133,28 +134,28 @@ impl<T> DerefMut for UniqueDevRef<T> {
 
 #[repr(C)]
 #[derive(Debug)]
-pub struct DevRef<'sc, T>(NonNull<T>, PhantomData<&'sc T>);
+pub struct ExtRef<'sc, T>(NonNull<T>, PhantomData<&'sc T>);
 
-impl<'sc, T> Copy for DevRef<'sc, T> {}
+impl<'sc, T> Copy for ExtRef<'sc, T> {}
 
-impl<'sc, T> Clone for DevRef<'sc, T> {
+impl<'sc, T> Clone for ExtRef<'sc, T> {
     fn clone(&self) -> Self {
         Self(self.0, self.1)
     }
 }
 
-impl<'sc, T> DevRef<'sc, T> {
+impl<'sc, T> ExtRef<'sc, T> {
     pub unsafe fn from_raw(ptr: *mut T) -> Self {
         Self(NonNull::new(ptr).unwrap(), PhantomData)
     }
 
-    pub fn map<U, F: FnOnce(&T) -> &U>(&self, f: F) -> DevRef<'_, U> {
+    pub fn map<U, F: FnOnce(&T) -> &U>(&self, f: F) -> ExtRef<'_, U> {
         let new_ptr = f(self.deref()) as *const U;
-        unsafe { DevRef::from_raw(new_ptr.cast_mut()) }
+        unsafe { ExtRef::from_raw(new_ptr.cast_mut()) }
     }
 }
 
-impl<'sc, T> Deref for DevRef<'sc, T> {
+impl<'sc, T> Deref for ExtRef<'sc, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
