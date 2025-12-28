@@ -27,6 +27,7 @@
  */
 
 use crate::bindings::{kobj_class, kobj_class_t, kobj_method_t};
+use crate::ffi::CallbackArg;
 use core::cell::UnsafeCell;
 
 mod casts;
@@ -41,7 +42,7 @@ pub mod interfaces {
 }
 
 pub trait KobjLayout: Sized {
-    type Layout;
+    type Layout: CallbackArg;
 }
 
 pub trait KobjClass: KobjLayout {

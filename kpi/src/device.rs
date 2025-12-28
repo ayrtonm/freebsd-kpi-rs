@@ -350,7 +350,7 @@ pub mod wrappers {
 mod tests {
     use super::*;
     use crate::driver;
-    use crate::ffi::{ExtRef, UninitExtRef};
+    use crate::ffi::{CallbackArg, ExtRef, UninitExtRef};
     use crate::sync::Mutable;
     use crate::tests::{DriverManager, LoudDrop};
     use std::ffi::{CStr, c_void};
@@ -414,6 +414,7 @@ mod tests {
             Ok(())
         }
     }
+    impl CallbackArg for TestDriverSoftc {}
     driver!(test_driver, c"test_driver", TestDriver,
             test_driver_methods = {
                 device_probe test_driver_probe,
@@ -462,6 +463,7 @@ mod tests {
             Ok(())
         }
     }
+    impl CallbackArg for AnotherDriverSoftc {}
     driver!(another_driver, c"another_driver", AnotherDriver,
             another_driver_methods = {
                 device_probe another_driver_probe,

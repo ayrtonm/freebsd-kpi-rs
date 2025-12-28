@@ -301,7 +301,7 @@ mod tests {
     use crate::bindings::device_t;
     use crate::device::{BusProbe, DeviceIf};
     use crate::driver;
-    use crate::ffi::{ExtRef, UninitExtRef};
+    use crate::ffi::{CallbackArg, ExtRef, UninitExtRef};
     use crate::tests::{DriverManager, LoudDrop};
 
     #[repr(C)]
@@ -348,6 +348,7 @@ mod tests {
         m.detach_all();
     }
 
+    impl CallbackArg for HookSoftc {}
     driver!(hook_driver, c"hook_driver", HookDriver,
             hook_driver_methods = {
                 device_probe hook_driver_probe,

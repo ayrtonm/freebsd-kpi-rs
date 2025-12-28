@@ -463,7 +463,7 @@ mod tests {
     use super::*;
     use crate::device::{BusProbe, DeviceIf};
     use crate::driver;
-    use crate::ffi::{ExtRef, UninitExtRef};
+    use crate::ffi::{CallbackArg, ExtRef, UninitExtRef};
     use crate::tests::{DriverManager, LoudDrop};
 
     #[repr(C)]
@@ -543,6 +543,7 @@ mod tests {
         }
     }
 
+    impl CallbackArg for IrqSoftc {}
     driver!(irq_driver, c"irq_driver", IrqDriver,
             irq_driver_methods = {
                 device_probe irq_driver_probe,
