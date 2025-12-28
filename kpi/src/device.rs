@@ -123,42 +123,40 @@ macro_rules! device_attach {
     };
 }
 
-//#[doc(hidden)]
-//#[macro_export]
-//macro_rules! device_detach {
-//    (get_typedef) => {
-//        device_detach_t
-//    };
-//    (get_desc) => {
-//        device_detach_desc
-//    };
-//    ($driver_ty:ident $impl_fn_name:ident) => {
-//        $crate::define_c_function! {
-//            $driver_ty impls $impl_fn_name in DeviceIf as
-//            fn device_detach(dev: device_t) -> int;
-//            with init glue {
-//                use $crate::bindings;
-//                use $crate::kobj::KobjLayout;
-//                //use $crate::sync::arc::Arc;
-//
-//                let void_ptr = unsafe { bindings::device_get_softc(dev) };
-//                let sc_ptr = void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
-//                // This Arc gets dropped at the end of this function to release the device
-//                // interface's refcount
-//                let sc = unsafe { Arc::from_raw(sc_ptr) };
-//            }
-//            with prefix args { sc }
-//        }
-//    };
-//}
+#[doc(hidden)]
+#[macro_export]
+macro_rules! device_detach {
+    (get_typedef) => {
+        device_detach_t
+    };
+    (get_desc) => {
+        device_detach_desc
+    };
+    ($driver_ty:ident $driver_sym:ident $impl_fn_name:ident) => {
+        $crate::define_c_function! {
+            $driver_ty $driver_sym $impl_fn_name in DeviceIf as
+            fn device_detach(dev: device_t) -> int;
+            with init glue {
+                use $crate::bindings;
+                use $crate::ffi::ExtRef;
+                use $crate::kobj::KobjLayout;
+
+                let void_ptr = unsafe { bindings::device_get_softc(dev) };
+                let sc_ptr = void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
+
+                let sc = unsafe { ExtRef::from_raw(sc_ptr) };
+            }
+            with drop glue {
+                use core::ptr::drop_in_place;
+                unsafe { drop_in_place(sc_ptr) }
+            }
+            with prefix args { sc }
+        }
+    };
+}
 
 define_dev_interface! {
     in DeviceIf
-    fn device_detach(dev: device_t) -> int,
-        with desc device_detach_desc
-        and typedef device_detach_t,
-        with drop glue {
-        };
     fn device_shutdown(dev: device_t) -> int,
         with desc device_shutdown_desc
         and typedef device_shutdown_t;
