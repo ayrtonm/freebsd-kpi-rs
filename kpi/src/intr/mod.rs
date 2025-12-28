@@ -218,11 +218,17 @@ pub mod wrappers {
         unsafe { bindings::config_intrhook_disestablish(hook.inner.get()) };
     }
 
-    pub fn callout_init(dev: device_t, c: &mut Callout) -> Result<()> {
+    pub fn callout_init(c: &mut Callout) -> Result<()> {
         unsafe {
             bindings::callout_init(c.inner.get(), 1 /* always mpsafe */)
         }
         Ok(())
+    }
+
+    pub fn callout_drain(c: *mut Callout) {
+        let inner_ptr = unsafe { &raw mut (*c).inner };
+        let c_callout = UnsafeCell::raw_get(inner_ptr);
+        let _res = unsafe { bindings::_callout_stop_safe(c_callout, bindings::CS_DRAIN) };
     }
 
     pub fn callout_reset<T: CallbackArg>(
@@ -231,7 +237,7 @@ pub mod wrappers {
         func: CalloutFn<T>,
         arg: ExtRef<T>,
     ) -> Result<()> {
-        if arg.get_callout() != c as *mut Callout {
+        if arg.get_callout().unwrap() != c as *mut Callout {
             return Err(EINVAL);
         }
         let c_callout = c.inner.get();

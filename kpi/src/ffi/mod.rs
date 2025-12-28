@@ -161,5 +161,16 @@ impl<'a, T> Deref for ExtRef<'a, T> {
 }
 
 pub trait CallbackArg {
-    fn get_callout(&self) -> *mut Callout;
+    fn get_callout(&self) -> Option<*mut Callout>;
+}
+
+#[repr(C)]
+pub struct CallbackGuard<T: CallbackArg>(T);
+
+impl<T: CallbackArg> Drop for CallbackGuard<T> {
+    fn drop(&mut self) {
+        if let Some(callout) = self.0.get_callout() {
+            callout_drain(callout)
+        };
+    }
 }
