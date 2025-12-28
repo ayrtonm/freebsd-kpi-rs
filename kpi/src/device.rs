@@ -147,13 +147,13 @@ macro_rules! device_detach {
                 let sc = unsafe { ExtRef::from_raw(sc_ptr) };
             }
             with drop glue {
-                use $crate::intr::callout_drain;
-                use $crate::ffi::CallbackArg;
                 use core::ptr::drop_in_place;
+                //use $crate::intr::callout_drain;
+                //use $crate::ffi::CallbackArg;
 
-                if let Some(callout) = sc.get_callout() {
-                    callout_drain(callout)
-                };
+                //if let Some(callout) = sc.get_callout() {
+                //    callout_drain(callout)
+                //};
                 unsafe { drop_in_place(sc_ptr) }
             }
             with prefix args { sc }
