@@ -29,7 +29,7 @@
 use crate::bindings::{device_state_t, device_t, driver_t};
 use crate::define_dev_interface;
 use crate::driver::Driver;
-use crate::ffi::{CString, ExtRef, UninitExtRef};
+use crate::ffi::{CString, ExtRef, UninitExtRef,CallbackArg};
 use crate::kobj::AsCType;
 use crate::prelude::*;
 use core::ffi::{CStr, c_int};
@@ -147,7 +147,13 @@ macro_rules! device_detach {
                 let sc = unsafe { ExtRef::from_raw(sc_ptr) };
             }
             with drop glue {
+                use $crate::intr::callout_drain;
+                use $crate::ffi::CallbackArg;
                 use core::ptr::drop_in_place;
+
+                if let Some(callout) = sc.get_callout() {
+                    callout_drain(callout)
+                };
                 unsafe { drop_in_place(sc_ptr) }
             }
             with prefix args { sc }
@@ -217,7 +223,7 @@ pub trait DeviceIf: Driver {
     ///
     /// If the driver is a subclass of another, then this must be an appropriate
     /// [`SubClass`][crate::ffi::SubClass].
-    type Softc: 'static + Sync;
+    type Softc: 'static + Sync + CallbackArg;
 
     /// Used to probe whether the given device is supported by the driver.
     fn device_probe(dev: device_t) -> Result<BusProbe> {
@@ -350,7 +356,7 @@ pub mod wrappers {
 mod tests {
     use super::*;
     use crate::driver;
-    use crate::ffi::{CallbackArg, ExtRef, UninitExtRef};
+    use crate::ffi::{ExtRef, UninitExtRef};
     use crate::sync::Mutable;
     use crate::tests::{DriverManager, LoudDrop};
     use std::ffi::{CStr, c_void};

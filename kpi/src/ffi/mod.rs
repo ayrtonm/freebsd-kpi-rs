@@ -183,14 +183,3 @@ impl<B, F: CallbackArg> CallbackArg for SubClass<B, F> {
         sub_fields.get_callout()
     }
 }
-
-#[repr(C)]
-pub struct CallbackGuard<T: CallbackArg>(T);
-
-impl<T: CallbackArg> Drop for CallbackGuard<T> {
-    fn drop(&mut self) {
-        if let Some(callout) = self.0.get_callout() {
-            callout_drain(callout)
-        };
-    }
-}
