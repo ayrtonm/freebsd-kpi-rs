@@ -30,7 +30,7 @@ use crate::ErrCode;
 use crate::bindings::sglist;
 use crate::boxed::Box;
 use crate::ffi::SyncPtr;
-use crate::malloc::{MallocFlags, Malloc};
+use crate::malloc::{Malloc, MallocFlags};
 use crate::prelude::*;
 use crate::vec::Vec;
 use core::ffi::c_void;

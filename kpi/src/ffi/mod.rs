@@ -8,9 +8,9 @@
  * modification, are permitted provided that the following conditions
  * are met:
  * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
+ *    notice, this list of conditions and the following dialaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
+ *    notice, this list of conditions and the following dialaimer in the
  *    documentation and/or other materials provided with the distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
@@ -109,7 +109,7 @@ impl<'a, T> UninitExtRef<'a, T> {
 pub struct MutExtRef<T>(NonNull<T>);
 
 impl<T> MutExtRef<T> {
-    pub fn into_ref<'sc>(self) -> ExtRef<'sc, T> {
+    pub fn into_ref<'a>(self) -> ExtRef<'a, T> {
         ExtRef(self.0, PhantomData)
     }
 }
@@ -130,23 +130,27 @@ impl<T> DerefMut for MutExtRef<T> {
 
 #[repr(C)]
 #[derive(Debug)]
-pub struct ExtRef<'sc, T>(NonNull<T>, PhantomData<&'sc T>);
+pub struct ExtRef<'a, T>(NonNull<T>, PhantomData<&'a T>);
 
-impl<'sc, T> Copy for ExtRef<'sc, T> {}
+impl<'a, T> Copy for ExtRef<'a, T> {}
 
-impl<'sc, T> Clone for ExtRef<'sc, T> {
+impl<'a, T> Clone for ExtRef<'a, T> {
     fn clone(&self) -> Self {
         Self(self.0, self.1)
     }
 }
 
-impl<'sc, T> ExtRef<'sc, T> {
+impl<'a, T> ExtRef<'a, T> {
+    pub fn into_raw(x: Self) -> *mut T {
+        x.0.as_ptr()
+    }
+
     pub unsafe fn from_raw(ptr: *mut T) -> Self {
         Self(NonNull::new(ptr).unwrap(), PhantomData)
     }
 }
 
-impl<'sc, T> Deref for ExtRef<'sc, T> {
+impl<'a, T> Deref for ExtRef<'a, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {

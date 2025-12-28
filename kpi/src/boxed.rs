@@ -122,8 +122,8 @@ impl<T, M: Malloc> Box<T, M> {
         res
     }
 
-    pub unsafe fn from_raw(raw: *mut T) -> Self {
-        Self(NonNull::new(raw).unwrap(), PhantomData)
+    pub unsafe fn from_raw(ptr: *mut T) -> Self {
+        Self(NonNull::new(ptr).unwrap(), PhantomData)
     }
 }
 

@@ -29,13 +29,14 @@
 use crate::ErrCode;
 use crate::bindings::{task, task_fn_t, taskqueue};
 use crate::boxed::Box;
+use crate::ffi::ExtRef;
 use crate::prelude::*;
-use crate::sync::arc::{Arc, ArcRef};
+use crate::sync::arc::Arc;
 use core::cell::UnsafeCell;
 use core::ffi::c_void;
 use core::mem::{forget, transmute};
 
-pub type TaskFn<T> = extern "C" fn(ArcRef<T>, u32);
+pub type TaskFn<T> = extern "C" fn(ExtRef<T>, u32);
 
 #[derive(Debug)]
 pub struct Task {

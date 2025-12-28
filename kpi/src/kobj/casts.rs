@@ -30,8 +30,7 @@ use crate::boxed::Box;
 use crate::ffi::{ExtRef, SubClass};
 use crate::kobj::{AsCType, AsRustType};
 use crate::malloc::Malloc;
-use crate::sync::arc::{Arc, ArcRef, InnerArc, UniqueArcRef};
-use core::cell::UnsafeCell;
+use crate::sync::arc::{Arc, InnerArc};
 use core::ffi::c_void;
 
 // Allow passing through C types into rust unchanged
@@ -44,13 +43,6 @@ impl<T> AsRustType<T> for T {
 impl<T> AsCType<T> for T {
     fn as_c_type(self) -> T {
         self
-    }
-}
-
-// Allow turning pointers to shared references behind an UnsafeCell
-impl<'a, T> AsRustType<&'a UnsafeCell<T>> for *mut T {
-    fn as_rust_type(self) -> &'a UnsafeCell<T> {
-        unsafe { self.cast::<UnsafeCell<T>>().as_ref().unwrap() }
     }
 }
 
@@ -96,25 +88,19 @@ impl<'a, B, F> AsRustType<&'a mut SubClass<B, F>> for *mut B {
 
 impl<T, M: Malloc> AsRustType<Box<T, M>> for *mut T {
     fn as_rust_type(self) -> Box<T, M> {
-        unsafe { Box::from_raw(self.cast::<T>()) }
+        unsafe { Box::from_raw(self) }
     }
 }
 
-impl<T> AsRustType<Arc<T>> for *mut T {
-    fn as_rust_type(self) -> Arc<T> {
+impl<T, M: Malloc> AsRustType<Arc<T, M>> for *mut T {
+    fn as_rust_type(self) -> Arc<T, M> {
         unsafe { Arc::from_raw(self.cast::<InnerArc<T>>()) }
     }
 }
 
-impl<'a, T> AsRustType<ArcRef<'a, T>> for *mut T {
-    fn as_rust_type(self) -> ArcRef<'a, T> {
-        unsafe { ArcRef::from_raw(self.cast::<InnerArc<T>>()) }
-    }
-}
-
-impl<T> AsRustType<UniqueArcRef<T>> for *mut T {
-    fn as_rust_type(self) -> UniqueArcRef<T> {
-        unsafe { UniqueArcRef::from_raw(self.cast::<InnerArc<T>>()) }
+impl<'a, T> AsRustType<ExtRef<'a, T>> for *mut T {
+    fn as_rust_type(self) -> ExtRef<'a, T> {
+        unsafe { ExtRef::from_raw(self) }
     }
 }
 
@@ -124,21 +110,9 @@ impl<T, M: Malloc> AsRustType<Box<T, M>, c_void> for *mut c_void {
     }
 }
 
-impl<T> AsRustType<Arc<T>, c_void> for *mut c_void {
-    fn as_rust_type(self) -> Arc<T> {
+impl<T, M: Malloc> AsRustType<Arc<T, M>, c_void> for *mut c_void {
+    fn as_rust_type(self) -> Arc<T, M> {
         unsafe { Arc::from_raw(self.cast::<InnerArc<T>>()) }
-    }
-}
-
-impl<'a, T> AsRustType<ArcRef<'a, T>, c_void> for *mut c_void {
-    fn as_rust_type(self) -> ArcRef<'a, T> {
-        unsafe { ArcRef::from_raw(self.cast::<InnerArc<T>>()) }
-    }
-}
-
-impl<T> AsRustType<UniqueArcRef<T>, c_void> for *mut c_void {
-    fn as_rust_type(self) -> UniqueArcRef<T> {
-        unsafe { UniqueArcRef::from_raw(self.cast::<InnerArc<T>>()) }
     }
 }
 
@@ -150,25 +124,19 @@ impl<'a, T> AsRustType<ExtRef<'a, T>, c_void> for *mut c_void {
 
 impl<T, M: Malloc> AsCType<*mut T> for Box<T, M> {
     fn as_c_type(self) -> *mut T {
-        Box::into_raw(self).cast::<T>()
+        Box::into_raw(self)
     }
 }
 
 impl<T> AsCType<*mut T> for Arc<T> {
     fn as_c_type(self) -> *mut T {
-        Arc::into_raw(self).cast::<T>()
+        Arc::into_raw(self)
     }
 }
 
-impl<'a, T> AsCType<*mut T> for ArcRef<'a, T> {
+impl<'a, T> AsCType<*mut T> for ExtRef<'a, T> {
     fn as_c_type(self) -> *mut T {
-        ArcRef::into_raw(self).cast::<T>()
-    }
-}
-
-impl<T> AsCType<*mut T> for UniqueArcRef<T> {
-    fn as_c_type(self) -> *mut T {
-        UniqueArcRef::into_raw(self).cast::<T>()
+        ExtRef::into_raw(self)
     }
 }
 
@@ -184,14 +152,8 @@ impl<T> AsCType<*mut c_void, c_void> for Arc<T> {
     }
 }
 
-impl<'a, T> AsCType<*mut c_void, c_void> for ArcRef<'a, T> {
+impl<'a, T> AsCType<*mut c_void, c_void> for ExtRef<'a, T> {
     fn as_c_type(self) -> *mut c_void {
-        ArcRef::into_raw(self).cast::<c_void>()
-    }
-}
-
-impl<T> AsCType<*mut c_void, c_void> for UniqueArcRef<T> {
-    fn as_c_type(self) -> *mut c_void {
-        UniqueArcRef::into_raw(self).cast::<c_void>()
+        ExtRef::into_raw(self).cast::<c_void>()
     }
 }

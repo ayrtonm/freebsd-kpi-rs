@@ -26,7 +26,7 @@
  * SUCH DAMAGE.
  */
 
-use crate::malloc::{MallocFlags, Malloc};
+use crate::malloc::{Malloc, MallocFlags};
 use crate::prelude::*;
 use crate::vec::Vec;
 use core::cmp::max;
