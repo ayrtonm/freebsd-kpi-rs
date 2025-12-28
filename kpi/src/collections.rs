@@ -30,77 +30,12 @@ use crate::ErrCode;
 use crate::bindings::sglist;
 use crate::boxed::Box;
 use crate::ffi::SyncPtr;
-use crate::malloc::{Malloc, MallocFlags};
+use crate::malloc::MallocFlags;
 use crate::prelude::*;
 use crate::vec::Vec;
 use core::ffi::c_void;
 use core::mem::{forget, size_of};
-use core::ops::{DerefMut, Index};
-
-/// An array with a size determined at runtime.
-#[derive(Debug)]
-pub struct RuntimeArray<T, M: Malloc = M_DEVBUF>(Vec<T, M>);
-
-/// A 2D-array with a size determined at runtime.
-#[derive(Debug)]
-pub struct Runtime2DArray<T, M: Malloc = M_DEVBUF>(Vec<Vec<T, M>, M>);
-
-impl<T, M: Malloc> RuntimeArray<T, M> {
-    pub fn new(len: usize, flags: MallocFlags) -> Self {
-        assert!(flags.contains(M_WAITOK));
-        assert!(!flags.contains(M_NOWAIT));
-        Self::try_new(len, flags).unwrap()
-    }
-    pub fn try_new(len: usize, flags: MallocFlags) -> Result<Self> {
-        let array = Vec::try_with_capacity(len, flags)?;
-        Ok(Self(array))
-    }
-
-    pub fn push(&mut self, value: T) {
-        self.0.push(value);
-    }
-}
-
-impl<T, M: Malloc> Index<usize> for RuntimeArray<T, M> {
-    type Output = T;
-
-    fn index(&self, idx: usize) -> &Self::Output {
-        &self.0[idx]
-    }
-}
-
-impl<T, M: Malloc> Runtime2DArray<T, M> {
-    pub fn new(len: usize, width: usize, flags: MallocFlags) -> Self {
-        assert!(flags.contains(M_WAITOK));
-        assert!(!flags.contains(M_NOWAIT));
-        Self::try_new(len, width, flags).unwrap()
-    }
-    pub fn try_new(len: usize, width: usize, flags: MallocFlags) -> Result<Self> {
-        let mut array = Vec::try_with_capacity(len, flags)?;
-        for v in &mut array {
-            *v = Vec::try_with_capacity(width, flags)?;
-        }
-        Ok(Self(array))
-    }
-
-    pub fn push(&mut self, value: T) {
-        for v in &mut self.0 {
-            if v.len() == v.capacity() {
-                continue;
-            }
-            v.push(value);
-            return;
-        }
-    }
-}
-
-impl<T, M: Malloc> Index<usize> for Runtime2DArray<T, M> {
-    type Output = [T];
-
-    fn index(&self, idx: usize) -> &Self::Output {
-        &self.0[idx]
-    }
-}
+use core::ops::DerefMut;
 
 /// Plain-ol-data which is valid for any bitpattern
 ///

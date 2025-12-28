@@ -30,12 +30,13 @@ use crate::bindings::{
     device_t, intr_irq_filter_t, intr_irqsrc, intr_map_data, intr_map_data_fdt, pcell_t, trapframe,
 };
 use crate::bus::{Filter, Resource};
-use crate::collections::{Runtime2DArray, RuntimeArray};
+use crate::boxed::Box;
 use crate::device::DeviceIf;
 use crate::ffi::{CString, ExtRef, SubClass};
 use crate::kobj::AsRustType;
 use crate::ofw::XRef;
 use crate::prelude::*;
+use crate::malloc::Malloc;
 use crate::{ErrCode, define_dev_interface};
 use core::ffi::{c_int, c_void};
 use core::mem::transmute;
@@ -323,33 +324,57 @@ pub mod wrappers {
         INTR_ISRCF_PPI,
         INTR_ISRCF_BOUND,
     }
-    pub fn intr_isrc_register<T>(
-        isrcs: &RuntimeArray<IrqSrc<T>>,
-        i: usize,
+
+    pub fn intr_isrc_register_from_list<T, M: Malloc>(
+        isrcs: &Box<[IrqSrc<T>], M>,
+        idx: usize,
         dev: device_t,
         flags: Option<IntrIsrcf>,
         name: &CString,
     ) -> Result<()> {
-        let isrc = &isrcs[i];
-        let flags = flags.map(|f| f.0 as u32).unwrap_or(0);
-        let isrc_ptr = SubClass::as_base_ptr(&isrc);
-        let res = unsafe {
-            bindings::intr_isrc_register(isrc_ptr, dev, flags, c"%s".as_ptr(), name.as_c_str())
-        };
-        if res != 0 {
-            return Err(ErrCode::from(res));
+        let isrc = &isrcs[idx];
+        unsafe {
+            intr_isrc_register_unchecked(isrc, dev, flags, name)
         }
-        Ok(())
     }
-    pub fn intr_isrc_register_2d<T>(
-        isrcs: &Runtime2DArray<IrqSrc<T>>,
-        i: usize,
-        j: usize,
+    pub fn intr_isrc_register_from_array<T, M: Malloc>(
+        isrcs: &Box<[Box<[IrqSrc<T>], M>], M>,
+        idx_1: usize,
+        idx_2: usize,
         dev: device_t,
         flags: Option<IntrIsrcf>,
         name: &CString,
     ) -> Result<()> {
-        let isrc = &isrcs[i][j];
+        let isrc = &isrcs[idx_1][idx_2];
+        unsafe {
+            intr_isrc_register_unchecked(isrc, dev, flags, name)
+        }
+    }
+    pub fn intr_isrc_register<T>(
+        isrc: &IrqSrc<T>,
+        dev: device_t,
+        flags: Option<IntrIsrcf>,
+        name: &CString,
+    ) -> Result<()> {
+        let sc = unsafe { bindings::device_get_softc(dev) };
+        let driver = unsafe { bindings::device_get_driver(dev) };
+        let sc_size = unsafe { (*driver).size };
+        let isrc_addr = (isrc as *const IrqSrc<T>).addr();
+        let sc_start = sc.addr();
+        let sc_end = sc.addr() + sc_size;
+        if isrc_addr < sc_start || sc_end <= isrc_addr {
+            return Err(EINVAL);
+        }
+        unsafe {
+            intr_isrc_register_unchecked(isrc, dev, flags, name)
+        }
+    }
+    pub unsafe fn intr_isrc_register_unchecked<T>(
+        isrc: &IrqSrc<T>,
+        dev: device_t,
+        flags: Option<IntrIsrcf>,
+        name: &CString,
+    ) -> Result<()> {
         let flags = flags.map(|f| f.0 as u32).unwrap_or(0);
         let isrc_ptr = SubClass::as_base_ptr(&isrc);
         let res = unsafe {
