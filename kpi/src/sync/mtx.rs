@@ -128,6 +128,10 @@ impl<T> SpinLock<T> {
             data: UnsafeCell::new(t),
         }
     }
+
+    pub fn data_ptr(&self) -> *mut T {
+        self.data.get()
+    }
 }
 
 pub trait Lockable {

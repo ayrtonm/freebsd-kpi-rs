@@ -135,6 +135,7 @@ pub use wrappers::*;
 #[doc(hidden)]
 pub mod wrappers {
     use super::*;
+    use crate::ffi::CallbackArg;
     use core::ffi::CStr;
 
     gen_newtype! {
@@ -218,32 +219,27 @@ pub mod wrappers {
     }
 
     pub fn callout_init(dev: device_t, c: &mut Callout) -> Result<()> {
-        let sc = unsafe { bindings::device_get_softc(dev).addr() };
-        let driver = unsafe { bindings::device_get_driver(dev) };
-        let sc_size = unsafe { (*driver).size };
-
-        let c_callout = c.inner.get();
-
-        if c_callout.addr() < sc || sc + sc_size <= c_callout.addr() {
-            return Err(EINVAL);
-        }
         unsafe {
-            bindings::callout_init(c_callout, 1 /* always mpsafe */)
+            bindings::callout_init(c.inner.get(), 1 /* always mpsafe */)
         }
         Ok(())
     }
 
-    pub fn callout_reset<T>(
+    pub fn callout_reset<T: CallbackArg>(
         c: &mut Callout,
         ticks: sbintime_t,
         func: CalloutFn<T>,
         arg: ExtRef<T>,
     ) -> Result<()> {
+        if arg.get_callout() != c as *mut Callout {
+            return Err(EINVAL);
+        }
+        let c_callout = c.inner.get();
         let time = ticks * unsafe { tick_sbt };
         let func = unsafe { transmute::<Option<CalloutFn<T>>, callout_func_t>(Some(func)) };
-        let arg_ptr = (&*arg as *const T).cast_mut().cast::<c_void>();
+        let arg_ptr = ExtRef::into_raw(arg).cast::<c_void>();
         let res = unsafe {
-            bindings::callout_reset_sbt_on(c.inner.get(), time, 0, func, arg_ptr, -1, C_HARDCLOCK)
+            bindings::callout_reset_sbt_on(c_callout, time, 0, func, arg_ptr, -1, C_HARDCLOCK)
         };
         if res != 0 {
             return Err(ErrCode::from(res));

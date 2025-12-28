@@ -28,6 +28,8 @@
 
 //! Utilities related to FFI with C.
 
+use crate::intr::Callout;
+use crate::prelude::*;
 use core::fmt::Debug;
 use core::marker::PhantomData;
 use core::ops::{Deref, DerefMut};
@@ -156,4 +158,8 @@ impl<'a, T> Deref for ExtRef<'a, T> {
     fn deref(&self) -> &Self::Target {
         unsafe { self.0.as_ref() }
     }
+}
+
+pub trait CallbackArg {
+    fn get_callout(&self) -> *mut Callout;
 }
