@@ -30,7 +30,7 @@ use crate::ErrCode;
 use crate::bindings::sglist;
 use crate::boxed::Box;
 use crate::ffi::SyncPtr;
-use crate::malloc::{MallocFlags, MallocType};
+use crate::malloc::{MallocFlags, Malloc};
 use crate::prelude::*;
 use crate::vec::Vec;
 use core::ffi::c_void;
@@ -39,20 +39,20 @@ use core::ops::{DerefMut, Index};
 
 /// An array with a size determined at runtime.
 #[derive(Debug)]
-pub struct RuntimeArray<T>(Vec<T>);
+pub struct RuntimeArray<T, M: Malloc = M_DEVBUF>(Vec<T, M>);
 
 /// A 2D-array with a size determined at runtime.
 #[derive(Debug)]
-pub struct Runtime2DArray<T>(Vec<Vec<T>>);
+pub struct Runtime2DArray<T, M: Malloc = M_DEVBUF>(Vec<Vec<T, M>, M>);
 
-impl<T> RuntimeArray<T> {
-    pub fn new(len: usize, ty: MallocType, flags: MallocFlags) -> Self {
+impl<T, M: Malloc> RuntimeArray<T, M> {
+    pub fn new(len: usize, flags: MallocFlags) -> Self {
         assert!(flags.contains(M_WAITOK));
         assert!(!flags.contains(M_NOWAIT));
-        Self::try_new(len, ty, flags).unwrap()
+        Self::try_new(len, flags).unwrap()
     }
-    pub fn try_new(len: usize, ty: MallocType, flags: MallocFlags) -> Result<Self> {
-        let array = Vec::try_with_capacity(len, ty, flags)?;
+    pub fn try_new(len: usize, flags: MallocFlags) -> Result<Self> {
+        let array = Vec::try_with_capacity(len, flags)?;
         Ok(Self(array))
     }
 
@@ -61,7 +61,7 @@ impl<T> RuntimeArray<T> {
     }
 }
 
-impl<T> Index<usize> for RuntimeArray<T> {
+impl<T, M: Malloc> Index<usize> for RuntimeArray<T, M> {
     type Output = T;
 
     fn index(&self, idx: usize) -> &Self::Output {
@@ -69,16 +69,16 @@ impl<T> Index<usize> for RuntimeArray<T> {
     }
 }
 
-impl<T> Runtime2DArray<T> {
-    pub fn new(len: usize, width: usize, ty: MallocType, flags: MallocFlags) -> Self {
+impl<T, M: Malloc> Runtime2DArray<T, M> {
+    pub fn new(len: usize, width: usize, flags: MallocFlags) -> Self {
         assert!(flags.contains(M_WAITOK));
         assert!(!flags.contains(M_NOWAIT));
-        Self::try_new(len, width, ty, flags).unwrap()
+        Self::try_new(len, width, flags).unwrap()
     }
-    pub fn try_new(len: usize, width: usize, ty: MallocType, flags: MallocFlags) -> Result<Self> {
-        let mut array = Vec::try_with_capacity(len, ty, flags)?;
+    pub fn try_new(len: usize, width: usize, flags: MallocFlags) -> Result<Self> {
+        let mut array = Vec::try_with_capacity(len, flags)?;
         for v in &mut array {
-            *v = Vec::try_with_capacity(width, ty, flags)?;
+            *v = Vec::try_with_capacity(width, flags)?;
         }
         Ok(Self(array))
     }
@@ -94,7 +94,7 @@ impl<T> Runtime2DArray<T> {
     }
 }
 
-impl<T> Index<usize> for Runtime2DArray<T> {
+impl<T, M: Malloc> Index<usize> for Runtime2DArray<T, M> {
     type Output = [T];
 
     fn index(&self, idx: usize) -> &Self::Output {

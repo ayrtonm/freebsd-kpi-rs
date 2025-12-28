@@ -26,7 +26,7 @@
  * SUCH DAMAGE.
  */
 
-use crate::malloc::{MallocFlags, MallocType};
+use crate::malloc::{MallocFlags, Malloc};
 use crate::prelude::*;
 use crate::vec::Vec;
 use core::cmp::max;
@@ -68,20 +68,20 @@ impl_to_cstring!(u64, 20);
 impl_to_cstring!(usize, 20);
 
 #[derive(Debug)]
-pub enum CString<const N: usize = 24> {
+pub enum CString<M: Malloc = M_DEVBUF, const N: usize = 24> {
     Small([u8; N]),
-    Heap(Vec<u8>),
+    Heap(Vec<u8, M>),
 }
 
-impl CString {
-    pub fn new(msg: &CStr, ty: MallocType, flags: MallocFlags) -> Self {
+impl<M: Malloc> CString<M> {
+    pub fn new(msg: &CStr, flags: MallocFlags) -> Self {
         assert!(flags.contains(M_WAITOK));
         assert!(!flags.contains(M_NOWAIT));
-        Self::try_new(msg, ty, flags).unwrap()
+        Self::try_new(msg, flags).unwrap()
     }
 
-    pub fn try_new(msg: &CStr, ty: MallocType, flags: MallocFlags) -> Result<Self> {
-        let mut buf = Vec::try_with_capacity(msg.to_bytes().len() + 1, ty, flags).unwrap();
+    pub fn try_new(msg: &CStr, flags: MallocFlags) -> Result<Self> {
+        let mut buf = Vec::try_with_capacity(msg.to_bytes().len() + 1, flags).unwrap();
         for &b in msg.to_bytes() {
             buf.push(b);
         }
@@ -90,7 +90,7 @@ impl CString {
     }
 }
 
-impl<const N: usize> CString<N> {
+impl<M: Malloc, const N: usize> CString<M, N> {
     pub fn try_new_small(msg: &CStr) -> Result<Self> {
         let mut buf = [0u8; N];
         if msg.count_bytes() + 1 > N {
@@ -164,14 +164,14 @@ impl<const N: usize> CString<N> {
     }
 }
 
-impl<const N: usize> Deref for CString<N> {
+impl<M: Malloc, const N: usize> Deref for CString<M, N> {
     type Target = CStr;
     fn deref(&self) -> &Self::Target {
         self.as_c_str()
     }
 }
 
-impl<const N: usize> From<[u8; N]> for CString<N> {
+impl<M: Malloc, const N: usize> From<[u8; N]> for CString<M, N> {
     fn from(array: [u8; N]) -> Self {
         Self::Small(array)
     }

@@ -54,6 +54,26 @@ impl MallocFlags {
     }
 }
 
+pub trait Malloc {
+    fn malloc_type() -> MallocType;
+}
+
+macro_rules! gen_malloc_type {
+    ($($name:ident)*) => {
+    $(
+    #[derive(Debug)]
+    pub struct $name(());
+
+    impl Malloc for $name {
+        fn malloc_type() -> MallocType {
+            MallocType(unsafe { &raw mut bindings::$name[0] })
+        }
+    }
+    )*
+
+    };
+}
+
 #[doc(inline)]
 pub use wrappers::*;
 
@@ -71,7 +91,15 @@ pub mod wrappers {
         M_USE_RESERVE,
     }
 
-    pub const M_DEVBUF: MallocType = MallocType(unsafe { &raw mut bindings::M_DEVBUF[0] });
+    gen_malloc_type! {
+        M_DEVBUF
+        M_CACHE
+        M_PARGS
+        M_SESSION
+        M_SUBPROC
+        M_TEMP
+        M_IOV
+    }
 
     pub fn malloc_aligned(
         size: usize,

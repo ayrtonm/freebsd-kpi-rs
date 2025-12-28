@@ -97,7 +97,7 @@ impl<'a, T> UninitExtRef<'a, T> {
         Self(NonNull::new(ptr).unwrap(), init)
     }
 
-    pub fn init(mut self, t: T) -> MutExtRef<T> {
+    pub fn init(self, t: T) -> MutExtRef<T> {
         *self.1 = true;
         unsafe { self.0.write(t) }
         MutExtRef(self.0)

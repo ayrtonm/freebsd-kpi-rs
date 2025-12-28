@@ -26,13 +26,13 @@
  * SUCH DAMAGE.
  */
 
-use crate::boxed::{Box, InnerBox};
+use crate::boxed::Box;
 use crate::ffi::{ExtRef, SubClass};
 use crate::kobj::{AsCType, AsRustType};
+use crate::malloc::Malloc;
 use crate::sync::arc::{Arc, ArcRef, InnerArc, UniqueArcRef};
 use core::cell::UnsafeCell;
 use core::ffi::c_void;
-use core::ptr::NonNull;
 
 // Allow passing through C types into rust unchanged
 impl<T> AsRustType<T> for T {
@@ -94,9 +94,9 @@ impl<'a, B, F> AsRustType<&'a mut SubClass<B, F>> for *mut B {
     }
 }
 
-impl<T> AsRustType<Box<T>> for *mut T {
-    fn as_rust_type(self) -> Box<T> {
-        unsafe { Box::from_raw(NonNull::new(self.cast::<InnerBox<T>>()).unwrap()) }
+impl<T, M: Malloc> AsRustType<Box<T, M>> for *mut T {
+    fn as_rust_type(self) -> Box<T, M> {
+        unsafe { Box::from_raw(self.cast::<T>()) }
     }
 }
 
@@ -118,9 +118,9 @@ impl<T> AsRustType<UniqueArcRef<T>> for *mut T {
     }
 }
 
-impl<T> AsRustType<Box<T>, c_void> for *mut c_void {
-    fn as_rust_type(self) -> Box<T> {
-        unsafe { Box::from_raw(NonNull::new(self.cast::<InnerBox<T>>()).unwrap()) }
+impl<T, M: Malloc> AsRustType<Box<T, M>, c_void> for *mut c_void {
+    fn as_rust_type(self) -> Box<T, M> {
+        unsafe { Box::from_raw(self.cast::<T>()) }
     }
 }
 
@@ -148,7 +148,7 @@ impl<'a, T> AsRustType<ExtRef<'a, T>, c_void> for *mut c_void {
     }
 }
 
-impl<T> AsCType<*mut T> for Box<T> {
+impl<T, M: Malloc> AsCType<*mut T> for Box<T, M> {
     fn as_c_type(self) -> *mut T {
         Box::into_raw(self).cast::<T>()
     }
@@ -172,7 +172,7 @@ impl<T> AsCType<*mut T> for UniqueArcRef<T> {
     }
 }
 
-impl<T> AsCType<*mut c_void, c_void> for Box<T> {
+impl<T, M: Malloc> AsCType<*mut c_void, c_void> for Box<T, M> {
     fn as_c_type(self) -> *mut c_void {
         Box::into_raw(self).cast::<c_void>()
     }

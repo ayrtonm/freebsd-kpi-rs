@@ -32,7 +32,6 @@ use crate::driver::Driver;
 use crate::ffi::{CString, ExtRef, UninitExtRef};
 use crate::kobj::AsCType;
 use crate::prelude::*;
-use crate::sync::arc::Arc;
 use core::ffi::{CStr, c_int};
 use core::fmt;
 use core::fmt::{Debug, Formatter};
