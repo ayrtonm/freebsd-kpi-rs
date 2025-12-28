@@ -87,7 +87,6 @@ macro_rules! println {
 #[macro_export]
 macro_rules! device_print {
     ($dev:expr, $($args:tt)*) => {
-        #[cfg(not(feature = "std"))]
         {
             <$crate::tty::TTY as core::fmt::Write>::write_fmt(
                 &mut $crate::tty::TTY,
@@ -100,10 +99,10 @@ macro_rules! device_print {
 #[macro_export]
 macro_rules! device_println {
     ($dev:expr, $($args:tt)*) => {
-        #[cfg(not(feature = "std"))]
         {
-            let dev: $crate::bindings::device_t = $dev;
+            #[cfg(not(feature = "std"))]
             unsafe {
+                let dev: $crate::bindings::device_t = $dev;
                 bindings::device_printf(dev, c"".as_ptr());
             }
             <$crate::tty::TTY as core::fmt::Write>::write_fmt(
