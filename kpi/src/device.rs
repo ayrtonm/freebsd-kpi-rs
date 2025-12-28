@@ -362,7 +362,7 @@ mod tests {
     pub struct TestDriverSoftc {
         dev: device_t,
         const_data: u32,
-        another_sc: Mutable<Option<Arc<AnotherDriverSoftc>>>,
+        //another_sc: Mutable<Option<Arc<AnotherDriverSoftc>>>,
     }
     //static STASHED_DEVICE: Mutable<device_t> = Mutable::new(device_t::null());
     impl TestDriver {
@@ -403,7 +403,7 @@ mod tests {
             let sc = uninit_sc.init(TestDriverSoftc {
                 dev,
                 const_data: 0xdeadbeef,
-                another_sc: Mutable::new(None),
+                //another_sc: Mutable::new(None),
             });
             //*STASHED_DEVICE.get_mut() = dev;
             println!("{:x?}", sc);

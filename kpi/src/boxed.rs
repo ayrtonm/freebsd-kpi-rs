@@ -135,29 +135,27 @@ mod tests {
     #[test]
     fn boxed() {
         let value = 42;
-        let x: Box<u64> = Box::try_new(value, M_DEVBUF, M_NOWAIT).unwrap();
+        let x: Box<u64, M_DEVBUF> = Box::try_new(value, M_NOWAIT).unwrap();
         assert_eq!(*x, value);
         println!("{x:?}");
     }
 
     #[test]
     fn bad_flags() {
-        let x = Box::try_new(0xdeadbeefu32, M_DEVBUF, M_NOWAIT | M_WAITOK);
+        let x: Result<Box<u32>> = Box::try_new(0xdeadbeefu32, M_NOWAIT | M_WAITOK);
         assert!(x == Err(EDOOFUS));
     }
 
     #[test]
     fn oom() {
-        let x = Box::try_new(111u8, M_DEVBUF, M_USE_RESERVE);
+        let x: Result<Box<u8>> = Box::try_new(111u8, M_USE_RESERVE);
         assert!(x == Err(ENOMEM));
     }
 
     #[test]
     fn round_trip_drop() {
-        let y = Box::try_new(LoudDrop, M_DEVBUF, M_NOWAIT).unwrap();
-        let y_ref = Box::leak(y);
-        let y_ptr = y_ref as *const InnerBox<LoudDrop>;
-        let nonnull_y = NonNull::new(y_ptr.cast_mut()).unwrap();
-        let _new_y = unsafe { Box::from_raw(nonnull_y) };
+        let y: Box<LoudDrop> = Box::try_new(LoudDrop, M_NOWAIT).unwrap();
+        let y_ptr = Box::into_raw(y);
+        let _new_y: Box<LoudDrop> = unsafe { Box::from_raw(y_ptr) };
     }
 }

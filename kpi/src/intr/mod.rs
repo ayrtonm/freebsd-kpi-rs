@@ -28,8 +28,7 @@
 
 use crate::ErrCode;
 use crate::bindings::{
-    C_HARDCLOCK, callout, callout_func_t, device_t, ich_func_t, intr_config_hook, sbintime_t,
-    tick_sbt,
+    C_HARDCLOCK, callout, callout_func_t, ich_func_t, intr_config_hook, sbintime_t, tick_sbt,
 };
 use crate::ffi::{ExtRef, MutExtRef};
 use crate::prelude::*;

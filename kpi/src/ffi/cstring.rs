@@ -67,6 +67,7 @@ impl_to_cstring!(u32, 10);
 impl_to_cstring!(u64, 20);
 impl_to_cstring!(usize, 20);
 
+// FIXME: These should be two separate types
 #[derive(Debug)]
 pub enum CString<M: Malloc = M_DEVBUF, const N: usize = 24> {
     Small([u8; N]),
@@ -198,7 +199,7 @@ mod tests {
 
     #[test]
     fn push_cstring() {
-        let mut x = CString::<24>::try_new_small(c"hello").unwrap();
+        let mut x: CString = CString::try_new_small(c"hello").unwrap();
         x.push(b' ').unwrap();
         x.push(b'w').unwrap();
         x.push(b'o').unwrap();
@@ -210,24 +211,24 @@ mod tests {
 
     #[test]
     fn pop_cstring() {
-        let mut x = CString::<24>::try_new_small(c"hello world").unwrap();
+        let mut x = CString::<M_DEVBUF, 24>::try_new_small(c"hello world").unwrap();
         x.pop(c" world".to_bytes().len());
         assert_eq!(x.as_c_str(), c"hello");
     }
 
     #[test]
     fn push_short_cstring() {
-        let short_str = CString::<5>::try_new_small(c"hello");
+        let short_str = CString::<M_DEVBUF, 5>::try_new_small(c"hello");
         assert!(short_str.is_err());
 
-        let mut full_str = CString::<6>::try_new_small(c"hello").unwrap();
+        let mut full_str = CString::<M_DEVBUF, 6>::try_new_small(c"hello").unwrap();
         let res = full_str.push(b'x');
         assert!(res.is_err());
     }
 
     #[test]
     fn push_cstring_words() {
-        let mut x = CString::<24>::try_new_small(c"the").unwrap();
+        let mut x: CString = CString::try_new_small(c"the").unwrap();
         let len = x.push_cstr(c" quick");
         assert_eq!(len, 6);
         let len = x.push_cstr(c" brown");

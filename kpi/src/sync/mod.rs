@@ -204,7 +204,7 @@ mod tests {
 
     #[test]
     fn arc() {
-        let x = Arc::try_new(42u32, M_DEVBUF, M_NOWAIT).unwrap();
+        let x: Arc<u32> = Arc::try_new(42u32, M_NOWAIT).unwrap();
         assert_eq!(x.snapshot_refcount(), 1);
         {
             let y = x.clone();

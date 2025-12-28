@@ -248,7 +248,7 @@ mod tests {
 
     #[test]
     fn small_vec() {
-        let mut x: Vec<(u32, LoudDrop)> = Vec::try_with_capacity(3, M_DEVBUF, M_NOWAIT).unwrap();
+        let mut x: Vec<(u32, LoudDrop)> = Vec::try_with_capacity(3, M_NOWAIT).unwrap();
         x.push((1, LoudDrop));
         x.push((2, LoudDrop));
     }
@@ -258,7 +258,7 @@ mod tests {
         let mut x: Vec<&'static CStr> = Vec::new();
         assert_eq!(x.len(), 0);
         assert_eq!(x.capacity(), 0);
-        x.try_reserve(5, M_DEVBUF, M_WAITOK).unwrap();
+        x.try_reserve(5, M_WAITOK).unwrap();
         assert_eq!(x.len(), 0);
         assert_eq!(x.capacity(), 5);
         x.push(c"hello");
@@ -283,7 +283,7 @@ mod tests {
 
     #[test]
     fn oom() {
-        let x = Vec::<u8>::try_with_capacity(4, M_DEVBUF, M_USE_RESERVE);
+        let x = Vec::<u8>::try_with_capacity(4, M_USE_RESERVE);
         assert_eq!(x.err(), Some(ENOMEM));
     }
 }

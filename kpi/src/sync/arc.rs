@@ -101,6 +101,11 @@ impl<T, M: Malloc> Arc<T, M> {
         let inner_ptr = self.0.as_ptr();
         UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count })
     }
+
+    #[cfg(test)]
+    pub(crate) fn snapshot_refcount(&self) -> u_int {
+        unsafe { bindings::refcount_load(self.count_ptr()) }
+    }
 }
 
 impl<T, M: Malloc> Clone for Arc<T, M> {
