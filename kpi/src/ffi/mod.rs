@@ -177,6 +177,13 @@ pub trait CallbackArg {
     }
 }
 
+impl<B, F: CallbackArg> CallbackArg for SubClass<B, F> {
+    fn get_callout(&self) -> Option<*mut Callout> {
+        let sub_fields: &F = self.deref();
+        sub_fields.get_callout()
+    }
+}
+
 #[repr(C)]
 pub struct CallbackGuard<T: CallbackArg>(T);
 
