@@ -32,22 +32,22 @@ use crate::malloc::{Malloc, MallocFlags};
 use crate::prelude::*;
 use core::cmp::PartialEq;
 use core::ffi::c_void;
-use core::fmt;
 use core::fmt::{Debug, Formatter};
 use core::marker::PhantomData;
 use core::mem::{forget, size_of};
 use core::ops::{Deref, DerefMut};
 use core::ptr::{NonNull, drop_in_place};
+use core::{fmt, slice};
 
 /// A pointer to something on the heap.
 ///
 /// When a `Box<T>` is dropped, the T on the heap is deallocated. The memory layout of this type is
 /// equivalent to `void *ptr` in C.
 #[repr(C)]
-pub struct Box<T, M: Malloc = M_DEVBUF>(pub(crate) NonNull<T>, PhantomData<*mut M>);
+pub struct Box<T: ?Sized, M: Malloc = M_DEVBUF>(pub(crate) NonNull<T>, PhantomData<*mut M>);
 
 // impl Deref to allow using a Box<T> like a T transparently
-impl<T, M: Malloc> Deref for Box<T, M> {
+impl<T: ?Sized, M: Malloc> Deref for Box<T, M> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -55,32 +55,32 @@ impl<T, M: Malloc> Deref for Box<T, M> {
     }
 }
 
-impl<T, M: Malloc> DerefMut for Box<T, M> {
+impl<T: ?Sized, M: Malloc> DerefMut for Box<T, M> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { self.0.as_mut() }
     }
 }
 
-impl<T: Debug, M: Malloc> Debug for Box<T, M> {
+impl<T: Debug + ?Sized, M: Malloc> Debug for Box<T, M> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         // Use Box<T>'s Deref impl since it returns a &T
         Debug::fmt(self.deref(), f)
     }
 }
 
-impl<T: PartialEq, M: Malloc> PartialEq for Box<T, M> {
+impl<T: PartialEq + ?Sized, M: Malloc> PartialEq for Box<T, M> {
     fn eq(&self, other: &Self) -> bool {
         // Use Box<T>'s Deref impl since it returns a &T
         PartialEq::eq(self.deref(), other)
     }
 }
 
-impl<T: Eq, M: Malloc> Eq for Box<T, M> {}
+impl<T: Eq + ?Sized, M: Malloc> Eq for Box<T, M> {}
 
-unsafe impl<T: Sync, M: Malloc> Sync for Box<T, M> {}
-unsafe impl<T: Send, M: Malloc> Send for Box<T, M> {}
+unsafe impl<T: Sync + ?Sized, M: Malloc> Sync for Box<T, M> {}
+unsafe impl<T: Send + ?Sized, M: Malloc> Send for Box<T, M> {}
 
-impl<T, M: Malloc> Drop for Box<T, M> {
+impl<T: ?Sized, M: Malloc> Drop for Box<T, M> {
     fn drop(&mut self) {
         let ptr = self.0.as_ptr();
         // Drop everything that the T owns
@@ -115,7 +115,7 @@ impl<T, M: Malloc> Box<T, M> {
     }
 }
 
-impl<T, M: Malloc> Box<T, M> {
+impl<T: ?Sized, M: Malloc> Box<T, M> {
     pub fn into_raw(b: Self) -> *mut T {
         let res = b.0.as_ptr();
         forget(b);
@@ -124,6 +124,15 @@ impl<T, M: Malloc> Box<T, M> {
 
     pub unsafe fn from_raw(ptr: *mut T) -> Self {
         Self(NonNull::new(ptr).unwrap(), PhantomData)
+    }
+}
+
+impl<'a, T, M: Malloc> IntoIterator for &'a mut Box<[T], M> {
+    type Item = &'a mut T;
+    type IntoIter = slice::IterMut<'a, T>;
+    fn into_iter(self) -> <&'a mut Box<[T], M> as IntoIterator>::IntoIter {
+        // Rely on DerefMut<[T]> to use core::slice impl
+        self.iter_mut()
     }
 }
 

@@ -28,16 +28,17 @@
 
 //! The `Vec<T>` type for contiguous growable arrays allocated in the heap.
 
+use crate::boxed::Box;
 use crate::malloc::{Malloc, MallocFlags};
 use crate::prelude::*;
 use core::alloc::Layout;
 use core::ffi::c_void;
 use core::fmt::{Debug, Formatter};
 use core::marker::PhantomData;
-use core::mem::replace;
+use core::mem::{forget, replace};
 use core::ops::{Deref, DerefMut};
 use core::ptr::{NonNull, drop_in_place, read, write};
-use core::{fmt, slice};
+use core::{fmt, ptr, slice};
 
 /// A growable array of some type T.
 pub struct Vec<T, M: Malloc = M_DEVBUF> {
@@ -179,6 +180,13 @@ impl<T, M: Malloc> Vec<T, M> {
         }
         self.len -= 1;
         Some(unsafe { read(self.as_mut_ptr().add(self.len)) })
+    }
+
+    pub fn into_boxed_slice(mut self) -> Box<[T], M> {
+        // TODO: free excess capacity
+        let fat_ptr = ptr::from_mut(self.deref_mut());
+        forget(self);
+        unsafe { Box::from_raw(fat_ptr) }
     }
 }
 
