@@ -81,6 +81,8 @@ itself cannot dynamically allocate.
 
 ## Defining a driver
 
+FIXME: This section became out of date after the switch to not refcounting the softc and ExtRef
+
 The `driver!` rust macro is the equivalent of using the `DEFINE_CLASS` C macro for device drivers.
 This is a typical way to use it.
 
