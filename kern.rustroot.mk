@@ -2,6 +2,10 @@ _LDFLAGS += --whole-archive
 
 RLIBS += ${RUST_KPI}
 
+.for rlib in ${RLIBS}
+.-include ".depend.${rlib}"
+.endfor
+
 ${RUSTROOT_RS}: ${RUST_MAKEFILE} ${RLIBS}
 	printf "#![no_std]\n${RLIBS:S/.rlib/;/:S/lib/extern crate /}" > ${RUSTROOT_RS}
 
