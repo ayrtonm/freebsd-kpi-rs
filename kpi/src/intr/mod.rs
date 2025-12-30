@@ -203,7 +203,7 @@ pub mod wrappers {
         let c_hook = hook.inner.get();
         unsafe {
             (*c_hook).ich_func = transmute::<Option<ConfigHookFn<T>>, ich_func_t>(Some(func));
-            (*c_hook).ich_arg = (&*arg as *const T).cast_mut().cast::<c_void>();
+            (*c_hook).ich_arg = Ext::into_raw(arg).cast::<c_void>();
         }
         // TODO: Handle case where func will be invoked immediately since it easily triggers rust UB
         let res = unsafe { bindings::config_intrhook_establish(c_hook) };
