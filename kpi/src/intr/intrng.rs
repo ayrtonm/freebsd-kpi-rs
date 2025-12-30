@@ -29,14 +29,14 @@
 use crate::bindings::{
     device_t, intr_irq_filter_t, intr_irqsrc, intr_map_data, intr_map_data_fdt, pcell_t, trapframe,
 };
-use crate::bus::{Filter, Resource};
 use crate::boxed::Box;
+use crate::bus::{Filter, Resource};
 use crate::device::DeviceIf;
-use crate::ffi::{CString, ExtRef, SubClass};
+use crate::ffi::{CString, Ext, SubClass};
 use crate::kobj::AsRustType;
+use crate::malloc::Malloc;
 use crate::ofw::XRef;
 use crate::prelude::*;
-use crate::malloc::Malloc;
 use crate::{ErrCode, define_dev_interface};
 use core::ffi::{c_int, c_void};
 use core::mem::transmute;
@@ -61,7 +61,7 @@ impl AsRustType<IntrRoot> for u32 {
     }
 }
 
-pub type IrqFilter<T> = extern "C" fn(ExtRef<T>) -> Filter;
+pub type IrqFilter<T> = extern "C" fn(Ext<T>) -> Filter;
 
 define_dev_interface! {
     in PicIf
@@ -116,12 +116,12 @@ macro_rules! pic_map_intr {
             //let this_fn_id = TypeId::of::<Option<
             //assert!(typedef_id == this_fn_id);
             use $crate::bindings;
-            use $crate::ffi::ExtRef;
+            use $crate::ffi::Ext;
             use $crate::kobj::KobjLayout;
 
             let void_ptr = unsafe { bindings::device_get_softc(dev) };
             let sc_ptr = void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
-            let sc = unsafe { ExtRef::from_raw(sc_ptr) };
+            let sc = unsafe { Ext::from_raw(sc_ptr) };
             let data = data.as_rust_type();
             let res = match <$driver_ty as PicIf>::pic_map_intr(&sc, dev, data) {
                 Ok(isrc_ref) => {
@@ -156,12 +156,12 @@ macro_rules! pic_ipi_setup {
             //let this_fn_id = TypeId::of::<Option<
             //assert!(typedef_id == this_fn_id);
             use $crate::bindings;
-            use $crate::ffi::ExtRef;
+            use $crate::ffi::Ext;
             use $crate::kobj::KobjLayout;
 
             let void_ptr = unsafe { bindings::device_get_softc(dev) };
             let sc_ptr = void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
-            let sc = unsafe { ExtRef::from_raw(sc_ptr) };
+            let sc = unsafe { Ext::from_raw(sc_ptr) };
             let res = match <$driver_ty as PicIf>::pic_ipi_setup(&sc, dev, ipi) {
                 Ok(isrc_ref) => {
                     unsafe {
@@ -183,7 +183,7 @@ pub type IrqSrc<T> = SubClass<intr_irqsrc, T>;
 pub trait PicIf: DeviceIf {
     type IrqSrcFields;
     fn pic_setup_intr(
-        sc: ExtRef<Self::Softc>,
+        sc: Ext<Self::Softc>,
         dev: device_t,
         isrc: &mut IrqSrc<Self::IrqSrcFields>,
         res: Resource,
@@ -192,7 +192,7 @@ pub trait PicIf: DeviceIf {
         unimplemented!()
     }
     fn pic_teardown_intr(
-        sc: ExtRef<Self::Softc>,
+        sc: Ext<Self::Softc>,
         dev: device_t,
         isrc: &mut IrqSrc<Self::IrqSrcFields>,
         res: Resource,
@@ -201,66 +201,54 @@ pub trait PicIf: DeviceIf {
         unimplemented!()
     }
     fn pic_map_intr<'sc>(
-        sc: &'sc ExtRef<Self::Softc>,
+        sc: &'sc Ext<Self::Softc>,
         dev: device_t,
         data: MapData,
     ) -> Result<&'sc IrqSrc<Self::IrqSrcFields>> {
         unimplemented!()
     }
-    fn pic_enable_intr(
-        sc: ExtRef<Self::Softc>,
-        dev: device_t,
-        isrc: &mut IrqSrc<Self::IrqSrcFields>,
-    ) {
+    fn pic_enable_intr(sc: Ext<Self::Softc>, dev: device_t, isrc: &mut IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
     fn pic_disable_intr(
-        sc: ExtRef<Self::Softc>,
+        sc: Ext<Self::Softc>,
         dev: device_t,
         isrc: &mut IrqSrc<Self::IrqSrcFields>,
     ) {
         unimplemented!()
     }
-    fn pic_post_filter(
-        sc: ExtRef<Self::Softc>,
-        dev: device_t,
-        isrc: &mut IrqSrc<Self::IrqSrcFields>,
-    ) {
+    fn pic_post_filter(sc: Ext<Self::Softc>, dev: device_t, isrc: &mut IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
     fn pic_post_ithread(
-        sc: ExtRef<Self::Softc>,
+        sc: Ext<Self::Softc>,
         dev: device_t,
         isrc: &mut IrqSrc<Self::IrqSrcFields>,
     ) {
         unimplemented!()
     }
-    fn pic_pre_ithread(
-        sc: ExtRef<Self::Softc>,
-        dev: device_t,
-        isrc: &mut IrqSrc<Self::IrqSrcFields>,
-    ) {
+    fn pic_pre_ithread(sc: Ext<Self::Softc>, dev: device_t, isrc: &mut IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
     fn pic_bind_intr(
-        sc: ExtRef<Self::Softc>,
+        sc: Ext<Self::Softc>,
         dev: device_t,
         isrc: &mut IrqSrc<Self::IrqSrcFields>,
     ) -> Result<()> {
         unimplemented!()
     }
-    fn pic_init_secondary(sc: ExtRef<Self::Softc>, dev: device_t, root: IntrRoot) {
+    fn pic_init_secondary(sc: Ext<Self::Softc>, dev: device_t, root: IntrRoot) {
         unimplemented!()
     }
     fn pic_ipi_setup<'sc>(
-        sc: &'sc ExtRef<Self::Softc>,
+        sc: &'sc Ext<Self::Softc>,
         dev: device_t,
         ipi: u32,
     ) -> Result<&'sc IrqSrc<Self::IrqSrcFields>> {
         unimplemented!()
     }
     fn pic_ipi_send(
-        sc: ExtRef<Self::Softc>,
+        sc: Ext<Self::Softc>,
         dev: device_t,
         isrc: &mut IrqSrc<Self::IrqSrcFields>,
         cpus: bindings::cpuset_t,
@@ -333,9 +321,7 @@ pub mod wrappers {
         name: &CString,
     ) -> Result<()> {
         let isrc = &isrcs[idx];
-        unsafe {
-            intr_isrc_register_unchecked(isrc, dev, flags, name)
-        }
+        unsafe { intr_isrc_register_unchecked(isrc, dev, flags, name) }
     }
     pub fn intr_isrc_register_from_array<T, M: Malloc>(
         isrcs: &Box<[Box<[IrqSrc<T>], M>], M>,
@@ -346,9 +332,7 @@ pub mod wrappers {
         name: &CString,
     ) -> Result<()> {
         let isrc = &isrcs[idx_1][idx_2];
-        unsafe {
-            intr_isrc_register_unchecked(isrc, dev, flags, name)
-        }
+        unsafe { intr_isrc_register_unchecked(isrc, dev, flags, name) }
     }
     pub fn intr_isrc_register<T>(
         isrc: &IrqSrc<T>,
@@ -365,9 +349,7 @@ pub mod wrappers {
         if isrc_addr < sc_start || sc_end <= isrc_addr {
             return Err(EINVAL);
         }
-        unsafe {
-            intr_isrc_register_unchecked(isrc, dev, flags, name)
-        }
+        unsafe { intr_isrc_register_unchecked(isrc, dev, flags, name) }
     }
     pub unsafe fn intr_isrc_register_unchecked<T>(
         isrc: &IrqSrc<T>,
@@ -400,7 +382,7 @@ pub mod wrappers {
         dev: device_t,
         xref: XRef,
         filter: IrqFilter<T>,
-        arg: ExtRef<T>,
+        arg: Ext<T>,
         root: IntrRoot,
     ) -> Result<()> {
         let xref = xref.0 as isize;
@@ -437,7 +419,7 @@ mod tests {
     use super::*;
     use crate::device::{BusProbe, DeviceIf};
     use crate::driver;
-    use crate::ffi::{CallbackArg, ExtRef, UninitExtRef};
+    use crate::ffi::{CallbackArg, Ext, UninitExt};
     use crate::tests::DriverManager;
 
     #[repr(C)]
@@ -453,11 +435,11 @@ mod tests {
             }
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: UninitExtRef<Self::Softc>, dev: device_t) -> Result<()> {
+        fn device_attach(uninit_sc: UninitExt<Self::Softc>, dev: device_t) -> Result<()> {
             let sc = uninit_sc.init(IntcSoftc { dev }).into_ref();
             intr_pic_claim_root(dev, XRef(0), IntcDriver::handle_irq, sc, INTR_ROOT_IRQ)
         }
-        fn device_detach(_sc: ExtRef<Self::Softc>, _dev: device_t) -> Result<()> {
+        fn device_detach(_sc: Ext<Self::Softc>, _dev: device_t) -> Result<()> {
             Ok(())
         }
     }
@@ -472,7 +454,7 @@ mod tests {
         type IrqSrcFields = IntcIrqSrc;
 
         fn pic_setup_intr(
-            _sc: ExtRef<Self::Softc>,
+            _sc: Ext<Self::Softc>,
             _dev: device_t,
             isrc: &mut IrqSrc<Self::IrqSrcFields>,
             _res: Resource,
@@ -485,7 +467,7 @@ mod tests {
     }
 
     impl IntcDriver {
-        extern "C" fn handle_irq(sc: ExtRef<IntcSoftc>) -> Filter {
+        extern "C" fn handle_irq(sc: Ext<IntcSoftc>) -> Filter {
             println!("invoked irq handler {sc:x?}");
             FILTER_HANDLED
         }

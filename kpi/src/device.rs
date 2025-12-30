@@ -29,7 +29,7 @@
 use crate::bindings::{device_state_t, device_t, driver_t};
 use crate::define_dev_interface;
 use crate::driver::Driver;
-use crate::ffi::{CString, ExtRef, UninitExtRef,CallbackArg};
+use crate::ffi::{CString, CallbackArg, Ext, UninitExt};
 use crate::kobj::AsCType;
 use crate::prelude::*;
 use core::ffi::{CStr, c_int};
@@ -103,18 +103,18 @@ macro_rules! device_attach {
             fn device_attach(dev: device_t) -> int;
             with init glue {
                 use $crate::bindings;
-                use $crate::ffi::UninitExtRef;
+                use $crate::ffi::UninitExt;
                 use $crate::kobj::KobjLayout;
 
                 let mut sc_init = false;
                 let void_ptr = unsafe { bindings::device_get_softc(dev) };
                 let sc_ptr = void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
 
-                let uninit_sc = unsafe { UninitExtRef::from_raw(sc_ptr, &mut sc_init) };
+                let uninit_sc = unsafe { UninitExt::from_raw(sc_ptr, &mut sc_init) };
             }
             with drop glue {
                 if !sc_init {
-                    device_println!(dev, "Must call .init() on UninitExtRef<Softc> in device_attach");
+                    device_println!(dev, "Must call .init() on UninitExt<Softc> in device_attach");
                     return bindings::ENXIO;
                 }
             }
@@ -138,13 +138,13 @@ macro_rules! device_detach {
             fn device_detach(dev: device_t) -> int;
             with init glue {
                 use $crate::bindings;
-                use $crate::ffi::ExtRef;
+                use $crate::ffi::Ext;
                 use $crate::kobj::KobjLayout;
 
                 let void_ptr = unsafe { bindings::device_get_softc(dev) };
                 let sc_ptr = void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
 
-                let sc = unsafe { ExtRef::from_raw(sc_ptr) };
+                let sc = unsafe { Ext::from_raw(sc_ptr) };
             }
             with drop glue {
                 use core::ptr::drop_in_place;
@@ -198,9 +198,9 @@ define_dev_interface! {
 /// driver is allowed to access it (all except [`device_probe`][DeviceIf::device_probe]). In
 /// [`device_attach`][DeviceIf::device_attach] it must be initialized by calling the argument's
 /// [`init`][crate::sync::arc::UninitArc::init] method. That returns a
-/// [`MutExtRef`][crate::sync::arc::MutExtRef] providing mutable access to the softc. If
+/// [`MutExt`][crate::sync::arc::MutExt] providing mutable access to the softc. If
 /// multiple pointers to the softc are needed in `device_attach`, the
-/// [`into_arc`][crate::sync::arc::MutExtRef::into_arc] method can be used to grab a refcount
+/// [`into_arc`][crate::sync::arc::MutExt::into_arc] method can be used to grab a refcount
 /// and turn it into an [`Arc`]. That `Arc` then provides a [`clone`][crate::sync::arc::Arc::clone]
 /// method to grab additional refcounts and create new `Arc`s.
 
@@ -234,7 +234,7 @@ pub trait DeviceIf: Driver {
     ///
     /// All implementations must call [`init`][crate::sync::arc::UninitArc::init] on the `uninit_sc`
     /// argument before this function returns to avoid a panic at runtime.
-    fn device_attach(uninit_sc: UninitExtRef<Self::Softc>, dev: device_t) -> Result<()> {
+    fn device_attach(uninit_sc: UninitExt<Self::Softc>, dev: device_t) -> Result<()> {
         unimplemented!()
     }
 
@@ -246,19 +246,19 @@ pub trait DeviceIf: Driver {
     /// example, if a softc struct includes a `Box<T>` field (i.e. a pointer to the heap with
     /// ownership of a `T`) the `T` in the heap will also be freed. This applies recursively through
     /// any number of layers of indirection.
-    fn device_detach(sc: ExtRef<Self::Softc>, dev: device_t) -> Result<()> {
+    fn device_detach(sc: Ext<Self::Softc>, dev: device_t) -> Result<()> {
         unimplemented!()
     }
-    fn device_shutdown(sc: ExtRef<Self::Softc>, dev: device_t) -> Result<()> {
+    fn device_shutdown(sc: Ext<Self::Softc>, dev: device_t) -> Result<()> {
         unimplemented!()
     }
-    fn device_suspend(sc: ExtRef<Self::Softc>, dev: device_t) -> Result<()> {
+    fn device_suspend(sc: Ext<Self::Softc>, dev: device_t) -> Result<()> {
         unimplemented!()
     }
-    fn device_resume(sc: ExtRef<Self::Softc>, dev: device_t) -> Result<()> {
+    fn device_resume(sc: Ext<Self::Softc>, dev: device_t) -> Result<()> {
         unimplemented!()
     }
-    fn device_quiesce(sc: ExtRef<Self::Softc>, dev: device_t) -> Result<()> {
+    fn device_quiesce(sc: Ext<Self::Softc>, dev: device_t) -> Result<()> {
         unimplemented!()
     }
 }
@@ -335,7 +335,7 @@ pub mod wrappers {
     // TODO: This is racy and a lock is needed to serialize softc drop and this operation.
     // It's good enough for now
     /// Get a pointer to a device's softc.
-    pub fn device_get_softc<'sc, D: DeviceIf>(dev: device_t) -> ExtRef<'sc, D::Softc> {
+    pub fn device_get_softc<'sc, D: DeviceIf>(dev: device_t) -> Ext<'sc, D::Softc> {
         let state = device_get_state(dev);
         if state != bindings::DS_ATTACHED {
             panic!("device_get_softc can only be called after device_attach");
@@ -347,7 +347,7 @@ pub mod wrappers {
 
         let void_ptr = unsafe { bindings::device_get_softc(dev) };
         let sc_ptr = void_ptr.cast::<<D as DeviceIf>::Softc>();
-        unsafe { ExtRef::from_raw(sc_ptr) }
+        unsafe { Ext::from_raw(sc_ptr) }
     }
 }
 
@@ -356,7 +356,7 @@ pub mod wrappers {
 mod tests {
     use super::*;
     use crate::driver;
-    use crate::ffi::{ExtRef, UninitExtRef};
+    use crate::ffi::{Ext, UninitExt};
     use crate::sync::Mutable;
     use crate::tests::{DriverManager, LoudDrop};
     use std::ffi::{CStr, c_void};
@@ -405,7 +405,7 @@ mod tests {
             println!("test_driver: accepted {dev:x?}");
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: UninitExtRef<Self::Softc>, dev: device_t) -> Result<()> {
+        fn device_attach(uninit_sc: UninitExt<Self::Softc>, dev: device_t) -> Result<()> {
             let sc = uninit_sc.init(TestDriverSoftc {
                 dev,
                 const_data: 0xdeadbeef,
@@ -415,7 +415,7 @@ mod tests {
             println!("{:x?}", sc);
             Ok(())
         }
-        fn device_detach(sc: ExtRef<Self::Softc>, dev: device_t) -> Result<()> {
+        fn device_detach(sc: Ext<Self::Softc>, dev: device_t) -> Result<()> {
             assert!(sc.const_data == 0xdeadbeef);
             Ok(())
         }
@@ -451,7 +451,7 @@ mod tests {
             println!("another_driver: accepted {dev:x?}");
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: UninitExtRef<Self::Softc>, dev: device_t) -> Result<()> {
+        fn device_attach(uninit_sc: UninitExt<Self::Softc>, dev: device_t) -> Result<()> {
             let sc = uninit_sc.init(AnotherDriverSoftc {
                 dev,
                 loud: LoudDrop,
@@ -465,7 +465,7 @@ mod tests {
             }
             Ok(())
         }
-        fn device_detach(sc: ExtRef<Self::Softc>, dev: device_t) -> Result<()> {
+        fn device_detach(sc: Ext<Self::Softc>, dev: device_t) -> Result<()> {
             Ok(())
         }
     }

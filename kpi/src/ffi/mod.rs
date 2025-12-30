@@ -89,59 +89,59 @@ impl<T> SyncPtr<T> {
 unsafe impl<T> Sync for SyncPtr<T> {}
 unsafe impl<T> Send for SyncPtr<T> {}
 
-/// A unique reference to an uninitialized, externally-managed object.
+/// A unique pointer to an uninitialized, externally-managed object.
 ///
 /// This also holds a mutable reference a `bool` flag which is set only if the `init` method was
 /// called.
 #[repr(C)]
 #[derive(Debug)]
-pub struct UninitExtRef<'a, T>(NonNull<T>, &'a mut bool);
+pub struct UninitExt<'a, T>(NonNull<T>, &'a mut bool);
 
-impl<'a, T> UninitExtRef<'a, T> {
+impl<'a, T> UninitExt<'a, T> {
     pub unsafe fn from_raw(ptr: *mut T, init: &'a mut bool) -> Self {
         *init = false;
         Self(NonNull::new(ptr).unwrap(), init)
     }
 
-    /// Initialize the externally-managed object to `t` and return a `MutExtRef` to the pointee.
-    pub fn init<'b>(self, t: T) -> MutExtRef<'b, T> {
+    /// Initialize the externally-managed object to `t` and return a `MutExt` to the pointee.
+    pub fn init<'b>(self, t: T) -> MutExt<'b, T> {
         *self.1 = true;
         unsafe { self.0.write(t) }
-        MutExtRef(self.0, PhantomData)
+        MutExt(self.0, PhantomData)
     }
 }
 
-/// A unique reference to an externally-managed object.
+/// A unique pointer to an externally-managed object.
 ///
-/// This is the mutable version of `ExtRef` which is only ever created after initializing an
-/// `UninitExtRef`. Currently this is only happens after initializing a device softc. `MutExtRef`
+/// This is the mutable version of `Ext` which is only ever created after initializing an
+/// `UninitExt`. Currently this is only happens after initializing a device softc. `MutExt`
 /// may be used transparently as a mutable reference. Some functions that take callback args may
-/// require `ExtRef` which can be created by calling the `into_ref` method. This creates a new
-/// `ExtRef` and destroys the `MutExtRef` so mutating the pointee after calling this method must be
+/// require `Ext` which can be created by calling the `into_ref` method. This creates a new
+/// `Ext` and destroys the `MutExt` so mutating the pointee after calling this method must be
 /// done using `OnceInit`, `Mutable` or some kind of lock (e.g. `Mutex`/`SpinLock`) or atomic.
-/// Destroying the `MutExtRef` makes mutation more cumbersome, but is done to avoid the potential
+/// Destroying the `MutExt` makes mutation more cumbersome, but is done to avoid the potential
 /// for undefined behavior caused by having an aliased mutable reference (and subsequent
 /// opportunities for the compiler to make invalid optimizations).
 #[repr(C)]
 #[derive(Debug)]
-pub struct MutExtRef<'a, T, const ROOT: bool = true>(NonNull<T>, PhantomData<&'a mut T>);
+pub struct MutExt<'a, T, const ROOT: bool = true>(NonNull<T>, PhantomData<&'a mut T>);
 
-impl<'a, T> MutExtRef<'a, T> {
-    /// Destroys a `MutExtRef` and returns an `ExtRef` to the same object.
-    pub fn into_ref<'b>(self) -> ExtRef<'b, T> {
-        ExtRef(self.0, PhantomData)
+impl<'a, T> MutExt<'a, T> {
+    /// Destroys a `MutExt` and returns an `Ext` to the same object.
+    pub fn into_ref<'b>(self) -> Ext<'b, T> {
+        Ext(self.0, PhantomData)
     }
 }
 
-impl<'a, T, const ROOT: bool> MutExtRef<'a, T, ROOT> {
-    pub unsafe fn map<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExtRef<'_, U, false> {
+impl<'a, T, const ROOT: bool> MutExt<'a, T, ROOT> {
+    pub unsafe fn map<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExt<'_, U, false> {
         let new_ptr = f(self.deref_mut()) as *mut U;
-        MutExtRef(NonNull::new(new_ptr).unwrap(), PhantomData)
+        MutExt(NonNull::new(new_ptr).unwrap(), PhantomData)
     }
 }
 
-/// Allows transparently using `MutExtRef<T>` like a `&T`.
-impl<'a, T, const ROOT: bool> Deref for MutExtRef<'a, T, ROOT> {
+/// Allows transparently using `MutExt<T>` like a `&T`.
+impl<'a, T, const ROOT: bool> Deref for MutExt<'a, T, ROOT> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -149,14 +149,14 @@ impl<'a, T, const ROOT: bool> Deref for MutExtRef<'a, T, ROOT> {
     }
 }
 
-/// Allows transparently using `MutExtRef<T>` like a `&mut T`.
-impl<'a, T, const ROOT: bool> DerefMut for MutExtRef<'a, T, ROOT> {
+/// Allows transparently using `MutExt<T>` like a `&mut T`.
+impl<'a, T, const ROOT: bool> DerefMut for MutExt<'a, T, ROOT> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { self.0.as_mut() }
     }
 }
 
-/// A reference to an externally-managed object.
+/// A pointer to an externally-managed object.
 ///
 /// This may be treated as a normal shared reference to an object whose lifecycle is managed by C
 /// code, but which is only ever dereferenced from rust. It's mainly intended to be used
@@ -165,23 +165,23 @@ impl<'a, T, const ROOT: bool> DerefMut for MutExtRef<'a, T, ROOT> {
 /// The objects may be allocated and freed by C (e.g. a device's softc) or rust (e.g the
 /// driver-specific data returned by `channel_init` in channel_if.m), but in either case C code may
 /// pass pointers to this object to rust code while the driver is operational. These pointers are
-/// represented by `ExtRef` and should not be created directly. Instead kobj interface functions are
-/// passed `ExtRef`s as arguments where appropriate.
+/// represented by `Ext` and should not be created directly. Instead kobj interface functions are
+/// passed `Ext`s as arguments where appropriate.
 #[repr(C)]
 #[derive(Debug)]
-pub struct ExtRef<'a, T>(NonNull<T>, PhantomData<&'a T>);
+pub struct Ext<'a, T>(NonNull<T>, PhantomData<&'a T>);
 
-/// Allows implicitly making copies of the `ExtRef<T>` just like `&T` allows.
-impl<'a, T> Copy for ExtRef<'a, T> {}
+/// Allows implicitly making copies of the `Ext<T>` just like `&T` allows.
+impl<'a, T> Copy for Ext<'a, T> {}
 
-/// Allows explicitly making copies of the `ExtRef<T>` just like `&T` allows.
-impl<'a, T> Clone for ExtRef<'a, T> {
+/// Allows explicitly making copies of the `Ext<T>` just like `&T` allows.
+impl<'a, T> Clone for Ext<'a, T> {
     fn clone(&self) -> Self {
         Self(self.0, self.1)
     }
 }
 
-impl<'a, T> ExtRef<'a, T> {
+impl<'a, T> Ext<'a, T> {
     pub fn into_raw(x: Self) -> *mut T {
         x.0.as_ptr()
     }
@@ -190,14 +190,14 @@ impl<'a, T> ExtRef<'a, T> {
         Self(NonNull::new(ptr).unwrap(), PhantomData)
     }
 
-    pub unsafe fn map<U, F: FnOnce(&T) -> &U>(x: Self, f: F) -> ExtRef<'a, U> {
+    pub unsafe fn map<U, F: FnOnce(&T) -> &U>(x: Self, f: F) -> Ext<'a, U> {
         let new_ptr = f(x.deref()) as *const U;
-        ExtRef(NonNull::new(new_ptr.cast_mut()).unwrap(), PhantomData)
+        Ext(NonNull::new(new_ptr.cast_mut()).unwrap(), PhantomData)
     }
 }
 
-/// Allows transparently using `ExtRef<T>` like a `&T`.
-impl<'a, T> Deref for ExtRef<'a, T> {
+/// Allows transparently using `Ext<T>` like a `&T`.
+impl<'a, T> Deref for Ext<'a, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {

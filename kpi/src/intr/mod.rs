@@ -30,7 +30,7 @@ use crate::ErrCode;
 use crate::bindings::{
     C_HARDCLOCK, callout, callout_func_t, ich_func_t, intr_config_hook, sbintime_t, tick_sbt,
 };
-use crate::ffi::{ExtRef, MutExtRef};
+use crate::ffi::{Ext, MutExt};
 use crate::prelude::*;
 use crate::sync::Mutable;
 use core::cell::UnsafeCell;
@@ -58,7 +58,7 @@ pub struct ConfigHook {
 unsafe impl Sync for ConfigHook {}
 unsafe impl Send for ConfigHook {}
 
-pub type ConfigHookFn<T> = extern "C" fn(MutExtRef<T>);
+pub type ConfigHookFn<T> = extern "C" fn(MutExt<T>);
 
 impl ConfigHook {
     pub fn new() -> Self {
@@ -67,7 +67,7 @@ impl ConfigHook {
     }
 }
 
-pub type CalloutFn<T> = extern "C" fn(ExtRef<T>);
+pub type CalloutFn<T> = extern "C" fn(Ext<T>);
 
 #[derive(Debug, Default)]
 pub struct Callout {
@@ -198,7 +198,7 @@ pub mod wrappers {
     pub fn config_intrhook_establish<T>(
         hook: &ConfigHook,
         func: ConfigHookFn<T>,
-        arg: ExtRef<T>,
+        arg: Ext<T>,
     ) -> Result<()> {
         let c_hook = hook.inner.get();
         unsafe {
@@ -234,7 +234,7 @@ pub mod wrappers {
         c: &mut Callout,
         ticks: sbintime_t,
         func: CalloutFn<T>,
-        arg: ExtRef<T>,
+        arg: Ext<T>,
     ) -> Result<()> {
         if arg.get_callout().unwrap() != c as *mut Callout {
             return Err(EINVAL);
@@ -242,7 +242,7 @@ pub mod wrappers {
         let c_callout = c.inner.get();
         let time = ticks * unsafe { tick_sbt };
         let func = unsafe { transmute::<Option<CalloutFn<T>>, callout_func_t>(Some(func)) };
-        let arg_ptr = ExtRef::into_raw(arg).cast::<c_void>();
+        let arg_ptr = Ext::into_raw(arg).cast::<c_void>();
         let res = unsafe {
             bindings::callout_reset_sbt_on(c_callout, time, 0, func, arg_ptr, -1, C_HARDCLOCK)
         };
@@ -301,7 +301,7 @@ mod tests {
     use crate::bindings::device_t;
     use crate::device::{BusProbe, DeviceIf};
     use crate::driver;
-    use crate::ffi::{CallbackArg, ExtRef, UninitExtRef};
+    use crate::ffi::{CallbackArg, Ext, UninitExt};
     use crate::tests::{DriverManager, LoudDrop};
 
     #[repr(C)]
@@ -318,20 +318,20 @@ mod tests {
             }
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: UninitExtRef<Self::Softc>, dev: device_t) -> Result<()> {
+        fn device_attach(uninit_sc: UninitExt<Self::Softc>, dev: device_t) -> Result<()> {
             let hook = ConfigHook::new();
             let loud = LoudDrop;
             let sc = uninit_sc.init(HookSoftc { dev, hook, loud }).into_ref();
             config_intrhook_establish(&sc.hook, HookDriver::deferred_attach, sc).unwrap();
             Ok(())
         }
-        fn device_detach(_sc: ExtRef<Self::Softc>, _dev: device_t) -> Result<()> {
+        fn device_detach(_sc: Ext<Self::Softc>, _dev: device_t) -> Result<()> {
             Ok(())
         }
     }
 
     impl HookDriver {
-        extern "C" fn deferred_attach(sc: MutExtRef<HookSoftc>) {
+        extern "C" fn deferred_attach(sc: MutExt<HookSoftc>) {
             println!("called config hook rust function/deferred_attach");
             config_intrhook_disestablish(&sc.hook);
         }

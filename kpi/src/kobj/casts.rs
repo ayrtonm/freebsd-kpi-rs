@@ -27,7 +27,7 @@
  */
 
 use crate::boxed::Box;
-use crate::ffi::{ExtRef, SubClass};
+use crate::ffi::{Ext, SubClass};
 use crate::kobj::{AsCType, AsRustType};
 use crate::malloc::Malloc;
 use crate::sync::arc::{Arc, InnerArc};
@@ -98,9 +98,9 @@ impl<T, M: Malloc> AsRustType<Arc<T, M>> for *mut T {
     }
 }
 
-impl<'a, T> AsRustType<ExtRef<'a, T>> for *mut T {
-    fn as_rust_type(self) -> ExtRef<'a, T> {
-        unsafe { ExtRef::from_raw(self) }
+impl<'a, T> AsRustType<Ext<'a, T>> for *mut T {
+    fn as_rust_type(self) -> Ext<'a, T> {
+        unsafe { Ext::from_raw(self) }
     }
 }
 
@@ -116,9 +116,9 @@ impl<T, M: Malloc> AsRustType<Arc<T, M>, c_void> for *mut c_void {
     }
 }
 
-impl<'a, T> AsRustType<ExtRef<'a, T>, c_void> for *mut c_void {
-    fn as_rust_type(self) -> ExtRef<'a, T> {
-        unsafe { ExtRef::from_raw(self.cast::<T>()) }
+impl<'a, T> AsRustType<Ext<'a, T>, c_void> for *mut c_void {
+    fn as_rust_type(self) -> Ext<'a, T> {
+        unsafe { Ext::from_raw(self.cast::<T>()) }
     }
 }
 
@@ -134,9 +134,9 @@ impl<T> AsCType<*mut T> for Arc<T> {
     }
 }
 
-impl<'a, T> AsCType<*mut T> for ExtRef<'a, T> {
+impl<'a, T> AsCType<*mut T> for Ext<'a, T> {
     fn as_c_type(self) -> *mut T {
-        ExtRef::into_raw(self)
+        Ext::into_raw(self)
     }
 }
 
@@ -152,8 +152,8 @@ impl<T> AsCType<*mut c_void, c_void> for Arc<T> {
     }
 }
 
-impl<'a, T> AsCType<*mut c_void, c_void> for ExtRef<'a, T> {
+impl<'a, T> AsCType<*mut c_void, c_void> for Ext<'a, T> {
     fn as_c_type(self) -> *mut c_void {
-        ExtRef::into_raw(self).cast::<c_void>()
+        Ext::into_raw(self).cast::<c_void>()
     }
 }
