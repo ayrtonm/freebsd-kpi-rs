@@ -193,16 +193,6 @@ define_dev_interface! {
 /// or share the data it contains rather than use references so this is usually not a problem. The
 /// `Sync` bound roughly means that all fields in the softc must be safe to share between multiple
 /// threads.
-///
-/// In contrast to the C equivalent, the softc is passed as an argument to the methods in which the
-/// driver is allowed to access it (all except [`device_probe`][DeviceIf::device_probe]). In
-/// [`device_attach`][DeviceIf::device_attach] it must be initialized by calling the argument's
-/// [`init`][crate::sync::arc::UninitArc::init] method. That returns a
-/// [`MutExt`][crate::sync::arc::MutExt] providing mutable access to the softc. If
-/// multiple pointers to the softc are needed in `device_attach`, the
-/// [`into_arc`][crate::sync::arc::MutExt::into_arc] method can be used to grab a refcount
-/// and turn it into an [`Arc`]. That `Arc` then provides a [`clone`][crate::sync::arc::Arc::clone]
-/// method to grab additional refcounts and create new `Arc`s.
 
 #[diagnostic::on_unimplemented(message = "
 Implement the device interface trait and define the softc as follows
@@ -232,7 +222,7 @@ pub trait DeviceIf: Driver {
 
     /// Used to initialize a driver.
     ///
-    /// All implementations must call [`init`][crate::sync::arc::UninitArc::init] on the `uninit_sc`
+    /// All implementations must call [`init`][crate::ffi::UninitExt::init] on the `uninit_sc`
     /// argument before this function returns to avoid a panic at runtime.
     fn device_attach(uninit_sc: UninitExt<Self::Softc>, dev: device_t) -> Result<()> {
         unimplemented!()
