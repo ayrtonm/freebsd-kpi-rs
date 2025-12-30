@@ -89,7 +89,7 @@ mod panic;
 /// Synchronization primitives
 pub mod sync;
 /// Taskqueue functions
-pub mod taskq;
+pub mod taskqueue;
 // This module only exports macros
 #[doc(hidden)]
 pub mod tty;
@@ -222,7 +222,7 @@ pub mod prelude {
     pub use crate::sync::mtx::wrappers::*;
 
     #[doc(inline)]
-    pub use crate::taskq::wrappers::*;
+    pub use crate::taskqueue::wrappers::*;
 
     #[doc(inline)]
     pub use crate::misc::*;

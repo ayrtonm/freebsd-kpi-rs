@@ -161,7 +161,7 @@ RUST_KPI_SOURCES= \
 	${SRCTOP}/sys/rust/kpi/src/bus/mod.rs \
 	${SRCTOP}/sys/rust/kpi/src/lib.rs \
 	${SRCTOP}/sys/rust/kpi/src/tty.rs \
-	${SRCTOP}/sys/rust/kpi/src/taskq.rs \
+	${SRCTOP}/sys/rust/kpi/src/taskqueue.rs \
 	${SRCTOP}/sys/rust/kpi/src/vec.rs \
 	${SRCTOP}/sys/rust/kpi/src/intr/intrng.rs \
 	${SRCTOP}/sys/rust/kpi/src/intr/mod.rs \
