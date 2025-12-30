@@ -37,7 +37,7 @@ use core::ptr::{NonNull, null_mut};
 mod cstring;
 mod subclass;
 
-pub use cstring::{CString, ToCString};
+pub use cstring::{ArrayCString, CString, ToCString};
 pub use subclass::{SubClass, SubClassOf};
 
 /// A pointer type implementing `Sync`.
@@ -104,10 +104,10 @@ impl<'a, T> UninitExtRef<'a, T> {
     }
 
     /// Initialize the externally-managed object to `t` and return a `MutExtRef` to the pointee.
-    pub fn init(self, t: T) -> MutExtRef<T> {
+    pub fn init<'b>(self, t: T) -> MutExtRef<'b, T> {
         *self.1 = true;
         unsafe { self.0.write(t) }
-        MutExtRef(self.0)
+        MutExtRef(self.0, PhantomData)
     }
 }
 
@@ -124,17 +124,24 @@ impl<'a, T> UninitExtRef<'a, T> {
 /// opportunities for the compiler to make invalid optimizations).
 #[repr(C)]
 #[derive(Debug)]
-pub struct MutExtRef<T>(NonNull<T>);
+pub struct MutExtRef<'a, T, const ROOT: bool = true>(NonNull<T>, PhantomData<&'a mut T>);
 
-impl<T> MutExtRef<T> {
+impl<'a, T> MutExtRef<'a, T> {
     /// Destroys a `MutExtRef` and returns an `ExtRef` to the same object.
-    pub fn into_ref<'a>(self) -> ExtRef<'a, T> {
+    pub fn into_ref<'b>(self) -> ExtRef<'b, T> {
         ExtRef(self.0, PhantomData)
     }
 }
 
+impl<'a, T, const ROOT: bool> MutExtRef<'a, T, ROOT> {
+    pub unsafe fn map<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExtRef<'_, U, false> {
+        let new_ptr = f(self.deref_mut()) as *mut U;
+        MutExtRef(NonNull::new(new_ptr).unwrap(), PhantomData)
+    }
+}
+
 /// Allows transparently using `MutExtRef<T>` like a `&T`.
-impl<T> Deref for MutExtRef<T> {
+impl<'a, T, const ROOT: bool> Deref for MutExtRef<'a, T, ROOT> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -143,7 +150,7 @@ impl<T> Deref for MutExtRef<T> {
 }
 
 /// Allows transparently using `MutExtRef<T>` like a `&mut T`.
-impl<T> DerefMut for MutExtRef<T> {
+impl<'a, T, const ROOT: bool> DerefMut for MutExtRef<'a, T, ROOT> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { self.0.as_mut() }
     }
@@ -181,6 +188,11 @@ impl<'a, T> ExtRef<'a, T> {
 
     pub unsafe fn from_raw(ptr: *mut T) -> Self {
         Self(NonNull::new(ptr).unwrap(), PhantomData)
+    }
+
+    pub unsafe fn map<U, F: FnOnce(&T) -> &U>(x: Self, f: F) -> ExtRef<'a, U> {
+        let new_ptr = f(x.deref()) as *const U;
+        ExtRef(NonNull::new(new_ptr.cast_mut()).unwrap(), PhantomData)
     }
 }
 

@@ -27,12 +27,15 @@
  */
 
 use crate::bindings::{taskqueue, taskqueue_enqueue_fn};
-use crate::ffi::SyncPtr;
+use crate::ffi::{ArrayCString, MutExtRef, SyncPtr};
 use crate::malloc::MallocFlags;
 use crate::prelude::*;
-use core::ffi::{CStr, c_void};
+use crate::sync::Mutable;
+use core::ffi::c_void;
 use core::ptr::null_mut;
+use core::sync::atomic::{AtomicPtr, Ordering};
 
+#[derive(Debug)]
 pub struct Taskqueue {
     inner: SyncPtr<taskqueue>,
 }
@@ -40,12 +43,10 @@ pub struct Taskqueue {
 impl Taskqueue {
     pub fn new() -> Self {
         Self {
-            inner: SyncPtr::new(null_mut())
+            inner: SyncPtr::new(null_mut()),
         }
     }
 }
-
-pub type TaskqueueEnqueueFn<T> = extern "C" fn(*mut T);
 
 #[doc(inline)]
 pub use wrappers::*;
@@ -54,22 +55,27 @@ pub use wrappers::*;
 pub mod wrappers {
     use super::*;
 
-    pub fn taskqueue_create<T>(
-        name: &CStr,
+    // Max queue name is 32 chars which is over the ArrayCString limit
+    pub fn taskqueue_create(
+        name: ArrayCString,
         flags: MallocFlags,
-        //enqueue: TaskqueueEnqueueFn<T>,
-        //ctx: *mut T,
-        //queue: &Taskqueue,
-    ) -> Result<Taskqueue> {
-        //let mut outp = null_mut();
+        mut queue: MutExtRef<Taskqueue, false>,
+    ) -> Result<()> {
+        let ctx: *mut *mut bindings::taskqueue = &raw mut queue.inner.0;
+
         let enqueue = Some(bindings::taskqueue_thread_enqueue as _);
-        let ctx = todo!("");
-        let res = unsafe { bindings::taskqueue_create(name.as_ptr(), flags.0, enqueue, ctx) };
+        let res = unsafe {
+            bindings::taskqueue_create(
+                name.as_c_str().as_ptr(),
+                flags.0,
+                enqueue,
+                ctx.cast::<c_void>(),
+            )
+        };
         if res.is_null() {
             return Err(ENULLPTR);
         };
-        Ok(Taskqueue {
-            inner: SyncPtr::new(res),
-        })
+        queue.inner = SyncPtr::new(res);
+        Ok(())
     }
 }
