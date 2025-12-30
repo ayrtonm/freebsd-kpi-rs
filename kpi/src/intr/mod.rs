@@ -126,7 +126,7 @@ impl Sleepable for AtomicU64 {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct Priority(i32);
+pub struct Priority(pub(crate) i32);
 
 #[doc(inline)]
 pub use wrappers::*;

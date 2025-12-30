@@ -26,10 +26,13 @@
  * SUCH DAMAGE.
  */
 
-use crate::bindings::{taskqueue, taskqueue_enqueue_fn};
-use crate::ffi::{ArrayCString, MutExtRef, SyncPtr};
+use crate::ErrCode;
+use crate::bindings::{task, taskqueue, taskqueue_enqueue_fn};
+use crate::ffi::{ArrayCString, Ext, MutExtRef, SyncPtr};
+use crate::intr::Priority;
 use crate::malloc::MallocFlags;
 use crate::prelude::*;
+use core::cell::UnsafeCell;
 use core::ffi::c_void;
 use core::ptr::null_mut;
 
@@ -42,6 +45,19 @@ impl Taskqueue {
     pub fn new() -> Self {
         Self {
             inner: SyncPtr::new(null_mut()),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Task {
+    inner: UnsafeCell<task>,
+}
+
+impl Task {
+    pub fn new() -> Self {
+        Self {
+            inner: UnsafeCell::new(task::default()),
         }
     }
 }
@@ -74,6 +90,37 @@ pub mod wrappers {
             return Err(ENULLPTR);
         };
         queue.inner = SyncPtr::new(res);
+        Ok(())
+    }
+
+    pub fn taskqueue_start_threads(
+        mut queue: MutExtRef<Taskqueue>,
+        count: usize,
+        prio: Priority,
+        name: ArrayCString,
+    ) -> Result<()> {
+        let queuep = &raw mut queue.inner.0;
+        let res = unsafe {
+            bindings::taskqueue_start_threads(
+                queuep,
+                count.try_into().unwrap(),
+                prio.0,
+                name.as_c_str().as_ptr(),
+            )
+        };
+        if res != 0 {
+            return Err(ErrCode::from(res));
+        }
+        Ok(())
+    }
+
+    pub fn taskqueue_enqueue(queue: &Taskqueue, ta: Ext<Task>) -> Result<()> {
+        let queuep = queue.inner.as_ptr();
+        let tap = ta.inner.get();
+        let res = unsafe { bindings::taskqueue_enqueue(queuep, tap) };
+        if res != 0 {
+            return Err(ErrCode::from(res));
+        }
         Ok(())
     }
 }
