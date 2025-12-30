@@ -34,6 +34,30 @@ use core::ffi::CStr;
 use core::fmt::Debug;
 use core::ops::Deref;
 
+// This could be a const parameter but I want to avoid adding too many knobs
+const ARRAY_STRING_LEN: usize = 24;
+#[derive(Debug)]
+pub struct ArrayCString([u8; ARRAY_STRING_LEN]);
+
+impl ArrayCString {
+    pub fn new(msg: &'static CStr) -> Self {
+        let msg = msg.to_bytes_with_nul();
+        assert!(msg.len() <= ARRAY_STRING_LEN);
+
+        let mut buf = [0u8; ARRAY_STRING_LEN];
+        let dst = &mut buf[0..msg.len()];
+        dst.copy_from_slice(msg);
+        Self(buf)
+    }
+
+    pub fn as_c_str(&self) -> &CStr {
+        unsafe { CStr::from_ptr(self.0.as_ptr().cast()) }
+    }
+}
+
+#[derive(Debug)]
+pub struct CString2<M: Malloc = M_DEVBUF>(Vec<u8, M>);
+
 pub trait ToCString {
     fn to_cstring(&self) -> CString;
 }
