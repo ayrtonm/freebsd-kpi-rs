@@ -91,39 +91,13 @@ impl Drop for Callout {
     }
 }
 
-pub trait Sleepable {
-    fn as_ptr(&self) -> *mut c_void;
-}
+pub trait Sleepable {}
 
-impl<T> Sleepable for Mutable<T> {
-    fn as_ptr(&self) -> *mut c_void {
-        self.as_ptr().cast::<c_void>()
-    }
-}
-
-impl Sleepable for AtomicU8 {
-    fn as_ptr(&self) -> *mut c_void {
-        self.as_ptr().cast::<c_void>()
-    }
-}
-
-impl Sleepable for AtomicU16 {
-    fn as_ptr(&self) -> *mut c_void {
-        self.as_ptr().cast::<c_void>()
-    }
-}
-
-impl Sleepable for AtomicU32 {
-    fn as_ptr(&self) -> *mut c_void {
-        self.as_ptr().cast::<c_void>()
-    }
-}
-
-impl Sleepable for AtomicU64 {
-    fn as_ptr(&self) -> *mut c_void {
-        self.as_ptr().cast::<c_void>()
-    }
-}
+impl<T> Sleepable for Mutable<T> {}
+impl Sleepable for AtomicU8 {}
+impl Sleepable for AtomicU16 {}
+impl Sleepable for AtomicU32 {}
+impl Sleepable for AtomicU64 {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Priority(pub(crate) i32);
@@ -261,12 +235,12 @@ pub mod wrappers {
     }
 
     pub fn tsleep<T: Sleepable>(
-        chan: &T,
+        chan: Ext<T>,
         new_priority: Option<Priority>,
         wmesg: &CStr,
         timo: i32,
     ) -> Result<()> {
-        let chan_ptr = chan.as_ptr();
+        let chan_ptr = Ext::into_raw(chan).cast::<c_void>();
         let wmesg_ptr = wmesg.as_ptr();
         let priority = match new_priority {
             Some(Priority(p)) => p,
@@ -289,8 +263,8 @@ pub mod wrappers {
         Ok(())
     }
 
-    pub fn wakeup<T: Sleepable>(chan: &T) {
-        let chan_ptr = chan.as_ptr();
+    pub fn wakeup<T: Sleepable>(chan: Ext<T>) {
+        let chan_ptr = Ext::into_raw(chan).cast::<c_void>();
         unsafe { bindings::wakeup(chan_ptr) }
     }
 }
