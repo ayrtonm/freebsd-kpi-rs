@@ -124,7 +124,7 @@ impl<'a, T> UninitExt<'a, T> {
 /// opportunities for the compiler to make invalid optimizations).
 #[repr(C)]
 #[derive(Debug)]
-pub struct MutExt<'a, T, const ROOT: bool = true>(NonNull<T>, PhantomData<&'a mut T>);
+pub struct MutExt<'a, T>(NonNull<T>, PhantomData<&'a mut T>);
 
 impl<'a, T> MutExt<'a, T> {
     /// Destroys a `MutExt` and returns an `Ext` to the same object.
@@ -133,15 +133,19 @@ impl<'a, T> MutExt<'a, T> {
     }
 }
 
-impl<'a, T, const ROOT: bool> MutExt<'a, T, ROOT> {
-    pub unsafe fn map<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExt<'_, U, false> {
+impl<'a, T> MutExt<'a, T> {
+    pub fn as_mut(&mut self) -> MutExtRef<'_, T> {
+        MutExtRef(self.0, PhantomData)
+    }
+
+    pub unsafe fn map<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExtRef<'_, U> {
         let new_ptr = f(self.deref_mut()) as *mut U;
-        MutExt(NonNull::new(new_ptr).unwrap(), PhantomData)
+        MutExtRef(NonNull::new(new_ptr).unwrap(), PhantomData)
     }
 }
 
 /// Allows transparently using `MutExt<T>` like a `&T`.
-impl<'a, T, const ROOT: bool> Deref for MutExt<'a, T, ROOT> {
+impl<'a, T> Deref for MutExt<'a, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -150,7 +154,34 @@ impl<'a, T, const ROOT: bool> Deref for MutExt<'a, T, ROOT> {
 }
 
 /// Allows transparently using `MutExt<T>` like a `&mut T`.
-impl<'a, T, const ROOT: bool> DerefMut for MutExt<'a, T, ROOT> {
+impl<'a, T> DerefMut for MutExt<'a, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { self.0.as_mut() }
+    }
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct MutExtRef<'a, T>(NonNull<T>, PhantomData<&'a mut T>);
+
+impl<'a, T> MutExtRef<'a, T> {
+    pub unsafe fn map<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExtRef<'_, U> {
+        let new_ptr = f(self.deref_mut()) as *mut U;
+        MutExtRef(NonNull::new(new_ptr).unwrap(), PhantomData)
+    }
+}
+
+/// Allows transparently using `MutExtRef<T>` like a `&T`.
+impl<'a, T> Deref for MutExtRef<'a, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { self.0.as_ref() }
+    }
+}
+
+/// Allows transparently using `MutExtRef<T>` like a `&mut T`.
+impl<'a, T> DerefMut for MutExtRef<'a, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { self.0.as_mut() }
     }
