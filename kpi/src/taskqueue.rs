@@ -27,13 +27,14 @@
  */
 
 use crate::ErrCode;
-use crate::bindings::{task, taskqueue, taskqueue_enqueue_fn};
+use crate::bindings::{task, task_fn_t, taskqueue, taskqueue_enqueue_fn};
 use crate::ffi::{ArrayCString, Ext, MutExtRef, SyncPtr};
 use crate::intr::Priority;
 use crate::malloc::MallocFlags;
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::ffi::c_void;
+use core::mem::transmute;
 use core::ptr::null_mut;
 
 #[derive(Debug)]
@@ -49,6 +50,8 @@ impl Taskqueue {
     }
 }
 
+pub type TaskFn<T> = extern "C" fn(Ext<T>, u32);
+
 #[derive(Debug)]
 pub struct Task {
     inner: UnsafeCell<task>,
@@ -60,7 +63,18 @@ impl Task {
             inner: UnsafeCell::new(task::default()),
         }
     }
+
+    pub fn init<T>(&self, func: TaskFn<T>, arg: Ext<T>) {
+        let c_task = self.inner.get();
+        unsafe {
+            (*c_task).ta_func = transmute::<Option<TaskFn<T>>, task_fn_t>(Some(func));
+            (*c_task).ta_context = Ext::into_raw(arg).cast::<c_void>();
+        }
+    }
 }
+
+unsafe impl Sync for Task {}
+unsafe impl Send for Task {}
 
 #[doc(inline)]
 pub use wrappers::*;
@@ -116,8 +130,8 @@ pub mod wrappers {
 
     pub fn taskqueue_enqueue(queue: &Taskqueue, ta: Ext<Task>) -> Result<()> {
         let queuep = queue.inner.as_ptr();
-        let tap = ta.inner.get();
-        let res = unsafe { bindings::taskqueue_enqueue(queuep, tap) };
+        let c_task = ta.inner.get();
+        let res = unsafe { bindings::taskqueue_enqueue(queuep, c_task) };
         if res != 0 {
             return Err(ErrCode::from(res));
         }
