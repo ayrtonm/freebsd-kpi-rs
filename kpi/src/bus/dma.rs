@@ -27,11 +27,16 @@
  */
 
 use crate::ErrCode;
-use crate::bindings::{bus_addr_t, bus_dma_lock_t, bus_dma_tag_t, bus_dmamap_t, bus_size_t};
+use crate::bindings::{bus_addr_t, bus_dma_lock_t, bus_dma_tag_t, bus_dmamap_t, bus_size_t, bus_dma_segment_t};
+use crate::ffi::{Ext, SyncPtr};
 use crate::prelude::*;
 use core::ffi::{c_int, c_void};
 use core::ops::{BitOr, Range};
+use core::mem::transmute;
 use core::ptr::null_mut;
+
+pub type BusDmaMapFn<T> = extern "C" fn(Ext<T>, &bus_dma_segment_t, i32, i32);
+type _RawBusDmaMapFn = extern "C" fn(*mut c_void, *mut bus_dma_segment_t, i32, i32);
 
 #[must_use]
 #[derive(Debug)]
@@ -115,10 +120,13 @@ impl BusDmaTagBuilder {
     }
 }
 
-#[derive(Debug)]
-pub struct BusDmaTag(pub bus_dma_tag_t);
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+pub struct BusDmaTag(bus_dma_tag_t);
 
-#[derive(Copy, Clone, Debug)]
+unsafe impl Sync for BusDmaTag {}
+unsafe impl Send for BusDmaTag {}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub struct BusDmaFlags(c_int);
 
 impl BitOr<BusDmaFlags> for BusDmaFlags {
@@ -129,8 +137,11 @@ impl BitOr<BusDmaFlags> for BusDmaFlags {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub struct BusDmaMap(bus_dmamap_t);
+
+unsafe impl Sync for BusDmaMap {}
+unsafe impl Send for BusDmaMap {}
 
 pub mod wrappers {
     use super::*;
@@ -180,24 +191,30 @@ pub mod wrappers {
     }
 
     /// Creates a mapping in device visible address space of buflen bytes of buf, associated with the DMA map map.
-    pub fn bus_dmamap_load(
+    pub fn bus_dmamap_load<T>(
         dmat: BusDmaTag,
         map: BusDmaMap,
-        buf: &mut [u8],
-        callback: bus_dmamap_callback_t,
-        arg: *mut c_void,
+        //buf: &mut [u8],
+        ptr: SyncPtr<c_void>,
+        len: bus_size_t,
+        callback: Option<BusDmaMapFn<T>>,
+        arg: Ext<T>,
         flags: Option<BusDmaFlags>,
     ) -> Result<()> {
         let flags = match flags {
             Some(flags) => flags.0,
             None => 0,
         };
+        let callback = unsafe { transmute::<Option<BusDmaMapFn<T>>, bus_dmamap_callback_t>(callback) };
+        let arg = Ext::into_raw(arg).cast::<c_void>();
         let res = unsafe {
             bindings::bus_dmamap_load(
                 dmat.0,
                 map.0,
-                buf.as_mut_ptr().cast::<c_void>(),
-                buf.len().try_into().unwrap(),
+                //buf.as_mut_ptr().cast::<c_void>(),
+                //buf.len().try_into().unwrap(),
+                ptr.as_ptr(),
+                len,
                 callback,
                 arg,
                 flags,
@@ -211,17 +228,17 @@ pub mod wrappers {
 
     /// Allocates memory that is mapped into KVA at the address returned in vaddr
     pub fn bus_dmamem_alloc(
-        dmat: bus_dma_tag_t,
+        dmat: BusDmaTag,
         //vaddr: &mut DmaMem,
-        vaddr: *mut *mut c_void,
+        vaddr: *mut SyncPtr<c_void>,
         flags: BusDmaFlags,
-    ) -> Result<bus_dmamap_t> {
+    ) -> Result<BusDmaMap> {
         let mut map: bus_dmamap_t = null_mut();
-        let res = unsafe { bindings::bus_dmamem_alloc(dmat, vaddr, flags.0, &mut map) };
+        let res = unsafe { bindings::bus_dmamem_alloc(dmat.0, &raw mut (*vaddr).0, flags.0, &mut map) };
         if res != 0 {
             Err(ErrCode::from(res))
         } else {
-            Ok(map)
+            Ok(BusDmaMap(map))
         }
     }
 }
