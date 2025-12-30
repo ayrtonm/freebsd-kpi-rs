@@ -28,7 +28,7 @@
 
 use crate::bindings::{MTX_DEF, MTX_SPIN, mtx};
 use crate::prelude::*;
-use crate::sync::OnceInit;
+use crate::ffi::MutExtRef;
 use core::cell::UnsafeCell;
 use core::ffi::CStr;
 use core::mem::drop;
@@ -75,7 +75,6 @@ impl<T> DerefMut for SpinLockGuard<'_, T> {
 #[derive(Debug)]
 pub struct MtxCommon {
     inner: UnsafeCell<mtx>,
-    init_addr: OnceInit<*mut mtx>,
 }
 
 impl MtxCommon {
@@ -83,7 +82,6 @@ impl MtxCommon {
         let inner = UnsafeCell::new(mtx::default());
         Self {
             inner,
-            init_addr: OnceInit::uninit(),
         }
     }
 }
@@ -161,7 +159,7 @@ pub use wrappers::*;
 pub mod wrappers {
     use super::*;
 
-    pub fn mtx_init<M: Lockable>(lock: &M, name: &'static CStr, kind: Option<&'static CStr>) {
+    pub fn mtx_init<M: Lockable>(lock: MutExtRef<M>, name: &'static CStr, kind: Option<&'static CStr>) {
         let name_ptr = name.as_ptr();
         let kind_ptr = match kind {
             Some(k) => k.as_ptr(),
@@ -170,7 +168,6 @@ pub mod wrappers {
         let variant = if M::SPINS { MTX_SPIN } else { MTX_DEF };
         let mtx_impl = lock.get_impl_mut();
         let mtx_ptr = mtx_impl.inner.get();
-        mtx_impl.init_addr.init(mtx_ptr);
         let mtx_lock_ptr = unsafe { &raw mut (*mtx_ptr).mtx_lock };
         unsafe {
             // TODO: The cast was added recently and should probably be fixed on the C side
@@ -181,9 +178,7 @@ pub mod wrappers {
     pub fn mtx_lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
         let mtx_impl = &mutex.mtx_impl;
 
-        let init_addr = *mtx_impl.init_addr.get();
         let mtx_ptr = mtx_impl.inner.get();
-        assert!(init_addr == mtx_ptr);
         let mtx_lock_ptr = unsafe { &raw mut (*mtx_ptr).mtx_lock };
         unsafe {
             bindings::__mtx_lock_flags(mtx_lock_ptr.cast::<usize>(), 0, c"".as_ptr(), 0);
@@ -193,9 +188,7 @@ pub mod wrappers {
     pub fn mtx_lock_spin<T>(mutex: &SpinLock<T>) -> SpinLockGuard<'_, T> {
         let mtx_impl = &mutex.mtx_impl;
 
-        let init_addr = *mtx_impl.init_addr.get();
         let mtx_ptr = mtx_impl.inner.get();
-        assert!(init_addr == mtx_ptr);
         let mtx_lock_ptr = unsafe { &raw mut (*mtx_ptr).mtx_lock };
         unsafe {
             bindings::__mtx_lock_spin_flags(mtx_lock_ptr.cast::<usize>(), 0, c"".as_ptr(), 0);
@@ -216,9 +209,7 @@ impl<T> Drop for MutexGuard<'_, T> {
     fn drop(&mut self) {
         let mtx_impl = &self.lock.mtx_impl;
 
-        let init_addr = *mtx_impl.init_addr.get();
         let mtx_ptr = mtx_impl.inner.get();
-        assert!(init_addr == mtx_ptr);
         let mtx_lock_ptr = unsafe { &raw mut (*mtx_ptr).mtx_lock };
         unsafe {
             bindings::__mtx_unlock_flags(mtx_lock_ptr.cast::<usize>(), 0, c"".as_ptr(), 0);
@@ -230,9 +221,7 @@ impl<T> Drop for SpinLockGuard<'_, T> {
     fn drop(&mut self) {
         let mtx_impl = &self.lock.mtx_impl;
 
-        let init_addr = *mtx_impl.init_addr.get();
         let mtx_ptr = mtx_impl.inner.get();
-        assert!(init_addr == mtx_ptr);
         let mtx_lock_ptr = unsafe { &raw mut (*mtx_ptr).mtx_lock };
         unsafe {
             bindings::__mtx_unlock_spin_flags(mtx_lock_ptr.cast::<usize>(), 0, c"".as_ptr(), 0);

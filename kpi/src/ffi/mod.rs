@@ -111,6 +111,10 @@ impl<'a, T> UninitExt<'a, T> {
     }
 }
 
+#[diagnostic::on_unimplemented(
+    message = "Can't create MutExtRef from variable on the stack",
+    label = "This must be an externally-managed object"
+)]
 pub trait MapMutExt<T> {
     unsafe fn map<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExtRef<'_, U>;
 }
