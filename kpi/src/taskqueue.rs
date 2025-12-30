@@ -27,13 +27,11 @@
  */
 
 use crate::bindings::{taskqueue, taskqueue_enqueue_fn};
-use crate::ffi::{ArrayCString, MutExt, SyncPtr};
+use crate::ffi::{ArrayCString, MutExtRef, SyncPtr};
 use crate::malloc::MallocFlags;
 use crate::prelude::*;
-use crate::sync::Mutable;
 use core::ffi::c_void;
 use core::ptr::null_mut;
-use core::sync::atomic::{AtomicPtr, Ordering};
 
 #[derive(Debug)]
 pub struct Taskqueue {
@@ -59,7 +57,7 @@ pub mod wrappers {
     pub fn taskqueue_create(
         name: ArrayCString,
         flags: MallocFlags,
-        mut queue: MutExt<Taskqueue, false>,
+        mut queue: MutExtRef<Taskqueue>,
     ) -> Result<()> {
         let ctx: *mut *mut bindings::taskqueue = &raw mut queue.inner.0;
 

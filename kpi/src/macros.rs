@@ -87,11 +87,11 @@ macro_rules! base {
 }
 
 #[macro_export]
-macro_rules! ext_ref {
+macro_rules! ext {
     (& $ext_ref:ident -> $field:ident) => {
         unsafe { $crate::ffi::Ext::map($ext_ref, |x| &x.$field) }
     };
     (& mut $ext_ref:ident -> $field:ident) => {
-        unsafe { $crate::ffi::MutExt::map(&mut $ext_ref, |x| &mut x.$field) }
+        unsafe { $crate::ffi::MapMutExt::map(&mut $ext_ref, |x| &mut x.$field) }
     };
 }

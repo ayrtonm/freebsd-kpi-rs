@@ -111,6 +111,25 @@ impl<'a, T> UninitExt<'a, T> {
     }
 }
 
+pub trait MapMutExt<T> {
+    unsafe fn map<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExtRef<'_, U>;
+}
+
+impl<'a, T> MapMutExt<T> for MutExt<'a, T> {
+    unsafe fn map<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExtRef<'_, U> {
+        let new_ptr = f(self.deref_mut()) as *mut U;
+        MutExtRef(NonNull::new(new_ptr).unwrap(), PhantomData)
+    }
+}
+
+impl<'a, T> MapMutExt<T> for MutExtRef<'a, T> {
+    unsafe fn map<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExtRef<'_, U> {
+        let new_ptr = f(self.deref_mut()) as *mut U;
+        MutExtRef(NonNull::new(new_ptr).unwrap(), PhantomData)
+    }
+}
+
+
 /// A unique pointer to an externally-managed object.
 ///
 /// This is the mutable version of `Ext` which is only ever created after initializing an
@@ -137,11 +156,6 @@ impl<'a, T> MutExt<'a, T> {
     pub fn as_mut(&mut self) -> MutExtRef<'_, T> {
         MutExtRef(self.0, PhantomData)
     }
-
-    pub unsafe fn map<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExtRef<'_, U> {
-        let new_ptr = f(self.deref_mut()) as *mut U;
-        MutExtRef(NonNull::new(new_ptr).unwrap(), PhantomData)
-    }
 }
 
 /// Allows transparently using `MutExt<T>` like a `&T`.
@@ -163,13 +177,6 @@ impl<'a, T> DerefMut for MutExt<'a, T> {
 #[repr(C)]
 #[derive(Debug)]
 pub struct MutExtRef<'a, T>(NonNull<T>, PhantomData<&'a mut T>);
-
-impl<'a, T> MutExtRef<'a, T> {
-    pub unsafe fn map<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExtRef<'_, U> {
-        let new_ptr = f(self.deref_mut()) as *mut U;
-        MutExtRef(NonNull::new(new_ptr).unwrap(), PhantomData)
-    }
-}
 
 /// Allows transparently using `MutExtRef<T>` like a `&T`.
 impl<'a, T> Deref for MutExtRef<'a, T> {
