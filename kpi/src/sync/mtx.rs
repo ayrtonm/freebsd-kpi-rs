@@ -28,7 +28,7 @@
 
 use crate::bindings::{MTX_DEF, MTX_SPIN, mtx};
 use crate::prelude::*;
-use crate::ffi::MutExtRef;
+use crate::ffi::{MutExtRef, MutExt};
 use core::cell::UnsafeCell;
 use core::ffi::CStr;
 use core::mem::drop;
@@ -236,7 +236,8 @@ mod tests {
     #[test]
     fn basic_mutex() {
         let mut lock = Mutex::new(4u32);
-        mtx_init(&mut lock, c"", None);
+        let mut lock = unsafe { MutExt::from_raw(&raw mut lock) };
+        mtx_init(ext!(&mut lock), c"", None);
         let mut x = mtx_lock(&lock);
         *x += 1;
         mtx_unlock(x);
@@ -245,12 +246,14 @@ mod tests {
     #[test]
     fn basic_spinlock() {
         let mut lock = SpinLock::new(4u32);
-        mtx_init(&mut lock, c"", None);
+        let mut lock = unsafe { MutExt::from_raw(&raw mut lock) };
+        mtx_init(ext!(&mut lock), c"", None);
         let mut x = mtx_lock_spin(&lock);
         *x += 1;
         mtx_unlock_spin(x);
     }
 
+    // These are just basic tests to make sure the guards work as expected
     #[unsafe(no_mangle)]
     extern "C" fn _mtx_init() {}
     #[unsafe(no_mangle)]

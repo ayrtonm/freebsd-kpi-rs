@@ -154,11 +154,14 @@ impl<'a, T> MutExt<'a, T> {
     pub fn into_ref<'b>(self) -> Ext<'b, T> {
         Ext(self.0, PhantomData)
     }
-}
 
-impl<'a, T> MutExt<'a, T> {
     pub fn as_mut(&mut self) -> MutExtRef<'_, T> {
         MutExtRef(self.0, PhantomData)
+    }
+
+    #[cfg(test)]
+    pub unsafe fn from_raw(ptr: *mut T) -> Self {
+        MutExt(NonNull::new(ptr).unwrap(), PhantomData)
     }
 }
 
