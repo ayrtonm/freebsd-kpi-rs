@@ -202,10 +202,6 @@ pub mod wrappers {
         }
     }
 
-    pub fn OF_getencprop_as_xref(node: Node, propname: &CStr) -> Result<XRef> {
-        unsafe { OF_getencprop(node, propname) }
-    }
-
     pub fn OF_device_from_xref(xref: XRef) -> Result<device_t> {
         let res = unsafe { bindings::OF_device_from_xref(xref.0) };
         if res.as_ptr().is_null() {
