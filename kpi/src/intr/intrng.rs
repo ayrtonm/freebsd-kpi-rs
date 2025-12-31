@@ -45,7 +45,7 @@ pub struct IntrRoot(c_int);
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct IntrIsrcf(c_int);
+pub struct IntrIsrcf(pub c_int);
 
 impl AsRustType<MapData> for *mut intr_map_data {
     fn as_rust_type(self) -> MapData {
