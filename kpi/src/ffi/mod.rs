@@ -33,6 +33,7 @@ use core::fmt::Debug;
 use core::marker::PhantomData;
 use core::ops::{Deref, DerefMut};
 use core::ptr::{NonNull, null_mut};
+use crate::boxed::Box;
 
 mod cstring;
 mod subclass;
@@ -116,18 +117,18 @@ impl<'a, T> UninitExt<'a, T> {
     label = "This must be an externally-managed object"
 )]
 pub trait MapMutExt<T> {
-    unsafe fn map<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExtRef<'_, U>;
+    fn map_mut<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExtRef<'_, U>;
 }
 
 impl<'a, T> MapMutExt<T> for MutExt<'a, T> {
-    unsafe fn map<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExtRef<'_, U> {
+    fn map_mut<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExtRef<'_, U> {
         let new_ptr = f(self.deref_mut()) as *mut U;
         MutExtRef(NonNull::new(new_ptr).unwrap(), PhantomData)
     }
 }
 
 impl<'a, T> MapMutExt<T> for MutExtRef<'a, T> {
-    unsafe fn map<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExtRef<'_, U> {
+    fn map_mut<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExtRef<'_, U> {
         let new_ptr = f(self.deref_mut()) as *mut U;
         MutExtRef(NonNull::new(new_ptr).unwrap(), PhantomData)
     }
@@ -214,7 +215,7 @@ impl<'a, T> DerefMut for MutExtRef<'a, T> {
 /// passed `Ext`s as arguments where appropriate.
 #[repr(C)]
 #[derive(Debug)]
-pub struct Ext<'a, T>(NonNull<T>, PhantomData<&'a T>);
+pub struct Ext<'a, T: ?Sized>(NonNull<T>, PhantomData<&'a T>);
 
 /// Allows implicitly making copies of the `Ext<T>` just like `&T` allows.
 impl<'a, T> Copy for Ext<'a, T> {}
@@ -235,14 +236,43 @@ impl<'a, T> Ext<'a, T> {
         Self(NonNull::new(ptr).unwrap(), PhantomData)
     }
 
-    pub unsafe fn map<U, F: FnOnce(&T) -> &U>(x: Self, f: F) -> Ext<'a, U> {
+    /// Create an Ext<U> from an Ext<T> by accessing a field on T
+    ///
+    /// The `ext!` macro should be used instead of calling this directly.
+    ///
+    /// # Safety
+    ///
+    /// The function `f` must only access a single field (i.e. `x.field`)
+    pub unsafe fn map_field<U, F: FnOnce(&T) -> &U>(x: Self, f: F) -> Ext<'a, U> {
         let new_ptr = f(x.deref()) as *const U;
         Ext(NonNull::new(new_ptr.cast_mut()).unwrap(), PhantomData)
     }
 }
 
+impl<'a, T: FixedIdx> Ext<'a, T> {
+    /// Create an Ext<U> from an Ext<T> by indexing into T
+    ///
+    /// The `ext!` macro should be used instead of calling this directly.
+    ///
+    /// # Safety
+    ///
+    /// The function `f` must only index once into T (i.e. `x[n]`)
+    pub unsafe fn map_idx<U, F: FnOnce(&T) -> &U>(x: Self, f: F) -> Ext<'a, U> {
+        let new_ptr = f(x.deref()) as *const U;
+        Ext(NonNull::new(new_ptr.cast_mut()).unwrap(), PhantomData)
+    }
+}
+
+#[diagnostic::on_unimplemented(
+    message = "Indexing into {Self} may not access the same address every time",
+    label = "Cannot create an Ext<T> from this. Use a boxed slice or array instead",
+)]
+pub trait FixedIdx {}
+impl<T, const N: usize> FixedIdx for [T; N] {}
+impl<T> FixedIdx for Box<[T]> {}
+
 /// Allows transparently using `Ext<T>` like a `&T`.
-impl<'a, T> Deref for Ext<'a, T> {
+impl<'a, T: ?Sized> Deref for Ext<'a, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -250,6 +280,7 @@ impl<'a, T> Deref for Ext<'a, T> {
     }
 }
 
+// FIXME: improve diagnostic when Self is SubClass
 #[diagnostic::on_unimplemented(message = "
 Implement the CallbackArg trait with `impl CallbackArg for {Self} {{}}`.
 If the {Self} may be passed to a callout, override its default `get_callout` method with

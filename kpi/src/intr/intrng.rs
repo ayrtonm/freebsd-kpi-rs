@@ -313,46 +313,8 @@ pub mod wrappers {
         INTR_ISRCF_BOUND,
     }
 
-    pub fn intr_isrc_register_from_list<T, M: Malloc>(
-        isrcs: &Box<[IrqSrc<T>], M>,
-        idx: usize,
-        dev: device_t,
-        flags: Option<IntrIsrcf>,
-        name: &CString,
-    ) -> Result<()> {
-        let isrc = &isrcs[idx];
-        unsafe { intr_isrc_register_unchecked(isrc, dev, flags, name) }
-    }
-    pub fn intr_isrc_register_from_array<T, M: Malloc>(
-        isrcs: &Box<[Box<[IrqSrc<T>], M>], M>,
-        idx_1: usize,
-        idx_2: usize,
-        dev: device_t,
-        flags: Option<IntrIsrcf>,
-        name: &CString,
-    ) -> Result<()> {
-        let isrc = &isrcs[idx_1][idx_2];
-        unsafe { intr_isrc_register_unchecked(isrc, dev, flags, name) }
-    }
     pub fn intr_isrc_register<T>(
-        isrc: &IrqSrc<T>,
-        dev: device_t,
-        flags: Option<IntrIsrcf>,
-        name: &CString,
-    ) -> Result<()> {
-        let sc = unsafe { bindings::device_get_softc(dev) };
-        let driver = unsafe { bindings::device_get_driver(dev) };
-        let sc_size = unsafe { (*driver).size };
-        let isrc_addr = (isrc as *const IrqSrc<T>).addr();
-        let sc_start = sc.addr();
-        let sc_end = sc.addr() + sc_size;
-        if isrc_addr < sc_start || sc_end <= isrc_addr {
-            return Err(EINVAL);
-        }
-        unsafe { intr_isrc_register_unchecked(isrc, dev, flags, name) }
-    }
-    pub unsafe fn intr_isrc_register_unchecked<T>(
-        isrc: &IrqSrc<T>,
+        isrc: Ext<IrqSrc<T>>,
         dev: device_t,
         flags: Option<IntrIsrcf>,
         name: &CString,
