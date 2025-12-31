@@ -97,6 +97,7 @@
 
 #if defined(KERNCONF_APPLE)
 #include <dev/nvme/nvme_private.h>
+#include <dev/nvme/nvme_ans.h>
 #include <arm64/apple/apple_rtkit.h>
 #include <arm64/apple/apple_smc.h>
 #include <dt-bindings/interrupt-controller/apple-aic.h>

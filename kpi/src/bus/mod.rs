@@ -86,7 +86,7 @@ pub struct Resource {
     res: *mut resource,
     // bus_alloc_resouce writes rid out to a pointer so let's make this public
     // TODO: it's currently Option for the PicIf interface
-    pub rid: Option<c_int>,
+    rid: Option<c_int>,
     ty: Option<SysRes>,
 }
 
@@ -120,6 +120,10 @@ impl Register {
 
     pub fn as_ptr(&self) -> *mut resource {
         self.res
+    }
+
+    pub unsafe fn from_raw(res: *mut resource) -> Self {
+        Self { res, bounds: None }
     }
 
     pub fn assert_allowed(&self, offset: bus_size_t) {
@@ -168,6 +172,10 @@ pub struct RegisterBuilder<const N: usize> {
 }
 
 impl Resource {
+    pub fn as_ptr(&self) -> *mut resource {
+        self.res
+    }
+
     pub fn as_irq(self) -> Result<Irq> {
         if self.ty != Some(SYS_RES_IRQ) {
             return Err(EDOOFUS);

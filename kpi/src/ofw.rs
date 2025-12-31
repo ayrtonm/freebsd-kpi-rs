@@ -32,6 +32,7 @@ use crate::kobj::AsRustType;
 use crate::prelude::*;
 use core::ffi::{CStr, c_char, c_int};
 use core::mem::{MaybeUninit, align_of, offset_of, size_of};
+use crate::collections::Pod;
 use core::ptr::null;
 
 #[repr(C)]
@@ -84,13 +85,16 @@ impl<T, const N: usize> OfwCompatData<T, N> {
     }
 }
 
-#[repr(transparent)]
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct Node(pub(crate) phandle_t);
 
-#[repr(transparent)]
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct XRef(pub(crate) phandle_t);
+
+unsafe impl Pod for Node {}
+unsafe impl Pod for XRef {}
 
 impl AsRustType<XRef> for phandle_t {
     fn as_rust_type(self) -> XRef {
@@ -183,7 +187,7 @@ pub mod wrappers {
         }
     }
 
-    pub unsafe fn OF_getencprop<T>(node: Node, propname: &CStr) -> Result<T> {
+    pub unsafe fn OF_getencprop<T: Pod>(node: Node, propname: &CStr) -> Result<T> {
         let mut t = MaybeUninit::uninit();
         let propname_ptr = propname.as_ptr();
         let res = unsafe {
@@ -196,7 +200,8 @@ pub mod wrappers {
         };
         if res != size_of::<T>() as isize {
             // TODO: this is the wrong interpretation of res
-            Err(ErrCode::from(res as c_int))
+            //Err(ErrCode::from(res as c_int))
+            Err(EINVAL)
         } else {
             unsafe { Ok(t.assume_init()) }
         }
