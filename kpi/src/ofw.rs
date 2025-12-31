@@ -28,11 +28,11 @@
 
 use crate::ErrCode;
 use crate::bindings::{device_t, ofw_compat_data, phandle_t};
+use crate::collections::Pod;
 use crate::kobj::AsRustType;
 use crate::prelude::*;
 use core::ffi::{CStr, c_char, c_int};
 use core::mem::{MaybeUninit, align_of, offset_of, size_of};
-use crate::collections::Pod;
 use core::ptr::null;
 
 #[repr(C)]

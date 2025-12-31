@@ -28,13 +28,13 @@
 
 //! Utilities related to FFI with C.
 
+use crate::boxed::Box;
 use crate::intr::Callout;
+use crate::malloc::Malloc;
 use core::fmt::Debug;
 use core::marker::PhantomData;
 use core::ops::{Deref, DerefMut};
-use crate::malloc::Malloc;
 use core::ptr::{NonNull, null_mut};
-use crate::boxed::Box;
 
 mod cstring;
 mod subclass;
@@ -141,7 +141,6 @@ impl<T, M: Malloc> MapMutExt<T> for Box<T, M> {
         MutExtRef(NonNull::new(new_ptr).unwrap(), PhantomData)
     }
 }
-
 
 /// A unique pointer to an externally-managed object.
 ///
@@ -273,7 +272,7 @@ impl<'a, T: FixedIdx> Ext<'a, T> {
 
 #[diagnostic::on_unimplemented(
     message = "Indexing into {Self} may not access the same address every time",
-    label = "Cannot create an Ext<T> from this. Use a boxed slice or array instead",
+    label = "Cannot create an Ext<T> from this. Use a boxed slice or array instead"
 )]
 pub trait FixedIdx {}
 impl<T, const N: usize> FixedIdx for [T; N] {}

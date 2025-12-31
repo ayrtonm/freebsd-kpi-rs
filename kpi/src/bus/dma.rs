@@ -27,12 +27,14 @@
  */
 
 use crate::ErrCode;
-use crate::bindings::{bus_addr_t, bus_dma_lock_t, bus_dma_tag_t, bus_dmamap_t, bus_size_t, bus_dma_segment_t};
+use crate::bindings::{
+    bus_addr_t, bus_dma_lock_t, bus_dma_segment_t, bus_dma_tag_t, bus_dmamap_t, bus_size_t,
+};
 use crate::ffi::{Ext, SyncPtr};
 use crate::prelude::*;
 use core::ffi::{c_int, c_void};
-use core::ops::{BitOr, Range};
 use core::mem::transmute;
+use core::ops::{BitOr, Range};
 use core::ptr::null_mut;
 
 pub type BusDmaMapFn<T> = extern "C" fn(Ext<T>, &bus_dma_segment_t, i32, i32);
@@ -205,7 +207,8 @@ pub mod wrappers {
             Some(flags) => flags.0,
             None => 0,
         };
-        let callback = unsafe { transmute::<Option<BusDmaMapFn<T>>, bus_dmamap_callback_t>(callback) };
+        let callback =
+            unsafe { transmute::<Option<BusDmaMapFn<T>>, bus_dmamap_callback_t>(callback) };
         let arg = Ext::into_raw(arg).cast::<c_void>();
         let res = unsafe {
             bindings::bus_dmamap_load(
@@ -234,7 +237,8 @@ pub mod wrappers {
         flags: BusDmaFlags,
     ) -> Result<BusDmaMap> {
         let mut map: bus_dmamap_t = null_mut();
-        let res = unsafe { bindings::bus_dmamem_alloc(dmat.0, &raw mut (*vaddr).0, flags.0, &mut map) };
+        let res =
+            unsafe { bindings::bus_dmamem_alloc(dmat.0, &raw mut (*vaddr).0, flags.0, &mut map) };
         if res != 0 {
             Err(ErrCode::from(res))
         } else {

@@ -27,8 +27,8 @@
  */
 
 use crate::bindings::{MTX_DEF, MTX_SPIN, mtx};
+use crate::ffi::{MutExt, MutExtRef};
 use crate::prelude::*;
-use crate::ffi::{MutExtRef, MutExt};
 use core::cell::UnsafeCell;
 use core::ffi::CStr;
 use core::mem::drop;
@@ -80,9 +80,7 @@ pub struct MtxCommon {
 impl MtxCommon {
     pub fn new() -> Self {
         let inner = UnsafeCell::new(mtx::default());
-        Self {
-            inner,
-        }
+        Self { inner }
     }
 }
 
@@ -159,7 +157,11 @@ pub use wrappers::*;
 pub mod wrappers {
     use super::*;
 
-    pub fn mtx_init<M: Lockable>(lock: MutExtRef<M>, name: &'static CStr, kind: Option<&'static CStr>) {
+    pub fn mtx_init<M: Lockable>(
+        lock: MutExtRef<M>,
+        name: &'static CStr,
+        kind: Option<&'static CStr>,
+    ) {
         let name_ptr = name.as_ptr();
         let kind_ptr = match kind {
             Some(k) => k.as_ptr(),
