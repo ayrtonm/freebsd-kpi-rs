@@ -38,7 +38,7 @@ use crate::boxed::Box;
 mod cstring;
 mod subclass;
 
-pub use cstring::{ArrayCString, CString, ToCString};
+pub use cstring::{ArrayCString, CString, ToArrayCString};
 pub use subclass::{SubClass, SubClassOf};
 
 /// A pointer type implementing `Sync`.

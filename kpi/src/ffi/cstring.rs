@@ -29,7 +29,6 @@
 use crate::malloc::{Malloc, MallocFlags};
 use crate::prelude::*;
 use crate::vec::Vec;
-use core::cmp::max;
 use core::ffi::CStr;
 use core::fmt::Debug;
 use core::ops::Deref;
@@ -94,14 +93,21 @@ impl ArrayCString {
     }
 }
 
-pub trait ToCString {
+impl Deref for ArrayCString {
+    type Target = CStr;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_c_str()
+    }
+}
+
+pub trait ToArrayCString {
     fn to_array_cstring(&self) -> ArrayCString;
-    fn to_cstring(&self) -> CString;
 }
 
 macro_rules! impl_to_cstring {
     ($self:ty, $max_digits:expr) => {
-        impl ToCString for $self {
+        impl ToArrayCString for $self {
             fn to_array_cstring(&self) -> ArrayCString {
                 let mut buf = [0; 24];
                 let mut pos = 0;
@@ -118,22 +124,6 @@ macro_rules! impl_to_cstring {
                 }
                 ArrayCString(buf)
             }
-            fn to_cstring(&self) -> CString {
-                let mut buf = [0; 24];
-                let mut pos = 0;
-                let mut tmp = *self;
-                for n in 0..$max_digits {
-                    let scale = (10 as $self).pow($max_digits - n - 1);
-                    let digit = (tmp / scale) as u8;
-                    tmp -= (digit as $self) * scale;
-                    if pos == 0 && digit == 0 && n != ($max_digits - 1) {
-                        continue;
-                    }
-                    buf[pos] = b'0' + digit;
-                    pos += 1;
-                }
-                CString::Small(buf)
-            }
         }
     };
 }
@@ -144,12 +134,8 @@ impl_to_cstring!(u32, 10);
 impl_to_cstring!(u64, 20);
 impl_to_cstring!(usize, 20);
 
-// FIXME: These should be two separate types
 #[derive(Debug)]
-pub enum CString<M: Malloc = M_DEVBUF, const N: usize = 24> {
-    Small([u8; N]),
-    Heap(Vec<u8, M>),
-}
+pub struct CString<M: Malloc = M_DEVBUF>(Vec<u8, M>);
 
 impl<M: Malloc> CString<M> {
     pub fn new(msg: &CStr, flags: MallocFlags) -> Self {
@@ -164,68 +150,27 @@ impl<M: Malloc> CString<M> {
             buf.push(b);
         }
         buf.push(0);
-        Ok(Self::Heap(buf))
+        Ok(Self(buf))
     }
 }
 
-impl<M: Malloc, const N: usize> CString<M, N> {
-    pub fn try_new_small(msg: &CStr) -> Result<Self> {
-        let mut buf = [0u8; N];
-        if msg.count_bytes() + 1 > N {
-            return Err(EINVAL);
-        }
-        let msg_bytes = msg.to_bytes();
-        for i in 0..msg.count_bytes() {
-            buf[i] = msg_bytes[i];
-        }
-        Ok(Self::Small(buf))
-    }
-
+impl<M: Malloc> CString<M> {
     pub fn as_c_str(&self) -> &CStr {
-        let ptr = match self {
-            Self::Small(ar) => ar.as_ptr(),
-            Self::Heap(v) => v.as_ptr(),
-        };
+        let ptr = self.0.as_ptr();
         unsafe { CStr::from_ptr(ptr.cast()) }
     }
 
     pub fn push(&mut self, b: u8) -> Result<()> {
-        match self {
-            Self::Small(ar) => {
-                let first_zero = ar
-                    .iter()
-                    .position(|&x| x == 0)
-                    .expect("CString contained no null-terminator");
-                if first_zero != ar.len() - 1 {
-                    ar[first_zero] = b;
-                    return Ok(());
-                }
-            }
-            Self::Heap(v) => {
-                if v.push(b).is_none() {
-                    return Ok(());
-                }
-            }
+        if self.0.push(b).is_none() {
+            return Ok(());
         }
         Err(ENOBUFS)
     }
 
     pub fn pop(&mut self, n: usize) {
-        match self {
-            Self::Small(ar) => {
-                let first_zero = ar
-                    .iter()
-                    .position(|&x| x == 0)
-                    .expect("CString contained no null-terminator");
-                let new_zero = max(first_zero - n, 0);
-                ar[new_zero] = 0;
-            }
-            Self::Heap(v) => {
-                for _ in 0..n {
-                    if v.pop().is_none() {
-                        return;
-                    }
-                }
+        for _ in 0..n {
+            if self.0.pop().is_none() {
+                return;
             }
         }
     }
@@ -242,16 +187,11 @@ impl<M: Malloc, const N: usize> CString<M, N> {
     }
 }
 
-impl<M: Malloc, const N: usize> Deref for CString<M, N> {
+impl<M: Malloc> Deref for CString<M> {
     type Target = CStr;
+
     fn deref(&self) -> &Self::Target {
         self.as_c_str()
-    }
-}
-
-impl<M: Malloc, const N: usize> From<[u8; N]> for CString<M, N> {
-    fn from(array: [u8; N]) -> Self {
-        Self::Small(array)
     }
 }
 
@@ -295,10 +235,7 @@ mod tests {
 
     #[test]
     fn push_short_cstring() {
-        let short_str = CString::<M_DEVBUF, 5>::try_new_small(c"hello");
-        assert!(short_str.is_err());
-
-        let mut full_str = CString::<M_DEVBUF, 6>::try_new_small(c"hello").unwrap();
+        let mut full_str: CString<M_DEVBUF> = CString::new(c"hello", M_WAITOK);
         let res = full_str.push(b'x');
         assert!(res.is_err());
     }
@@ -332,7 +269,7 @@ mod tests {
         assert_eq!(x.as_c_str(), c"the quick brown fox the");
     }
 
-    fn check_to_cstring<T: ToCString + ToString>(x: T) {
+    fn check_to_cstring<T: ToArrayCString + ToString>(x: T) {
         let test_val = x.to_array_cstring();
         let expected = std::ffi::CString::new(x.to_string()).unwrap();
         assert_eq!(test_val.as_c_str(), expected.as_c_str());

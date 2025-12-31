@@ -29,7 +29,7 @@
 use crate::bindings::{device_state_t, device_t, driver_t};
 use crate::define_dev_interface;
 use crate::driver::Driver;
-use crate::ffi::{CString, ArrayCString, CallbackArg, Ext, UninitExt};
+use crate::ffi::{ArrayCString, CallbackArg, Ext, UninitExt};
 use crate::kobj::AsCType;
 use crate::prelude::*;
 use core::ffi::{CStr, c_int};
@@ -299,13 +299,11 @@ pub mod wrappers {
     }
 
     /// Returns a copy of the device name
-    pub fn device_get_name(dev: device_t) -> Result<CString> {
+    pub fn device_get_name(dev: device_t) -> ArrayCString {
         let name_ptr = unsafe { bindings::device_get_name(dev) };
-        if name_ptr.is_null() {
-            return Err(ENULLPTR);
-        }
+        assert!(!name_ptr.is_null());
         let name = unsafe { CStr::from_ptr(name_ptr) };
-        CString::try_new_small(name)
+        ArrayCString::new(name)
     }
 
     /// Returns a copy of the device name and unit number
