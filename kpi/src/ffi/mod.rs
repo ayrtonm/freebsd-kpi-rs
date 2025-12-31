@@ -117,18 +117,18 @@ impl<'a, T> UninitExt<'a, T> {
     label = "This must be an externally-managed object"
 )]
 pub trait MapMutExt<T> {
-    fn map_mut<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExtRef<'_, U>;
+    unsafe fn map_mut<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExtRef<'_, U>;
 }
 
 impl<'a, T> MapMutExt<T> for MutExt<'a, T> {
-    fn map_mut<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExtRef<'_, U> {
+    unsafe fn map_mut<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExtRef<'_, U> {
         let new_ptr = f(self.deref_mut()) as *mut U;
         MutExtRef(NonNull::new(new_ptr).unwrap(), PhantomData)
     }
 }
 
 impl<'a, T> MapMutExt<T> for MutExtRef<'a, T> {
-    fn map_mut<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExtRef<'_, U> {
+    unsafe fn map_mut<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExtRef<'_, U> {
         let new_ptr = f(self.deref_mut()) as *mut U;
         MutExtRef(NonNull::new(new_ptr).unwrap(), PhantomData)
     }
