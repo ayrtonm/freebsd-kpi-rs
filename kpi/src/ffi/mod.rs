@@ -32,6 +32,7 @@ use crate::intr::Callout;
 use core::fmt::Debug;
 use core::marker::PhantomData;
 use core::ops::{Deref, DerefMut};
+use crate::malloc::Malloc;
 use core::ptr::{NonNull, null_mut};
 use crate::boxed::Box;
 
@@ -128,6 +129,13 @@ impl<'a, T> MapMutExt<T> for MutExt<'a, T> {
 }
 
 impl<'a, T> MapMutExt<T> for MutExtRef<'a, T> {
+    unsafe fn map_mut<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExtRef<'_, U> {
+        let new_ptr = f(self.deref_mut()) as *mut U;
+        MutExtRef(NonNull::new(new_ptr).unwrap(), PhantomData)
+    }
+}
+
+impl<T, M: Malloc> MapMutExt<T> for Box<T, M> {
     unsafe fn map_mut<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExtRef<'_, U> {
         let new_ptr = f(self.deref_mut()) as *mut U;
         MutExtRef(NonNull::new(new_ptr).unwrap(), PhantomData)
