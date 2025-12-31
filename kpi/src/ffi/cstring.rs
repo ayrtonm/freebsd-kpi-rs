@@ -40,31 +40,84 @@ const ARRAY_STRING_LEN: usize = 24;
 pub struct ArrayCString([u8; ARRAY_STRING_LEN]);
 
 impl ArrayCString {
-    pub fn new(msg: &'static CStr) -> Self {
+    pub fn new(msg: &CStr) -> Self {
+        Self::try_new(msg).unwrap()
+    }
+
+    pub fn try_new(msg: &CStr) -> Result<Self> {
         let msg = msg.to_bytes_with_nul();
-        assert!(msg.len() <= ARRAY_STRING_LEN);
+        if msg.len() > ARRAY_STRING_LEN {
+            return Err(EINVAL);
+        }
 
         let mut buf = [0u8; ARRAY_STRING_LEN];
         let dst = &mut buf[0..msg.len()];
         dst.copy_from_slice(msg);
-        Self(buf)
+        Ok(Self(buf))
     }
 
     pub fn as_c_str(&self) -> &CStr {
         unsafe { CStr::from_ptr(self.0.as_ptr().cast()) }
     }
+
+    pub fn count_bytes(&self) -> usize {
+        self.0.iter().position(|&x| x == 0).unwrap()
+    }
+
+    pub fn push(&mut self, b: u8) -> usize {
+        if self.count_bytes() + 1 + 1 > ARRAY_STRING_LEN {
+            return 0;
+        }
+        let cur_idx = self.count_bytes();
+        self.0[cur_idx] = b;
+        // pop only zeros one byte so there may be non-zero bytes after the null
+        self.0[cur_idx + 1] = 0;
+        1
+    }
+
+    pub fn pop(&mut self, n: usize) {
+        let cur_idx = self.count_bytes();
+        self.0[cur_idx - n] = 0;
+    }
+
+    pub fn push_cstr(&mut self, other: &CStr) -> usize {
+        if self.count_bytes() + other.count_bytes() + 1 > ARRAY_STRING_LEN {
+            return 0;
+        }
+        let mut added = 0;
+        let start_idx = self.count_bytes();
+        for &b in other.to_bytes() {
+            self.0[start_idx + added] = b;
+            added += 1;
+        }
+        added
+    }
 }
 
-#[derive(Debug)]
-pub struct CString2<M: Malloc = M_DEVBUF>(Vec<u8, M>);
-
 pub trait ToCString {
+    fn to_array_cstring(&self) -> ArrayCString;
     fn to_cstring(&self) -> CString;
 }
 
 macro_rules! impl_to_cstring {
     ($self:ty, $max_digits:expr) => {
         impl ToCString for $self {
+            fn to_array_cstring(&self) -> ArrayCString {
+                let mut buf = [0; 24];
+                let mut pos = 0;
+                let mut tmp = *self;
+                for n in 0..$max_digits {
+                    let scale = (10 as $self).pow($max_digits - n - 1);
+                    let digit = (tmp / scale) as u8;
+                    tmp -= (digit as $self) * scale;
+                    if pos == 0 && digit == 0 && n != ($max_digits - 1) {
+                        continue;
+                    }
+                    buf[pos] = b'0' + digit;
+                    pos += 1;
+                }
+                ArrayCString(buf)
+            }
             fn to_cstring(&self) -> CString {
                 let mut buf = [0; 24];
                 let mut pos = 0;
@@ -223,19 +276,19 @@ mod tests {
 
     #[test]
     fn push_cstring() {
-        let mut x: CString = CString::try_new_small(c"hello").unwrap();
-        x.push(b' ').unwrap();
-        x.push(b'w').unwrap();
-        x.push(b'o').unwrap();
-        x.push(b'r').unwrap();
-        x.push(b'l').unwrap();
-        x.push(b'd').unwrap();
+        let mut x = ArrayCString::new(c"hello");
+        x.push(b' ');
+        x.push(b'w');
+        x.push(b'o');
+        x.push(b'r');
+        x.push(b'l');
+        x.push(b'd');
         assert_eq!(x.as_c_str(), c"hello world");
     }
 
     #[test]
     fn pop_cstring() {
-        let mut x = CString::<M_DEVBUF, 24>::try_new_small(c"hello world").unwrap();
+        let mut x = ArrayCString::new(c"hello world");
         x.pop(c" world".to_bytes().len());
         assert_eq!(x.as_c_str(), c"hello");
     }
@@ -252,26 +305,35 @@ mod tests {
 
     #[test]
     fn push_cstring_words() {
-        let mut x: CString = CString::try_new_small(c"the").unwrap();
+        let mut x: ArrayCString = ArrayCString::new(c"the");
+
         let len = x.push_cstr(c" quick");
         assert_eq!(len, 6);
+
         let len = x.push_cstr(c" brown");
         assert_eq!(len, 6);
+
         let len = x.push_cstr(c" fox");
         assert_eq!(len, 4);
+
+        // This operation won't succeed since there's not enough space in the buffer, so it won't
+        // push anything
         let len = x.push_cstr(c" jumped");
-        // The previous operation won't completely succeed since there's not enough space in the
-        // buffer, but it will push the first 4 characters
-        assert_eq!(len, 4);
+        assert_eq!(len, 0);
+
+        // This word is smaller but there's still not enough space so it'll also fail
         let len = x.push_cstr(c" over");
         assert_eq!(len, 0);
+
+        // There is enough room for this word so this will succeed
         let len = x.push_cstr(c" the");
-        assert_eq!(len, 0);
-        assert_eq!(x.as_c_str(), c"the quick brown fox jum");
+        assert_eq!(len, 4);
+
+        assert_eq!(x.as_c_str(), c"the quick brown fox the");
     }
 
     fn check_to_cstring<T: ToCString + ToString>(x: T) {
-        let test_val = x.to_cstring();
+        let test_val = x.to_array_cstring();
         let expected = std::ffi::CString::new(x.to_string()).unwrap();
         assert_eq!(test_val.as_c_str(), expected.as_c_str());
     }

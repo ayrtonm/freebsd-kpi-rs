@@ -29,12 +29,10 @@
 use crate::bindings::{
     device_t, intr_irq_filter_t, intr_irqsrc, intr_map_data, intr_map_data_fdt, pcell_t, trapframe,
 };
-use crate::boxed::Box;
 use crate::bus::{Filter, Resource};
 use crate::device::DeviceIf;
-use crate::ffi::{CString, Ext, SubClass};
+use crate::ffi::{ArrayCString, Ext, SubClass};
 use crate::kobj::AsRustType;
-use crate::malloc::Malloc;
 use crate::ofw::XRef;
 use crate::prelude::*;
 use crate::{ErrCode, define_dev_interface};
@@ -317,7 +315,7 @@ pub mod wrappers {
         isrc: Ext<IrqSrc<T>>,
         dev: device_t,
         flags: Option<IntrIsrcf>,
-        name: &CString,
+        name: &ArrayCString,
     ) -> Result<()> {
         let flags = flags.map(|f| f.0 as u32).unwrap_or(0);
         let isrc_ptr = SubClass::as_base_ptr(&isrc);
