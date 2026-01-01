@@ -34,7 +34,7 @@ use crate::ffi::{Ext, MutExt};
 use crate::prelude::*;
 use crate::sync::Mutable;
 use core::cell::UnsafeCell;
-use core::ffi::{c_uint, c_void};
+use core::ffi::{c_int, c_void};
 use core::mem::transmute;
 use core::ptr::null_mut;
 use core::sync::atomic::{AtomicU8, AtomicU16, AtomicU32, AtomicU64};
@@ -44,7 +44,11 @@ mod intrng;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct IntrType(pub c_uint);
+pub struct IntrType(pub c_int);
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct IntrFlags(pub c_int);
 
 #[doc(inline)]
 #[cfg(feature = "intrng")]
@@ -100,7 +104,7 @@ impl Sleepable for AtomicU32 {}
 impl Sleepable for AtomicU64 {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct Priority(pub(crate) i32);
+pub struct Priority(pub i32);
 
 #[doc(inline)]
 pub use wrappers::*;
@@ -112,7 +116,7 @@ pub mod wrappers {
     use core::ffi::CStr;
 
     gen_newtype! {
-        IntrType,
+        IntrType as i32,
         INTR_TYPE_TTY,
         INTR_TYPE_BIO,
         INTR_TYPE_NET,
@@ -121,9 +125,20 @@ pub mod wrappers {
         INTR_TYPE_CLK,
         INTR_TYPE_AV,
     }
+    gen_newtype! {
+        IntrFlags as i32,
+        INTR_EXCL,
+        INTR_MPSAFE,
+        INTR_ENTROPY,
+        INTR_SLEEPABLE,
+        INTR_MD1,
+        INTR_MD2,
+        INTR_MD3,
+        INTR_MD4,
+    }
 
     gen_newtype! {
-        Priority,
+        Priority as i32,
         PRI_MIN,
         PRI_MAX,
         PRI_MIN_ITHD,

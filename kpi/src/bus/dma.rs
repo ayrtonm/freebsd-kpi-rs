@@ -151,7 +151,7 @@ pub mod wrappers {
     use bindings::{bus_dmamap_callback_t, bus_dmamap_t, device_t};
 
     gen_newtype! {
-        BusDmaFlags,
+        BusDmaFlags as i32,
         BUS_DMA_ALLOCNOW,
         BUS_DMA_WAITOK,
         BUS_DMA_NOWAIT,

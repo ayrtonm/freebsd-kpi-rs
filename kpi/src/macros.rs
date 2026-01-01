@@ -38,8 +38,8 @@ macro_rules! gen_enum {
 }
 #[macro_export]
 macro_rules! gen_newtype {
-    ($new_ty:ident, $($macro_name:ident$(,)?)*) => {
-        $(pub const $macro_name: $new_ty = $new_ty($crate::bindings::$macro_name);)*
+    ($new_ty:ident as $repr_ty:ty, $($macro_name:ident$(,)?)*) => {
+        $(pub const $macro_name: $new_ty = $new_ty($crate::bindings::$macro_name as $repr_ty);)*
     };
 }
 

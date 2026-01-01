@@ -261,7 +261,7 @@ pub mod wrappers {
     use super::*;
 
     gen_newtype! {
-        BusProbe,
+        BusProbe as i32,
         BUS_PROBE_SPECIFIC,
         BUS_PROBE_VENDOR,
         BUS_PROBE_DEFAULT,

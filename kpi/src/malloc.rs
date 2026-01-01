@@ -83,7 +83,7 @@ pub mod wrappers {
     use super::*;
 
     gen_newtype! {
-        MallocFlags,
+        MallocFlags as i32,
         M_ZERO,
         M_NODUMP,
         M_NOWAIT,

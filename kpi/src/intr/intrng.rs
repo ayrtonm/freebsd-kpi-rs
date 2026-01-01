@@ -299,13 +299,13 @@ pub mod wrappers {
     use super::*;
 
     gen_newtype! {
-        IntrRoot,
+        IntrRoot as i32,
         INTR_ROOT_IRQ,
         INTR_ROOT_FIQ,
     }
 
     gen_newtype! {
-        IntrIsrcf,
+        IntrIsrcf as i32,
         INTR_ISRCF_IPI,
         INTR_ISRCF_PPI,
         INTR_ISRCF_BOUND,

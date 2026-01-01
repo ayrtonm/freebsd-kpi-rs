@@ -257,20 +257,20 @@ pub mod wrappers {
     use bindings::{bus_space_handle_t, bus_space_tag_t};
 
     gen_newtype! {
-        SysRes,
+        SysRes as i32,
         SYS_RES_MEMORY,
         SYS_RES_IRQ,
     }
 
     gen_newtype! {
-        Filter,
+        Filter as i32,
         FILTER_STRAY,
         FILTER_HANDLED,
         FILTER_SCHEDULE_THREAD,
     }
 
     gen_newtype! {
-        ResFlags,
+        ResFlags as i32,
         RF_ACTIVE,
         RF_SHAREABLE,
         RF_UNMAPPED
