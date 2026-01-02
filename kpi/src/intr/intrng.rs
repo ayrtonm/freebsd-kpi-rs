@@ -177,6 +177,19 @@ macro_rules! pic_ipi_setup {
 pub type IrqSrc<T> = SubClass<intr_irqsrc, T>;
 
 /// The PIC interface defined by pic_if.m
+#[diagnostic::on_unimplemented(message = "
+Implement the device interface trait and define the softc as follows
+
+```
+use kpi::intr::PicIf;
+
+pub struct {Self}IrqSrcFields {{ /* intr_irqsrc subclass fields go here */ }}
+
+impl PicIf for {Self} {{
+    type IrqSrcFields = {Self}IrqSrcFields;
+}}
+```
+")]
 #[allow(unused_variables)]
 pub trait PicIf: DeviceIf {
     type IrqSrcFields;

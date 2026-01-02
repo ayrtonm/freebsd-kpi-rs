@@ -287,7 +287,6 @@ impl<'a, T: ?Sized> Deref for Ext<'a, T> {
     }
 }
 
-// FIXME: improve diagnostic when Self is SubClass
 #[diagnostic::on_unimplemented(message = "
 Implement the CallbackArg trait with `impl CallbackArg for {Self} {{}}`.
 If the {Self} may be passed to a callout, override its default `get_callout` method with
