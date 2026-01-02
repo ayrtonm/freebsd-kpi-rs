@@ -40,12 +40,6 @@ impl<T> AsRustType<T> for T {
     }
 }
 
-impl<T> AsCType<T> for T {
-    fn as_c_type(self) -> T {
-        self
-    }
-}
-
 // Allow turning pointers to shared references
 impl<'a, T> AsRustType<&'a T> for *mut T {
     fn as_rust_type(self) -> &'a T {

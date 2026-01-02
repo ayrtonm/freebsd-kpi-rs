@@ -116,7 +116,8 @@ macro_rules! define_dev_interface {
      $(fn $fn_name:ident($($arg_name:ident: $arg:ty$(,)?)*) $(-> $ret:ty)?
      , with desc $desc:ident and typedef $typedef:ident
      $(, with init glue { $($init_glue:tt)* })?
-     $(, with drop glue { $($drop_glue:tt)* })? ;)*) => {
+     $(, with drop glue { $($drop_glue:tt)* })?
+     $(, is $infallible:ident )? ;)*) => {
         $(
             #[doc(hidden)]
             #[macro_export]
@@ -141,6 +142,7 @@ macro_rules! define_dev_interface {
                             $($($drop_glue)*)*
                         }
                         with prefix args { _sc }
+                        $($infallible)*
                     }
                 };
             }
