@@ -127,6 +127,15 @@ impl<T: ?Sized, M: Malloc> Box<T, M> {
     }
 }
 
+impl<'a, T, M: Malloc> IntoIterator for &'a Box<[T], M> {
+    type Item = &'a T;
+    type IntoIter = slice::Iter<'a, T>;
+    fn into_iter(self) -> <&'a Box<[T], M> as IntoIterator>::IntoIter {
+        // Rely on Deref<[T]> to use core::slice impl
+        self.iter()
+    }
+}
+
 impl<'a, T, M: Malloc> IntoIterator for &'a mut Box<[T], M> {
     type Item = &'a mut T;
     type IntoIter = slice::IterMut<'a, T>;

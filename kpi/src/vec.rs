@@ -188,6 +188,16 @@ impl<T, M: Malloc> Vec<T, M> {
         forget(self);
         unsafe { Box::from_raw(fat_ptr) }
     }
+
+    pub(crate) unsafe fn from_raw(ptr: *mut T, len: usize) -> Vec<T, M> {
+        let ptr = NonNull::new(ptr).unwrap();
+        Self {
+            ptr,
+            len,
+            capacity: len,
+            _malloc: PhantomData,
+        }
+    }
 }
 
 impl<T: Copy, M: Malloc> Vec<T, M> {

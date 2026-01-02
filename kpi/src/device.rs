@@ -27,14 +27,17 @@
  */
 
 use crate::bindings::{device_state_t, device_t, driver_t};
-use crate::define_dev_interface;
+use crate::boxed::Box;
 use crate::driver::Driver;
 use crate::ffi::{ArrayCString, CallbackArg, Ext, UninitExt};
 use crate::kobj::AsCType;
 use crate::prelude::*;
+use crate::vec::Vec;
+use crate::{ErrCode, define_dev_interface};
 use core::ffi::{CStr, c_int};
 use core::fmt;
 use core::fmt::{Debug, Formatter};
+use core::ptr::null_mut;
 
 /// The result of probing a device with a driver.
 ///
@@ -285,6 +288,27 @@ pub mod wrappers {
         } else {
             Ok(res)
         }
+    }
+
+    pub fn device_get_children(dev: device_t) -> Result<Box<[device_t], M_TEMP>> {
+        let mut devlistp = null_mut();
+        let mut devcountp = 0;
+        let res =
+            unsafe { bindings::device_get_children(dev, &raw mut devlistp, &raw mut devcountp) };
+        if res != 0 {
+            return Err(ErrCode::from(res));
+        }
+        let children =
+            unsafe { Vec::from_raw(devlistp, devcountp.try_into().unwrap()).into_boxed_slice() };
+        Ok(children)
+    }
+
+    pub fn device_probe_and_attach(dev: device_t) -> Result<()> {
+        let res = unsafe { bindings::device_probe_and_attach(dev) };
+        if res != 0 {
+            return Err(ErrCode::from(res));
+        }
+        Ok(())
     }
 
     pub fn device_set_desc(dev: device_t, desc: &'static CStr) {
