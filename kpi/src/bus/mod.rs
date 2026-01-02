@@ -407,7 +407,7 @@ pub mod wrappers {
             macro_rules! $read_fn {
                 ($reg:expr, $offset:expr) => {{
                     let _: $crate::bindings::bus_size_t = $offset;
-                    let reg_ref = &mut $reg;
+                    let reg_ref = &$reg;
                     reg_ref.assert_allowed($offset);
                     unsafe { $crate::bindings::$read_impl(reg_ref.as_ptr(), $offset) }
                 }};
