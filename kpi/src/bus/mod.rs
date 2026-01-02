@@ -278,7 +278,7 @@ pub mod wrappers {
 
     pub fn bus_setup_intr<T>(
         dev: device_t,
-        irq: &Irq,
+        irq: Ext<Irq>,
         flags: c_int,
         filter: FilterFn<T>,
         handler: Handler<T>,
@@ -292,20 +292,11 @@ pub mod wrappers {
         // SAFETY: These types are ABI-compatible
         let handler = unsafe { transmute::<Handler<T>, RawHandler>(handler) };
 
-        // FIXME: cookie could move
         let cookiep = irq.cookie.get();
-        let arg_ptr = (&*arg as *const T).cast_mut().cast::<c_void>();
+        let arg_ptr = Ext::into_raw(arg).cast::<c_void>();
 
         let res = unsafe {
-            bindings::bus_setup_intr(
-                dev,
-                irq.res,
-                flags,
-                filter,
-                handler,
-                arg_ptr,
-                cookiep,
-            )
+            bindings::bus_setup_intr(dev, irq.res, flags, filter, handler, arg_ptr, cookiep)
         };
         if res != 0 {
             return Err(ErrCode::from(res));
