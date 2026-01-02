@@ -176,7 +176,7 @@ impl Resource {
         self.res
     }
 
-    pub fn as_irq(self) -> Result<Irq> {
+    pub fn into_irq(self) -> Result<Irq> {
         if self.ty != Some(SYS_RES_IRQ) {
             return Err(EDOOFUS);
         }
@@ -187,7 +187,7 @@ impl Resource {
         })
     }
 
-    pub fn as_register(self) -> Result<Register> {
+    pub fn into_register(self) -> Result<Register> {
         if self.ty != Some(SYS_RES_MEMORY) {
             return Err(EDOOFUS);
         }
@@ -279,7 +279,7 @@ pub mod wrappers {
     pub fn bus_setup_intr<T>(
         dev: device_t,
         irq: &Irq,
-        flags: u32,
+        flags: c_int,
         filter: FilterFn<T>,
         handler: Handler<T>,
         arg: Ext<T>,
@@ -300,7 +300,7 @@ pub mod wrappers {
             bindings::bus_setup_intr(
                 dev,
                 irq.res,
-                flags as c_int,
+                flags,
                 filter,
                 handler,
                 arg_ptr,
