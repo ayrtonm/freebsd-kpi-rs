@@ -79,7 +79,7 @@ impl ArrayCString {
         self.0[cur_idx - n] = 0;
     }
 
-    pub fn push_cstr(&mut self, other: &CStr) -> usize {
+    pub fn push_c_str(&mut self, other: &CStr) -> usize {
         if self.count_bytes() + other.count_bytes() + 1 > ARRAY_STRING_LEN {
             return 0;
         }
@@ -175,7 +175,7 @@ impl<M: Malloc> CString<M> {
         }
     }
 
-    pub fn push_cstr(&mut self, other: &CStr) -> usize {
+    pub fn push_c_str(&mut self, other: &CStr) -> usize {
         let mut added = 0;
         for &b in other.to_bytes() {
             if self.push(b).is_err() {
@@ -215,7 +215,7 @@ mod tests {
     }
 
     #[test]
-    fn push_cstring() {
+    fn push_c_string() {
         let mut x = ArrayCString::new(c"hello");
         x.push(b' ');
         x.push(b'w');
@@ -241,29 +241,29 @@ mod tests {
     }
 
     #[test]
-    fn push_cstring_words() {
+    fn push_c_string_words() {
         let mut x: ArrayCString = ArrayCString::new(c"the");
 
-        let len = x.push_cstr(c" quick");
+        let len = x.push_c_str(c" quick");
         assert_eq!(len, 6);
 
-        let len = x.push_cstr(c" brown");
+        let len = x.push_c_str(c" brown");
         assert_eq!(len, 6);
 
-        let len = x.push_cstr(c" fox");
+        let len = x.push_c_str(c" fox");
         assert_eq!(len, 4);
 
         // This operation won't succeed since there's not enough space in the buffer, so it won't
         // push anything
-        let len = x.push_cstr(c" jumped");
+        let len = x.push_c_str(c" jumped");
         assert_eq!(len, 0);
 
         // This word is smaller but there's still not enough space so it'll also fail
-        let len = x.push_cstr(c" over");
+        let len = x.push_c_str(c" over");
         assert_eq!(len, 0);
 
         // There is enough room for this word so this will succeed
-        let len = x.push_cstr(c" the");
+        let len = x.push_c_str(c" the");
         assert_eq!(len, 4);
 
         assert_eq!(x.as_c_str(), c"the quick brown fox the");
