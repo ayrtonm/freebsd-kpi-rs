@@ -47,7 +47,7 @@ RUSTC_REPO_HASH= ${:!${GIT_CMD} -C ${RUST_COMPILER_DIR} rev-parse HEAD!}
 .endif
 
 # crate-independent build flags
-RUSTFLAGS= --target=${RUST_TARGET} --edition 2024 -Copt-level=3 -Ccodegen-units=1 -Cembed-bitcode=no -Awarnings
+RUSTFLAGS= --target=${RUST_TARGET} --edition 2024 -Copt-level=3 -Ccodegen-units=1 -Cembed-bitcode=no
 
 .if ${TARGET_ARCH} == aarch64
 
