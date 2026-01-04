@@ -187,7 +187,7 @@ pub mod wrappers {
         }
     }
 
-    pub unsafe fn OF_getencprop<T: Pod>(node: Node, propname: &CStr) -> Result<T> {
+    pub fn OF_getencprop<T: Pod>(node: Node, propname: &CStr) -> Result<T> {
         let mut t = MaybeUninit::uninit();
         let propname_ptr = propname.as_ptr();
         let res = unsafe {
