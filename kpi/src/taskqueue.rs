@@ -107,6 +107,30 @@ pub mod wrappers {
         Ok(())
     }
 
+    // Max queue name is 32 chars which is over the ArrayCString limit
+    pub fn taskqueue_create_fast(
+        name: ArrayCString,
+        flags: MallocFlags,
+        mut queue: MutExtRef<Taskqueue>,
+    ) -> Result<()> {
+        let ctx: *mut *mut bindings::taskqueue = &raw mut queue.inner.0;
+
+        let enqueue = Some(bindings::taskqueue_thread_enqueue as _);
+        let res = unsafe {
+            bindings::taskqueue_create_fast(
+                name.as_c_str().as_ptr(),
+                flags.0,
+                enqueue,
+                ctx.cast::<c_void>(),
+            )
+        };
+        if res.is_null() {
+            return Err(ENULLPTR);
+        };
+        queue.inner = SyncPtr::new(res);
+        Ok(())
+    }
+
     pub fn taskqueue_start_threads(
         mut queue: MutExtRef<Taskqueue>,
         count: usize,
