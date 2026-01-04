@@ -37,7 +37,10 @@ use core::cell::UnsafeCell;
 use core::ffi::{c_int, c_void};
 use core::mem::transmute;
 use core::ptr::null_mut;
-use core::sync::atomic::{AtomicU8, AtomicU16, AtomicU32, AtomicU64};
+use core::sync::atomic::{
+    AtomicBool, AtomicI8, AtomicI16, AtomicI32, AtomicI64, AtomicU8, AtomicU16, AtomicU32,
+    AtomicU64,
+};
 
 #[cfg(feature = "intrng")]
 mod intrng;
@@ -102,6 +105,11 @@ impl Sleepable for AtomicU8 {}
 impl Sleepable for AtomicU16 {}
 impl Sleepable for AtomicU32 {}
 impl Sleepable for AtomicU64 {}
+impl Sleepable for AtomicI8 {}
+impl Sleepable for AtomicI16 {}
+impl Sleepable for AtomicI32 {}
+impl Sleepable for AtomicI64 {}
+impl Sleepable for AtomicBool {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Priority(pub i32);
