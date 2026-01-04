@@ -27,7 +27,7 @@
  */
 
 use crate::bindings::{MTX_DEF, MTX_SPIN, mtx};
-use crate::ffi::{MutExt, MutExtRef};
+use crate::ffi::MutExtRef;
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::ffi::CStr;
@@ -234,6 +234,7 @@ impl<T> Drop for SpinLockGuard<'_, T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ffi::MutExt;
 
     #[test]
     fn basic_mutex() {
