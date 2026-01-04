@@ -18,10 +18,6 @@ and APIs. This means it is expected to work with any future rust compiler suppor
 edition. The rust KPIs should not be considered stable yet since they are currently under
 developement, but they are intended to provide similar levels of stability as the C KPI.
 
-Using `cargo` for kernel builds is also not supported to avoid parallel build processes. `cargo` is
-used for the KPI crate's userspace unit tests and may also be used for tests in other crates, but
-the latter is not officially supported by this repo.
-
 ## Installing rust and build tools
 
 Using rust requires `rustc`, [`bindgen`](https://rust-lang.github.io/rust-bindgen/) and `rustfmt`.
@@ -29,11 +25,15 @@ The compiler must be a ["nightly"](https://doc.rust-lang.org/book/appendix-07-ni
 release since the makefile builds [`core`](https://doc.rust-lang.org/core/) from source and uses
 unstable flags for fixed-x18 and BTI on aarch64.
 
+Using `cargo` for kernel builds is not supported to avoid parallel build processes. `cargo` is used
+for the KPI crate's userspace unit tests and may also be used for tests in other crates, but the
+latter is not officially supported by this repo.
+
 ### Toolchain version
 
-The KPI crate avoids unstable language features and APIs though so the exact version doesn't matter
-as long as the 2024 edition is supported by the language and libcore. These requirements mean the
-minimum supported rust version (MSRV) is rust 1.88.0 nightly-2025-05-01. For the exact range of rust
+The KPI crate avoids unstable language features and APIs so the exact version doesn't matter as long
+as the 2024 edition is supported by the language and libcore. These requirements mean the minimum
+supported rust version (MSRV) is rust 1.88.0 nightly-2025-05-01. For the exact range of rust
 compiler versions which are known to work check this repo's CI workflow file for
 [userspace tests](.github/workflows/userspace_tests.yml).
 
@@ -52,14 +52,24 @@ pkg install rust-nightly
 pkg install rust-bindgen-cli
 ```
 
+This will install whatever version that week's `rust-nightly` package is. As stated above the exact
+version doesn't matter so this should work for local development, but note that some libcore APIs
+are not available on older rustc versions. To ensure others can build your work try to stick to
+APIs stabilized in or before rustc version 1.88. If in doubt, the
+[libcore docs](https://doc.rust-lang.org/core/) list the rustc versions at which APIs were
+stabilized.
+
 ### Setup via `rustup`
 
 First use [`rustup`](https://rustup.rs/) to install nightly `rustc` and `rustfmt`.
 
 ```
-rustup install nightly
+rustup default nightly-2025-05-01
 cargo install bindgen-cli
 ```
+
+This installs the nightly rustc from 2025-05-01 and sets it as the default toolchain. Newer
+toolchains may be used, but note that libcore APIs stabilized in newer versions may differ.
 
 ## Set up the repos
 
@@ -100,7 +110,7 @@ First build `kernel-toolchain` to make sure the build uses the updated `config(8
 make -j8 kernel-toolchain TARGET=amd64 TARGET_ARCH=amd64
 ```
 
-Optionally, to verify the patched version was built run the updated version (located in the build
+To optionally verify the patched version was built run the updated version (located in the build
 dir under `tmp/legacy/bin`) with `config -V`. This should show version 600019.
 
 Then set environment variables for `RUSTC`, `RUSTFMT` and `BINDGEN` and run `buildkernel` normally.
@@ -117,7 +127,7 @@ make -j8 buildkernel KERNCONF=GENERIC TARGET=amd64 TARGET_ARCH=amd64
 To build on a non-FreeBSD host define the same environment variables and run
 `src/tools/build/make.py` as described in its
 [wiki page](https://wiki.freebsd.org/BuildingOnNonFreeBSD). See this repo's CI workflow files for a
-more concrete example of building on Linux.
+more concrete example of building on x86 Linux and cross-building for aarch64.
 
 A successful build will produce the artifacts listed [here](docs/build_artifacts.md). See
 [getting_started.md](docs/getting_started.md) to get started adding new rust code. For notes on

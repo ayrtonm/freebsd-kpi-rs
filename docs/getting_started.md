@@ -21,6 +21,13 @@ The following error means that one of the .rs files is missing `#![no_std]` at t
 error[E0463]: can't find crate for `std`
 ```
 
+Building modules is currently not supported. TODO: explain why
+
+
+Custom KERNCONFs are also currently not well-supported and the makefile assumes that
+KERNCONF=GENERIC/VIRT includes the virtio_snd driver.
+TODO: explain why and plans for the bindgen headers conf(8) patch
+
 ## Dependencies
 
 Crates may also import items from [`core`](https://doc.rust-lang.org/core/) and
@@ -88,9 +95,12 @@ This is a typical way to use it.
 
 ```
 use kpi::bindings::device_t;
+use kpi::device::{DeviceIf, BusProbe};
 use kpi::driver;
-use kpi::kobj::interfaces::DeviceIf;
+use kpi::ffi::{CallbackArg, Ext, UninitExt};
 use kpi::prelude::*;
+
+impl CallbackArg for FooSoftc {}
 
 pub struct FooSoftc {
     dev: device_t,
@@ -101,10 +111,21 @@ impl DeviceIf for FooDriver {
     // This is the only required item in this trait. Omitting any methods makes them panic if called
     type Softc = FooSoftc;
 
+    fn device_probe(dev: device_t) -> Result<BusProbe> {
+        if !ofw_bus_status_okay(dev) {
+            return Err(ENXIO);
+        }
+        if !ofw_bus_is_compatible(dev, c"vendor,foo-device") {
+            return Err(ENXIO);
+        }
+        device_set_desc(dev, c"FooDevice");
+
+        Ok(BUS_PROBE_DEFAULT)
+    }
+
     // The first argument is a pointer to the softc. You must call `.init()` on it before returning
-    // from this function. The KPI glue acquires a refcount for the softc before device_attach.
-    // device_detach takes an Arc argument which releases that refcount when it goes out of scope.
-    fn device_attach(uninit_sc: UninitArc<FooSoftc>, dev: device_t) -> Result<()> {
+    // from this function.
+    fn device_attach(uninit_sc: UninitExt<FooSoftc>, dev: device_t) -> Result<()> {
         let sc_on_stack = FooSoftc {
             dev,
             some_field: 0xdeadbeef,
@@ -114,21 +135,12 @@ impl DeviceIf for FooDriver {
         let mut unique_sc = uninit_sc.init(sc_on_stack);
         unique_sc.some_field = 0xdeadc0de;
 
-        // Calling `.into_arc()` acquires another refcount to allow sharing ownership of the softc
-        let sc1 = unique_sc.into_arc();
-
-        // Acquire two more refcounts to the softc
-        let sc2 = sc1.clone();
-        let sc3 = sc1.clone();
-
-        // At this point sc1, sc2 and sc3 each own their own refcounts to the softc and the KPI glue
-        // holds another one
+        let sc = unique_sc.into_ref();
 
         Ok(())
     }
 
-    fn device_detach(sc: Arc<FooSoftc>, dev: device_t) -> Result<()> {
-        // The refcount acquired before device_attach is released when sc gets dropped
+    fn device_detach(sc: Ext<FooSoftc>, dev: device_t) -> Result<()> {
         Ok(())
     }
 }
@@ -136,7 +148,7 @@ impl DeviceIf for FooDriver {
 driver! {
     foo_driver, c"foo", FooDriver,
     foo_methods = {
-        device_probe foo_probe defined in C,
+        device_probe foo_probe,
         device_attach foo_attach,
         device_detach foo_detach,
     }
