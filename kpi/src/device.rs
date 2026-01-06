@@ -281,10 +281,11 @@ pub mod wrappers {
         unsafe { bindings::device_set_desc(dev, desc_ptr) }
     }
 
-    // FIXME: 'static is wrong here.  It should be Ptr<CStr> or something instead
-    pub fn device_get_desc(dev: device_t) -> &'static CStr {
-        let name = unsafe { bindings::device_get_desc(dev) };
-        unsafe { CStr::from_ptr(name) }
+    pub fn device_get_desc(dev: device_t) -> ArrayCString {
+        let name_ptr = unsafe { bindings::device_get_desc(dev) };
+        assert!(!name_ptr.is_null());
+        let name = unsafe { CStr::from_ptr(name_ptr) };
+        ArrayCString::new(name)
     }
 
     /// Returns a copy of the device name
@@ -307,14 +308,7 @@ pub mod wrappers {
         unsafe { bindings::device_get_driver(dev) }
     }
 
-    // TODO: This is racy and a lock is needed to serialize softc drop and this operation.
-    // It's good enough for now
-    /// Get a pointer to a device's softc.
-    pub fn device_get_softc<'sc, D: DeviceIf>(dev: device_t) -> Ext<'sc, D::Softc> {
-        let state = device_get_state(dev);
-        if state != bindings::DS_ATTACHED {
-            panic!("device_get_softc can only be called after device_attach");
-        }
+    pub unsafe fn device_get_softc<'sc, D: DeviceIf>(dev: device_t) -> Ext<'sc, D::Softc> {
         let driver = device_get_driver(dev);
         if driver != D::DRIVER {
             panic!("device_t passed to device_get_softc has a different softc type");
