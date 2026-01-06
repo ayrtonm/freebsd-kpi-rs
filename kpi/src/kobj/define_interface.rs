@@ -110,45 +110,6 @@ macro_rules! define_interface {
         )*
     };
 }
-#[macro_export]
-macro_rules! define_dev_interface {
-    (in $trait:ident
-     $(fn $fn_name:ident($($arg_name:ident: $arg:ty$(,)?)*) $(-> $ret:ty)?
-     , with desc $desc:ident and typedef $typedef:ident
-     $(, with init glue { $($init_glue:tt)* })?
-     $(, with drop glue { $($drop_glue:tt)* })?
-     $(, is $infallible:ident )? ;)*) => {
-        $(
-            #[doc(hidden)]
-            #[macro_export]
-            macro_rules! $fn_name {
-                (get_typedef) => { $crate::bindings::$typedef };
-                (get_desc) => { $crate::bindings::$desc };
-                ($driver_ty:ident $driver_sym:ident $impl_fn_name:ident) => {
-                    $crate::define_c_function! {
-                        $driver_ty $driver_sym $impl_fn_name in $trait as
-                        fn $fn_name($($arg_name: $arg,)*) $(-> $ret)*;
-                        with init glue {
-                            $($($init_glue)*)*
-                            use $crate::bindings;
-                            use $crate::ffi::Ext;
-                            use $crate::kobj::KobjLayout;
-
-                            let _void_ptr = unsafe { bindings::device_get_softc($crate::get_first!($($arg_name)*)) };
-                            let _sc_ptr = _void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
-                            let _sc = unsafe { Ext::from_raw(_sc_ptr) };
-                        }
-                        with drop glue {
-                            $($($drop_glue)*)*
-                        }
-                        with prefix args { _sc }
-                        $($infallible)*
-                    }
-                };
-            }
-        )*
-    };
-}
 
 #[macro_export]
 macro_rules! define_c_function {

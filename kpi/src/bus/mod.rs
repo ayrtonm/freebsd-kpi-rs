@@ -520,9 +520,9 @@ mod tests {
             }
             Ok(())
         }
-        fn device_detach(sc: Ext<Self::Softc>, dev: device_t) -> Result<()> {
-            if ofw_bus_is_compatible(dev, c"irq_driver,teardown_intr") {
-                bus_teardown_intr(dev, &sc.irq).unwrap();
+        fn device_detach(sc: Ext<Self::Softc>) -> Result<()> {
+            if ofw_bus_is_compatible(sc.dev, c"irq_driver,teardown_intr") {
+                bus_teardown_intr(sc.dev, &sc.irq).unwrap();
             }
             Ok(())
         }

@@ -30,10 +30,10 @@ use crate::bindings::{device_state_t, device_t, driver_t};
 use crate::boxed::Box;
 use crate::driver::Driver;
 use crate::ffi::{ArrayCString, CallbackArg, Ext, UninitExt};
-use crate::kobj::AsCType;
+use crate::kobj::{AsCType, AsRustType};
 use crate::prelude::*;
 use crate::vec::Vec;
-use crate::{ErrCode, define_dev_interface};
+use crate::{ErrCode, define_interface};
 use core::ffi::{CStr, c_int};
 use core::fmt;
 use core::fmt::{Debug, Formatter};
@@ -50,6 +50,14 @@ pub struct BusProbe(pub c_int);
 impl AsCType<c_int> for BusProbe {
     fn as_c_type(self) -> c_int {
         self.0
+    }
+}
+
+impl<'a, T> AsRustType<Ext<'a, T>> for device_t {
+    fn as_rust_type(self) -> Ext<'a, T> {
+        let void_ptr = unsafe { bindings::device_get_softc(self) };
+        let sc_ptr = void_ptr.cast::<T>();
+        unsafe { Ext::from_raw(sc_ptr) }
     }
 }
 
@@ -72,23 +80,6 @@ impl Debug for device_t {
             .field("desc", &desc)
             .finish()
     }
-}
-
-#[doc(hidden)]
-#[macro_export]
-macro_rules! device_probe {
-    (get_typedef) => {
-        device_probe_t
-    };
-    (get_desc) => {
-        device_probe_desc
-    };
-    ($driver_ty:ident $driver_sym:ident $impl_fn_name:ident) => {
-        $crate::define_c_function! {
-            $driver_ty $driver_sym $impl_fn_name in DeviceIf as
-            fn device_probe(dev: device_t) -> int;
-        }
-    };
 }
 
 #[doc(hidden)]
@@ -126,46 +117,20 @@ macro_rules! device_attach {
     };
 }
 
-#[doc(hidden)]
-#[macro_export]
-macro_rules! device_detach {
-    (get_typedef) => {
-        device_detach_t
-    };
-    (get_desc) => {
-        device_detach_desc
-    };
-    ($driver_ty:ident $driver_sym:ident $impl_fn_name:ident) => {
-        $crate::define_c_function! {
-            $driver_ty $driver_sym $impl_fn_name in DeviceIf as
-            fn device_detach(dev: device_t) -> int;
-            with init glue {
-                use $crate::bindings;
-                use $crate::ffi::Ext;
-                use $crate::kobj::KobjLayout;
-
-                let void_ptr = unsafe { bindings::device_get_softc(dev) };
-                let sc_ptr = void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
-
-                let sc = unsafe { Ext::from_raw(sc_ptr) };
-            }
-            with drop glue {
-                use core::ptr::drop_in_place;
-                //use $crate::intr::callout_drain;
-                //use $crate::ffi::CallbackArg;
-
-                //if let Some(callout) = sc.get_callout() {
-                //    callout_drain(callout)
-                //};
-                unsafe { drop_in_place(sc_ptr) }
-            }
-            with prefix args { sc }
-        }
-    };
-}
-
-define_dev_interface! {
+define_interface! {
     in DeviceIf
+    fn device_probe(dev: device_t) -> int,
+        with desc device_probe_desc
+        and typedef device_probe_t;
+    fn device_detach(dev: device_t) -> int,
+        with desc device_detach_desc
+        and typedef device_detach_t,
+        with drop glue {
+            use core::ptr::drop_in_place;
+            use $crate::ffi::Ext;
+            let sc_ptr = Ext::into_raw(dev);
+            unsafe { drop_in_place(sc_ptr) }
+        };
     fn device_shutdown(dev: device_t) -> int,
         with desc device_shutdown_desc
         and typedef device_shutdown_t;
@@ -239,19 +204,19 @@ pub trait DeviceIf: Driver {
     /// example, if a softc struct includes a `Box<T>` field (i.e. a pointer to the heap with
     /// ownership of a `T`) the `T` in the heap will also be freed. This applies recursively through
     /// any number of layers of indirection.
-    fn device_detach(sc: Ext<Self::Softc>, dev: device_t) -> Result<()> {
+    fn device_detach(sc: Ext<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
-    fn device_shutdown(sc: Ext<Self::Softc>, dev: device_t) -> Result<()> {
+    fn device_shutdown(sc: Ext<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
-    fn device_suspend(sc: Ext<Self::Softc>, dev: device_t) -> Result<()> {
+    fn device_suspend(sc: Ext<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
-    fn device_resume(sc: Ext<Self::Softc>, dev: device_t) -> Result<()> {
+    fn device_resume(sc: Ext<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
-    fn device_quiesce(sc: Ext<Self::Softc>, dev: device_t) -> Result<()> {
+    fn device_quiesce(sc: Ext<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
 }
@@ -425,7 +390,7 @@ mod tests {
             println!("{:x?}", sc);
             Ok(())
         }
-        fn device_detach(sc: Ext<Self::Softc>, dev: device_t) -> Result<()> {
+        fn device_detach(sc: Ext<Self::Softc>) -> Result<()> {
             assert!(sc.const_data == 0xdeadbeef);
             Ok(())
         }
@@ -475,7 +440,7 @@ mod tests {
             }
             Ok(())
         }
-        fn device_detach(sc: Ext<Self::Softc>, dev: device_t) -> Result<()> {
+        fn device_detach(sc: Ext<Self::Softc>) -> Result<()> {
             Ok(())
         }
     }

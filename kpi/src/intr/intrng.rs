@@ -35,7 +35,7 @@ use crate::ffi::{ArrayCString, Ext, SubClass};
 use crate::kobj::AsRustType;
 use crate::ofw::XRef;
 use crate::prelude::*;
-use crate::{ErrCode, define_dev_interface};
+use crate::{ErrCode, define_interface};
 use core::ffi::{c_int, c_void};
 use core::mem::transmute;
 
@@ -61,7 +61,7 @@ impl AsRustType<IntrRoot> for u32 {
 
 pub type IrqFilter<T> = extern "C" fn(Ext<T>) -> Filter;
 
-define_dev_interface! {
+define_interface! {
     in PicIf
     fn pic_setup_intr(dev: device_t, isrc: *mut intr_irqsrc, res: *mut resource, data: *mut intr_map_data) -> int,
         with desc pic_setup_intr_desc
@@ -121,7 +121,7 @@ macro_rules! pic_map_intr {
             let sc_ptr = void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
             let sc = unsafe { Ext::from_raw(sc_ptr) };
             let data = data.as_rust_type();
-            let res = match <$driver_ty as PicIf>::pic_map_intr(&sc, dev, data) {
+            let res = match <$driver_ty as PicIf>::pic_map_intr(&sc, data) {
                 Ok(isrc_ref) => {
                     unsafe {
                         *isrcp = base!(&isrc_ref);
@@ -160,7 +160,7 @@ macro_rules! pic_ipi_setup {
             let void_ptr = unsafe { bindings::device_get_softc(dev) };
             let sc_ptr = void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
             let sc = unsafe { Ext::from_raw(sc_ptr) };
-            let res = match <$driver_ty as PicIf>::pic_ipi_setup(&sc, dev, ipi) {
+            let res = match <$driver_ty as PicIf>::pic_ipi_setup(&sc, ipi) {
                 Ok(isrc_ref) => {
                     unsafe {
                         *isrcp = base!(&isrc_ref);
@@ -195,7 +195,6 @@ pub trait PicIf: DeviceIf {
     type IrqSrcFields;
     fn pic_setup_intr(
         sc: Ext<Self::Softc>,
-        dev: device_t,
         isrc: &mut IrqSrc<Self::IrqSrcFields>,
         res: Resource,
         data: MapData,
@@ -204,7 +203,6 @@ pub trait PicIf: DeviceIf {
     }
     fn pic_teardown_intr(
         sc: Ext<Self::Softc>,
-        dev: device_t,
         isrc: &mut IrqSrc<Self::IrqSrcFields>,
         res: Resource,
         data: MapData,
@@ -213,54 +211,39 @@ pub trait PicIf: DeviceIf {
     }
     fn pic_map_intr<'sc>(
         sc: &'sc Ext<Self::Softc>,
-        dev: device_t,
         data: MapData,
     ) -> Result<&'sc IrqSrc<Self::IrqSrcFields>> {
         unimplemented!()
     }
-    fn pic_enable_intr(sc: Ext<Self::Softc>, dev: device_t, isrc: &mut IrqSrc<Self::IrqSrcFields>) {
+    fn pic_enable_intr(sc: Ext<Self::Softc>, isrc: &mut IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
-    fn pic_disable_intr(
-        sc: Ext<Self::Softc>,
-        dev: device_t,
-        isrc: &mut IrqSrc<Self::IrqSrcFields>,
-    ) {
+    fn pic_disable_intr(sc: Ext<Self::Softc>, isrc: &mut IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
-    fn pic_post_filter(sc: Ext<Self::Softc>, dev: device_t, isrc: &mut IrqSrc<Self::IrqSrcFields>) {
+    fn pic_post_filter(sc: Ext<Self::Softc>, isrc: &mut IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
-    fn pic_post_ithread(
-        sc: Ext<Self::Softc>,
-        dev: device_t,
-        isrc: &mut IrqSrc<Self::IrqSrcFields>,
-    ) {
+    fn pic_post_ithread(sc: Ext<Self::Softc>, isrc: &mut IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
-    fn pic_pre_ithread(sc: Ext<Self::Softc>, dev: device_t, isrc: &mut IrqSrc<Self::IrqSrcFields>) {
+    fn pic_pre_ithread(sc: Ext<Self::Softc>, isrc: &mut IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
-    fn pic_bind_intr(
-        sc: Ext<Self::Softc>,
-        dev: device_t,
-        isrc: &mut IrqSrc<Self::IrqSrcFields>,
-    ) -> Result<()> {
+    fn pic_bind_intr(sc: Ext<Self::Softc>, isrc: &mut IrqSrc<Self::IrqSrcFields>) -> Result<()> {
         unimplemented!()
     }
-    fn pic_init_secondary(sc: Ext<Self::Softc>, dev: device_t, root: IntrRoot) {
+    fn pic_init_secondary(sc: Ext<Self::Softc>, root: IntrRoot) {
         unimplemented!()
     }
     fn pic_ipi_setup<'sc>(
         sc: &'sc Ext<Self::Softc>,
-        dev: device_t,
         ipi: u32,
     ) -> Result<&'sc IrqSrc<Self::IrqSrcFields>> {
         unimplemented!()
     }
     fn pic_ipi_send(
         sc: Ext<Self::Softc>,
-        dev: device_t,
         isrc: &mut IrqSrc<Self::IrqSrcFields>,
         cpus: bindings::cpuset_t,
         ipi: u32,
@@ -412,7 +395,7 @@ mod tests {
             let sc = uninit_sc.init(IntcSoftc { dev }).into_ref();
             intr_pic_claim_root(dev, XRef(0), IntcDriver::handle_irq, sc, INTR_ROOT_IRQ)
         }
-        fn device_detach(_sc: Ext<Self::Softc>, _dev: device_t) -> Result<()> {
+        fn device_detach(_sc: Ext<Self::Softc>) -> Result<()> {
             Ok(())
         }
     }
@@ -428,7 +411,6 @@ mod tests {
 
         fn pic_setup_intr(
             _sc: Ext<Self::Softc>,
-            _dev: device_t,
             isrc: &mut IrqSrc<Self::IrqSrcFields>,
             _res: Resource,
             _data: MapData,

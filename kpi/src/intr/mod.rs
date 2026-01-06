@@ -322,7 +322,7 @@ mod tests {
             config_intrhook_establish(&sc.hook, HookDriver::deferred_attach, sc).unwrap();
             Ok(())
         }
-        fn device_detach(_sc: Ext<Self::Softc>, _dev: device_t) -> Result<()> {
+        fn device_detach(_sc: Ext<Self::Softc>) -> Result<()> {
             Ok(())
         }
     }
