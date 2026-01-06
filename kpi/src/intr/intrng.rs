@@ -375,7 +375,7 @@ mod tests {
     use super::*;
     use crate::device::{BusProbe, DeviceIf};
     use crate::driver;
-    use crate::ffi::{CallbackArg, Ext, UninitExt};
+    use crate::ffi::{Ext, UninitExt};
     use crate::tests::DriverManager;
 
     #[repr(C)]
@@ -428,7 +428,6 @@ mod tests {
         }
     }
 
-    impl CallbackArg for IntcSoftc {}
     driver!(intc_driver, c"intc_driver", IntcDriver,
             intc_driver_methods = {
                 device_probe intc_driver_probe,

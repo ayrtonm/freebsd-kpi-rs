@@ -120,7 +120,6 @@ pub use wrappers::*;
 #[doc(hidden)]
 pub mod wrappers {
     use super::*;
-    use crate::ffi::CallbackArg;
     use core::ffi::CStr;
 
     gen_newtype! {
@@ -227,15 +226,16 @@ pub mod wrappers {
         let _res = unsafe { bindings::_callout_stop_safe(c_callout, bindings::CS_DRAIN) };
     }
 
-    pub fn callout_reset<T: CallbackArg>(
+    pub fn callout_reset<T>(
         c: &mut Callout,
         ticks: sbintime_t,
         func: CalloutFn<T>,
         arg: Ext<T>,
     ) -> Result<()> {
-        if arg.get_callout().unwrap() != c as *mut Callout {
-            return Err(EINVAL);
-        }
+        // TODO: Ensure arg doesn't get turned into a reference after it's dropped
+        //if arg.get_callout().unwrap() != c as *mut Callout {
+        //    return Err(EINVAL);
+        //}
         let c_callout = c.inner.get();
         let time = ticks * unsafe { tick_sbt };
         let func = unsafe { transmute::<Option<CalloutFn<T>>, callout_func_t>(Some(func)) };
@@ -298,7 +298,7 @@ mod tests {
     use crate::bindings::device_t;
     use crate::device::{BusProbe, DeviceIf};
     use crate::driver;
-    use crate::ffi::{CallbackArg, Ext, UninitExt};
+    use crate::ffi::{Ext, UninitExt};
     use crate::tests::{DriverManager, LoudDrop};
 
     #[repr(C)]
@@ -345,7 +345,6 @@ mod tests {
         m.detach_all();
     }
 
-    impl CallbackArg for HookSoftc {}
     driver!(hook_driver, c"hook_driver", HookDriver,
             hook_driver_methods = {
                 device_probe hook_driver_probe,

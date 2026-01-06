@@ -29,7 +29,7 @@
 use crate::bindings::{device_state_t, device_t, driver_t};
 use crate::boxed::Box;
 use crate::driver::Driver;
-use crate::ffi::{ArrayCString, CallbackArg, Ext, UninitExt};
+use crate::ffi::{ArrayCString, Ext, UninitExt};
 use crate::kobj::{AsCType, AsRustType};
 use crate::prelude::*;
 use crate::vec::Vec;
@@ -181,7 +181,7 @@ pub trait DeviceIf: Driver {
     ///
     /// If the driver is a subclass of another, then this must be an appropriate
     /// [`SubClass`][crate::ffi::SubClass].
-    type Softc: 'static + Sync + CallbackArg;
+    type Softc: 'static + Sync;
 
     /// Used to probe whether the given device is supported by the driver.
     fn device_probe(dev: device_t) -> Result<BusProbe> {
@@ -395,7 +395,6 @@ mod tests {
             Ok(())
         }
     }
-    impl CallbackArg for TestDriverSoftc {}
     driver!(test_driver, c"test_driver", TestDriver,
             test_driver_methods = {
                 device_probe test_driver_probe,
@@ -444,7 +443,6 @@ mod tests {
             Ok(())
         }
     }
-    impl CallbackArg for AnotherDriverSoftc {}
     driver!(another_driver, c"another_driver", AnotherDriver,
             another_driver_methods = {
                 device_probe another_driver_probe,

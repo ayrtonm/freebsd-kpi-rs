@@ -29,7 +29,6 @@
 //! Utilities related to FFI with C.
 
 use crate::boxed::Box;
-use crate::intr::Callout;
 use crate::malloc::Malloc;
 use core::fmt::Debug;
 use core::marker::PhantomData;
@@ -284,29 +283,5 @@ impl<'a, T: ?Sized> Deref for Ext<'a, T> {
 
     fn deref(&self) -> &Self::Target {
         unsafe { self.0.as_ref() }
-    }
-}
-
-#[diagnostic::on_unimplemented(message = "
-Implement the CallbackArg trait with `impl CallbackArg for {Self} {{}}`.
-If the {Self} may be passed to a callout, override its default `get_callout` method with
-```
-impl CallbackArg for {Self} {{
-    fn get_callout(&self) -> Option<*mut Callout> {{
-        /* return a reference to the callout starting from a reference to {Self} */
-    }}
-}}
-```
-")]
-pub trait CallbackArg {
-    fn get_callout(&self) -> Option<*mut Callout> {
-        None
-    }
-}
-
-impl<B, F: CallbackArg> CallbackArg for SubClass<B, F> {
-    fn get_callout(&self) -> Option<*mut Callout> {
-        let sub_fields: &F = self.deref();
-        sub_fields.get_callout()
     }
 }
