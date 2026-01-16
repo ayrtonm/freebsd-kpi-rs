@@ -127,7 +127,7 @@ impl<T> Mutable<T> {
     /// Get mutable access to the `T`.
     ///
     /// This panics if the `Mutable<T>` is already borrowed.
-    pub fn get_mut(&self) -> RefMut<'_, T> {
+    pub fn get_mut(&self) -> MutableGuard<'_, T> {
         if !self
             .borrowed
             .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
@@ -135,7 +135,7 @@ impl<T> Mutable<T> {
         {
             panic!("already borrowed");
         }
-        RefMut {
+        MutableGuard {
             value: self.t.get(),
             borrowed: &self.borrowed,
         }
@@ -143,18 +143,18 @@ impl<T> Mutable<T> {
 }
 
 /// A reference to a mutably borrowed [`Mutable<T>`]
-pub struct RefMut<'b, T: 'b + ?Sized> {
+pub struct MutableGuard<'b, T: 'b + ?Sized> {
     value: *mut T,
     borrowed: &'b AtomicBool,
 }
 
-impl<'b, T: Debug> Debug for RefMut<'b, T> {
+impl<'b, T: Debug> Debug for MutableGuard<'b, T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         Debug::fmt(self.deref(), f)
     }
 }
 
-impl<T: ?Sized> Deref for RefMut<'_, T> {
+impl<T: ?Sized> Deref for MutableGuard<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -162,13 +162,13 @@ impl<T: ?Sized> Deref for RefMut<'_, T> {
     }
 }
 
-impl<T: ?Sized> DerefMut for RefMut<'_, T> {
+impl<T: ?Sized> DerefMut for MutableGuard<'_, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { self.value.as_mut().unwrap() }
     }
 }
 
-impl<T: ?Sized> Drop for RefMut<'_, T> {
+impl<T: ?Sized> Drop for MutableGuard<'_, T> {
     fn drop(&mut self) {
         self.borrowed.store(false, Ordering::Relaxed);
     }
