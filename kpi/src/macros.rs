@@ -109,9 +109,9 @@ macro_rules! ext {
         }
     };
     (& mut $ext_ref:ident -> $field:ident) => {
-        unsafe { $crate::ffi::MapMutExt::map_mut(&mut $ext_ref, |x| &mut x.$field) }
+        &mut unsafe { $ext_ref.map_mut(|x| &mut x.$field) }
     };
     (& mut $ext_ref:ident) => {
-        unsafe { $crate::ffi::MapMutExt::map_mut(&mut $ext_ref, |x| x) }
+        &mut unsafe { $ext_ref.map_mut(|x| x) }
     };
 }

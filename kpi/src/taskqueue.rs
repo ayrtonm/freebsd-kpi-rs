@@ -28,7 +28,7 @@
 
 use crate::ErrCode;
 use crate::bindings::{task, task_fn_t, taskqueue};
-use crate::ffi::{ArrayCString, Ext, MutExtRef, SyncPtr};
+use crate::ffi::{ArrayCString, Ext, MutExt, SyncPtr};
 use crate::intr::Priority;
 use crate::malloc::MallocFlags;
 use crate::prelude::*;
@@ -87,7 +87,7 @@ pub mod wrappers {
     pub fn taskqueue_create(
         name: ArrayCString,
         flags: MallocFlags,
-        mut queue: MutExtRef<Taskqueue>,
+        queue: &mut MutExt<Taskqueue>,
     ) -> Result<()> {
         let ctx: *mut *mut bindings::taskqueue = &raw mut queue.inner.0;
 
@@ -111,7 +111,7 @@ pub mod wrappers {
     pub fn taskqueue_create_fast(
         name: ArrayCString,
         flags: MallocFlags,
-        mut queue: MutExtRef<Taskqueue>,
+        queue: &mut MutExt<Taskqueue>,
     ) -> Result<()> {
         let ctx: *mut *mut bindings::taskqueue = &raw mut queue.inner.0;
 
@@ -132,7 +132,7 @@ pub mod wrappers {
     }
 
     pub fn taskqueue_start_threads(
-        mut queue: MutExtRef<Taskqueue>,
+        queue: &mut MutExt<Taskqueue>,
         count: usize,
         prio: Priority,
         name: ArrayCString,

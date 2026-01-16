@@ -29,11 +29,10 @@
 //! Utilities related to FFI with C.
 
 use crate::boxed::Box;
-use crate::malloc::Malloc;
 use core::fmt::Debug;
-use core::marker::PhantomData;
+use core::mem::MaybeUninit;
 use core::ops::{Deref, DerefMut};
-use core::ptr::{NonNull, null_mut};
+use core::ptr::null_mut;
 
 mod cstring;
 mod subclass;
@@ -96,48 +95,21 @@ unsafe impl<T> Send for SyncPtr<T> {}
 /// called.
 #[repr(C)]
 #[derive(Debug)]
-pub struct UninitExt<'a, T>(NonNull<T>, &'a mut bool);
+pub struct UninitExt<'a, T>(&'a mut MaybeUninit<T>, &'a mut bool);
 
 impl<'a, T> UninitExt<'a, T> {
     pub unsafe fn from_raw(ptr: *mut T, init: &'a mut bool) -> Self {
         *init = false;
-        Self(NonNull::new(ptr).unwrap(), init)
+        Self(
+            unsafe { ptr.cast::<MaybeUninit<T>>().as_mut().unwrap() },
+            init,
+        )
     }
 
     /// Initialize the externally-managed object to `t` and return a `MutExt` to the pointee.
-    pub fn init<'b>(self, t: T) -> MutExt<'b, T> {
+    pub fn init(self, t: T) -> MutExt<'a, T> {
         *self.1 = true;
-        unsafe { self.0.write(t) }
-        MutExt(self.0, PhantomData)
-    }
-}
-
-#[diagnostic::on_unimplemented(
-    message = "Can't create MutExtRef from variable on the stack",
-    label = "This must be an externally-managed object"
-)]
-pub trait MapMutExt<T> {
-    unsafe fn map_mut<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExtRef<'_, U>;
-}
-
-impl<'a, T> MapMutExt<T> for MutExt<'a, T> {
-    unsafe fn map_mut<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExtRef<'_, U> {
-        let new_ptr = f(self.deref_mut()) as *mut U;
-        MutExtRef(NonNull::new(new_ptr).unwrap(), PhantomData)
-    }
-}
-
-impl<'a, T> MapMutExt<T> for MutExtRef<'a, T> {
-    unsafe fn map_mut<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExtRef<'_, U> {
-        let new_ptr = f(self.deref_mut()) as *mut U;
-        MutExtRef(NonNull::new(new_ptr).unwrap(), PhantomData)
-    }
-}
-
-impl<T, M: Malloc> MapMutExt<T> for Box<T, M> {
-    unsafe fn map_mut<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExtRef<'_, U> {
-        let new_ptr = f(self.deref_mut()) as *mut U;
-        MutExtRef(NonNull::new(new_ptr).unwrap(), PhantomData)
+        MutExt(self.0.write(t))
     }
 }
 
@@ -154,21 +126,21 @@ impl<T, M: Malloc> MapMutExt<T> for Box<T, M> {
 /// opportunities for the compiler to make invalid optimizations).
 #[repr(C)]
 #[derive(Debug)]
-pub struct MutExt<'a, T>(NonNull<T>, PhantomData<&'a mut T>);
+pub struct MutExt<'a, T>(&'a mut T);
 
 impl<'a, T> MutExt<'a, T> {
     /// Destroys a `MutExt` and returns an `Ext` to the same object.
-    pub fn into_ref<'b>(self) -> Ext<'b, T> {
-        Ext(self.0, PhantomData)
+    pub fn into_ref(self) -> Ext<'a, T> {
+        Ext(self.0)
     }
 
-    pub fn as_mut(&mut self) -> MutExtRef<'_, T> {
-        MutExtRef(self.0, PhantomData)
+    pub unsafe fn map_mut<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExt<'_, U> {
+        MutExt(f(self.0))
     }
 
     #[cfg(test)]
     pub unsafe fn from_raw(ptr: *mut T) -> Self {
-        MutExt(NonNull::new(ptr).unwrap(), PhantomData)
+        MutExt(unsafe { ptr.as_mut().unwrap() })
     }
 }
 
@@ -177,34 +149,14 @@ impl<'a, T> Deref for MutExt<'a, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        unsafe { self.0.as_ref() }
+        &self.0
     }
 }
 
 /// Allows transparently using `MutExt<T>` like a `&mut T`.
 impl<'a, T> DerefMut for MutExt<'a, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { self.0.as_mut() }
-    }
-}
-
-#[repr(C)]
-#[derive(Debug)]
-pub struct MutExtRef<'a, T>(NonNull<T>, PhantomData<&'a mut T>);
-
-/// Allows transparently using `MutExtRef<T>` like a `&T`.
-impl<'a, T> Deref for MutExtRef<'a, T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        unsafe { self.0.as_ref() }
-    }
-}
-
-/// Allows transparently using `MutExtRef<T>` like a `&mut T`.
-impl<'a, T> DerefMut for MutExtRef<'a, T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { self.0.as_mut() }
+        self.0
     }
 }
 
@@ -221,7 +173,7 @@ impl<'a, T> DerefMut for MutExtRef<'a, T> {
 /// passed `Ext`s as arguments where appropriate.
 #[repr(C)]
 #[derive(Debug)]
-pub struct Ext<'a, T: ?Sized>(NonNull<T>, PhantomData<&'a T>);
+pub struct Ext<'a, T: ?Sized>(&'a T);
 
 /// Allows implicitly making copies of the `Ext<T>` just like `&T` allows.
 impl<'a, T> Copy for Ext<'a, T> {}
@@ -229,17 +181,17 @@ impl<'a, T> Copy for Ext<'a, T> {}
 /// Allows explicitly making copies of the `Ext<T>` just like `&T` allows.
 impl<'a, T> Clone for Ext<'a, T> {
     fn clone(&self) -> Self {
-        Self(self.0, self.1)
+        Self(self.0)
     }
 }
 
 impl<'a, T> Ext<'a, T> {
     pub fn into_raw(x: Self) -> *mut T {
-        x.0.as_ptr()
+        (x.0 as *const T).cast_mut()
     }
 
     pub unsafe fn from_raw(ptr: *mut T) -> Self {
-        Self(NonNull::new(ptr).unwrap(), PhantomData)
+        Self(unsafe { ptr.as_ref().unwrap() })
     }
 
     /// Create an Ext<U> from an Ext<T> by accessing a field on T
@@ -250,8 +202,7 @@ impl<'a, T> Ext<'a, T> {
     ///
     /// The function `f` must only access a single field (i.e. `x.field`)
     pub unsafe fn map_field<U, F: FnOnce(&T) -> &U>(x: Self, f: F) -> Ext<'a, U> {
-        let new_ptr = f(x.deref()) as *const U;
-        Ext(NonNull::new(new_ptr.cast_mut()).unwrap(), PhantomData)
+        Ext(f(x.0))
     }
 }
 
@@ -264,24 +215,23 @@ impl<'a, T: FixedIdx> Ext<'a, T> {
     ///
     /// The function `f` must only index once into T (i.e. `x[n]`)
     pub unsafe fn map_idx<U, F: FnOnce(&T) -> &U>(x: Self, f: F) -> Ext<'a, U> {
-        let new_ptr = f(x.deref()) as *const U;
-        Ext(NonNull::new(new_ptr.cast_mut()).unwrap(), PhantomData)
+        Ext(f(x.0))
     }
 }
 
 #[diagnostic::on_unimplemented(
-    message = "Indexing into {Self} may not access the same address every time",
+    message = "Indexing into {Self} might not access the same address every time",
     label = "Cannot create an Ext<T> from this. Use a boxed slice or array instead"
 )]
-pub trait FixedIdx {}
-impl<T, const N: usize> FixedIdx for [T; N] {}
-impl<T> FixedIdx for Box<[T]> {}
+pub unsafe trait FixedIdx {}
+unsafe impl<T, const N: usize> FixedIdx for [T; N] {}
+unsafe impl<T> FixedIdx for Box<[T]> {}
 
 /// Allows transparently using `Ext<T>` like a `&T`.
 impl<'a, T: ?Sized> Deref for Ext<'a, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        unsafe { self.0.as_ref() }
+        self.0
     }
 }

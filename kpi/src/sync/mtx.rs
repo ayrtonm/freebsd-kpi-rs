@@ -27,7 +27,7 @@
  */
 
 use crate::bindings::{MTX_DEF, MTX_SPIN, mtx};
-use crate::ffi::MutExtRef;
+use crate::ffi::MutExt;
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::ffi::CStr;
@@ -158,7 +158,7 @@ pub mod wrappers {
     use super::*;
 
     pub fn mtx_init<M: Lockable>(
-        lock: MutExtRef<M>,
+        lock: &mut MutExt<M>,
         name: &'static CStr,
         kind: Option<&'static CStr>,
     ) {
