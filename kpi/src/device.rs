@@ -28,10 +28,13 @@
 
 use crate::bindings::{device_state_t, device_t, driver_t};
 use crate::boxed::Box;
+use crate::bus::{FilterFn, Handler, Irq};
 use crate::driver::Driver;
 use crate::ffi::{ArrayCString, Ext, UninitExt};
+use crate::intr::{ConfigHook, ConfigHookFn};
 use crate::kobj::{AsCType, AsRustType};
 use crate::prelude::*;
+use crate::taskqueue::{Task, TaskFn};
 use crate::vec::Vec;
 use crate::{ErrCode, define_interface};
 use core::ffi::{CStr, c_int};
@@ -219,6 +222,36 @@ pub trait DeviceIf: Driver {
     fn device_quiesce(sc: Ext<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
+
+    fn task_init(dev: device_t, func: TaskFn<Self::Softc>) -> Task {
+        assert_eq!(device_get_driver(dev), <Self as Driver>::DRIVER);
+        unsafe {
+            let sc = bindings::device_get_softc(dev);
+            Task::new(func, sc)
+        }
+    }
+
+    fn config_intrhook_init(dev: device_t, func: ConfigHookFn<Self::Softc>) -> ConfigHook {
+        assert_eq!(device_get_driver(dev), <Self as Driver>::DRIVER);
+        unsafe {
+            let sc = bindings::device_get_softc(dev);
+            ConfigHook::new(func, sc)
+        }
+    }
+
+    fn bus_setup_intr(
+        dev: device_t,
+        irq: Ext<Irq>,
+        flags: c_int,
+        filter: FilterFn<Self::Softc>,
+        handler: Handler<Self::Softc>,
+    ) -> Result<()> {
+        assert_eq!(device_get_driver(dev), <Self as Driver>::DRIVER);
+        unsafe {
+            let sc = bindings::device_get_softc(dev);
+            bus_setup_intr::<Self::Softc>(dev, irq, flags, filter, handler, sc)
+        }
+    }
 }
 
 #[doc(inline)]
@@ -309,8 +342,7 @@ pub mod wrappers {
     }
 
     pub unsafe fn device_get_softc<'sc, D: DeviceIf>(dev: device_t) -> Ext<'sc, D::Softc> {
-        let driver = device_get_driver(dev);
-        if driver != D::DRIVER {
+        if device_get_driver(dev) != D::DRIVER {
             panic!("device_t passed to device_get_softc has a different softc type");
         }
 
@@ -326,7 +358,7 @@ mod tests {
     use super::*;
     use crate::driver;
     use crate::ffi::{Ext, UninitExt};
-    use crate::sync::Mutable;
+    use crate::sync::Checked;
     use crate::tests::{DriverManager, LoudDrop};
     use std::ffi::{CStr, c_void};
     use std::vec::Vec;
@@ -337,9 +369,9 @@ mod tests {
     pub struct TestDriverSoftc {
         dev: device_t,
         const_data: u32,
-        //another_sc: Mutable<Option<Arc<AnotherDriverSoftc>>>,
+        //another_sc: Checked<Option<Arc<AnotherDriverSoftc>>>,
     }
-    //static STASHED_DEVICE: Mutable<device_t> = Mutable::new(device_t::null());
+    //static STASHED_DEVICE: Checked<device_t> = Checked::new(device_t::null());
     impl TestDriver {
         // TODO: Fix this buggy test
         //test_driver: rejected device_t { driver: "no driver attached", desc: "no desc set" } as incompatible
@@ -378,7 +410,7 @@ mod tests {
             let sc = uninit_sc.init(TestDriverSoftc {
                 dev,
                 const_data: 0xdeadbeef,
-                //another_sc: Mutable::new(None),
+                //another_sc: Checked::new(None),
             });
             //*STASHED_DEVICE.get_mut() = dev;
             println!("{:x?}", sc);

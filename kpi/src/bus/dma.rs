@@ -145,6 +145,28 @@ pub struct BusDmaMap(bus_dmamap_t);
 unsafe impl Sync for BusDmaMap {}
 unsafe impl Send for BusDmaMap {}
 
+#[derive(Debug)]
+pub struct BusDmaMem<T = c_void>(SyncPtr<T>);
+
+impl<T> Copy for BusDmaMem<T> {}
+impl<T> Clone for BusDmaMem<T> {
+    fn clone(&self) -> Self {
+        Self(self.0)
+    }
+}
+
+impl<T> Default for BusDmaMem<T> {
+    fn default() -> Self {
+        Self(SyncPtr::new(null_mut()))
+    }
+}
+
+impl BusDmaMem {
+    pub fn as_ptr(&self) -> *mut c_void {
+        self.0.as_ptr()
+    }
+}
+
 pub mod wrappers {
     use super::*;
     use crate::ErrCode;
@@ -197,7 +219,8 @@ pub mod wrappers {
         dmat: BusDmaTag,
         map: BusDmaMap,
         //buf: &mut [u8],
-        ptr: SyncPtr<c_void>,
+        //ptr: SyncPtr<c_void>,
+        kva: BusDmaMem,
         len: bus_size_t,
         callback: Option<BusDmaMapFn<T>>,
         arg: Ext<T>,
@@ -216,7 +239,8 @@ pub mod wrappers {
                 map.0,
                 //buf.as_mut_ptr().cast::<c_void>(),
                 //buf.len().try_into().unwrap(),
-                ptr.as_ptr(),
+                //ptr.as_ptr(),
+                kva.0.as_ptr(),
                 len,
                 callback,
                 arg,
@@ -230,19 +254,21 @@ pub mod wrappers {
     }
 
     /// Allocates memory that is mapped into KVA at the address returned in vaddr
-    pub fn bus_dmamem_alloc(
+    pub fn bus_dmamem_alloc<T>(
         dmat: BusDmaTag,
-        //vaddr: &mut DmaMem,
-        vaddr: *mut SyncPtr<c_void>,
         flags: BusDmaFlags,
-    ) -> Result<BusDmaMap> {
+    ) -> Result<(BusDmaMap, BusDmaMem<T>)> {
         let mut map: bus_dmamap_t = null_mut();
+        let mut vaddr: *mut c_void = null_mut();
         let res =
-            unsafe { bindings::bus_dmamem_alloc(dmat.0, &raw mut (*vaddr).0, flags.0, &mut map) };
+            unsafe { bindings::bus_dmamem_alloc(dmat.0, &raw mut vaddr, flags.0, &raw mut map) };
+        //unsafe { bindings::bus_dmamem_alloc(dmat.0, &raw mut (*vaddr).0, flags.0, &mut map) };
         if res != 0 {
             Err(ErrCode::from(res))
         } else {
-            Ok(BusDmaMap(map))
+            let map = BusDmaMap(map);
+            let mem = BusDmaMem(SyncPtr::new(vaddr.cast::<T>()));
+            Ok((map, mem))
         }
     }
 }

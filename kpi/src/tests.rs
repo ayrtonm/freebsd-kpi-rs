@@ -478,6 +478,9 @@ mod unmangled_fns {
     }
 
     #[unsafe(no_mangle)]
+    static cold: u32 = 1;
+
+    #[unsafe(no_mangle)]
     static mut M_DEVBUF: () = ();
 }
 

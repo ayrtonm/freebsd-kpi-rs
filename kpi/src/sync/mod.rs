@@ -45,6 +45,12 @@ pub struct OnceInit<T> {
     init: AtomicBool,
 }
 
+impl<T> Default for OnceInit<T> {
+    fn default() -> Self {
+        Self::uninit()
+    }
+}
+
 impl<T> OnceInit<T> {
     pub fn uninit() -> Self {
         Self {
@@ -80,6 +86,29 @@ impl<T> OnceInit<T> {
 unsafe impl<T: Sync> Sync for OnceInit<T> {}
 unsafe impl<T: Sync + Send> Send for OnceInit<T> {}
 
+pub trait Mutable<T> {
+    type Guard<'a>: DerefMut<Target = T>
+    where
+        Self: 'a;
+
+    fn data_ptr(&self) -> *mut T;
+    fn get_mut(&self) -> Self::Guard<'_>;
+}
+
+impl<T> Mutable<T> for Checked<T> {
+    type Guard<'a>
+        = CheckedGuard<'a, T>
+    where
+        T: 'a;
+
+    fn data_ptr(&self) -> *mut T {
+        Checked::as_ptr(self)
+    }
+
+    fn get_mut(&self) -> Self::Guard<'_> {
+        Checked::get_mut(self)
+    }
+}
 /// A value borrow-checked at runtime
 ///
 /// This is intended for variables which are shared between multiple threads but which are expected
@@ -89,30 +118,30 @@ unsafe impl<T: Sync + Send> Send for OnceInit<T> {}
 /// readers and writers. It has the benefit of not using the existing `mtx(9)` machinery though
 /// which should make it somewhat lower cost.
 #[derive(Default)]
-pub struct Mutable<T> {
+pub struct Checked<T> {
     t: UnsafeCell<T>,
     borrowed: AtomicBool,
 }
 
-impl<T: Debug> Debug for Mutable<T> {
+impl<T: Debug> Debug for Checked<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         // Just read the pointer and don't overcomplicate things. There may be mutable references to
         // the pointee so this is a best effort thing and may not be fully reliable, but it avoids
         // panics (as self.get_mut() might) while being informative.
         let t = unsafe { read(self.t.get()) };
-        f.debug_struct("Mutable")
+        f.debug_struct("Checked")
             .field("t", &t)
             .field("borrowed", &self.borrowed)
             .finish()
     }
 }
 
-unsafe impl<T: Send> Sync for Mutable<T> {}
+unsafe impl<T: Send> Sync for Checked<T> {}
 
-unsafe impl<T: Send> Send for Mutable<T> {}
+unsafe impl<T: Send> Send for Checked<T> {}
 
-impl<T> Mutable<T> {
-    /// Creates a new `Mutable<T>`
+impl<T> Checked<T> {
+    /// Creates a new `Checked<T>`
     pub const fn new(t: T) -> Self {
         Self {
             t: UnsafeCell::new(t),
@@ -126,8 +155,8 @@ impl<T> Mutable<T> {
 
     /// Get mutable access to the `T`.
     ///
-    /// This panics if the `Mutable<T>` is already borrowed.
-    pub fn get_mut(&self) -> MutableGuard<'_, T> {
+    /// This panics if the `Checked<T>` is already borrowed.
+    pub fn get_mut(&self) -> CheckedGuard<'_, T> {
         if !self
             .borrowed
             .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
@@ -135,26 +164,26 @@ impl<T> Mutable<T> {
         {
             panic!("already borrowed");
         }
-        MutableGuard {
+        CheckedGuard {
             value: self.t.get(),
             borrowed: &self.borrowed,
         }
     }
 }
 
-/// A reference to a mutably borrowed [`Mutable<T>`]
-pub struct MutableGuard<'b, T: 'b + ?Sized> {
+/// A reference to a mutably borrowed [`Checked<T>`]
+pub struct CheckedGuard<'b, T: 'b + ?Sized> {
     value: *mut T,
     borrowed: &'b AtomicBool,
 }
 
-impl<'b, T: Debug> Debug for MutableGuard<'b, T> {
+impl<'b, T: Debug> Debug for CheckedGuard<'b, T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         Debug::fmt(self.deref(), f)
     }
 }
 
-impl<T: ?Sized> Deref for MutableGuard<'_, T> {
+impl<T: ?Sized> Deref for CheckedGuard<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -162,13 +191,13 @@ impl<T: ?Sized> Deref for MutableGuard<'_, T> {
     }
 }
 
-impl<T: ?Sized> DerefMut for MutableGuard<'_, T> {
+impl<T: ?Sized> DerefMut for CheckedGuard<'_, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { self.value.as_mut().unwrap() }
     }
 }
 
-impl<T: ?Sized> Drop for MutableGuard<'_, T> {
+impl<T: ?Sized> Drop for CheckedGuard<'_, T> {
     fn drop(&mut self) {
         self.borrowed.store(false, Ordering::Relaxed);
     }

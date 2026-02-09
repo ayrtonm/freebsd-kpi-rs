@@ -30,17 +30,12 @@ use crate::ErrCode;
 use crate::bindings::{
     C_HARDCLOCK, callout, callout_func_t, ich_func_t, intr_config_hook, sbintime_t, tick_sbt,
 };
-use crate::ffi::{Ext, MutExt};
+use crate::ffi::Ext;
 use crate::prelude::*;
-use crate::sync::Mutable;
 use core::cell::UnsafeCell;
 use core::ffi::{c_int, c_void};
 use core::mem::transmute;
 use core::ptr::null_mut;
-use core::sync::atomic::{
-    AtomicBool, AtomicI8, AtomicI16, AtomicI32, AtomicI64, AtomicU8, AtomicU16, AtomicU32,
-    AtomicU64,
-};
 
 #[cfg(feature = "intrng")]
 mod intrng;
@@ -65,12 +60,17 @@ pub struct ConfigHook {
 unsafe impl Sync for ConfigHook {}
 unsafe impl Send for ConfigHook {}
 
-pub type ConfigHookFn<T> = extern "C" fn(MutExt<T>);
+pub type ConfigHookFn<T> = extern "C" fn(Ext<T>);
 
 impl ConfigHook {
-    pub fn new() -> Self {
-        let inner = UnsafeCell::new(intr_config_hook::default());
-        Self { inner }
+    pub unsafe fn new<T>(func: ConfigHookFn<T>, arg: *mut c_void) -> Self {
+        let mut c_hook = intr_config_hook::default();
+        c_hook.ich_arg = arg;
+        c_hook.ich_func = unsafe { transmute::<Option<ConfigHookFn<T>>, ich_func_t>(Some(func)) };
+
+        Self {
+            inner: UnsafeCell::new(c_hook),
+        }
     }
 }
 
@@ -97,19 +97,6 @@ impl Drop for Callout {
         let _res = unsafe { bindings::_callout_stop_safe(c_callout, bindings::CS_DRAIN) };
     }
 }
-
-pub trait Sleepable {}
-
-impl<T> Sleepable for Mutable<T> {}
-impl Sleepable for AtomicU8 {}
-impl Sleepable for AtomicU16 {}
-impl Sleepable for AtomicU32 {}
-impl Sleepable for AtomicU64 {}
-impl Sleepable for AtomicI8 {}
-impl Sleepable for AtomicI16 {}
-impl Sleepable for AtomicI32 {}
-impl Sleepable for AtomicI64 {}
-impl Sleepable for AtomicBool {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Priority(pub i32);
@@ -191,17 +178,11 @@ pub mod wrappers {
     #[cfg(feature = "intrng")]
     pub use intrng::wrappers::*;
 
-    pub fn config_intrhook_establish<T>(
-        hook: &ConfigHook,
-        func: ConfigHookFn<T>,
-        arg: Ext<T>,
-    ) -> Result<()> {
-        let c_hook = hook.inner.get();
-        unsafe {
-            (*c_hook).ich_func = transmute::<Option<ConfigHookFn<T>>, ich_func_t>(Some(func));
-            (*c_hook).ich_arg = Ext::into_raw(arg).cast::<c_void>();
+    pub fn config_intrhook_establish(hook: &ConfigHook) -> Result<()> {
+        if !cold() {
+            return Err(EPERM);
         }
-        // TODO: Handle case where func will be invoked immediately since it easily triggers rust UB
+        let c_hook = hook.inner.get();
         let res = unsafe { bindings::config_intrhook_establish(c_hook) };
         if res != 0 {
             return Err(ErrCode::from(res));
@@ -257,13 +238,13 @@ pub mod wrappers {
         Ok(())
     }
 
-    pub fn tsleep<T: Sleepable>(
-        chan: Ext<T>,
+    pub fn tsleep<T>(
+        chan: &T,
         new_priority: Option<Priority>,
         wmesg: &CStr,
         timo: i32,
     ) -> Result<()> {
-        let chan_ptr = Ext::into_raw(chan).cast::<c_void>();
+        let chan_ptr = chan as *const T; //Ext::into_raw(chan).cast::<c_void>();
         let wmesg_ptr = wmesg.as_ptr();
         let priority = match new_priority {
             Some(Priority(p)) => p,
@@ -271,7 +252,7 @@ pub mod wrappers {
         };
         let res = unsafe {
             bindings::_sleep(
-                chan_ptr,
+                chan_ptr.cast::<c_void>(),
                 null_mut(),
                 priority,
                 wmesg_ptr,
@@ -286,9 +267,9 @@ pub mod wrappers {
         Ok(())
     }
 
-    pub fn wakeup<T: Sleepable>(chan: Ext<T>) {
-        let chan_ptr = Ext::into_raw(chan).cast::<c_void>();
-        unsafe { bindings::wakeup(chan_ptr) }
+    pub fn wakeup<T>(chan: &T) {
+        let chan_ptr = chan as *const T; //Ext::into_raw(chan).cast::<c_void>();
+        unsafe { bindings::wakeup(chan_ptr.cast::<c_void>()) }
     }
 }
 
@@ -316,10 +297,10 @@ mod tests {
             Ok(BUS_PROBE_DEFAULT)
         }
         fn device_attach(uninit_sc: UninitExt<Self::Softc>, dev: device_t) -> Result<()> {
-            let hook = ConfigHook::new();
+            let hook = Self::config_intrhook_init(dev, HookDriver::deferred_attach);
             let loud = LoudDrop;
             let sc = uninit_sc.init(HookSoftc { dev, hook, loud }).into_ref();
-            config_intrhook_establish(&sc.hook, HookDriver::deferred_attach, sc).unwrap();
+            config_intrhook_establish(&sc.hook).unwrap();
             Ok(())
         }
         fn device_detach(_sc: Ext<Self::Softc>) -> Result<()> {
@@ -328,7 +309,7 @@ mod tests {
     }
 
     impl HookDriver {
-        extern "C" fn deferred_attach(sc: MutExt<HookSoftc>) {
+        extern "C" fn deferred_attach(sc: Ext<HookSoftc>) {
             println!("called config hook rust function/deferred_attach");
             config_intrhook_disestablish(&sc.hook);
         }

@@ -28,7 +28,7 @@
 
 use crate::ErrCode;
 use crate::bindings::{task, task_fn_t, taskqueue};
-use crate::ffi::{ArrayCString, Ext, MutExt, SyncPtr};
+use crate::ffi::{ArrayCString, Ext};
 use crate::intr::Priority;
 use crate::malloc::MallocFlags;
 use crate::prelude::*;
@@ -36,16 +36,17 @@ use core::cell::UnsafeCell;
 use core::ffi::c_void;
 use core::mem::transmute;
 use core::ptr::null_mut;
+use core::sync::atomic::{AtomicPtr, Ordering};
 
 #[derive(Debug)]
 pub struct Taskqueue {
-    inner: SyncPtr<taskqueue>,
+    inner: AtomicPtr<taskqueue>,
 }
 
 impl Taskqueue {
     pub fn new() -> Self {
         Self {
-            inner: SyncPtr::new(null_mut()),
+            inner: AtomicPtr::new(null_mut()),
         }
     }
 }
@@ -58,17 +59,12 @@ pub struct Task {
 }
 
 impl Task {
-    pub fn new() -> Self {
+    pub unsafe fn new<T>(func: TaskFn<T>, arg: *mut c_void) -> Self {
+        let mut c_task = task::default();
+        c_task.ta_func = unsafe { transmute::<Option<TaskFn<T>>, task_fn_t>(Some(func)) };
+        c_task.ta_context = arg;
         Self {
-            inner: UnsafeCell::new(task::default()),
-        }
-    }
-
-    pub fn init<T>(&self, func: TaskFn<T>, arg: Ext<T>) {
-        let c_task = self.inner.get();
-        unsafe {
-            (*c_task).ta_func = transmute::<Option<TaskFn<T>>, task_fn_t>(Some(func));
-            (*c_task).ta_context = Ext::into_raw(arg).cast::<c_void>();
+            inner: UnsafeCell::new(c_task),
         }
     }
 }
@@ -87,9 +83,9 @@ pub mod wrappers {
     pub fn taskqueue_create(
         name: ArrayCString,
         flags: MallocFlags,
-        queue: &mut MutExt<Taskqueue>,
+        queue: Ext<Taskqueue>,
     ) -> Result<()> {
-        let ctx: *mut *mut bindings::taskqueue = &raw mut queue.inner.0;
+        let ctx: *mut *mut bindings::taskqueue = queue.inner.as_ptr();
 
         let enqueue = Some(bindings::taskqueue_thread_enqueue as _);
         let res = unsafe {
@@ -103,7 +99,7 @@ pub mod wrappers {
         if res.is_null() {
             return Err(ENULLPTR);
         };
-        queue.inner = SyncPtr::new(res);
+        queue.inner.store(res, Ordering::Relaxed);
         Ok(())
     }
 
@@ -111,9 +107,9 @@ pub mod wrappers {
     pub fn taskqueue_create_fast(
         name: ArrayCString,
         flags: MallocFlags,
-        queue: &mut MutExt<Taskqueue>,
+        queue: Ext<Taskqueue>,
     ) -> Result<()> {
-        let ctx: *mut *mut bindings::taskqueue = &raw mut queue.inner.0;
+        let ctx: *mut *mut bindings::taskqueue = queue.inner.as_ptr();
 
         let enqueue = Some(bindings::taskqueue_thread_enqueue as _);
         let res = unsafe {
@@ -127,17 +123,17 @@ pub mod wrappers {
         if res.is_null() {
             return Err(ENULLPTR);
         };
-        queue.inner = SyncPtr::new(res);
+        queue.inner.store(res, Ordering::Relaxed);
         Ok(())
     }
 
     pub fn taskqueue_start_threads(
-        queue: &mut MutExt<Taskqueue>,
+        queue: Ext<Taskqueue>,
         count: usize,
         prio: Priority,
         name: ArrayCString,
     ) -> Result<()> {
-        let queuep = &raw mut queue.inner.0;
+        let queuep = queue.inner.as_ptr();
         let res = unsafe {
             bindings::taskqueue_start_threads(
                 queuep,
@@ -153,7 +149,7 @@ pub mod wrappers {
     }
 
     pub fn taskqueue_enqueue(queue: &Taskqueue, ta: Ext<Task>) -> Result<()> {
-        let queuep = queue.inner.as_ptr();
+        let queuep = queue.inner.load(Ordering::Relaxed);
         let c_task = ta.inner.get();
         let res = unsafe { bindings::taskqueue_enqueue(queuep, c_task) };
         if res != 0 {

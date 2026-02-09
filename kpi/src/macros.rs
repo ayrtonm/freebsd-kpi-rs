@@ -108,10 +108,11 @@ macro_rules! ext {
         res
         }
     };
-    (& mut $ext_ref:ident -> $field:ident) => {
-        &mut unsafe { $ext_ref.map_mut(|x| &mut x.$field) }
-    };
-    (& mut $ext_ref:ident) => {
-        &mut unsafe { $ext_ref.map_mut(|x| x) }
+}
+
+#[macro_export]
+macro_rules! init_backref {
+    ($root:ident $($rest:tt)*) => {
+        $root $($rest)*.init(Ext::into_raw($root));
     };
 }

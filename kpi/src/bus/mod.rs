@@ -276,13 +276,13 @@ pub mod wrappers {
         RF_UNMAPPED
     }
 
-    pub fn bus_setup_intr<T>(
+    pub unsafe fn bus_setup_intr<T>(
         dev: device_t,
         irq: Ext<Irq>,
         flags: c_int,
         filter: FilterFn<T>,
         handler: Handler<T>,
-        arg: Ext<T>,
+        arg_ptr: *mut c_void,
     ) -> Result<()> {
         if filter.is_none() && handler.is_none() {
             return Err(EDOOFUS);
@@ -293,7 +293,6 @@ pub mod wrappers {
         let handler = unsafe { transmute::<Handler<T>, RawHandler>(handler) };
 
         let cookiep = irq.cookie.get();
-        let arg_ptr = Ext::into_raw(arg).cast::<c_void>();
 
         let res = unsafe {
             bindings::bus_setup_intr(dev, irq.res, flags, filter, handler, arg_ptr, cookiep)
@@ -474,7 +473,7 @@ mod tests {
     }
 
     impl IrqDriver {
-        fn setup(dev: device_t, sc: Ext<IrqSoftc>, filter: bool, handler: bool) {
+        fn setup(&self, dev: device_t, sc: Ext<IrqSoftc>, filter: bool, handler: bool) {
             let filter = if filter {
                 Some(IrqDriver::filter as _)
             } else {
@@ -485,7 +484,7 @@ mod tests {
             } else {
                 None
             };
-            bus_setup_intr(dev, ext!(&sc->irq), 0, filter, handler, sc).unwrap();
+            Self::bus_setup_intr(dev, ext!(&sc->irq), 0, filter, handler).unwrap();
         }
     }
 
@@ -506,17 +505,17 @@ mod tests {
                 })
                 .into_ref();
             assert_eq!(
-                bus_setup_intr(dev, ext!(&sc->irq), 0, None, None, sc),
+                Self::bus_setup_intr(dev, ext!(&sc->irq), 0, None, None),
                 Err(EDOOFUS)
             );
             if ofw_bus_is_compatible(dev, c"irq_driver,set_both") {
-                IrqDriver::setup(dev, sc, true, true);
+                irq_driver.setup(dev, sc, true, true);
             }
             if ofw_bus_is_compatible(dev, c"irq_driver,set_filter") {
-                IrqDriver::setup(dev, sc, true, false);
+                irq_driver.setup(dev, sc, true, false);
             }
             if ofw_bus_is_compatible(dev, c"irq_driver,set_handler") {
-                IrqDriver::setup(dev, sc, false, true);
+                irq_driver.setup(dev, sc, false, true);
             }
             Ok(())
         }

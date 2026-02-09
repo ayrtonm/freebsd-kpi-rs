@@ -90,10 +90,6 @@ unsafe impl<T> Sync for SyncPtr<T> {}
 unsafe impl<T> Send for SyncPtr<T> {}
 
 /// A unique pointer to an uninitialized, externally-managed object.
-///
-/// This also holds a mutable reference a `bool` flag which is set only if the `init` method was
-/// called.
-#[repr(C)]
 #[derive(Debug)]
 pub struct UninitExt<'a, T>(&'a mut MaybeUninit<T>, &'a mut bool);
 
@@ -114,16 +110,6 @@ impl<'a, T> UninitExt<'a, T> {
 }
 
 /// A unique pointer to an externally-managed object.
-///
-/// This is the mutable version of `Ext` which is only ever created after initializing an
-/// `UninitExt`. Currently this is only happens after initializing a device softc. `MutExt`
-/// may be used transparently as a mutable reference. Some functions that take callback args may
-/// require `Ext` which can be created by calling the `into_ref` method. This creates a new
-/// `Ext` and destroys the `MutExt` so mutating the pointee after calling this method must be
-/// done using `OnceInit`, `Mutable` or some kind of lock (e.g. `Mutex`/`SpinLock`) or atomic.
-/// Destroying the `MutExt` makes mutation more cumbersome, but is done to avoid the potential
-/// for undefined behavior caused by having an aliased mutable reference (and subsequent
-/// opportunities for the compiler to make invalid optimizations).
 #[repr(C)]
 #[derive(Debug)]
 pub struct MutExt<'a, T>(&'a mut T);
@@ -132,10 +118,6 @@ impl<'a, T> MutExt<'a, T> {
     /// Destroys a `MutExt` and returns an `Ext` to the same object.
     pub fn into_ref(self) -> Ext<'a, T> {
         Ext(self.0)
-    }
-
-    pub unsafe fn map_mut<U, F: FnOnce(&mut T) -> &mut U>(&mut self, f: F) -> MutExt<'_, U> {
-        MutExt(f(self.0))
     }
 
     #[cfg(test)]
@@ -161,16 +143,6 @@ impl<'a, T> DerefMut for MutExt<'a, T> {
 }
 
 /// A pointer to an externally-managed object.
-///
-/// This may be treated as a normal shared reference to an object whose lifecycle is managed by C
-/// code, but which is only ever dereferenced from rust. It's mainly intended to be used
-/// transparently as a shared reference (e.g. by accessing the fields and methods of the type `T`).
-///
-/// The objects may be allocated and freed by C (e.g. a device's softc) or rust (e.g the
-/// driver-specific data returned by `channel_init` in channel_if.m), but in either case C code may
-/// pass pointers to this object to rust code while the driver is operational. These pointers are
-/// represented by `Ext` and should not be created directly. Instead kobj interface functions are
-/// passed `Ext`s as arguments where appropriate.
 #[repr(C)]
 #[derive(Debug)]
 pub struct Ext<'a, T: ?Sized>(&'a T);
@@ -204,6 +176,10 @@ impl<'a, T> Ext<'a, T> {
     pub unsafe fn map_field<U, F: FnOnce(&T) -> &U>(x: Self, f: F) -> Ext<'a, U> {
         Ext(f(x.0))
     }
+
+    pub fn init_backref<F: FnOnce(&T) -> &mut BackRef<T>>(x: Self, f: F) {
+        f(x.0).init(Self::into_raw(x));
+    }
 }
 
 impl<'a, T: FixedIdx> Ext<'a, T> {
@@ -233,5 +209,28 @@ impl<'a, T: ?Sized> Deref for Ext<'a, T> {
 
     fn deref(&self) -> &Self::Target {
         self.0
+    }
+}
+
+#[derive(Debug)]
+pub struct BackRef<T>(SyncPtr<T>);
+
+impl<T> Default for BackRef<T> {
+    fn default() -> Self {
+        Self(SyncPtr::default())
+    }
+}
+
+impl<T> BackRef<T> {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn init(&mut self, ptr: *mut T) {
+        self.0 = SyncPtr::new(ptr);
+    }
+
+    pub fn get(&self) -> &T {
+        unsafe { self.0.as_ptr().as_ref().unwrap() }
     }
 }
