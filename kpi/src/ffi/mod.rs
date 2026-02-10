@@ -104,32 +104,32 @@ impl<'a, T> UninitExt<'a, T> {
         )
     }
 
-    /// Initialize the externally-managed object to `t` and return a `MutExt` to the pointee.
-    pub fn init(self, t: T) -> MutExt<'a, T> {
+    /// Initialize the externally-managed object to `t` and return a `UniqueExt` to the pointee.
+    pub fn init(self, t: T) -> UniqueExt<'a, T> {
         *self.1 = true;
-        MutExt(self.0.write(t))
+        UniqueExt(self.0.write(t))
     }
 }
 
 /// A unique pointer to an externally-managed object.
 #[repr(C)]
 #[derive(Debug)]
-pub struct MutExt<'a, T>(&'a mut T);
+pub struct UniqueExt<'a, T>(&'a mut T);
 
-impl<'a, T> MutExt<'a, T> {
-    /// Destroys a `MutExt` and returns an `Ext` to the same object.
-    pub fn into_ref(self) -> Ext<'a, T> {
+impl<'a, T> UniqueExt<'a, T> {
+    /// Destroys a `UniqueExt` and returns an `Ext` to the same object.
+    pub fn into_ext(self) -> Ext<'a, T> {
         Ext(self.0)
     }
 
     #[cfg(test)]
     pub unsafe fn from_raw(ptr: *mut T) -> Self {
-        MutExt(unsafe { ptr.as_mut().unwrap() })
+        UniqueExt(unsafe { ptr.as_mut().unwrap() })
     }
 }
 
-/// Allows transparently using `MutExt<T>` like a `&T`.
-impl<'a, T> Deref for MutExt<'a, T> {
+/// Allows transparently using `UniqueExt<T>` like a `&T`.
+impl<'a, T> Deref for UniqueExt<'a, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -137,8 +137,8 @@ impl<'a, T> Deref for MutExt<'a, T> {
     }
 }
 
-/// Allows transparently using `MutExt<T>` like a `&mut T`.
-impl<'a, T> DerefMut for MutExt<'a, T> {
+/// Allows transparently using `UniqueExt<T>` like a `&mut T`.
+impl<'a, T> DerefMut for UniqueExt<'a, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.0
     }

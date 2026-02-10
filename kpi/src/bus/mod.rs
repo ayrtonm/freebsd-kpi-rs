@@ -503,7 +503,7 @@ mod tests {
                     irq: Irq::default(),
                     loud: LoudDrop,
                 })
-                .into_ref();
+                .into_ext();
             assert_eq!(
                 Self::bus_setup_intr(dev, ext!(&sc->irq), 0, None, None),
                 Err(EDOOFUS)

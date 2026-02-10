@@ -299,7 +299,7 @@ mod tests {
         fn device_attach(uninit_sc: UninitExt<Self::Softc>, dev: device_t) -> Result<()> {
             let hook = Self::config_intrhook_init(dev, HookDriver::deferred_attach);
             let loud = LoudDrop;
-            let sc = uninit_sc.init(HookSoftc { dev, hook, loud }).into_ref();
+            let sc = uninit_sc.init(HookSoftc { dev, hook, loud }).into_ext();
             config_intrhook_establish(&sc.hook).unwrap();
             Ok(())
         }
