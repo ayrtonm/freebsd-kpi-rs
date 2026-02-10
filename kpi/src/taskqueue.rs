@@ -36,20 +36,22 @@ use core::cell::UnsafeCell;
 use core::ffi::c_void;
 use core::mem::transmute;
 use core::ptr::null_mut;
-use core::sync::atomic::{AtomicPtr, Ordering};
 
 #[derive(Debug)]
 pub struct Taskqueue {
-    inner: AtomicPtr<taskqueue>,
+    inner: UnsafeCell<*mut taskqueue>,
 }
 
 impl Taskqueue {
     pub fn new() -> Self {
         Self {
-            inner: AtomicPtr::new(null_mut()),
+            inner: UnsafeCell::new(null_mut()),
         }
     }
 }
+
+unsafe impl Sync for Taskqueue {}
+unsafe impl Send for Taskqueue {}
 
 pub type TaskFn<T> = extern "C" fn(Ext<T>, u32);
 
@@ -85,7 +87,7 @@ pub mod wrappers {
         flags: MallocFlags,
         queue: Ext<Taskqueue>,
     ) -> Result<()> {
-        let ctx: *mut *mut bindings::taskqueue = queue.inner.as_ptr();
+        let ctx: *mut *mut bindings::taskqueue = queue.inner.get();
 
         let enqueue = Some(bindings::taskqueue_thread_enqueue as _);
         let res = unsafe {
@@ -99,7 +101,9 @@ pub mod wrappers {
         if res.is_null() {
             return Err(ENULLPTR);
         };
-        queue.inner.store(res, Ordering::Relaxed);
+        unsafe {
+            *queue.inner.get() = res;
+        }
         Ok(())
     }
 
@@ -109,7 +113,7 @@ pub mod wrappers {
         flags: MallocFlags,
         queue: Ext<Taskqueue>,
     ) -> Result<()> {
-        let ctx: *mut *mut bindings::taskqueue = queue.inner.as_ptr();
+        let ctx: *mut *mut bindings::taskqueue = queue.inner.get();
 
         let enqueue = Some(bindings::taskqueue_thread_enqueue as _);
         let res = unsafe {
@@ -123,7 +127,9 @@ pub mod wrappers {
         if res.is_null() {
             return Err(ENULLPTR);
         };
-        queue.inner.store(res, Ordering::Relaxed);
+        unsafe {
+            *queue.inner.get() = res;
+        }
         Ok(())
     }
 
@@ -133,7 +139,7 @@ pub mod wrappers {
         prio: Priority,
         name: ArrayCString,
     ) -> Result<()> {
-        let queuep = queue.inner.as_ptr();
+        let queuep = queue.inner.get();
         let res = unsafe {
             bindings::taskqueue_start_threads(
                 queuep,
@@ -149,7 +155,7 @@ pub mod wrappers {
     }
 
     pub fn taskqueue_enqueue(queue: &Taskqueue, ta: Ext<Task>) -> Result<()> {
-        let queuep = queue.inner.load(Ordering::Relaxed);
+        let queuep = unsafe { *queue.inner.get() };
         let c_task = ta.inner.get();
         let res = unsafe { bindings::taskqueue_enqueue(queuep, c_task) };
         if res != 0 {
