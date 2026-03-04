@@ -271,8 +271,12 @@ pub mod wrappers {
 
     gen_newtype! {
         ResFlags as i32,
+        RF_ALLOCATED,
         RF_ACTIVE,
         RF_SHAREABLE,
+        RF_FIRSTSHARE,
+        RF_PREFETCHABLE,
+        RF_OPTIONAL,
         RF_UNMAPPED
     }
 
@@ -336,13 +340,10 @@ pub mod wrappers {
         // TODO: as u32 needed because bindgen flag makes macros default to signed, but RF_ACTIVE is
         // a bitfield. Ideally there'd be a heuristic for choosing signedness in cases like this
         let res = unsafe {
-            bindings::bus_alloc_resource(
+            bindings::bus_alloc_resource_any(
                 dev,
                 ty.0,
                 rid,
-                0,
-                !0, /* this is bitwise neg */
-                1,
                 flags.0 as u32,
             )
         };
