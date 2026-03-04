@@ -272,6 +272,18 @@ pub mod wrappers {
         BUS_PROBE_NOWILDCARD,
     }
 
+    pub fn device_get_softc<'sc, D: DeviceIf>(dev: device_t) -> Ext<'sc, D::Softc> {
+        todo!("check that device_detach is not in method table");
+        unsafe { device_get_softc_unchecked::<D>(dev) }
+    }
+
+    unsafe fn device_get_softc_unchecked<'sc, D: DeviceIf>(dev: device_t) -> Ext<'sc, D::Softc> {
+        assert_eq!(device_get_driver(dev), <D as Driver>::DRIVER);
+        let void_ptr = unsafe { bindings::device_get_softc(dev) };
+        let sc_ptr = void_ptr.cast::<D::Softc>();
+        unsafe { Ext::from_raw(sc_ptr) }
+    }
+
     pub fn device_claim_softc(dev: device_t) {
         unsafe { bindings::device_claim_softc(dev) }
     }
@@ -339,16 +351,6 @@ pub mod wrappers {
 
     pub fn device_get_driver(dev: device_t) -> *mut driver_t {
         unsafe { bindings::device_get_driver(dev) }
-    }
-
-    pub unsafe fn device_get_softc<'sc, D: DeviceIf>(dev: device_t) -> Ext<'sc, D::Softc> {
-        if device_get_driver(dev) != D::DRIVER {
-            panic!("device_t passed to device_get_softc has a different softc type");
-        }
-
-        let void_ptr = unsafe { bindings::device_get_softc(dev) };
-        let sc_ptr = void_ptr.cast::<<D as DeviceIf>::Softc>();
-        unsafe { Ext::from_raw(sc_ptr) }
     }
 }
 
