@@ -40,6 +40,11 @@ pub mod wrappers {
         unsafe { bindings::in_vhe() }
     }
 
+    /// Checks whether the kernel booted in EL2.
+    pub fn has_hyp() -> bool {
+        unsafe { bindings::has_hyp() }
+    }
+
     pub fn CPU_AFFINITY(cpu: u_int) -> u64 {
         unsafe { bindings::rust_bindings_CPU_AFFINITY(cpu) }
     }
