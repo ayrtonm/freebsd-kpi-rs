@@ -86,6 +86,7 @@ impl<T> OnceInit<T> {
 unsafe impl<T: Sync> Sync for OnceInit<T> {}
 unsafe impl<T: Sync + Send> Send for OnceInit<T> {}
 
+// TODO: document that this is for safe mutable access i.e. not Unchecked
 pub trait Mutable<T> {
     type Guard<'a>: DerefMut<Target = T>
     where
@@ -109,6 +110,7 @@ impl<T> Mutable<T> for Checked<T> {
         Checked::get_mut(self)
     }
 }
+
 /// A value borrow-checked at runtime
 ///
 /// This is intended for variables which are shared between multiple threads but which are expected
@@ -200,6 +202,32 @@ impl<T: ?Sized> DerefMut for CheckedGuard<'_, T> {
 impl<T: ?Sized> Drop for CheckedGuard<'_, T> {
     fn drop(&mut self) {
         self.borrowed.store(false, Ordering::Relaxed);
+    }
+}
+
+#[derive(Default)]
+pub struct Unchecked<T> {
+    t: UnsafeCell<T>,
+}
+
+impl<T> Unchecked<T> {
+    pub const fn new(t: T) -> Self {
+        Self {
+            t: UnsafeCell::new(t),
+        }
+    }
+
+    pub fn as_ptr(&self) -> *mut T {
+        self.t.get()
+    }
+
+    // TODO: doesn't strictly need to be unsafe
+    pub unsafe fn get(&self) -> &T {
+        unsafe { self.t.get().as_ref().unwrap() }
+    }
+
+    pub unsafe fn get_mut(&self) -> &mut T {
+        unsafe { self.t.get().as_mut().unwrap() }
     }
 }
 
