@@ -109,10 +109,3 @@ macro_rules! ext {
         }
     };
 }
-
-#[macro_export]
-macro_rules! init_backref {
-    ($root:ident $($rest:tt)*) => {
-        $root $($rest)*.init(Ext::into_raw($root));
-    };
-}

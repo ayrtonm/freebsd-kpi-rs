@@ -28,6 +28,8 @@
 
 //! Utilities related to FFI with C.
 
+use crate::bindings;
+use crate::bindings::device_t;
 use crate::boxed::Box;
 use core::fmt::Debug;
 use core::mem::MaybeUninit;
@@ -176,10 +178,6 @@ impl<'a, T> Ext<'a, T> {
     pub unsafe fn map_field<U, F: FnOnce(&T) -> &U>(x: Self, f: F) -> Ext<'a, U> {
         Ext(f(x.0))
     }
-
-    pub fn init_backref<F: FnOnce(&T) -> &mut BackRef<T>>(x: Self, f: F) {
-        f(x.0).init(Self::into_raw(x));
-    }
 }
 
 impl<'a, T: FixedIdx> Ext<'a, T> {
@@ -213,24 +211,21 @@ impl<'a, T: ?Sized> Deref for Ext<'a, T> {
 }
 
 #[derive(Debug)]
-pub struct BackRef<T>(SyncPtr<T>);
+pub struct SoftcRef<T>(SyncPtr<T>);
 
-impl<T> Default for BackRef<T> {
-    fn default() -> Self {
-        Self(SyncPtr::default())
-    }
-}
-
-impl<T> BackRef<T> {
-    pub fn new() -> Self {
-        Self::default()
+impl<T> SoftcRef<T> {
+    pub fn new(dev: device_t) -> Self {
+        // TODO: typecheck
+        let sc_void_ptr = unsafe { bindings::device_get_softc(dev) };
+        let sc_ptr = sc_void_ptr.cast::<T>();
+        unsafe { Self::from_raw(sc_ptr) }
     }
 
-    pub fn init(&mut self, ptr: *mut T) {
-        self.0 = SyncPtr::new(ptr);
+    pub unsafe fn from_raw(ptr: *mut T) -> Self {
+        Self(SyncPtr::new(ptr))
     }
 
-    pub fn get(&self) -> &T {
+    pub unsafe fn get(&self) -> &T {
         unsafe { self.0.as_ptr().as_ref().unwrap() }
     }
 }
