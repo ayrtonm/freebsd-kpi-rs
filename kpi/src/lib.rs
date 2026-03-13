@@ -226,6 +226,9 @@ pub mod prelude {
 
     #[doc(inline)]
     pub use crate::misc::*;
+
+    // Include macros for wrapper functions that take a generic `D: DeviceIf`
+    pub use crate::{bus_setup_intr, config_intrhook_init, device_get_softc, task_init};
 }
 
 macro_rules! err_codes {
