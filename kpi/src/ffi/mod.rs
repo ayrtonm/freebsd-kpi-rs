@@ -85,6 +85,10 @@ impl<T> SyncPtr<T> {
     pub fn is_null(&self) -> bool {
         self.0.is_null()
     }
+
+    pub unsafe fn get(&self) -> &T {
+        unsafe { self.0.as_ref().unwrap() }
+    }
 }
 
 // SAFETY: `SyncPtr` is intended for cases where `Sync` is intentionally desired on the pointer
@@ -164,6 +168,11 @@ impl<'a, T> Ext<'a, T> {
         (x.0 as *const T).cast_mut()
     }
 
+    pub fn into_sync_ptr(x: Self) -> SyncPtr<T> {
+        let ptr = Self::into_raw(x);
+        SyncPtr::new(ptr)
+    }
+
     pub unsafe fn from_raw(ptr: *mut T) -> Self {
         Self(unsafe { ptr.as_ref().unwrap() })
     }
@@ -207,25 +216,5 @@ impl<'a, T: ?Sized> Deref for Ext<'a, T> {
 
     fn deref(&self) -> &Self::Target {
         self.0
-    }
-}
-
-#[derive(Debug)]
-pub struct SoftcRef<T>(SyncPtr<T>);
-
-impl<T> SoftcRef<T> {
-    pub fn new(dev: device_t) -> Self {
-        // TODO: typecheck
-        let sc_void_ptr = unsafe { bindings::device_get_softc(dev) };
-        let sc_ptr = sc_void_ptr.cast::<T>();
-        unsafe { Self::from_raw(sc_ptr) }
-    }
-
-    pub unsafe fn from_raw(ptr: *mut T) -> Self {
-        Self(SyncPtr::new(ptr))
-    }
-
-    pub unsafe fn get(&self) -> &T {
-        unsafe { self.0.as_ptr().as_ref().unwrap() }
     }
 }
