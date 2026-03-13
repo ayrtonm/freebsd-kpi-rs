@@ -80,6 +80,17 @@ pub use wrappers::*;
 #[doc(hidden)]
 pub mod wrappers {
     use super::*;
+    use crate::bindings::device_t;
+    use crate::device::DeviceIf;
+    use crate::driver::Driver;
+
+    pub fn task_init<D: DeviceIf>(dev: device_t, func: TaskFn<D::Softc>) -> Task {
+        assert_eq!(device_get_driver(dev), <D as Driver>::DRIVER);
+        unsafe {
+            let sc = bindings::device_get_softc(dev);
+            Task::new(func, sc)
+        }
+    }
 
     // Max queue name is 32 chars which is over the ArrayCString limit
     pub fn taskqueue_create(

@@ -123,3 +123,10 @@ macro_rules! config_intrhook_init {
         $crate::prelude::config_intrhook_init::<Self>($($args)*)
     };
 }
+
+#[macro_export]
+macro_rules! task_init {
+    ($($args:tt)*) => {
+        $crate::prelude::task_init::<Self>($($args)*)
+    };
+}

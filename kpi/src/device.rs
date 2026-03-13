@@ -220,14 +220,6 @@ pub trait DeviceIf: Driver {
     fn device_quiesce(sc: Ext<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
-
-    fn task_init(dev: device_t, func: TaskFn<Self::Softc>) -> Task {
-        assert_eq!(device_get_driver(dev), <Self as Driver>::DRIVER);
-        unsafe {
-            let sc = bindings::device_get_softc(dev);
-            Task::new(func, sc)
-        }
-    }
 }
 
 #[doc(inline)]
