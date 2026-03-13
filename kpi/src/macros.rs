@@ -116,3 +116,10 @@ macro_rules! bus_setup_intr {
         $crate::prelude::bus_setup_intr::<Self>($($args)*)
     };
 }
+
+#[macro_export]
+macro_rules! config_intrhook_init {
+    ($($args:tt)*) => {
+        $crate::prelude::config_intrhook_init::<Self>($($args)*)
+    };
+}

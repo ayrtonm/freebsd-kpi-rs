@@ -107,6 +107,9 @@ pub use wrappers::*;
 #[doc(hidden)]
 pub mod wrappers {
     use super::*;
+    use crate::bindings::device_t;
+    use crate::device::DeviceIf;
+    use crate::driver::Driver;
     use core::ffi::CStr;
 
     gen_newtype! {
@@ -178,6 +181,16 @@ pub mod wrappers {
     #[cfg(feature = "intrng")]
     pub use intrng::wrappers::*;
 
+    pub fn config_intrhook_init<D: DeviceIf>(
+        dev: device_t,
+        func: ConfigHookFn<D::Softc>,
+    ) -> ConfigHook {
+        assert_eq!(device_get_driver(dev), <D as Driver>::DRIVER);
+        unsafe {
+            let sc = bindings::device_get_softc(dev);
+            ConfigHook::new(func, sc)
+        }
+    }
     pub fn config_intrhook_establish(hook: &ConfigHook) -> Result<()> {
         if !cold() {
             return Err(EPERM);
@@ -297,7 +310,7 @@ mod tests {
             Ok(BUS_PROBE_DEFAULT)
         }
         fn device_attach(uninit_sc: UninitExt<Self::Softc>, dev: device_t) -> Result<()> {
-            let hook = Self::config_intrhook_init(dev, HookDriver::deferred_attach);
+            let hook = config_intrhook_init!(dev, HookDriver::deferred_attach);
             let loud = LoudDrop;
             let sc = uninit_sc.init(HookSoftc { dev, hook, loud }).into_ext();
             config_intrhook_establish(&sc.hook).unwrap();

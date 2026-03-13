@@ -30,7 +30,6 @@ use crate::bindings::{device_state_t, device_t, driver_t};
 use crate::boxed::Box;
 use crate::driver::Driver;
 use crate::ffi::{ArrayCString, Ext, UninitExt};
-use crate::intr::{ConfigHook, ConfigHookFn};
 use crate::kobj::{AsCType, AsRustType};
 use crate::prelude::*;
 use crate::taskqueue::{Task, TaskFn};
@@ -227,14 +226,6 @@ pub trait DeviceIf: Driver {
         unsafe {
             let sc = bindings::device_get_softc(dev);
             Task::new(func, sc)
-        }
-    }
-
-    fn config_intrhook_init(dev: device_t, func: ConfigHookFn<Self::Softc>) -> ConfigHook {
-        assert_eq!(device_get_driver(dev), <Self as Driver>::DRIVER);
-        unsafe {
-            let sc = bindings::device_get_softc(dev);
-            ConfigHook::new(func, sc)
         }
     }
 }
