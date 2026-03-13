@@ -254,6 +254,8 @@ pub use wrappers::*;
 pub mod wrappers {
     use super::*;
     //use crate::ffi::OwnedPtr;
+    use crate::device::DeviceIf;
+    use crate::driver::Driver;
     use bindings::{bus_space_handle_t, bus_space_tag_t};
 
     gen_newtype! {
@@ -280,7 +282,21 @@ pub mod wrappers {
         RF_UNMAPPED
     }
 
-    pub unsafe fn bus_setup_intr<T>(
+    pub fn bus_setup_intr<D: DeviceIf>(
+        dev: device_t,
+        irq: Ext<Irq>,
+        flags: c_int,
+        filter: FilterFn<D::Softc>,
+        handler: Handler<D::Softc>,
+    ) -> Result<()> {
+        assert_eq!(device_get_driver(dev), <D as Driver>::DRIVER);
+        unsafe {
+            let sc = bindings::device_get_softc(dev);
+            bus_setup_intr_unchecked::<D::Softc>(dev, irq, flags, filter, handler, sc)
+        }
+    }
+
+    unsafe fn bus_setup_intr_unchecked<T>(
         dev: device_t,
         irq: Ext<Irq>,
         flags: c_int,
@@ -339,14 +355,7 @@ pub mod wrappers {
     ) -> Result<Resource> {
         // TODO: as u32 needed because bindgen flag makes macros default to signed, but RF_ACTIVE is
         // a bitfield. Ideally there'd be a heuristic for choosing signedness in cases like this
-        let res = unsafe {
-            bindings::bus_alloc_resource_any(
-                dev,
-                ty.0,
-                rid,
-                flags.0 as u32,
-            )
-        };
+        let res = unsafe { bindings::bus_alloc_resource_any(dev, ty.0, rid, flags.0 as u32) };
         if res.is_null() {
             Err(ENULLPTR)
         } else {
@@ -485,7 +494,7 @@ mod tests {
             } else {
                 None
             };
-            Self::bus_setup_intr(dev, ext!(&sc->irq), 0, filter, handler).unwrap();
+            bus_setup_intr!(dev, ext!(&sc->irq), 0, filter, handler).unwrap();
         }
     }
 
@@ -506,7 +515,7 @@ mod tests {
                 })
                 .into_ext();
             assert_eq!(
-                Self::bus_setup_intr(dev, ext!(&sc->irq), 0, None, None),
+                bus_setup_intr!(dev, ext!(&sc->irq), 0, None, None),
                 Err(EDOOFUS)
             );
             if ofw_bus_is_compatible(dev, c"irq_driver,set_both") {

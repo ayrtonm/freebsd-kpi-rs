@@ -109,3 +109,10 @@ macro_rules! ext {
         }
     };
 }
+
+#[macro_export]
+macro_rules! bus_setup_intr {
+    ($($args:tt)*) => {
+        $crate::prelude::bus_setup_intr::<Self>($($args)*)
+    };
+}

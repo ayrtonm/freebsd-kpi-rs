@@ -28,7 +28,6 @@
 
 use crate::bindings::{device_state_t, device_t, driver_t};
 use crate::boxed::Box;
-use crate::bus::{FilterFn, Handler, Irq};
 use crate::driver::Driver;
 use crate::ffi::{ArrayCString, Ext, UninitExt};
 use crate::intr::{ConfigHook, ConfigHookFn};
@@ -236,20 +235,6 @@ pub trait DeviceIf: Driver {
         unsafe {
             let sc = bindings::device_get_softc(dev);
             ConfigHook::new(func, sc)
-        }
-    }
-
-    fn bus_setup_intr(
-        dev: device_t,
-        irq: Ext<Irq>,
-        flags: c_int,
-        filter: FilterFn<Self::Softc>,
-        handler: Handler<Self::Softc>,
-    ) -> Result<()> {
-        assert_eq!(device_get_driver(dev), <Self as Driver>::DRIVER);
-        unsafe {
-            let sc = bindings::device_get_softc(dev);
-            bus_setup_intr::<Self::Softc>(dev, irq, flags, filter, handler, sc)
         }
     }
 }
