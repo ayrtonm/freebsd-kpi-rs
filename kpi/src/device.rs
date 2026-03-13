@@ -32,7 +32,6 @@ use crate::driver::Driver;
 use crate::ffi::{ArrayCString, Ext, UninitExt};
 use crate::kobj::{AsCType, AsRustType};
 use crate::prelude::*;
-use crate::taskqueue::{Task, TaskFn};
 use crate::vec::Vec;
 use crate::{ErrCode, define_interface};
 use core::ffi::{CStr, c_int};
@@ -241,11 +240,23 @@ pub mod wrappers {
     }
 
     pub fn device_get_softc<'sc, D: DeviceIf>(dev: device_t) -> Ext<'sc, D::Softc> {
-        todo!("check that device_detach is not in method table");
+        let driver = device_get_driver(dev);
+        let class = unsafe { &*driver };
+        let mut method_ptr = class.methods;
+
+        while unsafe { (*method_ptr).func.is_some() } {
+            let desc = unsafe { (*method_ptr).desc };
+            if desc == &raw mut bindings::device_detach_desc {
+                panic!("must use device_get_softc_unchecked if driver implements device_detach");
+            }
+            method_ptr = unsafe { method_ptr.add(1) };
+        }
         unsafe { device_get_softc_unchecked::<D>(dev) }
     }
 
-    unsafe fn device_get_softc_unchecked<'sc, D: DeviceIf>(dev: device_t) -> Ext<'sc, D::Softc> {
+    pub unsafe fn device_get_softc_unchecked<'sc, D: DeviceIf>(
+        dev: device_t,
+    ) -> Ext<'sc, D::Softc> {
         assert_eq!(device_get_driver(dev), <D as Driver>::DRIVER);
         let void_ptr = unsafe { bindings::device_get_softc(dev) };
         let sc_ptr = void_ptr.cast::<D::Softc>();
@@ -339,26 +350,19 @@ mod tests {
     pub struct TestDriverSoftc {
         dev: device_t,
         const_data: u32,
-        //another_sc: Checked<Option<Arc<AnotherDriverSoftc>>>,
     }
-    //static STASHED_DEVICE: Checked<device_t> = Checked::new(device_t::null());
-    impl TestDriver {
-        // TODO: Fix this buggy test
-        //test_driver: rejected device_t { driver: "no driver attached", desc: "no desc set" } as incompatible
-        //another_driver: accepted device_t { driver: "no driver attached", desc: "another driver" }
-        //refcount: read 0 from 0x7fa3300018b0
-        //refcount: initialized count at 0x7fa3300018b0 to 2
-        //
-        //thread 'device::tests::set_callback' panicked at src/cell.rs:77:13:
-        //already borrowed
-        //note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-        //refcount: released count from 0x7fa3300018b0
-        //
-        //thread 'device::tests::set_callback' panicked at library/core/src/panicking.rs:225:5:
-        //panic in a function that cannot unwind
-        fn set_callback_arg(arg: &AnotherDriverSoftc) {
-            //let sc = device_get_softc!(*STASHED_DEVICE.get_mut());
-            //*sc.another_sc.get_mut() = Some(arg);
+    // This is only used to pipe a device_t managed by one driver to another to ensure
+    // device_get_softc! type checking works as expected. It is unrealistic to do this via a static
+    // like this, but this scenario does come up when a driver manages its children's device_t.
+    static STASHED_DEVICE: Checked<device_t> = Checked::new(device_t::null());
+
+    impl AnotherDriver {
+        fn get_stashed_softc(dev: device_t) {
+            let test_driver_dev = *STASHED_DEVICE.get_mut();
+            // Cannot use device_get_softc! here since it would use AnotherDriver
+            let test_driver_sc =
+                unsafe { device_get_softc_unchecked::<TestDriver>(test_driver_dev) };
+            let another_driver_sc = unsafe { device_get_softc_unchecked::<Self>(dev) };
         }
     }
     impl DeviceIf for TestDriver {
@@ -380,9 +384,10 @@ mod tests {
             let sc = uninit_sc.init(TestDriverSoftc {
                 dev,
                 const_data: 0xdeadbeef,
-                //another_sc: Checked::new(None),
             });
-            //*STASHED_DEVICE.get_mut() = dev;
+            if ofw_bus_is_compatible(dev, c"another_driver,get_softc") {
+                *STASHED_DEVICE.get_mut() = dev;
+            }
             println!("{:x?}", sc);
             Ok(())
         }
@@ -430,8 +435,8 @@ mod tests {
             // Store a pointer owning a refcount to AnotherDriver's Softc in a TestDriverSoftc for
             // some appropriate device_t. This means that AnotherDriver::device_detach will drop a
             // refcount but will not be able to free the softc (as shown by the LoudDrop Drop impl).
-            if ofw_bus_is_compatible(dev, c"another_driver,set_callback") {
-                TestDriver::set_callback_arg(&sc);
+            if ofw_bus_is_compatible(dev, c"another_driver,get_softc") {
+                Self::get_stashed_softc(dev);
             }
             Ok(())
         }
@@ -470,11 +475,13 @@ mod tests {
     }
 
     #[test]
-    fn set_callback() {
+    fn get_softc() {
         let mut m = DriverManager::new();
-        m.add_test_device(c"device,test_driver");
+        m.add_test_device(c"device,test_driver")
+            .compat_strs
+            .push(c"another_driver,get_softc");
         let dev = m.add_test_device(c"device,another_driver");
-        dev.compat_strs.push(c"another_driver,set_callback");
+        dev.compat_strs.push(c"another_driver,get_softc");
         m.add_test_driver::<TestDriver>();
         m.add_test_driver::<AnotherDriver>();
         m.probe_all();
