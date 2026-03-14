@@ -97,9 +97,9 @@ unsafe impl<T> Send for SyncPtr<T> {}
 
 /// A unique pointer to an uninitialized, externally-managed object.
 #[derive(Debug)]
-pub struct UninitExt<'a, T>(&'a mut MaybeUninit<T>, &'a mut bool);
+pub struct UninitRef<'a, T>(&'a mut MaybeUninit<T>, &'a mut bool);
 
-impl<'a, T> UninitExt<'a, T> {
+impl<'a, T> UninitRef<'a, T> {
     pub unsafe fn from_raw(ptr: *mut T, init: &'a mut bool) -> Self {
         *init = false;
         Self(
@@ -108,32 +108,32 @@ impl<'a, T> UninitExt<'a, T> {
         )
     }
 
-    /// Initialize the externally-managed object to `t` and return a `UniqueExt` to the pointee.
-    pub fn init(self, t: T) -> UniqueExt<'a, T> {
+    /// Initialize the externally-managed object to `t` and return a `UniqueRef` to the pointee.
+    pub fn init(self, t: T) -> UniqueRef<'a, T> {
         *self.1 = true;
-        UniqueExt(self.0.write(t))
+        UniqueRef(self.0.write(t))
     }
 }
 
 /// A unique pointer to an externally-managed object.
 #[repr(C)]
 #[derive(Debug)]
-pub struct UniqueExt<'a, T>(&'a mut T);
+pub struct UniqueRef<'a, T>(&'a mut T);
 
-impl<'a, T> UniqueExt<'a, T> {
-    /// Destroys a `UniqueExt` and returns an `Ref` to the same object.
+impl<'a, T> UniqueRef<'a, T> {
+    /// Destroys a `UniqueRef` and returns an `Ref` to the same object.
     pub fn into_ref(self) -> Ref<'a, T> {
         Ref(self.0)
     }
 
     #[cfg(test)]
     pub unsafe fn from_raw(ptr: *mut T) -> Self {
-        UniqueExt(unsafe { ptr.as_mut().unwrap() })
+        UniqueRef(unsafe { ptr.as_mut().unwrap() })
     }
 }
 
-/// Allows transparently using `UniqueExt<T>` like a `&T`.
-impl<'a, T> Deref for UniqueExt<'a, T> {
+/// Allows transparently using `UniqueRef<T>` like a `&T`.
+impl<'a, T> Deref for UniqueRef<'a, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -141,8 +141,8 @@ impl<'a, T> Deref for UniqueExt<'a, T> {
     }
 }
 
-/// Allows transparently using `UniqueExt<T>` like a `&mut T`.
-impl<'a, T> DerefMut for UniqueExt<'a, T> {
+/// Allows transparently using `UniqueRef<T>` like a `&mut T`.
+impl<'a, T> DerefMut for UniqueRef<'a, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.0
     }

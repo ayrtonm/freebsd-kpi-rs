@@ -29,7 +29,7 @@
 use crate::bindings::{device_state_t, device_t, driver_t};
 use crate::boxed::Box;
 use crate::driver::Driver;
-use crate::ffi::{ArrayCString, Ref, UninitExt};
+use crate::ffi::{ArrayCString, Ref, UninitRef};
 use crate::kobj::{AsCType, AsRustType};
 use crate::prelude::*;
 use crate::vec::Vec;
@@ -97,18 +97,18 @@ macro_rules! device_attach {
             fn device_attach(dev: device_t) -> int;
             with init glue {
                 use $crate::bindings;
-                use $crate::ffi::UninitExt;
+                use $crate::ffi::UninitRef;
                 use $crate::kobj::KobjLayout;
 
                 let mut sc_init = false;
                 let void_ptr = unsafe { bindings::device_get_softc(dev) };
                 let sc_ptr = void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
 
-                let uninit_sc = unsafe { UninitExt::from_raw(sc_ptr, &mut sc_init) };
+                let uninit_sc = unsafe { UninitRef::from_raw(sc_ptr, &mut sc_init) };
             }
             with drop glue {
                 if !sc_init {
-                    device_println!(dev, "Must call .init() on UninitExt<Softc> in device_attach");
+                    device_println!(dev, "Must call .init() on UninitRef<Softc> in device_attach");
                     return bindings::ENXIO;
                 }
             }
@@ -190,9 +190,9 @@ pub trait DeviceIf: Driver {
 
     /// Used to initialize a driver.
     ///
-    /// All implementations must call [`init`][crate::ffi::UninitExt::init] on the `uninit_sc`
+    /// All implementations must call [`init`][crate::ffi::UninitRef::init] on the `uninit_sc`
     /// argument before this function returns to avoid a panic at runtime.
-    fn device_attach(uninit_sc: UninitExt<Self::Softc>, dev: device_t) -> Result<()> {
+    fn device_attach(uninit_sc: UninitRef<Self::Softc>, dev: device_t) -> Result<()> {
         unimplemented!()
     }
 
@@ -338,7 +338,7 @@ pub mod wrappers {
 mod tests {
     use super::*;
     use crate::driver;
-    use crate::ffi::{Ref, UninitExt};
+    use crate::ffi::{Ref, UninitRef};
     use crate::sync::Checked;
     use crate::tests::{DriverManager, LoudDrop};
     use std::ffi::{CStr, c_void};
@@ -380,7 +380,7 @@ mod tests {
             println!("test_driver: accepted {dev:x?}");
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: UninitExt<Self::Softc>, dev: device_t) -> Result<()> {
+        fn device_attach(uninit_sc: UninitRef<Self::Softc>, dev: device_t) -> Result<()> {
             let sc = uninit_sc.init(TestDriverSoftc {
                 dev,
                 const_data: 0xdeadbeef,
@@ -426,7 +426,7 @@ mod tests {
             println!("another_driver: accepted {dev:x?}");
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: UninitExt<Self::Softc>, dev: device_t) -> Result<()> {
+        fn device_attach(uninit_sc: UninitRef<Self::Softc>, dev: device_t) -> Result<()> {
             let sc = uninit_sc.init(AnotherDriverSoftc {
                 dev,
                 loud: LoudDrop,

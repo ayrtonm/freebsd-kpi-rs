@@ -471,7 +471,7 @@ mod tests {
     use super::*;
     use crate::device::{BusProbe, DeviceIf};
     use crate::driver;
-    use crate::ffi::{Ref, UninitExt};
+    use crate::ffi::{Ref, UninitRef};
     use crate::tests::{DriverManager, LoudDrop};
 
     #[repr(C)]
@@ -506,7 +506,7 @@ mod tests {
             }
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: UninitExt<Self::Softc>, dev: device_t) -> Result<()> {
+        fn device_attach(uninit_sc: UninitRef<Self::Softc>, dev: device_t) -> Result<()> {
             let sc = uninit_sc
                 .init(IrqSoftc {
                     dev,

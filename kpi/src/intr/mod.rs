@@ -292,7 +292,7 @@ mod tests {
     use crate::bindings::device_t;
     use crate::device::{BusProbe, DeviceIf};
     use crate::driver;
-    use crate::ffi::{Ref, UninitExt};
+    use crate::ffi::{Ref, UninitRef};
     use crate::tests::{DriverManager, LoudDrop};
 
     #[repr(C)]
@@ -309,7 +309,7 @@ mod tests {
             }
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: UninitExt<Self::Softc>, dev: device_t) -> Result<()> {
+        fn device_attach(uninit_sc: UninitRef<Self::Softc>, dev: device_t) -> Result<()> {
             let hook = config_intrhook_init!(dev, HookDriver::deferred_attach);
             let loud = LoudDrop;
             let sc = uninit_sc.init(HookSoftc { dev, hook, loud }).into_ref();
