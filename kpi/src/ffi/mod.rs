@@ -183,7 +183,7 @@ impl<'a, T> Ref<'a, T> {
 
     /// Create an Ref<U> from an Ref<T> by accessing a field on T
     ///
-    /// The `ext!` macro should be used instead of calling this directly.
+    /// The `proj!` macro should be used instead of calling this directly.
     ///
     /// # Safety
     ///
@@ -196,7 +196,7 @@ impl<'a, T> Ref<'a, T> {
 impl<'a, T: FixedIdx> Ref<'a, T> {
     /// Create an Ref<U> from an Ref<T> by indexing into T
     ///
-    /// The `ext!` macro should be used instead of calling this directly.
+    /// The `proj!` macro should be used instead of calling this directly.
     ///
     /// # Safety
     ///

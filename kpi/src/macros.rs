@@ -87,7 +87,7 @@ macro_rules! base {
 }
 
 #[macro_export]
-macro_rules! ext {
+macro_rules! proj {
     (& $ext_ref:ident [ $idx:expr ]) => {
         unsafe { $crate::ffi::Ref::map_idx($ext_ref, |x| &x[$idx]) }
     };
@@ -97,14 +97,14 @@ macro_rules! ext {
     (& $ext_ref:ident -> $field:ident $($rest:tt)*) => {
         {
         let res = unsafe { $crate::ffi::Ref::map_field($ext_ref, |x| &x.$field) };
-        let res = ext!(&res $($rest)*);
+        let res = proj!(&res $($rest)*);
         res
         }
     };
     (& $ext_ref:ident [ $idx:expr ] $($rest:tt)*) => {
         {
         let res = unsafe { $crate::ffi::Ref::map_idx($ext_ref, |x| &x[$idx]) };
-        let res = ext!(&res $($rest)*);
+        let res = proj!(&res $($rest)*);
         res
         }
     };

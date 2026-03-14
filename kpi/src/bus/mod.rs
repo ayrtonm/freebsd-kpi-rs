@@ -494,7 +494,7 @@ mod tests {
             } else {
                 None
             };
-            bus_setup_intr!(dev, ext!(&sc->irq), 0, filter, handler).unwrap();
+            bus_setup_intr!(dev, proj!(&sc->irq), 0, filter, handler).unwrap();
         }
     }
 
@@ -515,7 +515,7 @@ mod tests {
                 })
                 .into_ref();
             assert_eq!(
-                bus_setup_intr!(dev, ext!(&sc->irq), 0, None, None),
+                bus_setup_intr!(dev, proj!(&sc->irq), 0, None, None),
                 Err(EDOOFUS)
             );
             if ofw_bus_is_compatible(dev, c"irq_driver,set_both") {
