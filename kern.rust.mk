@@ -53,7 +53,7 @@ RUSTFLAGS= --target=${RUST_TARGET} --edition 2024 -Copt-level=3 -Ccodegen-units=
 
 RUST_TARGET= aarch64-unknown-none-softfloat
 RUST_KPI_FEATURES= --cfg 'feature="intrng"'
-RUSTFLAGS+= -Zfixed-x18 -Zbranch-protection=bti
+RUSTFLAGS+= -Zfixed-x18 -Zbranch-protection=bti -Cforce-frame-pointers=true
 
 .if ${MK_FDT} != "no"
 RUST_KPI_FEATURES+= --cfg 'feature="fdt"'
