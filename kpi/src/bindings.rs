@@ -36,10 +36,10 @@
     unsafe_op_in_unsafe_fn
 )]
 
-use crate::ffi::SyncPtr;
+use crate::ffi::Ptr;
 
 /// An opaque pointer to a device
-pub type device_t = SyncPtr<_device>;
+pub type device_t = Ptr<_device>;
 pub type void = core::ffi::c_void;
 pub type char = core::ffi::c_char;
 pub type int = core::ffi::c_int;

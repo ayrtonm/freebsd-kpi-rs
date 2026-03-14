@@ -30,7 +30,7 @@ use crate::ErrCode;
 use crate::bindings::{
     bus_addr_t, bus_dma_lock_t, bus_dma_segment_t, bus_dma_tag_t, bus_dmamap_t, bus_size_t,
 };
-use crate::ffi::{Ref, SyncPtr};
+use crate::ffi::{Ref, Ptr};
 use crate::prelude::*;
 use core::ffi::{c_int, c_void};
 use core::mem::transmute;
@@ -146,7 +146,7 @@ unsafe impl Sync for BusDmaMap {}
 unsafe impl Send for BusDmaMap {}
 
 #[derive(Debug)]
-pub struct BusDmaMem<T = c_void>(SyncPtr<T>);
+pub struct BusDmaMem<T = c_void>(Ptr<T>);
 
 impl<T> Copy for BusDmaMem<T> {}
 impl<T> Clone for BusDmaMem<T> {
@@ -157,7 +157,7 @@ impl<T> Clone for BusDmaMem<T> {
 
 impl<T> Default for BusDmaMem<T> {
     fn default() -> Self {
-        Self(SyncPtr::new(null_mut()))
+        Self(Ptr::new(null_mut()))
     }
 }
 
@@ -219,7 +219,7 @@ pub mod wrappers {
         dmat: BusDmaTag,
         map: BusDmaMap,
         //buf: &mut [u8],
-        //ptr: SyncPtr<c_void>,
+        //ptr: Ptr<c_void>,
         kva: BusDmaMem,
         len: bus_size_t,
         callback: Option<BusDmaMapFn<T>>,
@@ -267,7 +267,7 @@ pub mod wrappers {
             Err(ErrCode::from(res))
         } else {
             let map = BusDmaMap(map);
-            let mem = BusDmaMem(SyncPtr::new(vaddr.cast::<T>()));
+            let mem = BusDmaMem(Ptr::new(vaddr.cast::<T>()));
             Ok((map, mem))
         }
     }

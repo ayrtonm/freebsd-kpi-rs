@@ -48,36 +48,36 @@ pub use subclass::{SubClass, SubClassOf};
 /// synchronization.
 #[repr(C)]
 #[derive(Debug)]
-pub struct SyncPtr<T>(pub(crate) *mut T);
+pub struct Ptr<T>(pub(crate) *mut T);
 
-impl<T> Default for SyncPtr<T> {
+impl<T> Default for Ptr<T> {
     fn default() -> Self {
         Self(null_mut())
     }
 }
 
-// Allows explicitly cloning a `SyncPtr` just like a regular raw pointer
-impl<T> Clone for SyncPtr<T> {
+// Allows explicitly cloning a `Ptr` just like a regular raw pointer
+impl<T> Clone for Ptr<T> {
     fn clone(&self) -> Self {
         *self
     }
 }
 
-// Allows implicitly copying a `SyncPtr` just like a raw pointer
-impl<T> Copy for SyncPtr<T> {}
+// Allows implicitly copying a `Ptr` just like a raw pointer
+impl<T> Copy for Ptr<T> {}
 
-impl<T> SyncPtr<T> {
-    /// Creates a new null `SyncPtr`
+impl<T> Ptr<T> {
+    /// Creates a new null `Ptr`
     pub const fn null() -> Self {
         Self(null_mut())
     }
 
-    /// Creates a new `SyncPtr` from a raw pointer.
+    /// Creates a new `Ptr` from a raw pointer.
     pub const fn new(ptr: *mut T) -> Self {
         Self(ptr)
     }
 
-    /// Get a raw pointer for the `SyncPtr`
+    /// Get a raw pointer for the `Ptr`
     pub fn as_ptr(self) -> *mut T {
         self.0
     }
@@ -91,9 +91,9 @@ impl<T> SyncPtr<T> {
     }
 }
 
-// SAFETY: `SyncPtr` is intended for cases where `Sync` is intentionally desired on the pointer
-unsafe impl<T> Sync for SyncPtr<T> {}
-unsafe impl<T> Send for SyncPtr<T> {}
+// SAFETY: `Ptr` is intended for cases where `Sync` is intentionally desired on the pointer
+unsafe impl<T> Sync for Ptr<T> {}
+unsafe impl<T> Send for Ptr<T> {}
 
 /// A unique pointer to an uninitialized, externally-managed object.
 #[derive(Debug)]
@@ -168,16 +168,16 @@ impl<'a, T> Ref<'a, T> {
         (x.0 as *const T).cast_mut()
     }
 
-    pub fn into_sync_ptr(x: Self) -> SyncPtr<T> {
+    pub fn into_ptr(x: Self) -> Ptr<T> {
         let ptr = Self::into_raw(x);
-        SyncPtr::new(ptr)
+        Ptr::new(ptr)
     }
 
     pub unsafe fn from_raw(ptr: *mut T) -> Self {
         Self(unsafe { ptr.as_ref().unwrap() })
     }
 
-    pub unsafe fn from_sync_ptr(ptr: SyncPtr<T>) -> Self {
+    pub unsafe fn from_sync_ptr(ptr: Ptr<T>) -> Self {
         Self(unsafe { ptr.0.as_ref().unwrap() })
     }
 
