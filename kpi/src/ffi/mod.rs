@@ -177,6 +177,10 @@ impl<'a, T> Ext<'a, T> {
         Self(unsafe { ptr.as_ref().unwrap() })
     }
 
+    pub unsafe fn from_sync_ptr(ptr: SyncPtr<T>) -> Self {
+        Self(unsafe { ptr.0.as_ref().unwrap() })
+    }
+
     /// Create an Ext<U> from an Ext<T> by accessing a field on T
     ///
     /// The `ext!` macro should be used instead of calling this directly.
