@@ -121,9 +121,9 @@ impl<'a, T> UninitExt<'a, T> {
 pub struct UniqueExt<'a, T>(&'a mut T);
 
 impl<'a, T> UniqueExt<'a, T> {
-    /// Destroys a `UniqueExt` and returns an `Ext` to the same object.
-    pub fn into_ext(self) -> Ext<'a, T> {
-        Ext(self.0)
+    /// Destroys a `UniqueExt` and returns an `Ref` to the same object.
+    pub fn into_ref(self) -> Ref<'a, T> {
+        Ref(self.0)
     }
 
     #[cfg(test)]
@@ -151,19 +151,19 @@ impl<'a, T> DerefMut for UniqueExt<'a, T> {
 /// A pointer to an externally-managed object.
 #[repr(C)]
 #[derive(Debug)]
-pub struct Ext<'a, T: ?Sized>(&'a T);
+pub struct Ref<'a, T: ?Sized>(&'a T);
 
-/// Allows implicitly making copies of the `Ext<T>` just like `&T` allows.
-impl<'a, T> Copy for Ext<'a, T> {}
+/// Allows implicitly making copies of the `Ref<T>` just like `&T` allows.
+impl<'a, T> Copy for Ref<'a, T> {}
 
-/// Allows explicitly making copies of the `Ext<T>` just like `&T` allows.
-impl<'a, T> Clone for Ext<'a, T> {
+/// Allows explicitly making copies of the `Ref<T>` just like `&T` allows.
+impl<'a, T> Clone for Ref<'a, T> {
     fn clone(&self) -> Self {
         Self(self.0)
     }
 }
 
-impl<'a, T> Ext<'a, T> {
+impl<'a, T> Ref<'a, T> {
     pub fn into_raw(x: Self) -> *mut T {
         (x.0 as *const T).cast_mut()
     }
@@ -181,41 +181,41 @@ impl<'a, T> Ext<'a, T> {
         Self(unsafe { ptr.0.as_ref().unwrap() })
     }
 
-    /// Create an Ext<U> from an Ext<T> by accessing a field on T
+    /// Create an Ref<U> from an Ref<T> by accessing a field on T
     ///
     /// The `ext!` macro should be used instead of calling this directly.
     ///
     /// # Safety
     ///
     /// The function `f` must only access a single field (i.e. `x.field`)
-    pub unsafe fn map_field<U, F: FnOnce(&T) -> &U>(x: Self, f: F) -> Ext<'a, U> {
-        Ext(f(x.0))
+    pub unsafe fn map_field<U, F: FnOnce(&T) -> &U>(x: Self, f: F) -> Ref<'a, U> {
+        Ref(f(x.0))
     }
 }
 
-impl<'a, T: FixedIdx> Ext<'a, T> {
-    /// Create an Ext<U> from an Ext<T> by indexing into T
+impl<'a, T: FixedIdx> Ref<'a, T> {
+    /// Create an Ref<U> from an Ref<T> by indexing into T
     ///
     /// The `ext!` macro should be used instead of calling this directly.
     ///
     /// # Safety
     ///
     /// The function `f` must only index once into T (i.e. `x[n]`)
-    pub unsafe fn map_idx<U, F: FnOnce(&T) -> &U>(x: Self, f: F) -> Ext<'a, U> {
-        Ext(f(x.0))
+    pub unsafe fn map_idx<U, F: FnOnce(&T) -> &U>(x: Self, f: F) -> Ref<'a, U> {
+        Ref(f(x.0))
     }
 }
 
 #[diagnostic::on_unimplemented(
     message = "Indexing into {Self} might not access the same address every time",
-    label = "Cannot create an Ext<T> from this. Use a boxed slice or array instead"
+    label = "Cannot create an Ref<T> from this. Use a boxed slice or array instead"
 )]
 pub unsafe trait FixedIdx {}
 unsafe impl<T, const N: usize> FixedIdx for [T; N] {}
 unsafe impl<T> FixedIdx for Box<[T]> {}
 
-/// Allows transparently using `Ext<T>` like a `&T`.
-impl<'a, T: ?Sized> Deref for Ext<'a, T> {
+/// Allows transparently using `Ref<T>` like a `&T`.
+impl<'a, T: ?Sized> Deref for Ref<'a, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {

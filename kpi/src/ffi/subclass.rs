@@ -63,7 +63,7 @@ impl<B, F> SubClassOf<B> for SubClass<B, F> {}
 pub struct SubClass<B, F> {
     // This needs to be first for some uses of subclass (e.g. simplebus subclass drivers)
     base_class: UnsafeCell<B>,
-    // Extra fields last allows making them unsized
+    // Refra fields last allows making them unsized
     sub_fields: F,
 }
 

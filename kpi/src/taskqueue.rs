@@ -28,7 +28,7 @@
 
 use crate::ErrCode;
 use crate::bindings::{task, task_fn_t, taskqueue};
-use crate::ffi::{ArrayCString, Ext};
+use crate::ffi::{ArrayCString, Ref};
 use crate::intr::Priority;
 use crate::malloc::MallocFlags;
 use crate::prelude::*;
@@ -53,7 +53,7 @@ impl Taskqueue {
 unsafe impl Sync for Taskqueue {}
 unsafe impl Send for Taskqueue {}
 
-pub type TaskFn<T> = extern "C" fn(Ext<T>, u32);
+pub type TaskFn<T> = extern "C" fn(Ref<T>, u32);
 
 #[derive(Debug)]
 pub struct Task {
@@ -96,7 +96,7 @@ pub mod wrappers {
     pub fn taskqueue_create(
         name: ArrayCString,
         flags: MallocFlags,
-        queue: Ext<Taskqueue>,
+        queue: Ref<Taskqueue>,
     ) -> Result<()> {
         let ctx: *mut *mut bindings::taskqueue = queue.inner.get();
 
@@ -122,7 +122,7 @@ pub mod wrappers {
     pub fn taskqueue_create_fast(
         name: ArrayCString,
         flags: MallocFlags,
-        queue: Ext<Taskqueue>,
+        queue: Ref<Taskqueue>,
     ) -> Result<()> {
         let ctx: *mut *mut bindings::taskqueue = queue.inner.get();
 
@@ -145,7 +145,7 @@ pub mod wrappers {
     }
 
     pub fn taskqueue_start_threads(
-        queue: Ext<Taskqueue>,
+        queue: Ref<Taskqueue>,
         count: usize,
         prio: Priority,
         name: ArrayCString,
@@ -165,7 +165,7 @@ pub mod wrappers {
         Ok(())
     }
 
-    pub fn taskqueue_enqueue(queue: &Taskqueue, ta: Ext<Task>) -> Result<()> {
+    pub fn taskqueue_enqueue(queue: &Taskqueue, ta: Ref<Task>) -> Result<()> {
         let queuep = unsafe { *queue.inner.get() };
         let c_task = ta.inner.get();
         let res = unsafe { bindings::taskqueue_enqueue(queuep, c_task) };

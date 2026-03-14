@@ -89,21 +89,21 @@ macro_rules! base {
 #[macro_export]
 macro_rules! ext {
     (& $ext_ref:ident [ $idx:expr ]) => {
-        unsafe { $crate::ffi::Ext::map_idx($ext_ref, |x| &x[$idx]) }
+        unsafe { $crate::ffi::Ref::map_idx($ext_ref, |x| &x[$idx]) }
     };
     (& $ext_ref:ident -> $field:ident) => {
-        unsafe { $crate::ffi::Ext::map_field($ext_ref, |x| &x.$field) }
+        unsafe { $crate::ffi::Ref::map_field($ext_ref, |x| &x.$field) }
     };
     (& $ext_ref:ident -> $field:ident $($rest:tt)*) => {
         {
-        let res = unsafe { $crate::ffi::Ext::map_field($ext_ref, |x| &x.$field) };
+        let res = unsafe { $crate::ffi::Ref::map_field($ext_ref, |x| &x.$field) };
         let res = ext!(&res $($rest)*);
         res
         }
     };
     (& $ext_ref:ident [ $idx:expr ] $($rest:tt)*) => {
         {
-        let res = unsafe { $crate::ffi::Ext::map_idx($ext_ref, |x| &x[$idx]) };
+        let res = unsafe { $crate::ffi::Ref::map_idx($ext_ref, |x| &x[$idx]) };
         let res = ext!(&res $($rest)*);
         res
         }

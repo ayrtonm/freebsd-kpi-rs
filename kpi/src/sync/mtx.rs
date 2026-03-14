@@ -27,7 +27,7 @@
  */
 
 use crate::bindings::{MTX_DEF, MTX_SPIN, mtx};
-use crate::ffi::Ext;
+use crate::ffi::Ref;
 use crate::prelude::*;
 use crate::sync::Mutable;
 use core::cell::UnsafeCell;
@@ -188,7 +188,7 @@ pub use wrappers::*;
 pub mod wrappers {
     use super::*;
 
-    pub fn mtx_init<M: Lockable>(lock: Ext<M>, name: &'static CStr, kind: Option<&'static CStr>) {
+    pub fn mtx_init<M: Lockable>(lock: Ref<M>, name: &'static CStr, kind: Option<&'static CStr>) {
         let name_ptr = name.as_ptr();
         let kind_ptr = match kind {
             Some(k) => k.as_ptr(),
@@ -261,12 +261,12 @@ impl<T> Drop for SpinLockGuard<'_, T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ffi::Ext;
+    use crate::ffi::Ref;
 
     #[test]
     fn basic_mutex() {
         let mut lock = Mutex::new(4u32);
-        let lock = unsafe { Ext::from_raw(&raw mut lock) };
+        let lock = unsafe { Ref::from_raw(&raw mut lock) };
         mtx_init(lock, c"", None);
         let mut x = mtx_lock(&lock);
         *x += 1;
@@ -276,7 +276,7 @@ mod tests {
     #[test]
     fn basic_spinlock() {
         let mut lock = SpinLock::new(4u32);
-        let lock = unsafe { Ext::from_raw(&raw mut lock) };
+        let lock = unsafe { Ref::from_raw(&raw mut lock) };
         mtx_init(lock, c"", None);
         let mut x = mtx_lock_spin(&lock);
         *x += 1;

@@ -28,7 +28,7 @@
 
 use crate::ErrCode;
 use crate::bindings::{bus_size_t, device_t, resource, resource_spec};
-use crate::ffi::Ext;
+use crate::ffi::Ref;
 use crate::kobj::{AsCType, AsRustType};
 use crate::prelude::*;
 use core::cell::UnsafeCell;
@@ -62,8 +62,8 @@ impl BitOr<ResFlags> for ResFlags {
 pub type RawFilterFn = Option<unsafe extern "C" fn(*mut c_void) -> i32>;
 type RawHandler = Option<unsafe extern "C" fn(*mut c_void)>;
 
-pub type FilterFn<T> = Option<extern "C" fn(Ext<T>) -> Filter>;
-pub type Handler<T> = Option<extern "C" fn(Ext<T>)>;
+pub type FilterFn<T> = Option<extern "C" fn(Ref<T>) -> Filter>;
+pub type Handler<T> = Option<extern "C" fn(Ref<T>)>;
 
 impl AsRustType<Resource> for *mut resource {
     fn as_rust_type(self) -> Resource {
@@ -284,7 +284,7 @@ pub mod wrappers {
 
     pub fn bus_setup_intr<D: DeviceIf>(
         dev: device_t,
-        irq: Ext<Irq>,
+        irq: Ref<Irq>,
         flags: c_int,
         filter: FilterFn<D::Softc>,
         handler: Handler<D::Softc>,
@@ -298,7 +298,7 @@ pub mod wrappers {
 
     unsafe fn bus_setup_intr_unchecked<T>(
         dev: device_t,
-        irq: Ext<Irq>,
+        irq: Ref<Irq>,
         flags: c_int,
         filter: FilterFn<T>,
         handler: Handler<T>,
@@ -471,7 +471,7 @@ mod tests {
     use super::*;
     use crate::device::{BusProbe, DeviceIf};
     use crate::driver;
-    use crate::ffi::{Ext, UninitExt};
+    use crate::ffi::{Ref, UninitExt};
     use crate::tests::{DriverManager, LoudDrop};
 
     #[repr(C)]
@@ -483,7 +483,7 @@ mod tests {
     }
 
     impl IrqDriver {
-        fn setup(&self, dev: device_t, sc: Ext<IrqSoftc>, filter: bool, handler: bool) {
+        fn setup(&self, dev: device_t, sc: Ref<IrqSoftc>, filter: bool, handler: bool) {
             let filter = if filter {
                 Some(IrqDriver::filter as _)
             } else {
@@ -513,7 +513,7 @@ mod tests {
                     irq: Irq::default(),
                     loud: LoudDrop,
                 })
-                .into_ext();
+                .into_ref();
             assert_eq!(
                 bus_setup_intr!(dev, ext!(&sc->irq), 0, None, None),
                 Err(EDOOFUS)
@@ -529,7 +529,7 @@ mod tests {
             }
             Ok(())
         }
-        fn device_detach(sc: Ext<Self::Softc>) -> Result<()> {
+        fn device_detach(sc: Ref<Self::Softc>) -> Result<()> {
             if ofw_bus_is_compatible(sc.dev, c"irq_driver,teardown_intr") {
                 bus_teardown_intr(sc.dev, &sc.irq).unwrap();
             }
@@ -538,7 +538,7 @@ mod tests {
     }
 
     impl IrqDriver {
-        extern "C" fn filter(sc: Ext<IrqSoftc>) -> Filter {
+        extern "C" fn filter(sc: Ref<IrqSoftc>) -> Filter {
             println!("called filter");
             if ofw_bus_is_compatible(sc.dev, c"irq_driver,filter_handled") {
                 FILTER_HANDLED
@@ -546,7 +546,7 @@ mod tests {
                 FILTER_SCHEDULE_THREAD
             }
         }
-        extern "C" fn handler(sc: Ext<IrqSoftc>) {
+        extern "C" fn handler(sc: Ref<IrqSoftc>) {
             println!("called handler {sc:x?}");
         }
     }

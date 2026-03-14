@@ -30,7 +30,7 @@ use crate::ErrCode;
 use crate::bindings::{
     C_HARDCLOCK, callout, callout_func_t, ich_func_t, intr_config_hook, sbintime_t, tick_sbt,
 };
-use crate::ffi::Ext;
+use crate::ffi::Ref;
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::ffi::{c_int, c_void};
@@ -60,7 +60,7 @@ pub struct ConfigHook {
 unsafe impl Sync for ConfigHook {}
 unsafe impl Send for ConfigHook {}
 
-pub type ConfigHookFn<T> = extern "C" fn(Ext<T>);
+pub type ConfigHookFn<T> = extern "C" fn(Ref<T>);
 
 impl ConfigHook {
     pub unsafe fn new<T>(func: ConfigHookFn<T>, arg: *mut c_void) -> Self {
@@ -74,7 +74,7 @@ impl ConfigHook {
     }
 }
 
-pub type CalloutFn<T> = extern "C" fn(Ext<T>);
+pub type CalloutFn<T> = extern "C" fn(Ref<T>);
 
 #[derive(Debug, Default)]
 pub struct Callout {
@@ -224,7 +224,7 @@ pub mod wrappers {
         c: &mut Callout,
         ticks: sbintime_t,
         func: CalloutFn<T>,
-        arg: Ext<T>,
+        arg: Ref<T>,
     ) -> Result<()> {
         // TODO: Ensure arg doesn't get turned into a reference after it's dropped
         //if arg.get_callout().unwrap() != c as *mut Callout {
@@ -233,7 +233,7 @@ pub mod wrappers {
         let c_callout = c.inner.get();
         let time = ticks * unsafe { tick_sbt };
         let func = unsafe { transmute::<Option<CalloutFn<T>>, callout_func_t>(Some(func)) };
-        let arg_ptr = Ext::into_raw(arg).cast::<c_void>();
+        let arg_ptr = Ref::into_raw(arg).cast::<c_void>();
         let res = unsafe {
             bindings::callout_reset_sbt_on(c_callout, time, 0, func, arg_ptr, -1, C_HARDCLOCK)
         };
@@ -257,7 +257,7 @@ pub mod wrappers {
         wmesg: &CStr,
         timo: i32,
     ) -> Result<()> {
-        let chan_ptr = chan as *const T; //Ext::into_raw(chan).cast::<c_void>();
+        let chan_ptr = chan as *const T; //Ref::into_raw(chan).cast::<c_void>();
         let wmesg_ptr = wmesg.as_ptr();
         let priority = match new_priority {
             Some(Priority(p)) => p,
@@ -281,7 +281,7 @@ pub mod wrappers {
     }
 
     pub fn wakeup<T>(chan: &T) {
-        let chan_ptr = chan as *const T; //Ext::into_raw(chan).cast::<c_void>();
+        let chan_ptr = chan as *const T; //Ref::into_raw(chan).cast::<c_void>();
         unsafe { bindings::wakeup(chan_ptr.cast::<c_void>()) }
     }
 }
@@ -292,7 +292,7 @@ mod tests {
     use crate::bindings::device_t;
     use crate::device::{BusProbe, DeviceIf};
     use crate::driver;
-    use crate::ffi::{Ext, UninitExt};
+    use crate::ffi::{Ref, UninitExt};
     use crate::tests::{DriverManager, LoudDrop};
 
     #[repr(C)]
@@ -312,17 +312,17 @@ mod tests {
         fn device_attach(uninit_sc: UninitExt<Self::Softc>, dev: device_t) -> Result<()> {
             let hook = config_intrhook_init!(dev, HookDriver::deferred_attach);
             let loud = LoudDrop;
-            let sc = uninit_sc.init(HookSoftc { dev, hook, loud }).into_ext();
+            let sc = uninit_sc.init(HookSoftc { dev, hook, loud }).into_ref();
             config_intrhook_establish(&sc.hook).unwrap();
             Ok(())
         }
-        fn device_detach(_sc: Ext<Self::Softc>) -> Result<()> {
+        fn device_detach(_sc: Ref<Self::Softc>) -> Result<()> {
             Ok(())
         }
     }
 
     impl HookDriver {
-        extern "C" fn deferred_attach(sc: Ext<HookSoftc>) {
+        extern "C" fn deferred_attach(sc: Ref<HookSoftc>) {
             println!("called config hook rust function/deferred_attach");
             config_intrhook_disestablish(&sc.hook);
         }

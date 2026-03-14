@@ -29,7 +29,7 @@
 use crate::bindings::{device_state_t, device_t, driver_t};
 use crate::boxed::Box;
 use crate::driver::Driver;
-use crate::ffi::{ArrayCString, Ext, UninitExt};
+use crate::ffi::{ArrayCString, Ref, UninitExt};
 use crate::kobj::{AsCType, AsRustType};
 use crate::prelude::*;
 use crate::vec::Vec;
@@ -53,11 +53,11 @@ impl AsCType<c_int> for BusProbe {
     }
 }
 
-impl<'a, T> AsRustType<Ext<'a, T>> for device_t {
-    fn as_rust_type(self) -> Ext<'a, T> {
+impl<'a, T> AsRustType<Ref<'a, T>> for device_t {
+    fn as_rust_type(self) -> Ref<'a, T> {
         let void_ptr = unsafe { bindings::device_get_softc(self) };
         let sc_ptr = void_ptr.cast::<T>();
-        unsafe { Ext::from_raw(sc_ptr) }
+        unsafe { Ref::from_raw(sc_ptr) }
     }
 }
 
@@ -127,8 +127,8 @@ define_interface! {
         and typedef device_detach_t,
         with drop glue {
             use core::ptr::drop_in_place;
-            use $crate::ffi::Ext;
-            let sc_ptr = Ext::into_raw(dev);
+            use $crate::ffi::Ref;
+            let sc_ptr = Ref::into_raw(dev);
             unsafe { drop_in_place(sc_ptr) }
         };
     fn device_shutdown(dev: device_t) -> int,
@@ -204,19 +204,19 @@ pub trait DeviceIf: Driver {
     /// example, if a softc struct includes a `Box<T>` field (i.e. a pointer to the heap with
     /// ownership of a `T`) the `T` in the heap will also be freed. This applies recursively through
     /// any number of layers of indirection.
-    fn device_detach(sc: Ext<Self::Softc>) -> Result<()> {
+    fn device_detach(sc: Ref<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
-    fn device_shutdown(sc: Ext<Self::Softc>) -> Result<()> {
+    fn device_shutdown(sc: Ref<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
-    fn device_suspend(sc: Ext<Self::Softc>) -> Result<()> {
+    fn device_suspend(sc: Ref<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
-    fn device_resume(sc: Ext<Self::Softc>) -> Result<()> {
+    fn device_resume(sc: Ref<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
-    fn device_quiesce(sc: Ext<Self::Softc>) -> Result<()> {
+    fn device_quiesce(sc: Ref<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
 }
@@ -239,7 +239,7 @@ pub mod wrappers {
         BUS_PROBE_NOWILDCARD,
     }
 
-    pub fn device_get_softc<'sc, D: DeviceIf>(dev: device_t) -> Ext<'sc, D::Softc> {
+    pub fn device_get_softc<'sc, D: DeviceIf>(dev: device_t) -> Ref<'sc, D::Softc> {
         let driver = device_get_driver(dev);
         let class = unsafe { &*driver };
         let mut method_ptr = class.methods;
@@ -256,11 +256,11 @@ pub mod wrappers {
 
     pub unsafe fn device_get_softc_unchecked<'sc, D: DeviceIf>(
         dev: device_t,
-    ) -> Ext<'sc, D::Softc> {
+    ) -> Ref<'sc, D::Softc> {
         assert_eq!(device_get_driver(dev), <D as Driver>::DRIVER);
         let void_ptr = unsafe { bindings::device_get_softc(dev) };
         let sc_ptr = void_ptr.cast::<D::Softc>();
-        unsafe { Ext::from_raw(sc_ptr) }
+        unsafe { Ref::from_raw(sc_ptr) }
     }
 
     pub fn device_claim_softc(dev: device_t) {
@@ -338,7 +338,7 @@ pub mod wrappers {
 mod tests {
     use super::*;
     use crate::driver;
-    use crate::ffi::{Ext, UninitExt};
+    use crate::ffi::{Ref, UninitExt};
     use crate::sync::Checked;
     use crate::tests::{DriverManager, LoudDrop};
     use std::ffi::{CStr, c_void};
@@ -391,7 +391,7 @@ mod tests {
             println!("{:x?}", sc);
             Ok(())
         }
-        fn device_detach(sc: Ext<Self::Softc>) -> Result<()> {
+        fn device_detach(sc: Ref<Self::Softc>) -> Result<()> {
             assert!(sc.const_data == 0xdeadbeef);
             Ok(())
         }
@@ -440,7 +440,7 @@ mod tests {
             }
             Ok(())
         }
-        fn device_detach(sc: Ext<Self::Softc>) -> Result<()> {
+        fn device_detach(sc: Ref<Self::Softc>) -> Result<()> {
             Ok(())
         }
     }
