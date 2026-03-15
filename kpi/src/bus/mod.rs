@@ -122,8 +122,15 @@ impl Register {
         self.res
     }
 
-    pub unsafe fn from_raw(res: *mut resource) -> Self {
-        Self { res, bounds: None }
+    pub unsafe fn from_raw(res: *mut resource) -> Result<Self> {
+        if res.is_null() {
+            return Err(ENULLPTR);
+        }
+        let ty = unsafe { bindings::rman_get_type(res) };
+        if SysRes(ty) != SYS_RES_MEMORY {
+            return Err(EINVAL);
+        }
+        Ok(Self { res, bounds: None })
     }
 
     pub fn assert_allowed(&self, offset: bus_size_t) {
@@ -345,6 +352,11 @@ pub mod wrappers {
 
     pub fn rman_get_bushandle(res: &Resource) -> bus_space_handle_t {
         unsafe { bindings::rman_get_bushandle(res.res) }
+    }
+
+    pub fn rman_get_type(res: &Resource) -> SysRes {
+        let ty = unsafe { bindings::rman_get_type(res.res) };
+        SysRes(ty)
     }
 
     pub fn bus_alloc_resource_any(
