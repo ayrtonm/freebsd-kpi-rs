@@ -107,6 +107,7 @@ macro_rules! device_attach {
                 let uninit_sc = unsafe { UninitRef::from_raw(sc_ptr, &mut sc_init) };
             }
             with drop glue {
+                // drop glue is only called if device_attach succeeded
                 if !sc_init {
                     device_println!(dev, "Must call .init() on UninitRef<Softc> in device_attach");
                     return bindings::ENXIO;

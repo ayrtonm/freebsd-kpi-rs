@@ -168,12 +168,13 @@ macro_rules! define_c_function {
             // Call the rust implementation, coercing to the result type if specified
             let res$(: $crate::Result<$ret_as_rust_ty>)* = <$driver_ty as $trait>::$fn_name($($($prefix_args,)*)* $($arg_name,)*);
 
-            // Call drop glue if any
-            $($($drop_glue)*)*
-
             // Convert return value from rust type to a C type
             match res {
-                Ok(r) => r.as_c_type(),
+                Ok(r) => {
+                    // Call drop glue if any
+                    $($($drop_glue)*)*
+                    r.as_c_type()
+                },
                 Err(e) => e.as_c_type(),
             }
         }
