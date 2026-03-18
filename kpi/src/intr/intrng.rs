@@ -195,7 +195,7 @@ pub trait PicIf: DeviceIf {
     type IrqSrcFields;
     fn pic_setup_intr(
         sc: Ref<Self::Softc>,
-        isrc: &mut IrqSrc<Self::IrqSrcFields>,
+        isrc: &IrqSrc<Self::IrqSrcFields>,
         res: Resource,
         data: MapData,
     ) -> Result<()> {
@@ -203,7 +203,7 @@ pub trait PicIf: DeviceIf {
     }
     fn pic_teardown_intr(
         sc: Ref<Self::Softc>,
-        isrc: &mut IrqSrc<Self::IrqSrcFields>,
+        isrc: &IrqSrc<Self::IrqSrcFields>,
         res: Resource,
         data: MapData,
     ) -> Result<()> {
@@ -215,22 +215,22 @@ pub trait PicIf: DeviceIf {
     ) -> Result<&'sc IrqSrc<Self::IrqSrcFields>> {
         unimplemented!()
     }
-    fn pic_enable_intr(sc: Ref<Self::Softc>, isrc: &mut IrqSrc<Self::IrqSrcFields>) {
+    fn pic_enable_intr(sc: Ref<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
-    fn pic_disable_intr(sc: Ref<Self::Softc>, isrc: &mut IrqSrc<Self::IrqSrcFields>) {
+    fn pic_disable_intr(sc: Ref<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
-    fn pic_post_filter(sc: Ref<Self::Softc>, isrc: &mut IrqSrc<Self::IrqSrcFields>) {
+    fn pic_post_filter(sc: Ref<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
-    fn pic_post_ithread(sc: Ref<Self::Softc>, isrc: &mut IrqSrc<Self::IrqSrcFields>) {
+    fn pic_post_ithread(sc: Ref<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
-    fn pic_pre_ithread(sc: Ref<Self::Softc>, isrc: &mut IrqSrc<Self::IrqSrcFields>) {
+    fn pic_pre_ithread(sc: Ref<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
-    fn pic_bind_intr(sc: Ref<Self::Softc>, isrc: &mut IrqSrc<Self::IrqSrcFields>) -> Result<()> {
+    fn pic_bind_intr(sc: Ref<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) -> Result<()> {
         unimplemented!()
     }
     fn pic_init_secondary(sc: Ref<Self::Softc>, root: IntrRoot) {
@@ -244,7 +244,7 @@ pub trait PicIf: DeviceIf {
     }
     fn pic_ipi_send(
         sc: Ref<Self::Softc>,
-        isrc: &mut IrqSrc<Self::IrqSrcFields>,
+        isrc: &IrqSrc<Self::IrqSrcFields>,
         cpus: bindings::cpuset_t,
         ipi: u32,
     ) {
@@ -411,7 +411,7 @@ mod tests {
 
         fn pic_setup_intr(
             _sc: Ref<Self::Softc>,
-            isrc: &mut IrqSrc<Self::IrqSrcFields>,
+            isrc: &IrqSrc<Self::IrqSrcFields>,
             _res: Resource,
             _data: MapData,
         ) -> Result<()> {
