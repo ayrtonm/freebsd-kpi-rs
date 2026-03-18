@@ -67,25 +67,6 @@ impl<'a, B, F> AsRustType<&'a SubClass<B, F>> for *mut B {
     }
 }
 
-// Allow the previous three operations for unique references
-impl<'a, T> AsRustType<&'a mut T> for *mut T {
-    fn as_rust_type(self) -> &'a mut T {
-        unsafe { self.as_mut().unwrap() }
-    }
-}
-
-impl<'a, T> AsRustType<&'a mut T, c_void> for *mut c_void {
-    fn as_rust_type(self) -> &'a mut T {
-        unsafe { self.cast::<T>().as_mut().unwrap() }
-    }
-}
-
-impl<'a, B, F> AsRustType<&'a mut SubClass<B, F>> for *mut B {
-    fn as_rust_type(self) -> &'a mut SubClass<B, F> {
-        unsafe { SubClass::from_base_ptr_mut(self) }
-    }
-}
-
 impl<T, M: Malloc> AsRustType<Box<T, M>> for *mut T {
     fn as_rust_type(self) -> Box<T, M> {
         unsafe { Box::from_raw(self) }
