@@ -47,7 +47,7 @@ RUSTC_REPO_HASH= ${:!${GIT_CMD} -C ${RUST_COMPILER_DIR} rev-parse HEAD!}
 .endif
 
 # crate-independent build flags
-RUSTFLAGS= --target=${RUST_TARGET} --edition 2024 -Copt-level=3 -Ccodegen-units=1 -Cembed-bitcode=no -Awarnings
+RUSTFLAGS= --target=${RUST_TARGET} --edition 2024 -Copt-level=3 -Ccodegen-units=1 -Cembed-bitcode=yes -Clto=thin -Awarnings
 
 .if ${TARGET_ARCH} == aarch64
 
@@ -197,7 +197,7 @@ NORMAL_R= ${RLIB_RULE} ${RUST_KPI_FEATURES} -o ${.TARGET} ${.ALLSRC:[1]} \
 ${RUST_CORE}: ${RUST_MAKEFILE}
 	${RUSTC} ${RUSTFLAGS} --crate-name core ${RUST_COMPILER_DIR}/library/core/src/lib.rs \
 		--crate-type rlib --out-dir ${RUST_LIBDIR} \
-		-Cstrip=debuginfo -Cembed-bitcode=no -Zforce-unstable-if-unmarked
+		-Cstrip=debuginfo -Zforce-unstable-if-unmarked
 
 ${RUST_FAKE_BUILTINS}: ${RUST_CORE} ${RUST_MAKEFILE}
 	${RUSTC} ${RUSTFLAGS} ${SRCTOP}/sys/rust/compiler_builtins.rs --crate-type rlib \
