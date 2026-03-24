@@ -31,7 +31,8 @@
 use crate::bindings;
 use crate::bindings::device_t;
 use crate::boxed::Box;
-use core::fmt::Debug;
+use core::fmt;
+use core::fmt::{Debug, Formatter};
 use core::mem::MaybeUninit;
 use core::ops::{Deref, DerefMut};
 use core::ptr::null_mut;
@@ -47,8 +48,13 @@ pub use subclass::{SubClass, SubClassOf};
 /// This is useful for pointer types that are expected to be shared between threads without explicit
 /// synchronization.
 #[repr(C)]
-#[derive(Debug)]
 pub struct Ptr<T>(pub(crate) *mut T);
+
+impl<T> Debug for Ptr<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Ptr").field("addr", &self.0).finish()
+    }
+}
 
 impl<T> Default for Ptr<T> {
     fn default() -> Self {

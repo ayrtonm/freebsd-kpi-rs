@@ -64,27 +64,6 @@ impl<'a, T> AsRustType<Ref<'a, T>> for device_t {
     }
 }
 
-impl Debug for device_t {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let driver = unsafe { bindings::device_get_driver(*self) };
-        let driver = if driver.is_null() {
-            c"no driver attached"
-        } else {
-            unsafe { CStr::from_ptr(driver.as_ref().unwrap().name) }
-        };
-        let desc = unsafe { bindings::device_get_desc(*self) };
-        let desc = if desc.is_null() {
-            c"no desc set"
-        } else {
-            unsafe { CStr::from_ptr(desc) }
-        };
-        f.debug_struct("device_t")
-            .field("driver", &driver)
-            .field("desc", &desc)
-            .finish()
-    }
-}
-
 #[doc(hidden)]
 #[macro_export]
 macro_rules! device_attach {
