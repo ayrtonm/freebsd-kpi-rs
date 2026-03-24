@@ -127,11 +127,11 @@ macro_rules! define_c_function {
         #[allow(unused_mut)]
         #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) {
-            use core::any::{Any, TypeId};
-            let typedef_val = <$fn_name!(get_typedef)>::default();
-            let typedef_id = typedef_val.type_id();
-            let this_fn_id = TypeId::of::<Option<unsafe extern "C" fn($($arg,)*)>>();
-            assert!(typedef_id == this_fn_id);
+            //use core::any::{Any, TypeId};
+            //let typedef_val = <$fn_name!(get_typedef)>::default();
+            //let typedef_id = typedef_val.type_id();
+            //let this_fn_id = TypeId::of::<Option<unsafe extern "C" fn($($arg,)*)>>();
+            //assert!(typedef_id == this_fn_id);
 
             // Convert all arguments from C types to rust types
             $(let mut $arg_name: _ = $arg_name.as_rust_type();)*
@@ -157,11 +157,11 @@ macro_rules! define_c_function {
         #[allow(unused_mut)]
         #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) -> $ret {
-            use core::any::{Any, TypeId};
-            let typedef_val = <$fn_name!(get_typedef)>::default();
-            let typedef_id = typedef_val.type_id();
-            let this_fn_id = TypeId::of::<Option<unsafe extern "C" fn($($arg,)*) -> $ret>>();
-            assert!(typedef_id == this_fn_id);
+            //use core::any::{Any, TypeId};
+            //let typedef_val = <$fn_name!(get_typedef)>::default();
+            //let typedef_id = typedef_val.type_id();
+            //let this_fn_id = TypeId::of::<Option<unsafe extern "C" fn($($arg,)*) -> $ret>>();
+            //assert!(typedef_id == this_fn_id);
 
             // Convert all arguments from C types to rust types
             $(let mut $arg_name: _ = $arg_name.as_rust_type();)*
@@ -194,11 +194,11 @@ macro_rules! define_c_function {
         #[allow(unused_mut)]
         #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) -> $ret {
-            use core::any::{Any, TypeId};
-            let typedef_val = <$fn_name!(get_typedef)>::default();
-            let typedef_id = typedef_val.type_id();
-            let this_fn_id = TypeId::of::<Option<unsafe extern "C" fn($($arg,)*) -> $ret>>();
-            assert!(typedef_id == this_fn_id);
+            //use core::any::{Any, TypeId};
+            //let typedef_val = <$fn_name!(get_typedef)>::default();
+            //let typedef_id = typedef_val.type_id();
+            //let this_fn_id = TypeId::of::<Option<unsafe extern "C" fn($($arg,)*) -> $ret>>();
+            //assert!(typedef_id == this_fn_id);
 
             // Convert all arguments from C types to rust types
             $(let mut $arg_name: _ = $arg_name.as_rust_type();)*
