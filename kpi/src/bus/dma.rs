@@ -28,9 +28,9 @@
 
 use crate::ErrCode;
 use crate::bindings::{
-    bus_addr_t, bus_dma_lock_t, bus_dma_segment_t, bus_dma_tag_t, bus_dmamap_t, bus_size_t,
+    bus_addr_t, bus_dma_lock_t, bus_dma_segment_t, bus_dma_tag_t, bus_dmamap, bus_size_t,
 };
-use crate::ffi::{Ref, Ptr};
+use crate::ffi::{Ptr, Ref};
 use crate::prelude::*;
 use core::ffi::{c_int, c_void};
 use core::mem::transmute;
@@ -139,11 +139,8 @@ impl BitOr<BusDmaFlags> for BusDmaFlags {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
-pub struct BusDmaMap(bus_dmamap_t);
-
-unsafe impl Sync for BusDmaMap {}
-unsafe impl Send for BusDmaMap {}
+#[derive(Debug, Copy, Clone, Default)]
+pub struct BusDmaMap(Ptr<bus_dmamap>);
 
 #[derive(Debug)]
 pub struct BusDmaMem<T = c_void>(Ptr<T>);
@@ -211,7 +208,7 @@ pub mod wrappers {
         if res != 0 {
             return Err(ErrCode::from(res));
         }
-        Ok(BusDmaMap(map))
+        Ok(BusDmaMap(Ptr::new(map)))
     }
 
     /// Creates a mapping in device visible address space of buflen bytes of buf, associated with the DMA map map.
@@ -236,7 +233,7 @@ pub mod wrappers {
         let res = unsafe {
             bindings::bus_dmamap_load(
                 dmat.0,
-                map.0,
+                map.0.as_ptr(),
                 //buf.as_mut_ptr().cast::<c_void>(),
                 //buf.len().try_into().unwrap(),
                 //ptr.as_ptr(),
@@ -266,7 +263,7 @@ pub mod wrappers {
         if res != 0 {
             Err(ErrCode::from(res))
         } else {
-            let map = BusDmaMap(map);
+            let map = BusDmaMap(Ptr::new(map));
             let mem = BusDmaMem(Ptr::new(vaddr.cast::<T>()));
             Ok((map, mem))
         }
