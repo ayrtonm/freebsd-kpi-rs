@@ -139,6 +139,17 @@ impl BitOr<BusDmaFlags> for BusDmaFlags {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+pub struct BusDmaSyncFlags(c_int);
+
+impl BitOr<BusDmaSyncFlags> for BusDmaSyncFlags {
+    type Output = BusDmaSyncFlags;
+
+    fn bitor(self, rhs: BusDmaSyncFlags) -> BusDmaSyncFlags {
+        Self(self.0 | rhs.0)
+    }
+}
+
 #[derive(Debug, Copy, Clone, Default)]
 pub struct BusDmaMap(Ptr<bus_dmamap>);
 
@@ -177,6 +188,14 @@ pub mod wrappers {
         BUS_DMA_COHERENT,
         BUS_DMA_ZERO,
         BUS_DMA_NOCACHE,
+    }
+
+    gen_newtype! {
+        BusDmaSyncFlags as i32,
+        BUS_DMASYNC_PREREAD,
+        BUS_DMASYNC_PREWRITE,
+        BUS_DMASYNC_POSTREAD,
+        BUS_DMASYNC_POSTWRITE,
     }
 
     pub fn bus_get_dma_tag(dev: device_t) -> BusDmaTag {
@@ -267,5 +286,9 @@ pub mod wrappers {
             let mem = BusDmaMem(Ptr::new(vaddr.cast::<T>()));
             Ok((map, mem))
         }
+    }
+
+    pub fn bus_dmamap_sync(dmat: BusDmaTag, map: BusDmaMap, flags: BusDmaSyncFlags) {
+        unsafe { bindings::bus_dmamap_sync(dmat.0, map.0.as_ptr(), flags.0) }
     }
 }
