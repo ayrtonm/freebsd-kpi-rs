@@ -53,6 +53,9 @@ impl AsCType<c_int> for BusProbe {
     }
 }
 
+// Allows turning device_t arguments appearing in kobj interfaces into a Ref to any type. It's the
+// responsibility of a kobj trait authors to restrict the Ref to the softc's type or to one of its
+// base classes.
 impl<'a, T> AsRustType<Ref<'a, T>> for device_t {
     fn as_rust_type(self) -> Ref<'a, T> {
         let void_ptr = unsafe { bindings::device_get_softc(self) };
