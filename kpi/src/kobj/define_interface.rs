@@ -81,6 +81,10 @@ macro_rules! get_first {
     };
 }
 
+// TODO: Make this macro unsafe (e.g. possibly by making AsRustType and AsCType unsafe) and specify
+// the exact rules one needs to follow. This may produce a giant number of errors if unsafe is
+// omitted so another option might be to use rust diagnostics hacks to create a custom message
+// explaining the rules
 #[macro_export]
 macro_rules! define_interface {
     (in $trait:ident
