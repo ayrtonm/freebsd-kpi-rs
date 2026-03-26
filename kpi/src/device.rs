@@ -314,6 +314,15 @@ pub mod wrappers {
     pub fn device_get_driver(dev: device_t) -> *mut driver_t {
         unsafe { bindings::device_get_driver(dev) }
     }
+
+    pub fn device_add_child(dev: device_t, name: &'static CStr, unit: u32) -> Result<device_t> {
+        let child = unsafe { bindings::device_add_child(dev, name.as_ptr(), unit as i32) };
+        if child.as_ptr().is_null() {
+            Err(ENULLPTR)
+        } else {
+            Ok(child)
+        }
+    }
 }
 
 #[allow(dead_code, unused)]
