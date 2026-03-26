@@ -93,9 +93,6 @@ pub struct Node(pub phandle_t);
 #[derive(Copy, Clone, Debug)]
 pub struct XRef(pub phandle_t);
 
-unsafe impl Pod for Node {}
-unsafe impl Pod for XRef {}
-
 impl AsRustType<XRef> for phandle_t {
     fn as_rust_type(self) -> XRef {
         XRef(self)
@@ -188,6 +185,17 @@ pub mod wrappers {
     }
 
     pub fn OF_getencprop<T: Pod>(node: Node, propname: &CStr) -> Result<T> {
+        // SAFETY: If T implements Pod it must be valid for any bitpattern
+        unsafe { OF_getencprop_unchecked(node, propname) }
+    }
+
+    /// Get a devicetree property as an instance of type T.
+    ///
+    /// # Safety
+    ///
+    /// Devicetree properties are not typed so the caller must ensure that it's valid to interpret
+    /// the bytes at the corresponding devicetree offset as an instance of a type T.
+    pub unsafe fn OF_getencprop_unchecked<T>(node: Node, propname: &CStr) -> Result<T> {
         let mut t = MaybeUninit::uninit();
         let propname_ptr = propname.as_ptr();
         let res = unsafe {
