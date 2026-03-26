@@ -129,7 +129,7 @@ unsafe impl Sync for BusDmaTag {}
 unsafe impl Send for BusDmaTag {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
-pub struct BusDmaFlags(c_int);
+pub struct BusDmaFlags(pub c_int);
 
 impl BitOr<BusDmaFlags> for BusDmaFlags {
     type Output = BusDmaFlags;
@@ -140,7 +140,7 @@ impl BitOr<BusDmaFlags> for BusDmaFlags {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
-pub struct BusDmaSyncFlags(c_int);
+pub struct BusDmaSyncFlags(pub c_int);
 
 impl BitOr<BusDmaSyncFlags> for BusDmaSyncFlags {
     type Output = BusDmaSyncFlags;
