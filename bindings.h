@@ -98,6 +98,10 @@
 #if defined(KERNCONF_APPLE)
 #include <dev/nvme/nvme_private.h>
 #include <dev/nvme/nvme_ans.h>
+
+#include <dev/hid/hid.h>
+#include "hid_if.h"
+
 #include <arm64/apple/apple_bindings.h>
 #include <dt-bindings/interrupt-controller/apple-aic.h>
 #include "nvme_if.h"
