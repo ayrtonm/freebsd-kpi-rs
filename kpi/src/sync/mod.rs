@@ -81,6 +81,10 @@ impl<T> OnceInit<T> {
         assert!(self.init.load(Ordering::Relaxed));
         unsafe { self.t.get().as_ref().unwrap().assume_init_ref() }
     }
+
+    pub fn is_init(&self) -> bool {
+        self.init.load(Ordering::Relaxed)
+    }
 }
 
 unsafe impl<T: Sync> Sync for OnceInit<T> {}
