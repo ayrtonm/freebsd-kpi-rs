@@ -78,8 +78,15 @@ impl<T> OnceInit<T> {
     }
 
     pub fn get(&self) -> &T {
-        assert!(self.init.load(Ordering::Relaxed));
-        unsafe { self.t.get().as_ref().unwrap().assume_init_ref() }
+        self.try_get().unwrap()
+    }
+
+    pub fn try_get(&self) -> Option<&T> {
+        if !self.init.load(Ordering::Relaxed) {
+            None
+        } else {
+            Some(unsafe { self.t.get().as_ref().unwrap().assume_init_ref() })
+        }
     }
 
     pub fn is_init(&self) -> bool {
