@@ -183,10 +183,16 @@ impl<T, M: Malloc> Vec<T, M> {
     }
 
     pub fn into_boxed_slice(mut self) -> Box<[T], M> {
-        // TODO: free excess capacity
+        self.try_into_boxed_slice().unwrap()
+    }
+
+    pub fn try_into_boxed_slice(mut self) -> Result<Box<[T], M>> {
+        if self.len != self.capacity {
+            return Err(EDOOFUS);
+        }
         let fat_ptr = ptr::from_mut(self.deref_mut());
         forget(self);
-        unsafe { Box::from_raw(fat_ptr) }
+        Ok(unsafe { Box::from_raw(fat_ptr) })
     }
 
     pub(crate) unsafe fn from_raw(ptr: *mut T, len: usize) -> Vec<T, M> {
@@ -201,6 +207,12 @@ impl<T, M: Malloc> Vec<T, M> {
 }
 
 impl<T: Copy, M: Malloc> Vec<T, M> {
+    pub fn fill_with_capacity(value: T, capacity: usize, flags: MallocFlags) -> Self {
+        let mut res = Vec::with_capacity(capacity, flags);
+        res.fill_to_capacity(value);
+        res
+    }
+
     pub fn fill_to_capacity(&mut self, value: T) {
         for _ in self.len..self.capacity {
             self.push(value);
