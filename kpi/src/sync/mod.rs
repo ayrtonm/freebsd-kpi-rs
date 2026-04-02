@@ -26,6 +26,7 @@
  * SUCH DAMAGE.
  */
 
+use core::any::type_name;
 use core::cell::UnsafeCell;
 use core::fmt;
 use core::fmt::{Debug, Formatter};
@@ -72,7 +73,7 @@ impl<T> OnceInit<T> {
             .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
             .is_ok()
         {
-            panic!("already init");
+            panic!("already init {:?}", type_name::<T>());
         }
         unsafe { self.t.get().as_mut().unwrap().write(t) }
     }
@@ -175,7 +176,13 @@ impl<T> Checked<T> {
             .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
             .is_ok()
         {
-            panic!("already borrowed");
+            // TODO: Find a way to improve diagnostics. There are two problems: 1. this method
+            // doesn't have `T: Debug` so it might not be possible to debug print its value w/o
+            // specialization and 2. there's no good way to get the local variable name for the
+            // given Checked<T>. It might be possible to fix the latter in debug builds by doing
+            // something like parsing DWARF debug info when we get to this point but that's super
+            // ugly. I'll have to live with just the type name for now.
+            panic!("already borrowed {:?}", type_name::<T>());
         }
         CheckedGuard {
             value: self.t.get(),
