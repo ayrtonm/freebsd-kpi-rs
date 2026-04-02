@@ -31,7 +31,7 @@ use crate::ffi::Ref;
 use crate::prelude::*;
 use crate::sync::Mutable;
 use core::cell::UnsafeCell;
-use core::ffi::CStr;
+use core::ffi::{CStr, c_int};
 use core::mem::drop;
 use core::ops::{Deref, DerefMut};
 use core::ptr::null_mut;
@@ -181,6 +181,10 @@ impl<T> Lockable for SpinLock<T> {
     }
 }
 
+#[repr(C)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+pub struct MtxFlags(pub(crate) c_int);
+
 #[doc(inline)]
 pub use wrappers::*;
 
@@ -188,19 +192,43 @@ pub use wrappers::*;
 pub mod wrappers {
     use super::*;
 
-    pub fn mtx_init<M: Lockable>(lock: Ref<M>, name: &'static CStr, kind: Option<&'static CStr>) {
+    gen_newtype! {
+        MtxFlags as i32,
+        MTX_RECURSE,
+        MTX_QUIET,
+        MTX_NOWITNESS,
+        MTX_DUPOK,
+        MTX_NOPROFILE,
+        MTX_NEW,
+    }
+
+    pub fn mtx_init<M: Lockable>(
+        lock: Ref<M>,
+        name: &'static CStr,
+        kind: Option<&'static CStr>,
+        flags: Option<MtxFlags>,
+    ) {
         let name_ptr = name.as_ptr();
         let kind_ptr = match kind {
             Some(k) => k.as_ptr(),
             None => null_mut(),
         };
         let variant = if M::SPINS { MTX_SPIN } else { MTX_DEF };
+        let flags = match flags {
+            Some(flags) => flags.0,
+            None => 0,
+        };
         let mtx_impl = lock.get_impl_mut();
         let mtx_ptr = mtx_impl.inner.get();
         let mtx_lock_ptr = unsafe { &raw mut (*mtx_ptr).mtx_lock };
         unsafe {
             // TODO: The cast was added recently and should probably be fixed on the C side
-            bindings::_mtx_init(mtx_lock_ptr.cast::<usize>(), name_ptr, kind_ptr, variant);
+            bindings::_mtx_init(
+                mtx_lock_ptr.cast::<usize>(),
+                name_ptr,
+                kind_ptr,
+                variant | flags,
+            );
         }
     }
 
@@ -267,7 +295,7 @@ mod tests {
     fn basic_mutex() {
         let mut lock = Mutex::new(4u32);
         let lock = unsafe { Ref::from_raw(&raw mut lock) };
-        mtx_init(lock, c"", None);
+        mtx_init(lock, c"", None, None);
         let mut x = mtx_lock(&lock);
         *x += 1;
         mtx_unlock(x);
@@ -277,7 +305,7 @@ mod tests {
     fn basic_spinlock() {
         let mut lock = SpinLock::new(4u32);
         let lock = unsafe { Ref::from_raw(&raw mut lock) };
-        mtx_init(lock, c"", None);
+        mtx_init(lock, c"", None, None);
         let mut x = mtx_lock_spin(&lock);
         *x += 1;
         mtx_unlock_spin(x);
