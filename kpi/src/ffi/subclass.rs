@@ -29,6 +29,7 @@
 use core::cell::UnsafeCell;
 use core::fmt;
 use core::fmt::{Debug, Formatter};
+use core::mem::MaybeUninit;
 use core::ops::{Deref, DerefMut};
 
 pub trait SubClassOf<B> {}
@@ -59,10 +60,9 @@ impl<B, F> SubClassOf<B> for SubClass<B, F> {}
 /// shared with C code it requires the user to manually ensure that the field is not being accessed
 /// concurrently by other threads.
 #[repr(C)]
-#[derive(Default)]
 pub struct SubClass<B, F> {
     // This needs to be first for some uses of subclass (e.g. simplebus subclass drivers)
-    base_class: UnsafeCell<B>,
+    base_class: UnsafeCell<MaybeUninit<B>>,
     // Refra fields last allows making them unsized
     sub_fields: F,
 }
@@ -80,26 +80,29 @@ impl<B, F: Debug> Debug for SubClass<B, F> {
 unsafe impl<B, F: Sync + Send> Sync for SubClass<B, F> {}
 unsafe impl<B, F: Sync + Send> Send for SubClass<B, F> {}
 
-impl<B: Default, F> SubClass<B, F> {
-    pub fn new(sub_fields: F) -> Self {
-        Self::new_with_base(B::default(), sub_fields)
-    }
-}
 impl<B, F> SubClass<B, F> {
+    pub const fn new(sub_fields: F) -> Self {
+        Self {
+            base_class: UnsafeCell::new(MaybeUninit::uninit()),
+            sub_fields,
+        }
+    }
+
     pub const fn new_with_base(base: B, sub_fields: F) -> Self {
         Self {
-            base_class: UnsafeCell::new(base),
+            base_class: UnsafeCell::new(MaybeUninit::new(base)),
             sub_fields,
         }
     }
 
     pub fn base_ptr_from_raw(sub: *mut Self) -> *mut B {
-        let res: *mut UnsafeCell<B> = unsafe { &raw mut (*sub).base_class };
+        let res: *mut UnsafeCell<MaybeUninit<B>> = unsafe { &raw mut (*sub).base_class };
         res.cast::<B>()
     }
 
     pub fn as_base_ptr(sub: &Self) -> *mut B {
-        sub.base_class.get()
+        let res: *mut MaybeUninit<B> = sub.base_class.get();
+        res.cast::<B>()
     }
 
     pub unsafe fn from_base_ptr<'a>(ptr: *mut B) -> &'a Self {
