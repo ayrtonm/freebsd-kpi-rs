@@ -270,6 +270,53 @@ impl<T, M: Malloc> Drop for Vec<T, M> {
 unsafe impl<T: Sync, M: Malloc> Sync for Vec<T, M> {}
 unsafe impl<T: Send, M: Malloc> Send for Vec<T, M> {}
 
+pub struct VecDeque<T, M: Malloc = M_DEVBUF> {
+    head: usize,
+    vec: Vec<T, M>,
+}
+
+impl<T: Debug, M: Malloc> Debug for VecDeque<T, M> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Debug::fmt(&self.vec, f)
+    }
+}
+
+unsafe impl<T: Sync, M: Malloc> Sync for VecDeque<T, M> {}
+unsafe impl<T: Send, M: Malloc> Send for VecDeque<T, M> {}
+
+impl<T, M: Malloc> VecDeque<T, M> {
+    pub const fn new() -> Self {
+        Self {
+            head: 0,
+            vec: Vec::new(),
+        }
+    }
+
+    pub fn with_capacity(capacity: usize, flags: MallocFlags) -> Self {
+        Self {
+            head: 0,
+            vec: Vec::with_capacity(capacity, flags),
+        }
+    }
+
+    pub fn push_back(&mut self, value: T) -> Option<T> {
+        self.vec.push(value)
+    }
+
+    pub fn pop_front(&mut self) -> Option<T> {
+        if self.head == self.vec.len {
+            return None;
+        }
+        let res = unsafe { read(self.vec.as_ptr().add(self.head)) };
+        self.head += 1;
+        if self.head == self.vec.len {
+            self.head = 0;
+            self.vec.len = 0;
+        }
+        Some(res)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
