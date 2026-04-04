@@ -242,7 +242,7 @@ pub mod prelude {
 
 macro_rules! err_codes {
     ($($name:ident, $desc:literal,)+) => {
-        use core::ffi::c_int;
+        use core::ffi::{c_int, FromBytesUntilNulError};
         use core::fmt;
         use core::fmt::{Debug, Display, Formatter};
         use core::num::NonZeroI32;
@@ -330,6 +330,12 @@ macro_rules! err_codes {
                     // Map anything else to EBADFFI
                     _ => err_codes::EBADFFI,
                 }
+            }
+        }
+
+        impl From<FromBytesUntilNulError> for ErrCode {
+            fn from(_: FromBytesUntilNulError) -> Self {
+                err_codes::EINVAL
             }
         }
     };
