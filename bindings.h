@@ -99,7 +99,9 @@
 #include <dev/nvme/nvme_private.h>
 #include <dev/nvme/nvme_ans.h>
 
+#include <dev/evdev/input.h>
 #include <dev/hid/hid.h>
+#include <dev/hid/hidquirk.h>
 #include "hid_if.h"
 
 #include <arm64/apple/apple_bindings.h>
