@@ -315,7 +315,12 @@ pub mod wrappers {
         unsafe { bindings::device_get_driver(dev) }
     }
 
-    pub fn device_add_child(dev: device_t, name: &'static CStr, unit: u32) -> Result<device_t> {
+    pub fn device_add_child(
+        dev: device_t,
+        name: &'static CStr,
+        unit: Option<u32>,
+    ) -> Result<device_t> {
+        let unit = unit.unwrap_or(bindings::DEVICE_UNIT_ANY as u32);
         let child = unsafe { bindings::device_add_child(dev, name.as_ptr(), unit as i32) };
         if child.as_ptr().is_null() {
             Err(ENULLPTR)
