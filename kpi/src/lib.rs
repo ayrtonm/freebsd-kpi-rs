@@ -142,6 +142,14 @@ pub mod misc {
 
     pub const BUS_SPACE_MAXADDR: u64 = crate::bindings::BUS_SPACE_MAXADDR as u64;
 
+    pub fn bus_topo_lock() {
+        unsafe { bindings::bus_topo_lock() }
+    }
+
+    pub fn bus_topo_unlock() {
+        unsafe { bindings::bus_topo_unlock() }
+    }
+
     pub fn cold() -> bool {
         // nonzero if we are doing a cold boot
         unsafe { bindings::cold != 0 }
