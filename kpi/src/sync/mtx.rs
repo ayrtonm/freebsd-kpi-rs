@@ -103,7 +103,7 @@ impl<T> Mutable<T> for SpinLock<T> {
 }
 
 #[doc(hidden)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct MtxCommon {
     inner: UnsafeCell<mtx>,
 }
@@ -121,7 +121,7 @@ unsafe impl<T: Send> Sync for Mutex<T> {}
 unsafe impl<T: Send> Send for SpinLock<T> {}
 unsafe impl<T: Send> Sync for SpinLock<T> {}
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Mutex<T> {
     mtx_impl: MtxCommon,
     data: UnsafeCell<T>,
@@ -141,7 +141,7 @@ impl<T> Mutex<T> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SpinLock<T> {
     mtx_impl: MtxCommon,
     data: UnsafeCell<T>,
