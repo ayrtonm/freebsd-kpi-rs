@@ -145,6 +145,140 @@ impl<'a, T, M: Malloc> IntoIterator for &'a mut Box<[T], M> {
     }
 }
 
+#[derive(Debug)]
+pub struct LinkedList<T, M: Malloc = M_DEVBUF> {
+    head: Option<NonNull<Node<T>>>,
+    tail: Option<NonNull<Node<T>>>,
+    len: usize,
+    _marker: PhantomData<*mut M>,
+}
+
+impl<T, M: Malloc> LinkedList<T, M> {
+    pub const fn new() -> Self {
+        Self {
+            head: None,
+            tail: None,
+            len: 0,
+            _marker: PhantomData,
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    fn head_as_mut(&mut self) -> Option<&mut Node<T>> {
+        unsafe { self.head.map(|mut ptr| ptr.as_mut()) }
+    }
+
+    fn tail_as_mut(&mut self) -> Option<&mut Node<T>> {
+        unsafe { self.tail.map(|mut ptr| ptr.as_mut()) }
+    }
+
+    pub fn push_back(&mut self, elt: T, flags: MallocFlags) {
+        self.len += 1;
+        let mut node = Node::new(elt);
+        node.prev = self.tail;
+        let boxed_node = Box::<Node<T>, M>::new(node, flags);
+        let new_node_ptr = NonNull::new(Box::into_raw(boxed_node)).unwrap();
+        if self.tail.is_none() && self.head.is_none() {
+            self.head = Some(new_node_ptr);
+            self.tail = Some(new_node_ptr);
+        } else if let Some(old_tail) = self.tail_as_mut() {
+            old_tail.next = Some(new_node_ptr);
+            self.tail = Some(new_node_ptr);
+        };
+    }
+
+    pub fn push_front(&mut self, elt: T, flags: MallocFlags) {
+        self.len += 1;
+        let mut node = Node::new(elt);
+        node.next = self.head;
+        let boxed_node = Box::<Node<T>, M>::new(node, flags);
+        let new_node_ptr = NonNull::new(Box::into_raw(boxed_node)).unwrap();
+        if self.tail.is_none() && self.head.is_none() {
+            self.head = Some(new_node_ptr);
+            self.tail = Some(new_node_ptr);
+        } else if let Some(old_head) = self.head_as_mut() {
+            old_head.prev = Some(new_node_ptr);
+            self.head = Some(new_node_ptr);
+        };
+    }
+
+    /// Retains only the elements specified by the predicate.
+    pub fn retain<F>(&mut self, mut filter: F)
+    where
+        F: FnMut(&mut T) -> bool,
+    {
+        // Handle no element case
+        if self.head.is_none() && self.tail.is_none() {
+            return;
+        }
+        // Handle single element case
+        if self.head.unwrap() == self.tail.unwrap() {
+            let keep = filter(&mut self.head_as_mut().unwrap().elt);
+            if !keep {
+                // Recreate the Box so it gets dropped (i.e. freed)
+                let boxed_node: Box<Node<T>, M> =
+                    unsafe { Box::from_raw(self.head.unwrap().as_ptr()) };
+                self.len -= 1;
+                self.head = None;
+                self.tail = None;
+            }
+            return;
+        }
+        // Handle two or more element case
+        let mut cur_node = self.head;
+        let mut prev_node: Option<NonNull<Node<T>>> = None;
+        let mut next_node = self.head_as_mut().unwrap().next;
+
+        while let Some(mut cur) = cur_node {
+            next_node = unsafe { cur.as_ref().next };
+            let keep = filter(unsafe { &mut cur.as_mut().elt });
+            if !keep {
+                self.len -= 1;
+                let boxed_node: Box<Node<T>, M> = unsafe { Box::from_raw(cur.as_ptr()) };
+                if let Some(mut prev) = prev_node {
+                    unsafe {
+                        prev.as_mut().next = next_node;
+                    }
+                };
+                if cur_node == self.head {
+                    self.head = next_node;
+                }
+                if cur_node == self.tail {
+                    self.tail = prev_node;
+                    return;
+                }
+                if let Some(mut next) = next_node {
+                    unsafe {
+                        next.as_mut().prev = prev_node;
+                    }
+                };
+            } else {
+                prev_node = cur_node;
+            }
+            cur_node = next_node;
+        }
+    }
+}
+
+struct Node<T> {
+    next: Option<NonNull<Node<T>>>,
+    prev: Option<NonNull<Node<T>>>,
+    elt: T,
+}
+
+impl<T> Node<T> {
+    pub fn new(elt: T) -> Self {
+        Self {
+            next: None,
+            prev: None,
+            elt,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -175,5 +309,26 @@ mod tests {
         let y: Box<LoudDrop> = Box::try_new(LoudDrop, M_NOWAIT).unwrap();
         let y_ptr = Box::into_raw(y);
         let _new_y: Box<LoudDrop> = unsafe { Box::from_raw(y_ptr) };
+    }
+
+    #[test]
+    fn retain_none_1_elt() {
+        let mut list: LinkedList<u32, M_DEVBUF> = LinkedList::new();
+        assert_eq!(list.len(), 0);
+        list.push_back(1u32, M_WAITOK);
+        assert_eq!(list.len(), 1);
+        list.retain(|_| false);
+        assert_eq!(list.len(), 0);
+    }
+
+    #[test]
+    fn linked_list() {
+        let mut list: LinkedList<u32, M_DEVBUF> = LinkedList::new();
+        list.push_back(1u32, M_WAITOK);
+        list.push_back(2u32, M_WAITOK);
+        list.push_back(3u32, M_WAITOK);
+        assert_eq!(list.len(), 3);
+        list.retain(|x| *x < 2);
+        assert_eq!(list.len(), 1);
     }
 }
