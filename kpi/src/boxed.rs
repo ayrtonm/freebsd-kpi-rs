@@ -153,6 +153,15 @@ pub struct LinkedList<T, M: Malloc = M_DEVBUF> {
     _marker: PhantomData<*mut M>,
 }
 
+impl<T, M: Malloc> Default for LinkedList<T, M> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+unsafe impl<T: Sync, M: Malloc> Sync for LinkedList<T, M> {}
+unsafe impl<T: Send, M: Malloc> Send for LinkedList<T, M> {}
+
 impl<T, M: Malloc> LinkedList<T, M> {
     pub const fn new() -> Self {
         Self {
@@ -206,13 +215,13 @@ impl<T, M: Malloc> LinkedList<T, M> {
     }
 
     /// Retains only the elements specified by the predicate.
-    pub fn retain<F>(&mut self, mut filter: F)
+    pub fn retain<F>(&mut self, mut filter: F) -> bool
     where
         F: FnMut(&mut T) -> bool,
     {
         // Handle no element case
         if self.head.is_none() && self.tail.is_none() {
-            return;
+            return false;
         }
         // Handle single element case
         if self.head.unwrap() == self.tail.unwrap() {
@@ -224,18 +233,21 @@ impl<T, M: Malloc> LinkedList<T, M> {
                 self.len -= 1;
                 self.head = None;
                 self.tail = None;
+                return true;
             }
-            return;
+            return false;
         }
         // Handle two or more element case
         let mut cur_node = self.head;
         let mut prev_node: Option<NonNull<Node<T>>> = None;
         let mut next_node = self.head_as_mut().unwrap().next;
+        let mut removed_any = false;
 
         while let Some(mut cur) = cur_node {
             next_node = unsafe { cur.as_ref().next };
             let keep = filter(unsafe { &mut cur.as_mut().elt });
             if !keep {
+                removed_any = true;
                 self.len -= 1;
                 let boxed_node: Box<Node<T>, M> = unsafe { Box::from_raw(cur.as_ptr()) };
                 if let Some(mut prev) = prev_node {
@@ -248,7 +260,7 @@ impl<T, M: Malloc> LinkedList<T, M> {
                 }
                 if cur_node == self.tail {
                     self.tail = prev_node;
-                    return;
+                    return removed_any;
                 }
                 if let Some(mut next) = next_node {
                     unsafe {
@@ -260,9 +272,11 @@ impl<T, M: Malloc> LinkedList<T, M> {
             }
             cur_node = next_node;
         }
+        return removed_any;
     }
 }
 
+#[derive(Debug, Default)]
 struct Node<T> {
     next: Option<NonNull<Node<T>>>,
     prev: Option<NonNull<Node<T>>>,
