@@ -93,6 +93,8 @@
 
 #if defined(__aarch64__)
 #include <dev/gpio/gpiobusvar.h>
+device_t apple_smc_get_bus(device_t dev);
+int apple_smc_pin_set(device_t dev, uint32_t pin, uint32_t value);
 #endif
 
 #if defined(KERNCONF_APPLE)
