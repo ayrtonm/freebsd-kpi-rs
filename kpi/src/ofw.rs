@@ -235,7 +235,6 @@ pub mod wrappers {
     }
 
     pub fn OF_hasprop(node: Node, propname: &CStr) -> bool {
-        let res = unsafe { bindings::OF_hasprop(node.0, propname.as_ptr()) };
-        res == 1
+        unsafe { bindings::OF_hasprop(node.0, propname.as_ptr()) }
     }
 }
