@@ -132,7 +132,11 @@ impl<'a, T> UniqueRef<'a, T> {
         Ref(self.0)
     }
 
-    #[cfg(test)]
+    pub fn from_boxed(b: Box<T>) -> Self {
+        let ptr = Box::into_raw(b);
+        unsafe { Self::from_raw(ptr) }
+    }
+
     pub unsafe fn from_raw(ptr: *mut T) -> Self {
         UniqueRef(unsafe { ptr.as_mut().unwrap() })
     }
@@ -177,6 +181,11 @@ impl<'a, T> Ref<'a, T> {
     pub fn into_ptr(x: Self) -> Ptr<T> {
         let ptr = Self::into_raw(x);
         Ptr::new(ptr)
+    }
+
+    pub fn from_boxed(b: Box<T>) -> Self {
+        let ptr = Box::into_raw(b);
+        unsafe { Self::from_raw(ptr) }
     }
 
     pub unsafe fn from_raw(ptr: *mut T) -> Self {
