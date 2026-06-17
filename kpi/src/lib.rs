@@ -130,12 +130,19 @@ pub mod misc {
     use crate::bindings::{cpuset_t, u_int};
     use core::ffi::c_int;
 
+    #[cfg(target_arch = "aarch64")]
     pub const PAGE_SHIFT_4K: u64 = crate::bindings::PAGE_SHIFT_4K as u64;
+    #[cfg(target_arch = "aarch64")]
     pub const PAGE_SIZE_4K: u64 = crate::bindings::PAGE_SIZE_4K as u64;
+    #[cfg(target_arch = "aarch64")]
     pub const PAGE_SHIFT_16K: u64 = crate::bindings::PAGE_SHIFT_16K as u64;
+    #[cfg(target_arch = "aarch64")]
     pub const PAGE_SIZE_16K: u64 = crate::bindings::PAGE_SIZE_16K as u64;
+    #[cfg(target_arch = "aarch64")]
     pub const PAGE_SHIFT_64K: u64 = crate::bindings::PAGE_SHIFT_64K as u64;
+    #[cfg(target_arch = "aarch64")]
     pub const PAGE_SIZE_64K: u64 = crate::bindings::PAGE_SIZE_64K as u64;
+
     pub const PAGE_SHIFT: u64 = crate::bindings::PAGE_SHIFT as u64;
     pub const PAGE_SIZE: u64 = crate::bindings::PAGE_SIZE as u64;
     pub const PAGE_MASK: u64 = crate::bindings::PAGE_MASK as u64;
