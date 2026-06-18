@@ -214,14 +214,14 @@ impl<T, M: Malloc> LinkedList<T, M> {
         };
     }
 
-    /// Retains only the elements specified by the predicate, returning true if any were removed.
-    pub fn retain<F>(&mut self, mut filter: F) -> bool
+    /// Retains only the elements specified by the predicate.
+    pub fn retain<F>(&mut self, mut filter: F)
     where
         F: FnMut(&mut T) -> bool,
     {
         // Handle no element case
         if self.head.is_none() && self.tail.is_none() {
-            return false;
+            return;
         }
         // Handle single element case
         if self.head.unwrap() == self.tail.unwrap() {
@@ -233,21 +233,19 @@ impl<T, M: Malloc> LinkedList<T, M> {
                 self.len -= 1;
                 self.head = None;
                 self.tail = None;
-                return true;
+                return;
             }
-            return false;
+            return;
         }
         // Handle two or more element case
         let mut cur_node = self.head;
         let mut prev_node: Option<NonNull<Node<T>>> = None;
         let mut next_node = self.head_as_mut().unwrap().next;
-        let mut removed_any = false;
 
         while let Some(mut cur) = cur_node {
             next_node = unsafe { cur.as_ref().next };
             let keep = filter(unsafe { &mut cur.as_mut().elt });
             if !keep {
-                removed_any = true;
                 self.len -= 1;
                 let boxed_node: Box<Node<T>, M> = unsafe { Box::from_raw(cur.as_ptr()) };
                 if let Some(mut prev) = prev_node {
@@ -260,7 +258,7 @@ impl<T, M: Malloc> LinkedList<T, M> {
                 }
                 if cur_node == self.tail {
                     self.tail = prev_node;
-                    return removed_any;
+                    return;
                 }
                 if let Some(mut next) = next_node {
                     unsafe {
@@ -272,7 +270,6 @@ impl<T, M: Malloc> LinkedList<T, M> {
             }
             cur_node = next_node;
         }
-        return removed_any;
     }
 }
 
