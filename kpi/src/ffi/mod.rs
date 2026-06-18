@@ -28,8 +28,6 @@
 
 //! Utilities related to FFI with C.
 
-use crate::bindings;
-use crate::bindings::device_t;
 use crate::boxed::Box;
 use core::fmt;
 use core::fmt::{Debug, Formatter};

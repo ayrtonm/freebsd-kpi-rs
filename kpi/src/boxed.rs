@@ -228,7 +228,7 @@ impl<T, M: Malloc> LinkedList<T, M> {
             let keep = filter(&mut self.head_as_mut().unwrap().elt);
             if !keep {
                 // Recreate the Box so it gets dropped (i.e. freed)
-                let boxed_node: Box<Node<T>, M> =
+                let _boxed_node: Box<Node<T>, M> =
                     unsafe { Box::from_raw(self.head.unwrap().as_ptr()) };
                 self.len -= 1;
                 self.head = None;
@@ -247,7 +247,8 @@ impl<T, M: Malloc> LinkedList<T, M> {
             let keep = filter(unsafe { &mut cur.as_mut().elt });
             if !keep {
                 self.len -= 1;
-                let boxed_node: Box<Node<T>, M> = unsafe { Box::from_raw(cur.as_ptr()) };
+                // Recreate the Box so it gets dropped (i.e. freed)
+                let _boxed_node: Box<Node<T>, M> = unsafe { Box::from_raw(cur.as_ptr()) };
                 if let Some(mut prev) = prev_node {
                     unsafe {
                         prev.as_mut().next = next_node;

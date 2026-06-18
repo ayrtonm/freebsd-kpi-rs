@@ -182,7 +182,7 @@ impl<T, M: Malloc> Vec<T, M> {
         Some(unsafe { read(self.as_mut_ptr().add(self.len)) })
     }
 
-    pub fn into_boxed_slice(mut self) -> Box<[T], M> {
+    pub fn into_boxed_slice(self) -> Box<[T], M> {
         self.try_into_boxed_slice().unwrap()
     }
 

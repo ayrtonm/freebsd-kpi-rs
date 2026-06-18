@@ -35,8 +35,6 @@ use crate::prelude::*;
 use crate::vec::Vec;
 use crate::{ErrCode, define_interface};
 use core::ffi::{CStr, c_int};
-use core::fmt;
-use core::fmt::{Debug, Formatter};
 use core::ptr::null_mut;
 
 /// The result of probing a device with a driver.
