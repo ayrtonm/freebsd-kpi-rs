@@ -35,4 +35,46 @@ bus_setup_intr + bus_teardown_intr
 
 taskqueue_enqueue + taskqueue_drain/taskqueue_cancel
 
+
+Use-after-frees seem like a relatively big problem so it would be nice to try to avoid unsafe. If
+refcounting is not an option, then the next best thing would be to use out-of-band methods to at
+least panic if there will be a future callback that takes the thing being freed. For callout this
+means
+
+callout_reset<T: CalloutArg>(c: &mut Callout, ticks: sbintime_t, func: CalloutFn<T>, arg: Ref<T>) -> Result<()>;
+
+|----------------------|----------------------------|---------------X
+device_attach          callout_reset/schedule       device_detach
+
+device attach leads to...
+drop softc
+drop Ref<T> that was passed in to callout_reset
+
+must ensure callout_pending(c) is false
+
+need to map Ref<T> where T: CalloutArg to the callout
+
+Don't think I can do this
+
+impl<T: CalloutArg> Drop for T {
+    fn drop(&mut self) {
+        assert!(!callout_pending(self.get_callout()));
+    }
+}
+
+trait CalloutArg {
+    fn get_callout(&self) -> *mut callout;
+}
+
+impl Drop for Callout {
+    fn drop(&mut self) {
+        assert!(!callout_pending(self.0))
+    }
+}
+
+Instead put the callout_pending(c) assertion in drop glue for Callout
+this means that the lifetime of the callout must have the same lifetime as its arg
+if Callout in softc and softc is arg all is fine
+if Callout in softc and thing with shorter lifetime than softc is arg all is fine, but need to check that thing with shorter lifetime is actually related to interfaces used by the driver
+
 ## Self-references
