@@ -33,11 +33,14 @@ use crate::prelude::*;
 use core::cmp::PartialEq;
 use core::ffi::c_void;
 use core::fmt::{Debug, Formatter};
+use crate::device::Device;
 use core::marker::PhantomData;
 use core::mem::{forget, size_of};
 use core::ops::{Deref, DerefMut};
 use core::ptr::{NonNull, drop_in_place};
 use core::{fmt, slice};
+use core::ops::Range;
+use core::sync::atomic::AtomicPtr;
 
 /// A pointer to something on the heap.
 ///
@@ -91,6 +94,12 @@ impl<T: ?Sized, M: Malloc> Drop for Box<T, M> {
 }
 
 impl<T, M: Malloc> Box<T, M> {
+    pub fn new_in_dev(t: T, dev: &Device, flags: MallocFlags) -> Self {
+        let b = Self::new(t, flags);
+        dev.add_box_range(&b, flags);
+        b
+    }
+
     pub fn new(t: T, flags: MallocFlags) -> Self {
         assert!(flags.contains(M_WAITOK));
         assert!(!flags.contains(M_NOWAIT));

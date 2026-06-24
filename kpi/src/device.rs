@@ -29,13 +29,117 @@
 use crate::bindings::{device_state_t, device_t, driver_t};
 use crate::boxed::Box;
 use crate::driver::Driver;
+use core::alloc::Layout;
 use crate::ffi::{ArrayCString, Ref, UninitRef};
 use crate::kobj::{AsCType, AsRustType};
 use crate::prelude::*;
 use crate::vec::Vec;
 use crate::{ErrCode, define_interface};
-use core::ffi::{CStr, c_int};
+use core::ffi::{CStr, c_int, c_void};
 use core::ptr::null_mut;
+use core::ops::Range;
+use core::sync::atomic::{AtomicPtr, Ordering};
+use crate::malloc::{Malloc, MallocFlags};
+
+/// A pointer to a device which is aware of the address ranges owned by the device driver's softc.
+///
+/// Since the device softc is typically not refcounted and should usually be freed after
+/// device_detach, this provides a way for KPIs to check that an arbitrary reference argument has a
+/// lifetime that matches the softc for a device_t argument. This explicitly does not impl Copy or
+/// Clone because all compare-and-swap operations for a given device must operate on the same
+/// address.
+#[derive(Debug)]
+pub struct Device {
+    // The underlying device
+    ptr: device_t,
+    // The softc address range. While this could be computed on demand using device_get_softc and
+    // device_get_driver, it's instead cached in the Device struct to give the rust compiler more
+    // opportunities to optimize out bounds checks that can be statically-determined to always pass.
+    sc_range: Range<usize>,
+    // The head of a linked list of address ranges for each allocation owned by the device. While
+    // the softc may contain allocations not in this list (e.g. by using Box::new instead of
+    // Box::new_in_dev) KPIs that require an argument live as long as the softc (e.g.
+    // intr_isrc_register) will check this list if the argument is not directly embedded in the
+    // softc. If the argument is not found in this list they will panic because at that point there
+    // is no way to tell if the argument may be freed before device_detach.
+    allocations_head: AtomicPtr<AllocationRange>,
+}
+
+struct AllocationRange {
+    range: Range<usize>,
+    next: *mut AllocationRange,
+}
+
+impl Device {
+    pub fn as_ptr(&self) -> device_t {
+        self.ptr
+    }
+
+    pub unsafe fn free_allocation_list(&self) {
+        let mut current = self.allocations_head.load(Ordering::Acquire);
+        while !current.is_null() {
+            let node: Box<AllocationRange> = unsafe { Box::from_raw(current) };
+            current = node.next;
+            drop(node);
+        }
+    }
+
+    pub fn in_bounds<T>(&self, t: &T) -> bool {
+        let t_ptr = t as *const T;
+        let t_start = t_ptr.addr();
+        let t_end = t_start + size_of::<T>();
+        if self.sc_range.contains(&t_start) && self.sc_range.contains(&t_end) {
+            device_println!(self.ptr, "found {:?} embedded in softc", core::any::type_name::<T>());
+            return true;
+        }
+        let mut current = self.allocations_head.load(Ordering::Acquire);
+        while !current.is_null() {
+            let node = unsafe { &*current };
+            if node.range.contains(&t_start) && node.range.contains(&t_end) {
+                return true;
+            }
+            current = node.next;
+        }
+        false
+    }
+
+    pub fn add_box_range<T, M: Malloc>(&self, b: &Box<T, M>, flags: MallocFlags) {
+        let b_start = b.0.as_ptr().addr();
+        let b_end = b_start + size_of::<T>();
+        self.add_range(b_start..b_end, flags);
+    }
+
+    pub fn add_vec_range<T, M: Malloc>(&self, v: &Vec<T, M>, flags: MallocFlags) {
+        let v_start = v.as_ptr().addr();
+        let layout = Layout::array::<T>(v.capacity()).unwrap();
+        let v_end = v_start + layout.size();
+        self.add_range(v_start..v_end, flags);
+    }
+
+    fn add_range(&self, range: Range<usize>, flags: MallocFlags) {
+        let node: Box<AllocationRange> = Box::new(AllocationRange {
+            range, next: null_mut()
+        }, flags);
+        let node_ptr = Box::into_raw(node);
+        loop {
+            let old_head = self.allocations_head.load(Ordering::Acquire);
+            unsafe {
+                (*node_ptr).next = old_head;
+            }
+            let res = self.allocations_head.compare_exchange_weak(
+                old_head,
+                node_ptr,
+                Ordering::Release,
+                Ordering::Relaxed
+            );
+            if res.is_ok() {
+                return;
+            } else {
+                continue;
+            }
+        }
+    }
+}
 
 /// The result of probing a device with a driver.
 ///
@@ -62,6 +166,23 @@ impl<'a, T> AsRustType<Ref<'a, T>> for device_t {
     }
 }
 
+// Should only be called once per device_t during init since it assumes there are no allocations.
+impl AsRustType<Device> for device_t {
+    fn as_rust_type(self) -> Device {
+        let sc = unsafe { bindings::device_get_softc(self) };
+        let driver = unsafe { bindings::device_get_driver(self) };
+        // Equals core::mem::size_of::<SoftcTy>() which includes padding
+        let sc_size = unsafe { (*driver).size };
+        let sc_start = sc.addr();
+        let sc_end = sc_start + sc_size;
+        Device {
+            ptr: self,
+            sc_range: sc_start..sc_end,
+            allocations_head: AtomicPtr::new(null_mut()),
+        }
+    }
+}
+
 #[doc(hidden)]
 #[macro_export]
 macro_rules! device_attach {
@@ -79,9 +200,12 @@ macro_rules! device_attach {
                 use $crate::bindings;
                 use $crate::ffi::UninitRef;
                 use $crate::kobj::KobjLayout;
+                use $crate::device::Device;
 
+                let dev: Device = dev;
+                let dev_ptr = dev.as_ptr();
                 let mut sc_init = false;
-                let void_ptr = unsafe { bindings::device_get_softc(dev) };
+                let void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
                 let sc_ptr = void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
 
                 let uninit_sc = unsafe { UninitRef::from_raw(sc_ptr, &mut sc_init) };
@@ -89,7 +213,7 @@ macro_rules! device_attach {
             with drop glue {
                 // drop glue is only called if device_attach succeeded
                 if !sc_init {
-                    device_println!(dev, "Must call .init() on UninitRef<Softc> in device_attach");
+                    device_println!(dev_ptr, "Must call .init() on UninitRef<Softc> in device_attach");
                     return bindings::ENXIO;
                 }
             }
@@ -173,7 +297,7 @@ pub trait DeviceIf: Driver {
     ///
     /// All implementations must call [`init`][crate::ffi::UninitRef::init] on the `uninit_sc`
     /// argument before this function returns to avoid a panic at runtime.
-    fn device_attach(uninit_sc: UninitRef<Self::Softc>, dev: device_t) -> Result<()> {
+    fn device_attach(uninit_sc: UninitRef<Self::Softc>, dev: Device) -> Result<()> {
         unimplemented!()
     }
 

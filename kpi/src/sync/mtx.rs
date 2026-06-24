@@ -27,6 +27,7 @@
  */
 
 use crate::bindings::{MTX_DEF, MTX_SPIN, mtx};
+use crate::device::Device;
 use crate::ffi::Ref;
 use crate::prelude::*;
 use crate::sync::Mutable;
@@ -203,11 +204,13 @@ pub mod wrappers {
     }
 
     pub fn mtx_init<M: Lockable>(
-        lock: Ref<M>,
+        dev: &Device,
+        lock: &M,
         name: &'static CStr,
         kind: Option<&'static CStr>,
         flags: Option<MtxFlags>,
     ) {
+        assert!(dev.in_bounds(lock));
         let name_ptr = name.as_ptr();
         let kind_ptr = match kind {
             Some(k) => k.as_ptr(),

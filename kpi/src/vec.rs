@@ -39,6 +39,7 @@ use core::mem::{forget, replace};
 use core::ops::{Deref, DerefMut};
 use core::ptr::{NonNull, drop_in_place, read, write};
 use core::{fmt, ptr, slice};
+use crate::device::Device;
 
 /// A growable array of some type T.
 pub struct Vec<T, M: Malloc = M_DEVBUF> {
@@ -97,6 +98,12 @@ impl<T, M: Malloc> Vec<T, M> {
     /// Returns the number of elements in the vector.
     pub const fn length(&self) -> usize {
         self.len
+    }
+
+    pub fn with_capacity_in_dev(capacity: usize, dev: &Device, flags: MallocFlags) -> Self {
+        let v = Self::with_capacity(capacity, flags);
+        dev.add_vec_range(&v, flags);
+        v
     }
 
     pub fn with_capacity(capacity: usize, flags: MallocFlags) -> Self {

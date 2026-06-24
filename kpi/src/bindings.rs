@@ -38,7 +38,9 @@
 
 use crate::ffi::Ptr;
 
-/// An opaque pointer to a device
+/// An opaque pointer to a device. This must be ABI-compatible with pointers since it's used in the
+/// generated bindings. It's defined explicitly instead of via bindgen so that it implements Sync
+/// which allows storing it in a softc directly.
 pub type device_t = Ptr<_device>;
 pub type void = core::ffi::c_void;
 pub type char = core::ffi::c_char;
