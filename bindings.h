@@ -26,6 +26,10 @@
  * SUCH DAMAGE.
  */
 
+#if !defined(__has_include)
+#error "Please preprocess this with a compiler with support for __has_include"
+#endif
+
 #include "opt_platform.h"
 
 #include <sys/cdefs.h>
@@ -84,11 +88,11 @@
 #include <dev/virtio/virtqueue.h>
 #endif
 
-#if defined(WITH_SOUND) && defined(WITH_VIRTIO)
+#if __has_include(<dev/virtio/sound/virtio_snd.h>)
 #include <dev/virtio/sound/virtio_snd.h>
 #endif
 
-#if defined(WITH_VIRTIO)
+#if __has_include(<dev/virtio/fs/virtio_fs.h>)
 #include <dev/virtio/fs/virtio_fs.h>
 #endif
 
