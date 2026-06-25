@@ -39,6 +39,8 @@ use core::sync::atomic::{AtomicBool, Ordering};
 pub mod arc;
 /// Mutex and SpinLock backed by mtx(9)
 pub mod mtx;
+/// Shared/Exclusive lock backed by sx(9)
+pub mod sx;
 
 #[derive(Debug)]
 pub struct OnceInit<T> {
