@@ -20,14 +20,14 @@ use kpi::vec::Vec;
 use kpi::sync::Checked;
 use core::sync::atomic::{AtomicPtr, Ordering};
 use core::cmp::min;
-use kpi::sync::mtx::Mutex;
+use kpi::sync::sx::SxLock;
 
 type Box<T> = kpi::boxed::Box<T, M_DEVBUF>;
 
 #[derive(Default)]
 pub struct EchoDevSoftc {
     dev: CDev,
-    state: Mutex<EchoDevState>,
+    state: SxLock<EchoDevState>,
 }
 
 #[derive(Default)]
@@ -46,9 +46,9 @@ impl CDevSw for EchoDev {
         if uio.resid() == 0 {
             return Ok(());
         }
-        // mtx_unlock are also added for clarity, but not necessary since the mutex gets unlocked
-        // when the state guard returned by mtx_lock goes out of scope.
-        let mut state = mtx_lock(&sc.state);
+        // sx_xunlock are also added for clarity, but not necessary since the lock gets unlocked
+        // when the state guard returned by sx_xlock goes out of scope.
+        let mut state = sx_xlock(&sc.state);
 
         /* Wait for bytes to read */
         while state.valid == 0 && state.writers != 0 {
@@ -57,12 +57,12 @@ impl CDevSw for EchoDev {
             } else if ioflag & bindings::O_NONBLOCK != 0 {
                 Err(EWOULDBLOCK)
             } else {
-                unimplemented!("mtx_sleep()")
+                unimplemented!("sx_sleep()")
             };
             if res.is_err() {
-                // Unlock added for clarity, but not necessary since the mutex gets unlocked when
-                // the state guard returned by mtx_lock goes out of scope.
-                mtx_unlock(state);
+                // Unlock added for clarity, but not necessary since the lock gets unlocked when
+                // the state guard returned by sx_xlock goes out of scope.
+                sx_xunlock(state);
                 return res;
             }
         }
@@ -89,7 +89,7 @@ impl CDevSw for EchoDev {
             // selwakeup()
         }
 
-        mtx_unlock(state);
+        sx_xunlock(state);
         res
     }
 
@@ -97,7 +97,7 @@ impl CDevSw for EchoDev {
         if uio.resid() == 0 {
             return Ok(());
         }
-        let mut state = mtx_lock(&sc.state);
+        let mut state = sx_xlock(&sc.state);
         let mut res = Ok(());
         while uio.resid() != 0 {
             /* Wait for space to write */
@@ -107,10 +107,10 @@ impl CDevSw for EchoDev {
                 } else if ioflag & bindings::O_NONBLOCK != 0 {
                     Err(EWOULDBLOCK)
                 } else {
-                    unimplemented!("mtx_sleep()")
+                    unimplemented!("sx_sleep()")
                 };
                 if res.is_err() {
-                    mtx_unlock(state);
+                    sx_xunlock(state);
                     return res;
                 }
             }
@@ -126,7 +126,7 @@ impl CDevSw for EchoDev {
                 // selwakeup()
             }
         }
-        mtx_unlock(state);
+        sx_xunlock(state);
         res
     }
 }
@@ -153,7 +153,7 @@ impl Module for EchoDev {
         // the borrow, but leaves the responsibility of freeing the pointee to the owner.
         let echodev = make_dev_s(args, |sc, dev| {
             sc.dev = dev;
-            //mtx_init(dev, &sc.state, c"echo", None, None);
+            sx_init(&sc.state, c"echo");
             sc.state.get_mut().buf = Vec::fill_with_capacity(0u8, 64, M_WAITOK);
         })?;
         Ok(())
