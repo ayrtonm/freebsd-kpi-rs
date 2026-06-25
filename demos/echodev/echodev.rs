@@ -96,16 +96,17 @@ impl CDevSw for EchoDev {
             return Ok(());
         }
         let mut state = mtx_lock(&sc.state);
+        let mut res = Ok(());
         while uio.resid() != 0 {
             /* Wait for space to write */
             while state.valid == state.buf.len() {
-                if state.dying {
+                res = if state.dying {
                     Err(ENXIO)
                 } else if ioflag & bindings::O_NONBLOCK != 0 {
                     Err(EWOULDBLOCK)
                 } else {
                     unimplemented!("mtx_sleep()")
-                }
+                };
                 if res.is_err() {
                     mtx_unlock(state);
                     return res;
@@ -113,13 +114,13 @@ impl CDevSw for EchoDev {
             }
 
             let todo = min(uio.resid(), state.buf.len() - state.valid);
-            let res = uiomove_write(&state.buf[sc.valid..sc.valid + todo], uio);
+            res = uiomove_write(&state.buf[state.valid..state.valid + todo], uio);
             if res.is_ok() {
                 /* Wakeup any waiting readers. */
                 if state.valid == 0 {
                     //wakeup(sc);
                 }
-                sc.valid += todo;
+                state.valid += todo;
                 // selwakeup()
             }
         }
