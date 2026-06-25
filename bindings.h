@@ -52,6 +52,7 @@
 #include <sys/rman.h>
 #include <sys/sglist.h>
 #include <sys/smp.h>
+#include <sys/sx.h>
 #include <sys/systm.h>
 #include <sys/taskqueue.h>
 #include <sys/uio.h>

@@ -253,6 +253,9 @@ pub mod prelude {
     pub use crate::sync::mtx::wrappers::*;
 
     #[doc(inline)]
+    pub use crate::sync::sx::wrappers::*;
+
+    #[doc(inline)]
     pub use crate::taskqueue::wrappers::*;
 
     #[doc(inline)]
