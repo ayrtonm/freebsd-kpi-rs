@@ -15,7 +15,7 @@ use core::ptr::{NonNull, null_mut};
 use kpi::ErrCode;
 use kpi::prelude::*;
 use kpi::{define_module,define_cdev};
-use kpi::cdev::{UioRef, CDevSw, cdev_t};
+use kpi::cdev::{CDev, UioRef, CDevSw, cdev_t};
 use kpi::vec::Vec;
 use kpi::sync::Checked;
 use core::sync::atomic::{AtomicPtr, Ordering};
@@ -26,7 +26,7 @@ type Box<T> = kpi::boxed::Box<T, M_DEVBUF>;
 
 #[derive(Default)]
 pub struct EchoDevSoftc {
-    dev: cdev_t,
+    dev: CDev,
     state: Mutex<EchoDevState>,
 }
 
@@ -41,7 +41,7 @@ struct EchoDevState {
 impl CDevSw for EchoDev {
     type Softc = EchoDevSoftc;
 
-    fn on_read(sc: &EchoDevSoftc, dev: cdev_t, uio: UioRef, ioflag: c_int) -> Result<()> {
+    fn on_read(sc: &EchoDevSoftc, uio: UioRef, ioflag: c_int) -> Result<()> {
         if uio.resid() == 0 {
             return Ok(());
         }
@@ -92,7 +92,7 @@ impl CDevSw for EchoDev {
         res
     }
 
-    fn on_write(sc: &EchoDevSoftc, dev: cdev_t, uio: UioRef, ioflag: c_int) -> Result<()> {
+    fn on_write(sc: &EchoDevSoftc, uio: UioRef, ioflag: c_int) -> Result<()> {
         if uio.resid() == 0 {
             return Ok(());
         }

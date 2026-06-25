@@ -34,16 +34,23 @@ use core::mem::size_of;
 use crate::ffi::Ptr;
 use crate::malloc::Malloc;
 use crate::boxed::Box;
+use core::ops::Range;
 
 pub type cdev_t = Ptr<bindings::cdev>;
+
+#[derive(Default)]
+pub struct CDev {
+    ptr: cdev_t,
+    sc_range: Range<usize>,
+}
 
 pub trait CDevSwInternal {
     fn get_cdevsw_ptr() -> *mut bindings::cdevsw;
 }
 pub trait CDevSw: CDevSwInternal {
     type Softc: 'static + Sync;
-    fn on_read(sc: &Self::Softc, dev: cdev_t, uio: UioRef, ioflag: c_int) -> Result<()> { unimplemented!() }
-    fn on_write(sc: &Self::Softc, dev: cdev_t, uio: UioRef, ioflag: c_int) -> Result<()> { unimplemented!() }
+    fn on_read(sc: &Self::Softc, uio: UioRef, ioflag: c_int) -> Result<()> { unimplemented!() }
+    fn on_write(sc: &Self::Softc, uio: UioRef, ioflag: c_int) -> Result<()> { unimplemented!() }
     fn make_dev_args_init<M: Malloc>(sc: Box<Self::Softc, M>) -> MakeDevArgs<Self::Softc, M> {
         MakeDevArgs {
             sc,
@@ -78,9 +85,8 @@ macro_rules! c_fn_for_cdev {
             use $crate::cdev::CDevSw;
             let sc_ptr = unsafe { (*dev).si_drv1 };
             let sc = unsafe { sc_ptr.cast::<<$cdev_ty as CDevSw>::Softc>().as_ref().unwrap() };
-            let dev = $crate::ffi::Ptr::new(dev);
             let uio_ref = unsafe { $crate::cdev::UioRef::new(&uio) };
-            let res = <$cdev_ty as CDevSw>::$on_read_or_on_write(sc, dev, uio_ref, iof);
+            let res = <$cdev_ty as CDevSw>::$on_read_or_on_write(sc, uio_ref, iof);
             use $crate::kobj::AsCType;
             match res {
                 Ok(()) => 0,
@@ -181,7 +187,7 @@ pub mod wrappers {
     use core::ptr::null_mut;
 
     pub fn make_dev_s<T, M: Malloc, F>(args: MakeDevArgs<T, M>, sc_init: F) -> Result<cdev_t>
-    where F: Fn(&mut T, cdev_t) {
+    where F: Fn(&mut T, CDev) {
         let mut outp = null_mut();
         let (mut args_raw, name) = args.into_raw();
         let sc_ptr = args_raw.mda_si_drv1.cast::<T>();
@@ -193,9 +199,14 @@ pub mod wrappers {
             return Err(ErrCode::from(res));
         }
         let sc_mut_ref = unsafe { sc_ptr.as_mut().unwrap() };
-        let dev = Ptr::new(outp);
+        let dev_ptr = Ptr::new(outp);
+        let sc_start = sc_ptr.addr();
+        let sc_end = sc_start + size_of::<T>();
+        let dev = CDev {
+            ptr: dev_ptr, sc_range: sc_start..sc_end,
+        };
         sc_init(sc_mut_ref, dev);
-        Ok(dev)
+        Ok(dev_ptr)
     }
 
     pub fn uiomove_read(buf: &mut [u8], uio_ref: UioRef) -> Result<()> {
