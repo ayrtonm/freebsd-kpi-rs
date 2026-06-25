@@ -27,18 +27,36 @@
  */
 
 use crate::prelude::*;
-use core::ffi::c_int;
+use core::ffi::{c_int, c_void, CStr};
 use core::ptr::NonNull;
 use core::marker::PhantomData;
 use core::mem::size_of;
 use crate::ffi::Ptr;
+use crate::malloc::Malloc;
+use crate::boxed::Box;
 
 pub type cdev_t = Ptr<bindings::cdev>;
 
-pub trait CDevSw {
+pub trait CDevSwInternal {
+    fn get_cdevsw_ptr() -> *mut bindings::cdevsw;
+}
+pub trait CDevSw: CDevSwInternal {
     type Softc: 'static + Sync;
     fn on_read(sc: &Self::Softc, dev: cdev_t, uio: UioRef, ioflag: c_int) -> Result<()> { unimplemented!() }
     fn on_write(sc: &Self::Softc, dev: cdev_t, uio: UioRef, ioflag: c_int) -> Result<()> { unimplemented!() }
+    fn make_dev_args_init<M: Malloc>(sc: Box<Self::Softc, M>) -> MakeDevArgs<Self::Softc, M> {
+        MakeDevArgs {
+            sc,
+            // Follows make_dev_args_init's behavior
+            size: size_of::<bindings::make_dev_args>(),
+            flags: 0,
+            uid: 0,
+            gid: 0,
+            mode: 0,
+            name: c"",
+            cdevsw_ptr: Self::get_cdevsw_ptr(),
+        }
+    }
 }
 
 #[doc(hidden)]
@@ -72,28 +90,28 @@ macro_rules! c_fn_for_cdev {
     };
 }
 
-#[repr(C)]
-pub struct MakeDevArgs<T>(bindings::make_dev_args, PhantomData<*mut T>);
+pub struct MakeDevArgs<T, M: Malloc> {
+    pub flags: i32,
+    pub uid: i32,
+    pub gid: i32,
+    pub mode: i32,
+    pub name: &'static CStr,
+    sc: Box<T, M>,
+    size: usize,
+    cdevsw_ptr: *mut bindings::cdevsw,
+}
 
-impl<T> MakeDevArgs<T> {
-    pub unsafe fn new() -> Self {
-        // Follows make_dev_args_init's behavior
+impl<T, M: Malloc> MakeDevArgs<T, M> {
+    pub fn into_raw(self) -> (bindings::make_dev_args, &'static CStr) {
         let mut args = bindings::make_dev_args::default();
-        args.mda_size = size_of::<bindings::make_dev_args>();
-
-        // Initialize to something sensible
-        args.mda_flags = bindings::MAKEDEV_CHECKNAME;
-
-        // TODO: Make this configurable
-        args.mda_flags |= bindings::MAKEDEV_WAITOK;
-        args.mda_uid = bindings::UID_ROOT as u32;
-        args.mda_gid = bindings::GID_WHEEL as u32;
-        args.mda_mode = 0o600;
-
-        Self(args, PhantomData)
-    }
-    pub unsafe fn get_mut(&mut self) -> &mut bindings::make_dev_args {
-        &mut self.0
+        args.mda_size = self.size;
+        args.mda_flags = self.flags;
+        args.mda_uid = self.uid.try_into().unwrap();
+        args.mda_gid = self.gid.try_into().unwrap();
+        args.mda_mode = self.mode;
+        args.mda_si_drv1 = Box::into_raw(self.sc).cast::<c_void>();
+        args.mda_devsw = self.cdevsw_ptr;
+        (args, self.name)
     }
 }
 
@@ -105,21 +123,12 @@ macro_rules! define_cdev {
     ) => {
         #[repr(C)]
         pub struct $cdev_ty(core::cell::UnsafeCell<$crate::bindings::cdevsw>);
-        impl $cdev_ty {
-            pub fn make_dev_args_init<M: $crate::malloc::Malloc>(
-                sc: $crate::boxed::Box<<$cdev_ty as $crate::cdev::CDevSw>::Softc, M>
-            ) -> $crate::cdev::MakeDevArgs<<$cdev_ty as $crate::cdev::CDevSw>::Softc> {
-                let mut args = unsafe { $crate::cdev::MakeDevArgs::new() };
-                let sc_ptr = Box::into_raw(sc);
-                unsafe {
-                    let mut args_ref = args.get_mut();
-                    args_ref.mda_devsw = $cdevsw_name.0.get();
-                    args_ref.mda_si_drv1 = sc_ptr.cast::<c_void>();
-                };
-                args
+        unsafe impl Sync for $cdev_ty {}
+        impl $crate::cdev::CDevSwInternal for $cdev_ty {
+            fn get_cdevsw_ptr() -> *mut bindings::cdevsw {
+                $cdevsw_name.0.get()
             }
         }
-        unsafe impl Sync for $cdev_ty {}
 
         static $cdevsw_name: $cdev_ty = $cdev_ty(core::cell::UnsafeCell::new({
             use $crate::bindings::cdevsw;
@@ -171,14 +180,16 @@ pub mod wrappers {
     use crate::ErrCode;
     use core::ptr::null_mut;
 
-    pub fn make_dev_s<T, F>(mut args: MakeDevArgs<T>, sc_init: F) -> Result<cdev_t>
+    pub fn make_dev_s<T, M: Malloc, F>(args: MakeDevArgs<T, M>, sc_init: F) -> Result<cdev_t>
     where F: Fn(&mut T, cdev_t) {
         let mut outp = null_mut();
-        let sc_ptr = args.0.mda_si_drv1.cast::<T>();
+        let (mut args_raw, name) = args.into_raw();
+        let sc_ptr = args_raw.mda_si_drv1.cast::<T>();
         let res = unsafe {
-            bindings::make_dev_s(&raw mut args.0, &raw mut outp, c"echo".as_ptr())
+            bindings::make_dev_s(&raw mut args_raw, &raw mut outp, name.as_ptr())
         };
         if res != 0 {
+            // FIXME: This leaks the softc
             return Err(ErrCode::from(res));
         }
         let sc_mut_ref = unsafe { sc_ptr.as_mut().unwrap() };
