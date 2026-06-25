@@ -38,6 +38,7 @@
 #include <sys/conf.h>
 #include <sys/bus.h>
 #include <sys/cpuset.h>
+#include <sys/fcntl.h>
 #ifdef INTRNG
 #include <sys/intr.h>
 #endif
@@ -53,6 +54,7 @@
 #include <sys/smp.h>
 #include <sys/systm.h>
 #include <sys/taskqueue.h>
+#include <sys/uio.h>
 
 #include <machine/_inttypes.h>
 #include <machine/bus.h>
