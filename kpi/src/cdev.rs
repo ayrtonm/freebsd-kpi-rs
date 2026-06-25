@@ -135,6 +135,7 @@ macro_rules! define_cdev {
     };
 }
 
+#[derive(Copy, Clone)]
 pub struct UioRef<'a>(NonNull<bindings::uio>, PhantomData<&'a bindings::uio>);
 
 impl<'a> UioRef<'a> {
