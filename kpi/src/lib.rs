@@ -71,6 +71,8 @@ pub mod boxed;
 pub mod bus;
 /// sglist
 pub mod collections;
+/// Character device
+pub mod cdev;
 /// Device driver and softc functions
 pub mod device;
 /// Contains a macro and trait for defining drivers
@@ -81,6 +83,8 @@ pub mod ffi;
 pub mod intr;
 /// Malloc flags and types
 pub mod malloc;
+/// Trait and macro for defining module event behavior
+pub mod module;
 /// Devicetree utilities
 #[cfg(feature = "fdt")]
 pub mod ofw;
@@ -228,6 +232,9 @@ pub mod prelude {
 
     #[doc(inline)]
     pub use crate::collections::wrappers::*;
+
+    #[doc(inline)]
+    pub use crate::cdev::wrappers::*;
 
     #[doc(inline)]
     pub use crate::device::wrappers::*;
