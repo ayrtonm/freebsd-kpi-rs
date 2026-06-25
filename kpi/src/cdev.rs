@@ -88,7 +88,7 @@ impl<T> MakeDevArgs<T> {
         args.mda_flags |= bindings::MAKEDEV_WAITOK;
         args.mda_uid = bindings::UID_ROOT as u32;
         args.mda_gid = bindings::GID_WHEEL as u32;
-        args.mda_mode = 0600;
+        args.mda_mode = 0o600;
 
         Self(args, PhantomData)
     }
