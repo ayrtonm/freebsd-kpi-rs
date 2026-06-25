@@ -177,6 +177,9 @@ pub mod wrappers {
         let res = unsafe {
             bindings::make_dev_s(&raw mut args.0, &raw mut outp, c"echo".as_ptr())
         };
+        if res != 0 {
+            return Err(ErrCode::from(res));
+        }
         let sc_mut_ref = unsafe { sc_ptr.as_mut().unwrap() };
         let dev = Ptr::new(outp);
         sc_init(sc_mut_ref, dev);
