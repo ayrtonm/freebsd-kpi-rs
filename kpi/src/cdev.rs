@@ -30,11 +30,15 @@ use crate::prelude::*;
 use core::ffi::c_int;
 use core::ptr::NonNull;
 use core::marker::PhantomData;
+use core::mem::size_of;
+use crate::ffi::Ptr;
+
+pub type cdev_t = Ptr<bindings::cdev>;
 
 pub trait CDevSw {
     type Softc: 'static + Sync;
-    fn on_read(dev: *mut bindings::cdev, uio: UioRef, ioflag: c_int) -> Result<()> { unimplemented!() }
-    fn on_write(dev: *mut bindings::cdev, uio: UioRef, ioflag: c_int) -> Result<()> { unimplemented!() }
+    fn on_read(sc: &Self::Softc, dev: cdev_t, uio: UioRef, ioflag: c_int) -> Result<()> { unimplemented!() }
+    fn on_write(sc: &Self::Softc, dev: cdev_t, uio: UioRef, ioflag: c_int) -> Result<()> { unimplemented!() }
 }
 
 #[doc(hidden)]
@@ -53,8 +57,12 @@ macro_rules! c_fn_for_cdev {
             uio: *mut $crate::bindings::uio,
             iof: core::ffi::c_int
         ) -> core::ffi::c_int {
+            use $crate::cdev::CDevSw;
+            let sc_ptr = unsafe { (*dev).si_drv1 };
+            let sc = unsafe { sc_ptr.cast::<<$cdev_ty as CDevSw>::Softc>().as_ref().unwrap() };
+            let dev = $crate::ffi::Ptr::new(dev);
             let uio_ref = unsafe { $crate::cdev::UioRef::new(&uio) };
-            let res = <$cdev_ty as $crate::cdev::CDevSw>::$on_read_or_on_write(dev, uio_ref, iof);
+            let res = <$cdev_ty as CDevSw>::$on_read_or_on_write(sc, dev, uio_ref, iof);
             use $crate::kobj::AsCType;
             match res {
                 Ok(()) => 0,
@@ -64,17 +72,56 @@ macro_rules! c_fn_for_cdev {
     };
 }
 
+#[repr(C)]
+pub struct MakeDevArgs<T>(bindings::make_dev_args, PhantomData<*mut T>);
+
+impl<T> MakeDevArgs<T> {
+    pub unsafe fn new() -> Self {
+        // Follows make_dev_args_init's behavior
+        let mut args = bindings::make_dev_args::default();
+        args.mda_size = size_of::<bindings::make_dev_args>();
+
+        // Initialize to something sensible
+        args.mda_flags = bindings::MAKEDEV_CHECKNAME;
+
+        // TODO: Make this configurable
+        args.mda_flags |= bindings::MAKEDEV_WAITOK;
+        args.mda_uid = bindings::UID_ROOT as u32;
+        args.mda_gid = bindings::GID_WHEEL as u32;
+        args.mda_mode = 0600;
+
+        Self(args, PhantomData)
+    }
+    pub unsafe fn get_mut(&mut self) -> &mut bindings::make_dev_args {
+        &mut self.0
+    }
+}
+
 #[macro_export]
 macro_rules! define_cdev {
     (
-        $cdev_ty:ident, $driver_name:expr,
+        $cdev_ty:ident, $driver_name:expr, $cdevsw_name:ident,
         $($trait_fn:ident: $unmangled_name:ident,)*
     ) => {
         #[repr(C)]
         pub struct $cdev_ty(core::cell::UnsafeCell<$crate::bindings::cdevsw>);
+        impl $cdev_ty {
+            pub fn make_dev_args_init<M: $crate::malloc::Malloc>(
+                sc: $crate::boxed::Box<<$cdev_ty as $crate::cdev::CDevSw>::Softc, M>
+            ) -> $crate::cdev::MakeDevArgs<<$cdev_ty as $crate::cdev::CDevSw>::Softc> {
+                let mut args = unsafe { $crate::cdev::MakeDevArgs::new() };
+                let sc_ptr = Box::into_raw(sc);
+                unsafe {
+                    let mut args_ref = args.get_mut();
+                    args_ref.mda_devsw = $cdevsw_name.0.get();
+                    args_ref.mda_si_drv1 = sc_ptr.cast::<c_void>();
+                };
+                args
+            }
+        }
         unsafe impl Sync for $cdev_ty {}
 
-        static FOO: $cdev_ty = $cdev_ty(core::cell::UnsafeCell::new({
+        static $cdevsw_name: $cdev_ty = $cdev_ty(core::cell::UnsafeCell::new({
             use $crate::bindings::cdevsw;
 
             let mut res: cdevsw = unsafe { MaybeUninit::zeroed().assume_init() };
@@ -99,7 +146,7 @@ impl<'a> UioRef<'a> {
         unsafe { self.0.read().uio_offset.try_into().unwrap() }
     }
 
-    pub fn remaining_bytes(&self) -> usize {
+    pub fn resid(&self) -> usize {
         unsafe { self.0.read().uio_resid.try_into().unwrap() }
     }
 
@@ -121,6 +168,20 @@ pub mod wrappers {
     use super::*;
     use core::ffi::c_void;
     use crate::ErrCode;
+    use core::ptr::null_mut;
+
+    pub fn make_dev_s<T, F>(mut args: MakeDevArgs<T>, sc_init: F) -> Result<cdev_t>
+    where F: Fn(&mut T, cdev_t) {
+        let mut outp = null_mut();
+        let sc_ptr = args.0.mda_si_drv1.cast::<T>();
+        let res = unsafe {
+            bindings::make_dev_s(&raw mut args.0, &raw mut outp, c"echo".as_ptr())
+        };
+        let sc_mut_ref = unsafe { sc_ptr.as_mut().unwrap() };
+        let dev = Ptr::new(outp);
+        sc_init(sc_mut_ref, dev);
+        Ok(dev)
+    }
 
     pub fn uiomove_read(buf: &mut [u8], uio_ref: UioRef) -> Result<()> {
         if uio_ref.is_write() {
