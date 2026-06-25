@@ -9,7 +9,6 @@
 use core::cell::UnsafeCell;
 use core::ffi::{c_int, c_uint, c_void};
 use core::marker::PhantomData;
-use kpi::boxed::Box;
 use core::mem::MaybeUninit;
 use kpi::module::Module;
 use core::ptr::{NonNull, null_mut};
@@ -23,14 +22,16 @@ use core::sync::atomic::{AtomicPtr, Ordering};
 use core::cmp::min;
 use kpi::sync::mtx::Mutex;
 
+type Box<T> = kpi::boxed::Box<T, M_DEVBUF>;
+
 #[derive(Default)]
 pub struct EchoDevSoftc {
     dev: cdev_t,
-    state: Mutex<EchoDevSoftcState>,
+    state: Mutex<EchoDevState>,
 }
 
 #[derive(Default)]
-struct EchoDevSoftcState {
+struct EchoDevState {
     valid: usize,
     buf: Vec<u8>,
     writers: usize,
@@ -132,12 +133,17 @@ impl CDevSw for EchoDev {
 impl Module for EchoDev {
     fn on_load(data: *mut c_void) -> Result<()> {
         // Allocates the softc on the heap. Box is a uniquely-owned pointer to the heap.
-        let sc: Box<_, M_DEVBUF> = Box::new(EchoDevSoftc::default(), M_WAITOK);
+        let sc = Box::new(EchoDevSoftc::default(), M_WAITOK);
         // make_dev_args_init takes ownership of the boxed (heap-allocated) softc that's passed in
         // so we can't use it after this. This returns a MakeDevArgs which has the only pointer to
         // the softc at this point. MakeDevArgs knows the softc type, but does not provide access to
         // it yet.
         let mut args = Self::make_dev_args_init(sc);
+        args.name = c"echo";
+        args.flags = bindings::MAKEDEV_CHECKNAME | bindings::MAKEDEV_WAITOK;
+        args.uid = bindings::UID_ROOT;
+        args.gid = bindings::GID_WHEEL;
+        args.mode = 0o600;
         // Call make_dev_s then call a closure to initialize the softc. Since MakeDevArgs owned the
         // only pointer to the softc we can give the closure exclusive access to it (i.e. a
         // &mut EchoDevSoftc). The sc arg below is a mutable reference rather than a Box, because
