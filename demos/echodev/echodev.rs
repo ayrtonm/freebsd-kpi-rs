@@ -40,6 +40,7 @@ struct EchoDevState {
 
 impl CDevSw for EchoDev {
     type Softc = EchoDevSoftc;
+    type MallocType = M_DEVBUF;
 
     fn on_read(sc: &EchoDevSoftc, uio: UioRef, ioflag: c_int) -> Result<()> {
         if uio.resid() == 0 {
@@ -159,9 +160,7 @@ impl Module for EchoDev {
     }
 
     fn on_unload(data: *mut c_void) -> Result<()> {
-        unsafe {
-            //bindings::destroy_dev(
-        }
+        //Self::destroy_dev(
         Ok(())
     }
 }

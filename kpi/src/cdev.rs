@@ -49,9 +49,11 @@ pub trait CDevSwInternal {
 }
 pub trait CDevSw: CDevSwInternal {
     type Softc: 'static + Sync;
+    type MallocType: Malloc;
+
     fn on_read(sc: &Self::Softc, uio: UioRef, ioflag: c_int) -> Result<()> { unimplemented!() }
     fn on_write(sc: &Self::Softc, uio: UioRef, ioflag: c_int) -> Result<()> { unimplemented!() }
-    fn make_dev_args_init<M: Malloc>(sc: Box<Self::Softc, M>) -> MakeDevArgs<Self::Softc, M> {
+    fn make_dev_args_init(sc: Box<Self::Softc, Self::MallocType>) -> MakeDevArgs<Self::Softc, Self::MallocType> {
         MakeDevArgs {
             sc,
             // Follows make_dev_args_init's behavior
@@ -62,6 +64,18 @@ pub trait CDevSw: CDevSwInternal {
             mode: 0,
             name: c"",
             cdevsw_ptr: Self::get_cdevsw_ptr(),
+        }
+    }
+
+    // FIXME: CDev intentionally does not impl Copy/Clone so we can't really use this function
+    fn destroy_dev(dev: CDev) -> Box<Self::Softc, Self::MallocType> {
+        unsafe {
+            bindings::destroy_dev(dev.ptr.as_ptr())
+        };
+        let sc_ptr = unsafe { (*dev.ptr.as_ptr()).si_drv1 };
+        let sc = unsafe { sc_ptr.cast::<Self::Softc>() };
+        unsafe {
+            Box::from_raw(sc)
         }
     }
 }
