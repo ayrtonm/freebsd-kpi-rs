@@ -49,6 +49,15 @@ pub struct Vec<T, M: Malloc = M_DEVBUF> {
     _malloc: PhantomData<*mut M>,
 }
 
+impl<T, M: Malloc> Default for Vec<T, M> {
+    /// Constructs an empty `Vec<T>`.
+    ///
+    /// This method does not allocate.
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T: Debug, M: Malloc> Debug for Vec<T, M> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         // Use Vec<T>'s Deref impl since it returns a &[T]
