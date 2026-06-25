@@ -102,6 +102,10 @@ impl<T> SxLock<T> {
     pub fn data_ptr(&self) -> *mut T {
         self.data.get()
     }
+
+    pub fn get_mut(&mut self) -> &mut T {
+        unsafe { self.data_ptr().as_mut().unwrap() }
+    }
 }
 
 #[doc(inline)]
