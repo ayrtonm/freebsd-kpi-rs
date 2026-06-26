@@ -39,11 +39,11 @@ use core::ptr::NonNull;
 
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone)]
-pub struct cdev_t(Ptr<bindings::cdev>, TypeId);
+pub struct cdev_t(Ptr<bindings::cdev>, Option<TypeId>);
 
 impl cdev_t {
     pub const fn new() -> Self {
-        Self(Ptr::null(), TypeId::of::<()>())
+        Self(Ptr::null(), None)
     }
 }
 
@@ -97,7 +97,7 @@ pub trait CDevSw: CDevSwInternal {
     }
 
     fn destroy_dev(dev: cdev_t) -> Box<Self::Softc, Self::MallocType> {
-        assert!(dev.1 == TypeId::of::<Self::Softc>());
+        assert!(dev.1.unwrap() == TypeId::of::<Self::Softc>());
         // Save the softc pointer before destroying the cdev
         let sc_ptr = unsafe { (*dev.0.as_ptr()).si_drv1 };
         unsafe { bindings::destroy_dev(dev.0.as_ptr()) };
@@ -256,7 +256,7 @@ pub mod wrappers {
         let dev_ptr = Ptr::new(outp);
         let sc_start = sc_ptr.addr();
         let sc_end = sc_start + size_of::<T>();
-        let dev_ptr = cdev_t(dev_ptr, TypeId::of::<T>());
+        let dev_ptr = cdev_t(dev_ptr, Some(TypeId::of::<T>()));
         let dev = CDev {
             ptr: dev_ptr,
             _sc_range: sc_start..sc_end,
