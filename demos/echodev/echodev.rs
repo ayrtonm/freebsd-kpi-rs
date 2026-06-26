@@ -168,6 +168,7 @@ impl Module for EchoDev {
 define_cdev! {
     EchoDev, c"echo", echo_cdevsw,
     on_read: echodev_read,
+    on_write: echodev_write,
 }
 
 define_module!(EchoDev, echodev_modevent);

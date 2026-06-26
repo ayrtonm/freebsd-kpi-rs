@@ -160,7 +160,7 @@ macro_rules! define_cdev {
             $($crate::cdev_field_for_trait_fn!(res, $trait_fn) = Some($unmangled_name);)*
             res
         }));
-        $($crate::c_fn_for_cdev!($unmangled_name, $cdev_ty, $trait_fn))*;
+        $($crate::c_fn_for_cdev!($unmangled_name, $cdev_ty, $trait_fn);)*
     };
 }
 
