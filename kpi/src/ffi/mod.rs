@@ -113,7 +113,7 @@ impl<'a, T> UninitRef<'a, T> {
     }
 
     /// Initialize the externally-managed object to `t` and return a `UniqueRef` to the pointee.
-    pub fn init(self, t: T) -> &'a mut T {//UniqueRef<'a, T> {
+    pub fn init(self, t: T) -> &'a mut T {
         *self.1 = true;
         self.0.write(t)
     }

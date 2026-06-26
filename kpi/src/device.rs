@@ -29,17 +29,17 @@
 use crate::bindings::{device_state_t, device_t, driver_t};
 use crate::boxed::Box;
 use crate::driver::Driver;
-use core::alloc::Layout;
 use crate::ffi::{ArrayCString, Ref, UninitRef};
 use crate::kobj::{AsCType, AsRustType};
+use crate::malloc::{Malloc, MallocFlags};
 use crate::prelude::*;
 use crate::vec::Vec;
 use crate::{ErrCode, define_interface};
-use core::ffi::{CStr, c_int, c_void};
-use core::ptr::null_mut;
+use core::alloc::Layout;
+use core::ffi::{CStr, c_int};
 use core::ops::Range;
+use core::ptr::null_mut;
 use core::sync::atomic::{AtomicPtr, Ordering};
-use crate::malloc::{Malloc, MallocFlags};
 
 /// A pointer to a device which is aware of the address ranges owned by the device driver's softc.
 ///
@@ -116,9 +116,13 @@ impl Device {
     }
 
     fn add_range(&self, range: Range<usize>, flags: MallocFlags) {
-        let node: Box<AllocationRange> = Box::new(AllocationRange {
-            range, next: null_mut()
-        }, flags);
+        let node: Box<AllocationRange> = Box::new(
+            AllocationRange {
+                range,
+                next: null_mut(),
+            },
+            flags,
+        );
         let node_ptr = Box::into_raw(node);
         loop {
             let old_head = self.allocations_head.load(Ordering::Acquire);
@@ -129,7 +133,7 @@ impl Device {
                 old_head,
                 node_ptr,
                 Ordering::Release,
-                Ordering::Relaxed
+                Ordering::Relaxed,
             );
             if res.is_ok() {
                 return;
@@ -157,11 +161,11 @@ impl AsCType<c_int> for BusProbe {
 // Allows turning device_t arguments appearing in kobj interfaces into a Ref to any type. It's the
 // responsibility of a kobj trait authors to restrict the Ref to the softc's type or to one of its
 // base classes.
-impl<'a, T> AsRustType<Ref<'a, T>> for device_t {
-    fn as_rust_type(self) -> Ref<'a, T> {
+impl<'a, T> AsRustType<&'a T> for device_t {
+    fn as_rust_type(self) -> &'a T {
         let void_ptr = unsafe { bindings::device_get_softc(self) };
         let sc_ptr = void_ptr.cast::<T>();
-        unsafe { Ref::from_raw(sc_ptr) }
+        unsafe { sc_ptr.as_ref().unwrap() }
     }
 }
 
@@ -230,10 +234,10 @@ define_interface! {
         with desc device_detach_desc
         and typedef device_detach_t,
         with drop glue {
-            use core::ptr::drop_in_place;
-            use $crate::ffi::Ref;
-            let sc_ptr = Ref::into_raw(dev);
-            unsafe { drop_in_place(sc_ptr) }
+            // FIXME: drop the softc
+            //use core::ptr::drop_in_place;
+            //let sc_ptr = dev as *const _;
+            //unsafe { drop_in_place(sc_ptr.cast_mut()) }
         };
     fn device_shutdown(dev: device_t) -> int,
         with desc device_shutdown_desc
@@ -308,19 +312,19 @@ pub trait DeviceIf: Driver {
     /// example, if a softc struct includes a `Box<T>` field (i.e. a pointer to the heap with
     /// ownership of a `T`) the `T` in the heap will also be freed. This applies recursively through
     /// any number of layers of indirection.
-    fn device_detach(sc: Ref<Self::Softc>) -> Result<()> {
+    fn device_detach(sc: &Self::Softc) -> Result<()> {
         unimplemented!()
     }
-    fn device_shutdown(sc: Ref<Self::Softc>) -> Result<()> {
+    fn device_shutdown(sc: &Self::Softc) -> Result<()> {
         unimplemented!()
     }
-    fn device_suspend(sc: Ref<Self::Softc>) -> Result<()> {
+    fn device_suspend(sc: &Self::Softc) -> Result<()> {
         unimplemented!()
     }
-    fn device_resume(sc: Ref<Self::Softc>) -> Result<()> {
+    fn device_resume(sc: &Self::Softc) -> Result<()> {
         unimplemented!()
     }
-    fn device_quiesce(sc: Ref<Self::Softc>) -> Result<()> {
+    fn device_quiesce(sc: &Self::Softc) -> Result<()> {
         unimplemented!()
     }
 }
@@ -466,7 +470,7 @@ mod tests {
     #[repr(C)]
     #[derive(Debug)]
     pub struct TestDriverSoftc {
-        dev: device_t,
+        dev: Device,
         const_data: u32,
     }
     // This is only used to pipe a device_t managed by one driver to another to ensure
@@ -498,18 +502,19 @@ mod tests {
             println!("test_driver: accepted {dev:x?}");
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: UninitRef<Self::Softc>, dev: device_t) -> Result<()> {
+        fn device_attach(uninit_sc: UninitRef<Self::Softc>, dev: Device) -> Result<()> {
             let sc = uninit_sc.init(TestDriverSoftc {
                 dev,
                 const_data: 0xdeadbeef,
             });
+            let dev = sc.dev.as_ptr();
             if ofw_bus_is_compatible(dev, c"another_driver,get_softc") {
                 *STASHED_DEVICE.get_mut() = dev;
             }
             println!("{:x?}", sc);
             Ok(())
         }
-        fn device_detach(sc: Ref<Self::Softc>) -> Result<()> {
+        fn device_detach(sc: &Self::Softc) -> Result<()> {
             assert!(sc.const_data == 0xdeadbeef);
             Ok(())
         }
@@ -526,7 +531,7 @@ mod tests {
     #[repr(C)]
     #[derive(Debug)]
     pub struct AnotherDriverSoftc {
-        dev: device_t,
+        dev: Device,
         loud: LoudDrop,
     }
     impl DeviceIf for AnotherDriver {
@@ -544,12 +549,13 @@ mod tests {
             println!("another_driver: accepted {dev:x?}");
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: UninitRef<Self::Softc>, dev: device_t) -> Result<()> {
+        fn device_attach(uninit_sc: UninitRef<Self::Softc>, dev: Device) -> Result<()> {
             let sc = uninit_sc.init(AnotherDriverSoftc {
                 dev,
                 loud: LoudDrop,
             });
             println!("attaching another driver");
+            let dev = sc.dev.as_ptr();
             // Store a pointer owning a refcount to AnotherDriver's Softc in a TestDriverSoftc for
             // some appropriate device_t. This means that AnotherDriver::device_detach will drop a
             // refcount but will not be able to free the softc (as shown by the LoudDrop Drop impl).
@@ -558,7 +564,7 @@ mod tests {
             }
             Ok(())
         }
-        fn device_detach(sc: Ref<Self::Softc>) -> Result<()> {
+        fn device_detach(sc: &Self::Softc) -> Result<()> {
             Ok(())
         }
     }

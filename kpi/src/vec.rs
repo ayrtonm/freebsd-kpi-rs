@@ -29,6 +29,7 @@
 //! The `Vec<T>` type for contiguous growable arrays allocated in the heap.
 
 use crate::boxed::Box;
+use crate::device::Device;
 use crate::malloc::{Malloc, MallocFlags};
 use crate::prelude::*;
 use core::alloc::Layout;
@@ -39,7 +40,6 @@ use core::mem::{forget, replace};
 use core::ops::{Deref, DerefMut};
 use core::ptr::{NonNull, drop_in_place, read, write};
 use core::{fmt, ptr, slice};
-use crate::device::Device;
 
 /// A growable array of some type T.
 pub struct Vec<T, M: Malloc = M_DEVBUF> {

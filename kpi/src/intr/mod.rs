@@ -290,14 +290,14 @@ pub mod wrappers {
 mod tests {
     use super::*;
     use crate::bindings::device_t;
-    use crate::device::{BusProbe, DeviceIf};
+    use crate::device::{BusProbe, Device, DeviceIf};
     use crate::driver;
     use crate::ffi::{Ref, UninitRef};
     use crate::tests::{DriverManager, LoudDrop};
 
     #[repr(C)]
     pub struct HookSoftc {
-        dev: device_t,
+        dev: Device,
         hook: ConfigHook,
         loud: LoudDrop,
     }
@@ -309,14 +309,14 @@ mod tests {
             }
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: UninitRef<Self::Softc>, dev: device_t) -> Result<()> {
-            let hook = config_intrhook_init!(dev, HookDriver::deferred_attach);
+        fn device_attach(uninit_sc: UninitRef<Self::Softc>, dev: Device) -> Result<()> {
+            let hook = config_intrhook_init!(dev.as_ptr(), HookDriver::deferred_attach);
             let loud = LoudDrop;
-            let sc = uninit_sc.init(HookSoftc { dev, hook, loud }).into_ref();
+            let sc = uninit_sc.init(HookSoftc { dev, hook, loud });
             config_intrhook_establish(&sc.hook).unwrap();
             Ok(())
         }
-        fn device_detach(_sc: Ref<Self::Softc>) -> Result<()> {
+        fn device_detach(_sc: &Self::Softc) -> Result<()> {
             Ok(())
         }
     }

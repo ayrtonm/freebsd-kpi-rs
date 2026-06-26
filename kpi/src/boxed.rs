@@ -28,19 +28,17 @@
 
 //! The `Box<T>` type for heap allocation.
 
+use crate::device::Device;
 use crate::malloc::{Malloc, MallocFlags};
 use crate::prelude::*;
 use core::cmp::PartialEq;
 use core::ffi::c_void;
 use core::fmt::{Debug, Formatter};
-use crate::device::Device;
 use core::marker::PhantomData;
 use core::mem::{forget, size_of};
 use core::ops::{Deref, DerefMut};
 use core::ptr::{NonNull, drop_in_place};
 use core::{fmt, slice};
-use core::ops::Range;
-use core::sync::atomic::AtomicPtr;
 
 /// A pointer to something on the heap.
 ///
@@ -249,7 +247,8 @@ impl<T, M: Malloc> LinkedList<T, M> {
         // Handle two or more element case
         let mut cur_node = self.head;
         let mut prev_node: Option<NonNull<Node<T>>> = None;
-        let mut next_node = self.head_as_mut().unwrap().next;
+        // TODO: Why was I reading this initially??
+        let mut next_node;// = self.head_as_mut().unwrap().next;
 
         while let Some(mut cur) = cur_node {
             next_node = unsafe { cur.as_ref().next };

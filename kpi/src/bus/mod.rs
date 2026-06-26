@@ -28,7 +28,6 @@
 
 use crate::ErrCode;
 use crate::bindings::{bus_size_t, device_t, resource, resource_spec};
-use crate::ffi::Ref;
 use crate::kobj::{AsCType, AsRustType};
 use crate::prelude::*;
 use core::cell::UnsafeCell;
@@ -62,8 +61,8 @@ impl BitOr<ResFlags> for ResFlags {
 pub type RawFilterFn = Option<unsafe extern "C" fn(*mut c_void) -> i32>;
 type RawHandler = Option<unsafe extern "C" fn(*mut c_void)>;
 
-pub type FilterFn<T> = Option<extern "C" fn(Ref<T>) -> Filter>;
-pub type Handler<T> = Option<extern "C" fn(Ref<T>)>;
+pub type FilterFn<T> = Option<extern "C" fn(&T) -> Filter>;
+pub type Handler<T> = Option<extern "C" fn(&T)>;
 
 impl AsRustType<Resource> for *mut resource {
     fn as_rust_type(self) -> Resource {
@@ -260,7 +259,6 @@ pub use wrappers::*;
 #[doc(hidden)]
 pub mod wrappers {
     use super::*;
-    //use crate::ffi::OwnedPtr;
     use crate::device::DeviceIf;
     use crate::driver::Driver;
     use bindings::{bus_space_handle_t, bus_space_tag_t};
@@ -291,11 +289,12 @@ pub mod wrappers {
 
     pub fn bus_setup_intr<D: DeviceIf>(
         dev: device_t,
-        irq: Ref<Irq>,
+        irq: &Irq,
         flags: c_int,
         filter: FilterFn<D::Softc>,
         handler: Handler<D::Softc>,
     ) -> Result<()> {
+        // TODO: bounds check irq arg
         assert_eq!(device_get_driver(dev), <D as Driver>::DRIVER);
         unsafe {
             let sc = bindings::device_get_softc(dev);
@@ -305,12 +304,13 @@ pub mod wrappers {
 
     unsafe fn bus_setup_intr_unchecked<T>(
         dev: device_t,
-        irq: Ref<Irq>,
+        irq: &Irq,
         flags: c_int,
         filter: FilterFn<T>,
         handler: Handler<T>,
         arg_ptr: *mut c_void,
     ) -> Result<()> {
+        // TODO: bounds check irq arg
         if filter.is_none() && handler.is_none() {
             return Err(EDOOFUS);
         }
@@ -445,7 +445,8 @@ pub mod wrappers {
             }
             // Needed because macro_export expanded from macro cannot be referenced by full-path in
             // prelude module
-            pub use {$read_fn, $write_fn};
+            pub use $read_fn;
+            pub use $write_fn;
         };
     }
     bus_n!(
@@ -481,21 +482,21 @@ pub mod wrappers {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::device::{BusProbe, DeviceIf};
+    use crate::device::{BusProbe, Device, DeviceIf};
     use crate::driver;
-    use crate::ffi::{Ref, UninitRef};
+    use crate::ffi::UninitRef;
     use crate::tests::{DriverManager, LoudDrop};
 
     #[repr(C)]
     #[derive(Debug)]
     pub struct IrqSoftc {
-        dev: device_t,
+        dev: Device,
         irq: Irq,
         loud: LoudDrop,
     }
 
     impl IrqDriver {
-        fn setup(&self, dev: device_t, sc: Ref<IrqSoftc>, filter: bool, handler: bool) {
+        fn setup(&self, dev: device_t, sc: &IrqSoftc, filter: bool, handler: bool) {
             let filter = if filter {
                 Some(IrqDriver::filter as _)
             } else {
@@ -506,30 +507,27 @@ mod tests {
             } else {
                 None
             };
-            bus_setup_intr!(dev, proj!(&sc->irq), 0, filter, handler).unwrap();
+            bus_setup_intr!(dev, &sc.irq, 0, filter, handler).unwrap();
         }
     }
 
     impl DeviceIf for IrqDriver {
         type Softc = IrqSoftc;
+
         fn device_probe(dev: device_t) -> Result<BusProbe> {
             if !ofw_bus_is_compatible(dev, c"bus,irq_driver") {
                 return Err(ENXIO);
             }
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: UninitRef<Self::Softc>, dev: device_t) -> Result<()> {
-            let sc = uninit_sc
-                .init(IrqSoftc {
-                    dev,
-                    irq: Irq::default(),
-                    loud: LoudDrop,
-                })
-                .into_ref();
-            assert_eq!(
-                bus_setup_intr!(dev, proj!(&sc->irq), 0, None, None),
-                Err(EDOOFUS)
-            );
+        fn device_attach(uninit_sc: UninitRef<Self::Softc>, dev: Device) -> Result<()> {
+            let sc = uninit_sc.init(IrqSoftc {
+                dev,
+                irq: Irq::default(),
+                loud: LoudDrop,
+            });
+            let dev = sc.dev.as_ptr();
+            assert_eq!(bus_setup_intr!(dev, &sc.irq, 0, None, None), Err(EDOOFUS));
             if ofw_bus_is_compatible(dev, c"irq_driver,set_both") {
                 irq_driver.setup(dev, sc, true, true);
             }
@@ -541,24 +539,25 @@ mod tests {
             }
             Ok(())
         }
-        fn device_detach(sc: Ref<Self::Softc>) -> Result<()> {
-            if ofw_bus_is_compatible(sc.dev, c"irq_driver,teardown_intr") {
-                bus_teardown_intr(sc.dev, &sc.irq).unwrap();
+        fn device_detach(sc: &Self::Softc) -> Result<()> {
+            let dev = sc.dev.as_ptr();
+            if ofw_bus_is_compatible(dev, c"irq_driver,teardown_intr") {
+                bus_teardown_intr(dev, &sc.irq).unwrap();
             }
             Ok(())
         }
     }
 
     impl IrqDriver {
-        extern "C" fn filter(sc: Ref<IrqSoftc>) -> Filter {
+        extern "C" fn filter(sc: &IrqSoftc) -> Filter {
             println!("called filter");
-            if ofw_bus_is_compatible(sc.dev, c"irq_driver,filter_handled") {
+            if ofw_bus_is_compatible(sc.dev.as_ptr(), c"irq_driver,filter_handled") {
                 FILTER_HANDLED
             } else {
                 FILTER_SCHEDULE_THREAD
             }
         }
-        extern "C" fn handler(sc: Ref<IrqSoftc>) {
+        extern "C" fn handler(sc: &IrqSoftc) {
             println!("called handler {sc:x?}");
         }
     }

@@ -29,6 +29,7 @@
 use crate::prelude::*;
 use core::ffi::c_void;
 
+#[allow(unused_variables)]
 pub trait Module {
     fn on_load(data: *mut c_void) -> Result<()> {
         Ok(())
@@ -46,7 +47,7 @@ macro_rules! define_module {
         extern "C" fn $modevent_name(
             m: $crate::bindings::module_t,
             ty: core::ffi::c_int,
-            data: *mut core::ffi::c_void
+            data: *mut core::ffi::c_void,
         ) -> core::ffi::c_int {
             use $crate::kobj::AsCType;
             use $crate::module::Module;

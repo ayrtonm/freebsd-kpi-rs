@@ -26,17 +26,18 @@
  * SUCH DAMAGE.
  */
 
-use crate::prelude::*;
-use core::ffi::{c_int, c_void, CStr};
-use core::ptr::NonNull;
-use core::marker::PhantomData;
-use core::mem::size_of;
+use crate::boxed::Box;
 use crate::ffi::Ptr;
 use crate::malloc::Malloc;
-use crate::boxed::Box;
-use core::ops::Range;
+use crate::prelude::*;
 use core::any::TypeId;
+use core::ffi::{CStr, c_int, c_void};
+use core::marker::PhantomData;
+use core::mem::size_of;
+use core::ops::Range;
+use core::ptr::NonNull;
 
+#[allow(non_camel_case_types)]
 #[derive(Copy, Clone)]
 pub struct cdev_t(Ptr<bindings::cdev>, TypeId);
 
@@ -55,19 +56,33 @@ impl Default for cdev_t {
 #[derive(Default)]
 pub struct CDev {
     ptr: cdev_t,
-    sc_range: Range<usize>,
+    _sc_range: Range<usize>,
+}
+
+impl CDev {
+    pub fn as_ptr(&self) -> cdev_t {
+        self.ptr
+    }
 }
 
 pub trait CDevSwInternal {
     fn get_cdevsw_ptr() -> *mut bindings::cdevsw;
 }
+
+#[allow(unused_variables)]
 pub trait CDevSw: CDevSwInternal {
     type Softc: 'static + Sync;
     type MallocType: Malloc;
 
-    fn on_read(sc: &Self::Softc, uio: UioRef, ioflag: c_int) -> Result<()> { unimplemented!() }
-    fn on_write(sc: &Self::Softc, uio: UioRef, ioflag: c_int) -> Result<()> { unimplemented!() }
-    fn make_dev_args_init(sc: Box<Self::Softc, Self::MallocType>) -> MakeDevArgs<Self::Softc, Self::MallocType> {
+    fn on_read(sc: &Self::Softc, uio: UioRef, ioflag: c_int) -> Result<()> {
+        unimplemented!()
+    }
+    fn on_write(sc: &Self::Softc, uio: UioRef, ioflag: c_int) -> Result<()> {
+        unimplemented!()
+    }
+    fn make_dev_args_init(
+        sc: Box<Self::Softc, Self::MallocType>,
+    ) -> MakeDevArgs<Self::Softc, Self::MallocType> {
         MakeDevArgs {
             sc,
             // Follows make_dev_args_init's behavior
@@ -85,21 +100,21 @@ pub trait CDevSw: CDevSwInternal {
         assert!(dev.1 == TypeId::of::<Self::Softc>());
         // Save the softc pointer before destroying the cdev
         let sc_ptr = unsafe { (*dev.0.as_ptr()).si_drv1 };
-        unsafe {
-            bindings::destroy_dev(dev.0.as_ptr())
-        };
-        let sc = unsafe { sc_ptr.cast::<Self::Softc>() };
-        unsafe {
-            Box::from_raw(sc)
-        }
+        unsafe { bindings::destroy_dev(dev.0.as_ptr()) };
+        let sc = sc_ptr.cast::<Self::Softc>();
+        unsafe { Box::from_raw(sc) }
     }
 }
 
 #[doc(hidden)]
 #[macro_export]
 macro_rules! cdev_field_for_trait_fn {
-    ($res:ident, on_read) => { $res.d_read };
-    ($res:ident, on_write) => { $res.d_write };
+    ($res:ident, on_read) => {
+        $res.d_read
+    };
+    ($res:ident, on_write) => {
+        $res.d_write
+    };
 }
 
 #[doc(hidden)]
@@ -109,11 +124,16 @@ macro_rules! c_fn_for_cdev {
         extern "C" fn $unmangled_name(
             dev: *mut $crate::bindings::cdev,
             uio: *mut $crate::bindings::uio,
-            iof: core::ffi::c_int
+            iof: core::ffi::c_int,
         ) -> core::ffi::c_int {
             use $crate::cdev::CDevSw;
             let sc_ptr = unsafe { (*dev).si_drv1 };
-            let sc = unsafe { sc_ptr.cast::<<$cdev_ty as CDevSw>::Softc>().as_ref().unwrap() };
+            let sc = unsafe {
+                sc_ptr
+                    .cast::<<$cdev_ty as CDevSw>::Softc>()
+                    .as_ref()
+                    .unwrap()
+            };
             let uio_ref = unsafe { $crate::cdev::UioRef::new(&uio) };
             let res = <$cdev_ty as CDevSw>::$on_read_or_on_write(sc, uio_ref, iof);
             use $crate::kobj::AsCType;
@@ -205,24 +225,29 @@ impl<'a> UioRef<'a> {
         }
     }
 
-    pub fn is_write(&self) -> bool { !self.is_read() }
+    pub fn is_write(&self) -> bool {
+        !self.is_read()
+    }
 }
 
 #[doc(hidden)]
 pub mod wrappers {
     use super::*;
-    use core::ffi::c_void;
     use crate::ErrCode;
+    use core::ffi::c_void;
     use core::ptr::null_mut;
 
-    pub fn make_dev_s<T: 'static, M: Malloc, F>(args: MakeDevArgs<T, M>, sc_init: F) -> Result<cdev_t>
-    where F: Fn(&mut T, CDev) {
+    pub fn make_dev_s<T: 'static, M: Malloc, F>(
+        args: MakeDevArgs<T, M>,
+        sc_init: F,
+    ) -> Result<cdev_t>
+    where
+        F: Fn(&mut T, CDev),
+    {
         let mut outp = null_mut();
         let (mut args_raw, name) = args.into_raw();
         let sc_ptr = args_raw.mda_si_drv1.cast::<T>();
-        let res = unsafe {
-            bindings::make_dev_s(&raw mut args_raw, &raw mut outp, name.as_ptr())
-        };
+        let res = unsafe { bindings::make_dev_s(&raw mut args_raw, &raw mut outp, name.as_ptr()) };
         if res != 0 {
             // FIXME: This leaks the softc
             return Err(ErrCode::from(res));
@@ -233,7 +258,8 @@ pub mod wrappers {
         let sc_end = sc_start + size_of::<T>();
         let dev_ptr = cdev_t(dev_ptr, TypeId::of::<T>());
         let dev = CDev {
-            ptr: dev_ptr, sc_range: sc_start..sc_end,
+            ptr: dev_ptr,
+            _sc_range: sc_start..sc_end,
         };
         sc_init(sc_mut_ref, dev);
         Ok(dev_ptr)
@@ -256,7 +282,7 @@ pub mod wrappers {
             Ok(())
         }
     }
-    
+
     pub fn uiomove_write(buf: &[u8], uio_ref: UioRef) -> Result<()> {
         if uio_ref.is_read() {
             return Err(EDOOFUS);

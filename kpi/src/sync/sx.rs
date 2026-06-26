@@ -26,14 +26,13 @@
  * SUCH DAMAGE.
  */
 
+use crate::ErrCode;
 use crate::bindings::sx;
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::ffi::{CStr, c_int, c_void};
 use core::mem::drop;
 use core::ops::{Deref, DerefMut};
-use core::ptr::null_mut;
-use crate::ErrCode;
 
 pub struct SxSharedGuard<'a, T> {
     lock: &'a SxLock<T>,
@@ -116,18 +115,11 @@ pub use wrappers::*;
 pub mod wrappers {
     use super::*;
 
-    pub fn sx_init(
-        lock: &SxLock<impl Sized>,
-        name: &'static CStr,
-    ) {
+    pub fn sx_init(lock: &SxLock<impl Sized>, name: &'static CStr) {
         let name_ptr = name.as_ptr();
         let sx_ptr = lock.inner.get();
         unsafe {
-            bindings::sx_init_flags(
-                sx_ptr,
-                name_ptr,
-                0,
-            );
+            bindings::sx_init_flags(sx_ptr, name_ptr, 0);
         }
     }
 
@@ -199,7 +191,7 @@ mod tests {
     #[test]
     fn basic_sx_exclusive() {
         let lock = SxLock::new(4u32);
-        sx_init(&lock, c"test", None);
+        sx_init(&lock, c"test");
         let mut x = sx_xlock(&lock);
         *x += 1;
         sx_xunlock(x);
@@ -208,7 +200,7 @@ mod tests {
     #[test]
     fn basic_sx_shared() {
         let lock = SxLock::new(4u32);
-        sx_init(&lock, c"test", None);
+        sx_init(&lock, c"test");
         let x = sx_slock(&lock);
         assert_eq!(*x, 4);
         sx_sunlock(x);

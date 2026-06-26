@@ -69,10 +69,10 @@ pub mod bindings;
 pub mod boxed;
 /// Resource bus functions
 pub mod bus;
-/// sglist
-pub mod collections;
 /// Character device
 pub mod cdev;
+/// sglist
+pub mod collections;
 /// Device driver and softc functions
 pub mod device;
 /// Contains a macro and trait for defining drivers
