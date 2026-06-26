@@ -32,8 +32,9 @@ use crate::ffi::Ref;
 use crate::prelude::*;
 use crate::sync::Mutable;
 use core::cell::UnsafeCell;
-use core::ffi::{CStr, c_int};
+use core::ffi::{CStr, c_int, c_void};
 use core::mem::drop;
+use crate::ErrCode;
 use core::ops::{Deref, DerefMut};
 use core::ptr::null_mut;
 
@@ -258,6 +259,75 @@ pub mod wrappers {
             bindings::__mtx_lock_spin_flags(mtx_lock_ptr.cast::<usize>(), 0, c"".as_ptr(), 0);
         };
         SpinLockGuard { lock: mutex }
+    }
+
+    pub fn mtx_sleep<'a, T, C>(
+        chan: &C,
+        guard: MutexGuard<'a, T>,
+        pri: c_int,
+        wmesg: &CStr,
+        timo: i32,
+    ) -> (MutexGuard<'a, T>, Result<()>) {
+        let lock = guard.lock;
+        let mtx_ptr = lock.mtx_impl.inner.get();
+        let lock_obj_ptr = unsafe { &raw mut (*mtx_ptr).lock_object };
+
+        core::mem::forget(guard);
+
+        let res = unsafe {
+            bindings::_sleep(
+                (chan as *const C).cast::<c_void>(),
+                lock_obj_ptr,
+                pri,
+                wmesg.as_ptr(),
+                bindings::tick_sbt * timo as i64,
+                0,
+                bindings::C_HARDCLOCK,
+            )
+        };
+
+        let new_guard = MutexGuard { lock };
+
+        let result = if res != 0 {
+            Err(ErrCode::from(res))
+        } else {
+            Ok(())
+        };
+
+        (new_guard, result)
+    }
+
+    pub fn mtx_sleep_spin<'a, T, C>(
+        chan: &C,
+        guard: SpinLockGuard<'a, T>,
+        wmesg: &CStr,
+        timo: i32,
+    ) -> (SpinLockGuard<'a, T>, Result<()>) {
+        let lock = guard.lock;
+        let mtx_ptr = lock.mtx_impl.inner.get();
+
+        core::mem::forget(guard);
+
+        let res = unsafe {
+            bindings::msleep_spin_sbt(
+                (chan as *const C).cast::<c_void>(),
+                mtx_ptr,
+                wmesg.as_ptr(),
+                bindings::tick_sbt * timo as i64,
+                0,
+                bindings::C_HARDCLOCK,
+            )
+        };
+
+        let new_guard = SpinLockGuard { lock };
+
+        let result = if res != 0 {
+            Err(ErrCode::from(res))
+        } else {
+            Ok(())
+        };
+
+        (new_guard, result)
     }
 
     pub fn mtx_unlock<T>(guard: MutexGuard<T>) {

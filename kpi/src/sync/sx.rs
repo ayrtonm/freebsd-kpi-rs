@@ -29,10 +29,11 @@
 use crate::bindings::sx;
 use crate::prelude::*;
 use core::cell::UnsafeCell;
-use core::ffi::CStr;
+use core::ffi::{CStr, c_int, c_void};
 use core::mem::drop;
 use core::ops::{Deref, DerefMut};
 use core::ptr::null_mut;
+use crate::ErrCode;
 
 pub struct SxSharedGuard<'a, T> {
     lock: &'a SxLock<T>,
@@ -144,6 +145,42 @@ pub mod wrappers {
             bindings::_sx_xlock(sx_ptr, 0, c"".as_ptr(), 0);
         }
         SxExclusiveGuard { lock }
+    }
+
+    pub fn sx_sleep<'a, T, C>(
+        chan: &C,
+        guard: SxExclusiveGuard<'a, T>,
+        pri: c_int,
+        wmesg: &CStr,
+        timo: i32,
+    ) -> (SxExclusiveGuard<'a, T>, Result<()>) {
+        let lock = guard.lock;
+        let sx_ptr = lock.inner.get();
+        let lock_obj_ptr = unsafe { &raw mut (*sx_ptr).lock_object };
+
+        core::mem::forget(guard);
+
+        let res = unsafe {
+            bindings::_sleep(
+                (chan as *const C).cast::<c_void>(),
+                lock_obj_ptr,
+                pri,
+                wmesg.as_ptr(),
+                bindings::tick_sbt * timo as i64,
+                0,
+                bindings::C_HARDCLOCK,
+            )
+        };
+
+        let new_guard = SxExclusiveGuard { lock };
+
+        let result = if res != 0 {
+            Err(ErrCode::from(res))
+        } else {
+            Ok(())
+        };
+
+        (new_guard, result)
     }
 
     pub fn sx_sunlock<T>(guard: SxSharedGuard<T>) {
