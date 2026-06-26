@@ -83,10 +83,11 @@ pub trait CDevSw: CDevSwInternal {
 
     fn destroy_dev(dev: cdev_t) -> Box<Self::Softc, Self::MallocType> {
         assert!(dev.1 == TypeId::of::<Self::Softc>());
+        // Save the softc pointer before destroying the cdev
+        let sc_ptr = unsafe { (*dev.0.as_ptr()).si_drv1 };
         unsafe {
             bindings::destroy_dev(dev.0.as_ptr())
         };
-        let sc_ptr = unsafe { (*dev.0.as_ptr()).si_drv1 };
         let sc = unsafe { sc_ptr.cast::<Self::Softc>() };
         unsafe {
             Box::from_raw(sc)
