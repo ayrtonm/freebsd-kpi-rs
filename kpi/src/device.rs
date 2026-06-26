@@ -89,7 +89,6 @@ impl Device {
         let t_start = t_ptr.addr();
         let t_end = t_start + size_of::<T>();
         if self.sc_range.contains(&t_start) && self.sc_range.contains(&t_end) {
-            device_println!(self.ptr, "found {:?} embedded in softc", core::any::type_name::<T>());
             return true;
         }
         let mut current = self.allocations_head.load(Ordering::Acquire);
