@@ -465,7 +465,7 @@ pub const NBBY: i32 = 8;
 pub const BSD: i32 = 199506;
 pub const BSD4_3: i32 = 1;
 pub const BSD4_4: i32 = 1;
-pub const __FreeBSD_version: i32 = 1600018;
+pub const __FreeBSD_version: i32 = 1600019;
 pub const P_OSREL_SIGWAIT: i32 = 700000;
 pub const P_OSREL_SIGSEGV: i32 = 700004;
 pub const P_OSREL_MAP_ANON: i32 = 800104;
@@ -750,6 +750,61 @@ pub const MAXPATHLEN: i32 = 1024;
 pub const MAXSYMLINKS: i32 = 32;
 pub const FSHIFT: i32 = 11;
 pub const FSCALE: i32 = 2048;
+pub const EHE_DEAD_PRIORITY: i32 = -1;
+pub const SI_ETERNAL: i32 = 1;
+pub const SI_ALIAS: i32 = 2;
+pub const SI_NAMED: i32 = 4;
+pub const SI_UNUSED1: i32 = 8;
+pub const SI_CHILD: i32 = 16;
+pub const SI_DUMPDEV: i32 = 128;
+pub const SI_CLONELIST: i32 = 512;
+pub const SI_UNMAPPED: i32 = 1024;
+pub const SI_NOSPLIT: i32 = 2048;
+pub const D_TAPE: i32 = 1;
+pub const D_DISK: i32 = 2;
+pub const D_TTY: i32 = 4;
+pub const D_MEM: i32 = 8;
+pub const UID_ROOT: i32 = 0;
+pub const UID_BIN: i32 = 3;
+pub const UID_UUCP: i32 = 66;
+pub const UID_NOBODY: i32 = 65534;
+pub const GID_WHEEL: i32 = 0;
+pub const GID_KMEM: i32 = 2;
+pub const GID_TTY: i32 = 4;
+pub const GID_OPERATOR: i32 = 5;
+pub const GID_BIN: i32 = 7;
+pub const GID_GAMES: i32 = 13;
+pub const GID_AUDIO: i32 = 43;
+pub const GID_VIDEO: i32 = 44;
+pub const GID_RT_PRIO: i32 = 47;
+pub const GID_ID_PRIO: i32 = 48;
+pub const GID_DIALER: i32 = 68;
+pub const GID_U2F: i32 = 116;
+pub const GID_VMM: i32 = 978;
+pub const GID_NOGROUP: i32 = 65533;
+pub const GID_NOBODY: i32 = 65534;
+pub const D_TYPEMASK: i32 = 65535;
+pub const D_TRACKCLOSE: i32 = 524288;
+pub const D_MMAP_ANON: i32 = 1048576;
+pub const D_GIANTOK: i32 = 2097152;
+pub const D_NEEDGIANT: i32 = 4194304;
+pub const D_NEEDMINOR: i32 = 8388608;
+pub const D_VERSION_00: i32 = 536942950;
+pub const D_VERSION_01: i32 = 386080773;
+pub const D_VERSION_02: i32 = 671358985;
+pub const D_VERSION_03: i32 = 387063817;
+pub const D_VERSION_04: i32 = 1548272467;
+pub const D_VERSION: i32 = 1548272467;
+pub const D_INIT: i64 = 2147483648;
+pub const CLONE_UNITMASK: i32 = 1048575;
+pub const CLONE_FLAG0: i32 = 1048576;
+pub const MAKEDEV_REF: i32 = 1;
+pub const MAKEDEV_WHTOUT: i32 = 2;
+pub const MAKEDEV_NOWAIT: i32 = 4;
+pub const MAKEDEV_WAITOK: i32 = 8;
+pub const MAKEDEV_ETERNAL: i32 = 16;
+pub const MAKEDEV_CHECKNAME: i32 = 32;
+pub const MAKEDEV_ETERNAL_KLD: i32 = 16;
 pub const __CHAR_BIT: i32 = 8;
 pub const __SHRT_BIT: i32 = 16;
 pub const __INT_BIT: i32 = 32;
@@ -806,7 +861,6 @@ pub const DEVF_CLEAR_DRIVER_DETACH: i32 = 1;
 pub const DEVF_FORCE_DELETE: i32 = 1;
 pub const DEVF_RESET_DETACH: i32 = 1;
 pub const DEVICE_UNIT_ANY: i32 = -1;
-pub const EHE_DEAD_PRIORITY: i32 = -1;
 pub const KOBJ_CACHE_SIZE: i32 = 256;
 pub const CALLOUT_TRYLOCK: i32 = 1;
 pub const CALLOUT_ACTIVE: i32 = 2;
@@ -2761,6 +2815,121 @@ pub const CPUSET_INVALID: i32 = -1;
 pub const CPUSET_DEFAULT: i32 = 0;
 pub const CPU_SET_ROOT: i32 = 1;
 pub const CPU_SET_RDONLY: i32 = 2;
+pub const O_RDONLY: i32 = 0;
+pub const O_WRONLY: i32 = 1;
+pub const O_RDWR: i32 = 2;
+pub const O_ACCMODE: i32 = 3;
+pub const FREAD: i32 = 1;
+pub const FWRITE: i32 = 2;
+pub const O_NONBLOCK: i32 = 4;
+pub const O_APPEND: i32 = 8;
+pub const O_SHLOCK: i32 = 16;
+pub const O_EXLOCK: i32 = 32;
+pub const O_ASYNC: i32 = 64;
+pub const O_FSYNC: i32 = 128;
+pub const O_SYNC: i32 = 128;
+pub const O_NOFOLLOW: i32 = 256;
+pub const O_CREAT: i32 = 512;
+pub const O_TRUNC: i32 = 1024;
+pub const O_EXCL: i32 = 2048;
+pub const FHASLOCK: i32 = 16384;
+pub const O_NOCTTY: i32 = 32768;
+pub const O_DIRECT: i32 = 65536;
+pub const O_DIRECTORY: i32 = 131072;
+pub const O_EXEC: i32 = 262144;
+pub const O_SEARCH: i32 = 262144;
+pub const FEXEC: i32 = 262144;
+pub const FSEARCH: i32 = 262144;
+pub const O_TTY_INIT: i32 = 524288;
+pub const O_CLOEXEC: i32 = 1048576;
+pub const O_VERIFY: i32 = 2097152;
+pub const O_PATH: i32 = 4194304;
+pub const O_RESOLVE_BENEATH: i32 = 8388608;
+pub const O_DSYNC: i32 = 16777216;
+pub const O_EMPTY_PATH: i32 = 33554432;
+pub const O_NAMEDATTR: i32 = 67108864;
+pub const O_XATTR: i32 = 67108864;
+pub const O_SYMLINK: i32 = 4194560;
+pub const O_CLOFORK: i32 = 134217728;
+pub const FLASTCLOSE: i32 = 131072;
+pub const FREVOKE: i32 = 2097152;
+pub const FOPENFAILED: i32 = 524288;
+pub const FKQALLOWED: i32 = 8388608;
+pub const FUSERALLOWED: i32 = 268406783;
+pub const FAPPEND: i32 = 8;
+pub const FASYNC: i32 = 64;
+pub const FFSYNC: i32 = 128;
+pub const FDSYNC: i32 = 16777216;
+pub const FNONBLOCK: i32 = 4;
+pub const FNDELAY: i32 = 4;
+pub const O_NDELAY: i32 = 4;
+pub const FRDAHEAD: i32 = 512;
+pub const AT_FDCWD: i32 = -100;
+pub const AT_EACCESS: i32 = 256;
+pub const AT_SYMLINK_NOFOLLOW: i32 = 512;
+pub const AT_SYMLINK_FOLLOW: i32 = 1024;
+pub const AT_REMOVEDIR: i32 = 2048;
+pub const AT_RESOLVE_BENEATH: i32 = 8192;
+pub const AT_EMPTY_PATH: i32 = 16384;
+pub const AT_RENAME_NOREPLACE: i32 = 1;
+pub const RENAME_NOREPLACE: i32 = 1;
+pub const F_DUPFD: i32 = 0;
+pub const F_GETFD: i32 = 1;
+pub const F_SETFD: i32 = 2;
+pub const F_GETFL: i32 = 3;
+pub const F_SETFL: i32 = 4;
+pub const F_GETOWN: i32 = 5;
+pub const F_SETOWN: i32 = 6;
+pub const F_OGETLK: i32 = 7;
+pub const F_OSETLK: i32 = 8;
+pub const F_OSETLKW: i32 = 9;
+pub const F_DUP2FD: i32 = 10;
+pub const F_GETLK: i32 = 11;
+pub const F_SETLK: i32 = 12;
+pub const F_SETLKW: i32 = 13;
+pub const F_SETLK_REMOTE: i32 = 14;
+pub const F_READAHEAD: i32 = 15;
+pub const F_RDAHEAD: i32 = 16;
+pub const F_DUPFD_CLOEXEC: i32 = 17;
+pub const F_DUP2FD_CLOEXEC: i32 = 18;
+pub const F_ADD_SEALS: i32 = 19;
+pub const F_GET_SEALS: i32 = 20;
+pub const F_ISUNIONSTACK: i32 = 21;
+pub const F_KINFO: i32 = 22;
+pub const F_DUPFD_CLOFORK: i32 = 23;
+pub const F_DUP3FD: i32 = 24;
+pub const F_DUP3FD_SHIFT: i32 = 16;
+pub const F_SEAL_SEAL: i32 = 1;
+pub const F_SEAL_SHRINK: i32 = 2;
+pub const F_SEAL_GROW: i32 = 4;
+pub const F_SEAL_WRITE: i32 = 8;
+pub const FD_CLOEXEC: i32 = 1;
+pub const FD_RESOLVE_BENEATH: i32 = 2;
+pub const FD_CLOFORK: i32 = 4;
+pub const F_RDLCK: i32 = 1;
+pub const F_UNLCK: i32 = 2;
+pub const F_WRLCK: i32 = 3;
+pub const F_UNLCKSYS: i32 = 4;
+pub const F_CANCEL: i32 = 5;
+pub const F_WAIT: i32 = 16;
+pub const F_FLOCK: i32 = 32;
+pub const F_POSIX: i32 = 64;
+pub const F_REMOTE: i32 = 128;
+pub const F_NOINTR: i32 = 256;
+pub const F_FIRSTOPEN: i32 = 512;
+pub const LOCK_SH: i32 = 1;
+pub const LOCK_EX: i32 = 2;
+pub const LOCK_NB: i32 = 4;
+pub const LOCK_UN: i32 = 8;
+pub const POSIX_FADV_NORMAL: i32 = 0;
+pub const POSIX_FADV_RANDOM: i32 = 1;
+pub const POSIX_FADV_SEQUENTIAL: i32 = 2;
+pub const POSIX_FADV_WILLNEED: i32 = 3;
+pub const POSIX_FADV_DONTNEED: i32 = 4;
+pub const POSIX_FADV_NOREUSE: i32 = 5;
+pub const FD_NONE: i32 = -200;
+pub const SPACECTL_DEALLOC: i32 = 1;
+pub const SPACECTL_F_SUPPORTED: i32 = 0;
 pub const M_NOWAIT: i32 = 1;
 pub const M_WAITOK: i32 = 2;
 pub const M_NORECLAIM: i32 = 128;
@@ -3268,7 +3437,7 @@ pub const P_INEXEC: i32 = 67108864;
 pub const P_STATCHILD: i32 = 134217728;
 pub const P_INMEM: i32 = 268435456;
 pub const P_ASYNC_EXIT: i32 = 536870912;
-pub const P_UNUSED2: i32 = 1073741824;
+pub const P_INEXEC_WAIT: i32 = 1073741824;
 pub const P_PPTRACE: i64 = 2147483648;
 pub const P_STOPPED: i32 = 917504;
 pub const P2_INHERIT_PROTECTED: i32 = 1;
@@ -3381,12 +3550,42 @@ pub const CG_FLAG_HTT: i32 = 1;
 pub const CG_FLAG_SMT: i32 = 2;
 pub const CG_FLAG_THREAD: i32 = 3;
 pub const CG_FLAG_NODE: i32 = 4;
+pub const SX_LOCK_SHARED: i32 = 1;
+pub const SX_LOCK_SHARED_WAITERS: i32 = 2;
+pub const SX_LOCK_EXCLUSIVE_WAITERS: i32 = 4;
+pub const SX_LOCK_WRITE_SPINNER: i32 = 8;
+pub const SX_LOCK_RECURSED: i32 = 16;
+pub const SX_LOCK_FLAGMASK: i32 = 31;
+pub const SX_LOCK_WAITERS: i32 = 6;
+pub const SX_SHARERS_SHIFT: i32 = 5;
+pub const SX_ONE_SHARER: i32 = 32;
+pub const SX_LOCK_DESTROYED: i32 = 6;
+pub const SX_DUPOK: i32 = 1;
+pub const SX_NOPROFILE: i32 = 2;
+pub const SX_NOWITNESS: i32 = 4;
+pub const SX_QUIET: i32 = 8;
+pub const SX_RECURSE: i32 = 32;
+pub const SX_NEW: i32 = 64;
+pub const SX_INTERRUPTIBLE: i32 = 64;
+pub const SA_LOCKED: i32 = 1;
+pub const SA_SLOCKED: i32 = 2;
+pub const SA_XLOCKED: i32 = 4;
+pub const SA_UNLOCKED: i32 = 0;
+pub const SA_RECURSED: i32 = 8;
+pub const SA_NOTRECURSED: i32 = 16;
+pub const SX_LOCKED: i32 = 1;
+pub const SX_SLOCKED: i32 = 2;
+pub const SX_XLOCKED: i32 = 4;
+pub const SX_UNLOCKED: i32 = 0;
+pub const SX_RECURSED: i32 = 8;
+pub const SX_NOTRECURSED: i32 = 16;
 pub const TASK_ENQUEUED: i32 = 1;
 pub const TASK_NOENQUEUE: i32 = 2;
 pub const TASK_NETWORK: i32 = 4;
 pub const TASKQUEUE_NAMELEN: i32 = 32;
 pub const TASKQUEUE_FAIL_IF_PENDING: i32 = 1;
 pub const TASKQUEUE_FAIL_IF_CANCELING: i32 = 2;
+pub const UIO_MAXIOV: i32 = 1024;
 pub const PRId8: &[u8; 2] = b"d\0";
 pub const PRId16: &[u8; 2] = b"d\0";
 pub const PRId32: &[u8; 2] = b"d\0";
@@ -3641,175 +3840,6 @@ pub const SHUTDOWN_PRI_FIRST: i32 = 0;
 pub const SHUTDOWN_PRI_DEFAULT: i32 = 10000;
 pub const SHUTDOWN_PRI_LAST: i32 = 20000;
 pub const LOWMEM_PRI_DEFAULT: i32 = 0;
-pub const O_RDONLY: i32 = 0;
-pub const O_WRONLY: i32 = 1;
-pub const O_RDWR: i32 = 2;
-pub const O_ACCMODE: i32 = 3;
-pub const FREAD: i32 = 1;
-pub const FWRITE: i32 = 2;
-pub const O_NONBLOCK: i32 = 4;
-pub const O_APPEND: i32 = 8;
-pub const O_SHLOCK: i32 = 16;
-pub const O_EXLOCK: i32 = 32;
-pub const O_ASYNC: i32 = 64;
-pub const O_FSYNC: i32 = 128;
-pub const O_SYNC: i32 = 128;
-pub const O_NOFOLLOW: i32 = 256;
-pub const O_CREAT: i32 = 512;
-pub const O_TRUNC: i32 = 1024;
-pub const O_EXCL: i32 = 2048;
-pub const FHASLOCK: i32 = 16384;
-pub const O_NOCTTY: i32 = 32768;
-pub const O_DIRECT: i32 = 65536;
-pub const O_DIRECTORY: i32 = 131072;
-pub const O_EXEC: i32 = 262144;
-pub const O_SEARCH: i32 = 262144;
-pub const FEXEC: i32 = 262144;
-pub const FSEARCH: i32 = 262144;
-pub const O_TTY_INIT: i32 = 524288;
-pub const O_CLOEXEC: i32 = 1048576;
-pub const O_VERIFY: i32 = 2097152;
-pub const O_PATH: i32 = 4194304;
-pub const O_RESOLVE_BENEATH: i32 = 8388608;
-pub const O_DSYNC: i32 = 16777216;
-pub const O_EMPTY_PATH: i32 = 33554432;
-pub const O_NAMEDATTR: i32 = 67108864;
-pub const O_XATTR: i32 = 67108864;
-pub const O_SYMLINK: i32 = 4194560;
-pub const O_CLOFORK: i32 = 134217728;
-pub const FLASTCLOSE: i32 = 131072;
-pub const FREVOKE: i32 = 2097152;
-pub const FOPENFAILED: i32 = 524288;
-pub const FKQALLOWED: i32 = 8388608;
-pub const FUSERALLOWED: i32 = 268406783;
-pub const FAPPEND: i32 = 8;
-pub const FASYNC: i32 = 64;
-pub const FFSYNC: i32 = 128;
-pub const FDSYNC: i32 = 16777216;
-pub const FNONBLOCK: i32 = 4;
-pub const FNDELAY: i32 = 4;
-pub const O_NDELAY: i32 = 4;
-pub const FRDAHEAD: i32 = 512;
-pub const AT_FDCWD: i32 = -100;
-pub const AT_EACCESS: i32 = 256;
-pub const AT_SYMLINK_NOFOLLOW: i32 = 512;
-pub const AT_SYMLINK_FOLLOW: i32 = 1024;
-pub const AT_REMOVEDIR: i32 = 2048;
-pub const AT_RESOLVE_BENEATH: i32 = 8192;
-pub const AT_EMPTY_PATH: i32 = 16384;
-pub const AT_RENAME_NOREPLACE: i32 = 1;
-pub const RENAME_NOREPLACE: i32 = 1;
-pub const F_DUPFD: i32 = 0;
-pub const F_GETFD: i32 = 1;
-pub const F_SETFD: i32 = 2;
-pub const F_GETFL: i32 = 3;
-pub const F_SETFL: i32 = 4;
-pub const F_GETOWN: i32 = 5;
-pub const F_SETOWN: i32 = 6;
-pub const F_OGETLK: i32 = 7;
-pub const F_OSETLK: i32 = 8;
-pub const F_OSETLKW: i32 = 9;
-pub const F_DUP2FD: i32 = 10;
-pub const F_GETLK: i32 = 11;
-pub const F_SETLK: i32 = 12;
-pub const F_SETLKW: i32 = 13;
-pub const F_SETLK_REMOTE: i32 = 14;
-pub const F_READAHEAD: i32 = 15;
-pub const F_RDAHEAD: i32 = 16;
-pub const F_DUPFD_CLOEXEC: i32 = 17;
-pub const F_DUP2FD_CLOEXEC: i32 = 18;
-pub const F_ADD_SEALS: i32 = 19;
-pub const F_GET_SEALS: i32 = 20;
-pub const F_ISUNIONSTACK: i32 = 21;
-pub const F_KINFO: i32 = 22;
-pub const F_DUPFD_CLOFORK: i32 = 23;
-pub const F_DUP3FD: i32 = 24;
-pub const F_DUP3FD_SHIFT: i32 = 16;
-pub const F_SEAL_SEAL: i32 = 1;
-pub const F_SEAL_SHRINK: i32 = 2;
-pub const F_SEAL_GROW: i32 = 4;
-pub const F_SEAL_WRITE: i32 = 8;
-pub const FD_CLOEXEC: i32 = 1;
-pub const FD_RESOLVE_BENEATH: i32 = 2;
-pub const FD_CLOFORK: i32 = 4;
-pub const F_RDLCK: i32 = 1;
-pub const F_UNLCK: i32 = 2;
-pub const F_WRLCK: i32 = 3;
-pub const F_UNLCKSYS: i32 = 4;
-pub const F_CANCEL: i32 = 5;
-pub const F_WAIT: i32 = 16;
-pub const F_FLOCK: i32 = 32;
-pub const F_POSIX: i32 = 64;
-pub const F_REMOTE: i32 = 128;
-pub const F_NOINTR: i32 = 256;
-pub const F_FIRSTOPEN: i32 = 512;
-pub const LOCK_SH: i32 = 1;
-pub const LOCK_EX: i32 = 2;
-pub const LOCK_NB: i32 = 4;
-pub const LOCK_UN: i32 = 8;
-pub const POSIX_FADV_NORMAL: i32 = 0;
-pub const POSIX_FADV_RANDOM: i32 = 1;
-pub const POSIX_FADV_SEQUENTIAL: i32 = 2;
-pub const POSIX_FADV_WILLNEED: i32 = 3;
-pub const POSIX_FADV_DONTNEED: i32 = 4;
-pub const POSIX_FADV_NOREUSE: i32 = 5;
-pub const FD_NONE: i32 = -200;
-pub const SPACECTL_DEALLOC: i32 = 1;
-pub const SPACECTL_F_SUPPORTED: i32 = 0;
-pub const SI_ETERNAL: i32 = 1;
-pub const SI_ALIAS: i32 = 2;
-pub const SI_NAMED: i32 = 4;
-pub const SI_UNUSED1: i32 = 8;
-pub const SI_CHILD: i32 = 16;
-pub const SI_DUMPDEV: i32 = 128;
-pub const SI_CLONELIST: i32 = 512;
-pub const SI_UNMAPPED: i32 = 1024;
-pub const SI_NOSPLIT: i32 = 2048;
-pub const D_TAPE: i32 = 1;
-pub const D_DISK: i32 = 2;
-pub const D_TTY: i32 = 4;
-pub const D_MEM: i32 = 8;
-pub const UID_ROOT: i32 = 0;
-pub const UID_BIN: i32 = 3;
-pub const UID_UUCP: i32 = 66;
-pub const UID_NOBODY: i32 = 65534;
-pub const GID_WHEEL: i32 = 0;
-pub const GID_KMEM: i32 = 2;
-pub const GID_TTY: i32 = 4;
-pub const GID_OPERATOR: i32 = 5;
-pub const GID_BIN: i32 = 7;
-pub const GID_GAMES: i32 = 13;
-pub const GID_AUDIO: i32 = 43;
-pub const GID_VIDEO: i32 = 44;
-pub const GID_RT_PRIO: i32 = 47;
-pub const GID_ID_PRIO: i32 = 48;
-pub const GID_DIALER: i32 = 68;
-pub const GID_U2F: i32 = 116;
-pub const GID_VMM: i32 = 978;
-pub const GID_NOGROUP: i32 = 65533;
-pub const GID_NOBODY: i32 = 65534;
-pub const D_TYPEMASK: i32 = 65535;
-pub const D_TRACKCLOSE: i32 = 524288;
-pub const D_MMAP_ANON: i32 = 1048576;
-pub const D_GIANTOK: i32 = 2097152;
-pub const D_NEEDGIANT: i32 = 4194304;
-pub const D_NEEDMINOR: i32 = 8388608;
-pub const D_VERSION_00: i32 = 536942950;
-pub const D_VERSION_01: i32 = 386080773;
-pub const D_VERSION_02: i32 = 671358985;
-pub const D_VERSION_03: i32 = 387063817;
-pub const D_VERSION_04: i32 = 1548272467;
-pub const D_VERSION: i32 = 1548272467;
-pub const D_INIT: i64 = 2147483648;
-pub const CLONE_UNITMASK: i32 = 1048575;
-pub const CLONE_FLAG0: i32 = 1048576;
-pub const MAKEDEV_REF: i32 = 1;
-pub const MAKEDEV_WHTOUT: i32 = 2;
-pub const MAKEDEV_NOWAIT: i32 = 4;
-pub const MAKEDEV_WAITOK: i32 = 8;
-pub const MAKEDEV_ETERNAL: i32 = 16;
-pub const MAKEDEV_CHECKNAME: i32 = 32;
-pub const MAKEDEV_ETERNAL_KLD: i32 = 16;
 pub const DTYPE_NONE: i32 = 0;
 pub const DTYPE_VNODE: i32 = 1;
 pub const DTYPE_SOCKET: i32 = 2;
@@ -3840,7 +3870,6 @@ pub const FILE_V_FOFFSET_LOCKED: i32 = 1;
 pub const FILE_V_FOFFSET_LOCK_WAITING: i32 = 2;
 pub const FILE_V_SETFL_LOCKED: i32 = 4;
 pub const FILE_V_SETFL_LOCK_WAITING: i32 = 8;
-pub const UIO_MAXIOV: i32 = 1024;
 pub const _PATH_LOG: &[u8; 13] = b"/var/run/log\0";
 pub const _PATH_LOG_PRIV: &[u8; 17] = b"/var/run/logpriv\0";
 pub const LOG_EMERG: i32 = 0;
@@ -4916,12 +4945,11 @@ pub const SD_F_BUSY: i32 = 8;
 pub const SD_F_MPSAFE: i32 = 16;
 pub const SD_F_REGISTERED: i32 = 32;
 pub const SD_F_BITPERFECT: i32 = 64;
-pub const SD_F_VPC: i32 = 128;
 pub const SD_F_EQ_ENABLED: i32 = 512;
 pub const SD_F_EQ_PC: i32 = 2048;
 pub const SD_F_PVCHANS: i32 = 4096;
 pub const SD_F_RVCHANS: i32 = 8192;
-pub const SD_F_BITS : & [u8 ; 92] = b"\x10\x01SIMPLEX\x03SOFTPCMVOL\x04BUSY\x05MPSAFE\x06REGISTERED\x07BITPERFECT\x08VPC\nEQ_ENABLED\x0CEQ_PC\rPVCHANS\x0ERVCHANS\0" ;
+pub const SD_F_BITS : & [u8 ; 88] = b"\x10\x01SIMPLEX\x03SOFTPCMVOL\x04BUSY\x05MPSAFE\x06REGISTERED\x07BITPERFECT\nEQ_ENABLED\x0CEQ_PC\rPVCHANS\x0ERVCHANS\0" ;
 pub const PCM_MAXCHANS: i32 = 10000;
 pub const PCM_MODE_MIXER: i32 = 1;
 pub const PCM_MODE_PLAY: i32 = 2;
@@ -5381,6 +5409,492 @@ pub struct priority {
     pub pri_native: ::core::ffi::c_uchar,
     pub pri_user: ::core::ffi::c_uchar,
 }
+#[repr(C)]
+#[derive(Debug)]
+pub struct eventhandler_entry {
+    pub ee_link: eventhandler_entry__bindgen_ty_1,
+    pub ee_priority: ::core::ffi::c_int,
+    pub ee_arg: *mut ::core::ffi::c_void,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct eventhandler_entry__bindgen_ty_1 {
+    pub tqe_next: *mut eventhandler_entry,
+    pub tqe_prev: *mut *mut eventhandler_entry,
+}
+impl Default for eventhandler_entry__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for eventhandler_entry {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type eventhandler_tag = *mut eventhandler_entry;
+#[repr(C)]
+#[derive(Debug)]
+pub struct snapdata {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct devfs_dirent {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+pub struct cdev {
+    pub si_spare0: *mut ::core::ffi::c_void,
+    pub si_flags: u_int,
+    pub si_atime: timespec,
+    pub si_ctime: timespec,
+    pub si_mtime: timespec,
+    pub si_uid: uid_t,
+    pub si_gid: gid_t,
+    pub si_mode: mode_t,
+    pub si_cred: *mut ucred,
+    pub si_drv0: ::core::ffi::c_int,
+    pub si_refcount: ::core::ffi::c_int,
+    pub si_list: cdev__bindgen_ty_1,
+    pub si_clone: cdev__bindgen_ty_2,
+    pub si_children: cdev__bindgen_ty_3,
+    pub si_siblings: cdev__bindgen_ty_4,
+    pub si_parent: *mut cdev,
+    pub si_mountpt: *mut mount,
+    pub si_drv1: *mut ::core::ffi::c_void,
+    pub si_drv2: *mut ::core::ffi::c_void,
+    pub si_devsw: *mut cdevsw,
+    pub si_iosize_max: ::core::ffi::c_int,
+    pub si_usecount: u_long,
+    pub si_threadcount: u_long,
+    pub __si_u: cdev__bindgen_ty_5,
+    pub si_name: [::core::ffi::c_char; 256usize],
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct cdev__bindgen_ty_1 {
+    pub le_next: *mut cdev,
+    pub le_prev: *mut *mut cdev,
+}
+impl Default for cdev__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct cdev__bindgen_ty_2 {
+    pub le_next: *mut cdev,
+    pub le_prev: *mut *mut cdev,
+}
+impl Default for cdev__bindgen_ty_2 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct cdev__bindgen_ty_3 {
+    pub lh_first: *mut cdev,
+}
+impl Default for cdev__bindgen_ty_3 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct cdev__bindgen_ty_4 {
+    pub le_next: *mut cdev,
+    pub le_prev: *mut *mut cdev,
+}
+impl Default for cdev__bindgen_ty_4 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+pub struct cdev__bindgen_ty_5 {
+    pub __sid_snapdata: __BindgenUnionField<*mut snapdata>,
+    pub bindgen_union_field: u64,
+}
+impl Default for cdev__bindgen_ty_5 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for cdev {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct bio {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct buf {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct kerneldumpheader {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct clonedevs {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct vm_object {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct vnode {
+    _unused: [u8; 0],
+}
+pub type d_open_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        dev: *mut cdev,
+        oflags: ::core::ffi::c_int,
+        devtype: ::core::ffi::c_int,
+        td: *mut thread,
+    ) -> ::core::ffi::c_int,
+>;
+pub type d_fdopen_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        dev: *mut cdev,
+        oflags: ::core::ffi::c_int,
+        td: *mut thread,
+        fp: *mut file,
+    ) -> ::core::ffi::c_int,
+>;
+pub type d_close_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        dev: *mut cdev,
+        fflag: ::core::ffi::c_int,
+        devtype: ::core::ffi::c_int,
+        td: *mut thread,
+    ) -> ::core::ffi::c_int,
+>;
+pub type d_strategy_t = ::core::option::Option<unsafe extern "C" fn(bp: *mut bio)>;
+pub type d_ioctl_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        dev: *mut cdev,
+        cmd: u_long,
+        data: caddr_t,
+        fflag: ::core::ffi::c_int,
+        td: *mut thread,
+    ) -> ::core::ffi::c_int,
+>;
+pub type d_read_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        dev: *mut cdev,
+        uio: *mut uio,
+        ioflag: ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int,
+>;
+pub type d_write_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        dev: *mut cdev,
+        uio: *mut uio,
+        ioflag: ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int,
+>;
+pub type d_poll_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        dev: *mut cdev,
+        events: ::core::ffi::c_int,
+        td: *mut thread,
+    ) -> ::core::ffi::c_int,
+>;
+pub type d_kqfilter_t = ::core::option::Option<
+    unsafe extern "C" fn(dev: *mut cdev, kn: *mut knote) -> ::core::ffi::c_int,
+>;
+pub type d_mmap_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        dev: *mut cdev,
+        offset: vm_ooffset_t,
+        paddr: *mut vm_paddr_t,
+        nprot: ::core::ffi::c_int,
+        memattr: *mut vm_memattr_t,
+    ) -> ::core::ffi::c_int,
+>;
+pub type d_mmap_single_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        cdev: *mut cdev,
+        offset: *mut vm_ooffset_t,
+        size: vm_size_t,
+        object: *mut *mut vm_object,
+        nprot: ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int,
+>;
+pub type d_purge_t = ::core::option::Option<unsafe extern "C" fn(dev: *mut cdev)>;
+pub type dumper_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        _priv: *mut ::core::ffi::c_void,
+        _virtual: *mut ::core::ffi::c_void,
+        _offset: off_t,
+        _length: usize,
+    ) -> ::core::ffi::c_int,
+>;
+pub type dumper_start_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        di: *mut dumperinfo,
+        key: *mut ::core::ffi::c_void,
+        keysize: u32,
+    ) -> ::core::ffi::c_int,
+>;
+pub type dumper_hdr_t = ::core::option::Option<
+    unsafe extern "C" fn(di: *mut dumperinfo, kdh: *mut kerneldumpheader) -> ::core::ffi::c_int,
+>;
+#[repr(C)]
+pub struct cdevsw {
+    pub d_version: ::core::ffi::c_int,
+    pub d_flags: u_int,
+    pub d_name: *const ::core::ffi::c_char,
+    pub d_open: d_open_t,
+    pub d_fdopen: d_fdopen_t,
+    pub d_close: d_close_t,
+    pub d_read: d_read_t,
+    pub d_write: d_write_t,
+    pub d_ioctl: d_ioctl_t,
+    pub d_poll: d_poll_t,
+    pub d_mmap: d_mmap_t,
+    pub d_strategy: d_strategy_t,
+    pub d_spare0: *mut ::core::ffi::c_void,
+    pub d_kqfilter: d_kqfilter_t,
+    pub d_purge: d_purge_t,
+    pub d_mmap_single: d_mmap_single_t,
+    pub d_spare1: [i32; 3usize],
+    pub d_spare2: [*mut ::core::ffi::c_void; 3usize],
+    pub d_devs: cdevsw__bindgen_ty_1,
+    pub d_spare3: ::core::ffi::c_int,
+    pub __d_giant: cdevsw__bindgen_ty_2,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct cdevsw__bindgen_ty_1 {
+    pub lh_first: *mut cdev,
+}
+impl Default for cdevsw__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+pub struct cdevsw__bindgen_ty_2 {
+    pub gianttrick: __BindgenUnionField<*mut cdevsw>,
+    pub postfree_list: __BindgenUnionField<cdevsw__bindgen_ty_2__bindgen_ty_1>,
+    pub bindgen_union_field: u64,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct cdevsw__bindgen_ty_2__bindgen_ty_1 {
+    pub sle_next: *mut cdevsw,
+}
+impl Default for cdevsw__bindgen_ty_2__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for cdevsw__bindgen_ty_2 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for cdevsw {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct module {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct devsw_module_data {
+    pub chainevh: ::core::option::Option<
+        unsafe extern "C" fn(
+            arg1: *mut module,
+            arg2: ::core::ffi::c_int,
+            arg3: *mut ::core::ffi::c_void,
+        ) -> ::core::ffi::c_int,
+    >,
+    pub chainarg: *mut ::core::ffi::c_void,
+}
+impl Default for devsw_module_data {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct make_dev_args {
+    pub mda_size: usize,
+    pub mda_flags: ::core::ffi::c_int,
+    pub mda_devsw: *mut cdevsw,
+    pub mda_cr: *mut ucred,
+    pub mda_uid: uid_t,
+    pub mda_gid: gid_t,
+    pub mda_mode: ::core::ffi::c_int,
+    pub mda_unit: ::core::ffi::c_int,
+    pub mda_si_drv1: *mut ::core::ffi::c_void,
+    pub mda_si_drv2: *mut ::core::ffi::c_void,
+}
+impl Default for make_dev_args {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type d_priv_dtor_t =
+    ::core::option::Option<unsafe extern "C" fn(data: *mut ::core::ffi::c_void)>;
+pub type dev_clone_fn = ::core::option::Option<
+    unsafe extern "C" fn(
+        arg: *mut ::core::ffi::c_void,
+        cred: *mut ucred,
+        name: *mut ::core::ffi::c_char,
+        namelen: ::core::ffi::c_int,
+        result: *mut *mut cdev,
+    ),
+>;
+#[repr(C)]
+#[derive(Debug)]
+pub struct eventhandler_entry_dev_clone {
+    pub ee: eventhandler_entry,
+    pub eh_func: dev_clone_fn,
+}
+impl Default for eventhandler_entry_dev_clone {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct __hack {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct kerneldumpcrypto {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct dumperinfo {
+    pub dumper: dumper_t,
+    pub dumper_start: dumper_start_t,
+    pub dumper_hdr: dumper_hdr_t,
+    pub priv_: *mut ::core::ffi::c_void,
+    pub blocksize: u_int,
+    pub maxiosize: u_int,
+    pub mediaoffset: off_t,
+    pub mediasize: off_t,
+    pub blockbuf: *mut ::core::ffi::c_void,
+    pub dumpoff: off_t,
+    pub origdumpoff: off_t,
+    pub kdcrypto: *mut kerneldumpcrypto,
+    pub kdcomp: *mut kerneldumpcomp,
+    pub di_next: dumperinfo__bindgen_ty_1,
+    pub di_devname: __IncompleteArrayField<::core::ffi::c_char>,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct dumperinfo__bindgen_ty_1 {
+    pub tqe_next: *mut dumperinfo,
+    pub tqe_prev: *mut *mut dumperinfo,
+}
+impl Default for dumperinfo__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for dumperinfo {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct diocskerneldump_arg {
+    _unused: [u8; 0],
+}
 pub type bus_addr_t = u_long;
 pub type bus_size_t = u_long;
 pub type bus_space_handle_t = u_long;
@@ -5503,38 +6017,6 @@ impl Default for devreq {
         }
     }
 }
-#[repr(C)]
-#[derive(Debug)]
-pub struct eventhandler_entry {
-    pub ee_link: eventhandler_entry__bindgen_ty_1,
-    pub ee_priority: ::core::ffi::c_int,
-    pub ee_arg: *mut ::core::ffi::c_void,
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct eventhandler_entry__bindgen_ty_1 {
-    pub tqe_next: *mut eventhandler_entry,
-    pub tqe_prev: *mut *mut eventhandler_entry,
-}
-impl Default for eventhandler_entry__bindgen_ty_1 {
-    fn default() -> Self {
-        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-impl Default for eventhandler_entry {
-    fn default() -> Self {
-        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-pub type eventhandler_tag = *mut eventhandler_entry;
 pub type kobj_t = *mut kobj;
 pub type kobj_class_t = *mut kobj_class;
 pub type kobj_method_t = kobj_method;
@@ -6761,11 +7243,6 @@ impl Default for eventhandler_entry_dev_lookup {
         }
     }
 }
-#[repr(C)]
-#[derive(Debug)]
-pub struct __hack {
-    _unused: [u8; 0],
-}
 #[doc = " @brief A device driver.\n\n Provides an abstraction layer for driver dispatch."]
 pub type driver_t = kobj_class;
 #[repr(C)]
@@ -7252,11 +7729,6 @@ pub type bus_get_device_path_t = ::core::option::Option<
         _sb: *mut sbuf,
     ) -> ::core::ffi::c_int,
 >;
-#[repr(C)]
-#[derive(Debug)]
-pub struct module {
-    _unused: [u8; 0],
-}
 #[doc = " Module support for automatically adding drivers to buses."]
 #[repr(C)]
 #[derive(Debug)]
@@ -7386,6 +7858,31 @@ pub struct cpuset_copy_cb {
         ) -> ::core::ffi::c_int,
     >,
 }
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct flock {
+    pub l_start: off_t,
+    pub l_len: off_t,
+    pub l_pid: pid_t,
+    pub l_type: ::core::ffi::c_short,
+    pub l_whence: ::core::ffi::c_short,
+    pub l_sysid: ::core::ffi::c_int,
+}
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct __oflock {
+    pub l_start: off_t,
+    pub l_len: off_t,
+    pub l_pid: pid_t,
+    pub l_type: ::core::ffi::c_short,
+    pub l_whence: ::core::ffi::c_short,
+}
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct spacectl_range {
+    pub r_offset: off_t,
+    pub r_len: off_t,
+}
 pub type ihandle_t = u32;
 pub type phandle_t = u32;
 pub type pcell_t = u32;
@@ -7487,11 +7984,6 @@ pub struct vm_map {
     _unused: [u8; 0],
 }
 pub type vm_map_t = *mut vm_map;
-#[repr(C)]
-#[derive(Debug)]
-pub struct vm_object {
-    _unused: [u8; 0],
-}
 pub type vm_object_t = *mut vm_object;
 #[repr(C)]
 #[derive(Debug)]
@@ -9676,6 +10168,7 @@ pub struct proc_ {
     pub p_pendingexits: ::core::ffi::c_int,
     pub p_filemon: *mut filemon,
     pub p_pdeathsig: ::core::ffi::c_int,
+    pub p_execblock: u_int,
     pub p_magic: u_int,
     pub p_osrel: ::core::ffi::c_int,
     pub p_fctl0: u32,
@@ -10180,11 +10673,6 @@ impl Default for sglist {
 }
 #[repr(C)]
 #[derive(Debug)]
-pub struct bio {
-    _unused: [u8; 0],
-}
-#[repr(C)]
-#[derive(Debug)]
 pub struct mbuf {
     _unused: [u8; 0],
 }
@@ -10292,6 +10780,22 @@ pub struct topo_analysis {
 pub struct smp_rendezvous_cpus_retry_arg {
     pub cpus: cpuset_t,
 }
+#[repr(C)]
+#[derive(Debug)]
+pub struct sx_args {
+    pub sa_sx: *mut sx,
+    pub sa_desc: *const ::core::ffi::c_char,
+    pub sa_flags: ::core::ffi::c_int,
+}
+impl Default for sx_args {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub type task_fn_t = ::core::option::Option<
     unsafe extern "C" fn(context: *mut ::core::ffi::c_void, pending: ::core::ffi::c_int),
 >;
@@ -10395,6 +10899,48 @@ pub type taskqueue_callback_fn =
     ::core::option::Option<unsafe extern "C" fn(context: *mut ::core::ffi::c_void)>;
 pub type taskqueue_enqueue_fn =
     ::core::option::Option<unsafe extern "C" fn(context: *mut ::core::ffi::c_void)>;
+#[repr(C)]
+#[derive(Debug)]
+pub struct iovec {
+    pub iov_base: *mut ::core::ffi::c_void,
+    pub iov_len: usize,
+}
+impl Default for iovec {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub const UIO_READ: uio_rw = 0;
+pub const UIO_WRITE: uio_rw = 1;
+pub type uio_rw = ::core::ffi::c_uint;
+pub const UIO_USERSPACE: uio_seg = 0;
+pub const UIO_SYSSPACE: uio_seg = 1;
+pub const UIO_NOCOPY: uio_seg = 2;
+pub type uio_seg = ::core::ffi::c_uint;
+#[repr(C)]
+#[derive(Debug)]
+pub struct uio {
+    pub uio_iov: *mut iovec,
+    pub uio_iovcnt: ::core::ffi::c_int,
+    pub uio_offset: off_t,
+    pub uio_resid: isize,
+    pub uio_segflg: uio_seg,
+    pub uio_rw: uio_rw,
+    pub uio_td: *mut thread,
+}
+impl Default for uio {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug)]
 pub struct bus_space {
@@ -11521,8 +12067,8 @@ pub const POWER_STYPE_FW_SUSPEND: power_stype = 2;
 pub const POWER_STYPE_SUSPEND_TO_IDLE: power_stype = 3;
 pub const POWER_STYPE_FW_HIBERNATE: power_stype = 4;
 pub const POWER_STYPE_POWEROFF: power_stype = 5;
+pub const POWER_STYPE_UNKNOWN: power_stype = 6;
 pub const POWER_STYPE_COUNT: power_stype = 6;
-pub const POWER_STYPE_UNKNOWN: power_stype = 7;
 pub type power_stype = ::core::ffi::c_uint;
 pub type power_pm_fn_t = ::core::option::Option<
     unsafe extern "C" fn(
@@ -11765,11 +12311,6 @@ impl Default for eventhandler_entry_mountroot {
 #[repr(C)]
 #[derive(Debug)]
 pub struct mount {
-    _unused: [u8; 0],
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct vnode {
     _unused: [u8; 0],
 }
 pub type vfs_mounted_notify_fn = ::core::option::Option<
@@ -12464,31 +13005,6 @@ pub struct fiodgname_arg32 {
     pub buf: u32,
 }
 #[repr(C)]
-#[derive(Debug, Default)]
-pub struct flock {
-    pub l_start: off_t,
-    pub l_len: off_t,
-    pub l_pid: pid_t,
-    pub l_type: ::core::ffi::c_short,
-    pub l_whence: ::core::ffi::c_short,
-    pub l_sysid: ::core::ffi::c_int,
-}
-#[repr(C)]
-#[derive(Debug, Default)]
-pub struct __oflock {
-    pub l_start: off_t,
-    pub l_len: off_t,
-    pub l_pid: pid_t,
-    pub l_type: ::core::ffi::c_short,
-    pub l_whence: ::core::ffi::c_short,
-}
-#[repr(C)]
-#[derive(Debug, Default)]
-pub struct spacectl_range {
-    pub r_offset: off_t,
-    pub r_len: off_t,
-}
-#[repr(C)]
 #[derive(Debug)]
 pub struct selfd {
     _unused: [u8; 0],
@@ -12523,435 +13039,6 @@ impl Default for selinfo {
             s.assume_init()
         }
     }
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct snapdata {
-    _unused: [u8; 0],
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct devfs_dirent {
-    _unused: [u8; 0],
-}
-#[repr(C)]
-pub struct cdev {
-    pub si_spare0: *mut ::core::ffi::c_void,
-    pub si_flags: u_int,
-    pub si_atime: timespec,
-    pub si_ctime: timespec,
-    pub si_mtime: timespec,
-    pub si_uid: uid_t,
-    pub si_gid: gid_t,
-    pub si_mode: mode_t,
-    pub si_cred: *mut ucred,
-    pub si_drv0: ::core::ffi::c_int,
-    pub si_refcount: ::core::ffi::c_int,
-    pub si_list: cdev__bindgen_ty_1,
-    pub si_clone: cdev__bindgen_ty_2,
-    pub si_children: cdev__bindgen_ty_3,
-    pub si_siblings: cdev__bindgen_ty_4,
-    pub si_parent: *mut cdev,
-    pub si_mountpt: *mut mount,
-    pub si_drv1: *mut ::core::ffi::c_void,
-    pub si_drv2: *mut ::core::ffi::c_void,
-    pub si_devsw: *mut cdevsw,
-    pub si_iosize_max: ::core::ffi::c_int,
-    pub si_usecount: u_long,
-    pub si_threadcount: u_long,
-    pub __si_u: cdev__bindgen_ty_5,
-    pub si_name: [::core::ffi::c_char; 256usize],
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct cdev__bindgen_ty_1 {
-    pub le_next: *mut cdev,
-    pub le_prev: *mut *mut cdev,
-}
-impl Default for cdev__bindgen_ty_1 {
-    fn default() -> Self {
-        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct cdev__bindgen_ty_2 {
-    pub le_next: *mut cdev,
-    pub le_prev: *mut *mut cdev,
-}
-impl Default for cdev__bindgen_ty_2 {
-    fn default() -> Self {
-        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct cdev__bindgen_ty_3 {
-    pub lh_first: *mut cdev,
-}
-impl Default for cdev__bindgen_ty_3 {
-    fn default() -> Self {
-        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct cdev__bindgen_ty_4 {
-    pub le_next: *mut cdev,
-    pub le_prev: *mut *mut cdev,
-}
-impl Default for cdev__bindgen_ty_4 {
-    fn default() -> Self {
-        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-#[repr(C)]
-pub struct cdev__bindgen_ty_5 {
-    pub __sid_snapdata: __BindgenUnionField<*mut snapdata>,
-    pub bindgen_union_field: u64,
-}
-impl Default for cdev__bindgen_ty_5 {
-    fn default() -> Self {
-        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-impl Default for cdev {
-    fn default() -> Self {
-        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct buf {
-    _unused: [u8; 0],
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct kerneldumpheader {
-    _unused: [u8; 0],
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct clonedevs {
-    _unused: [u8; 0],
-}
-pub type d_open_t = ::core::option::Option<
-    unsafe extern "C" fn(
-        dev: *mut cdev,
-        oflags: ::core::ffi::c_int,
-        devtype: ::core::ffi::c_int,
-        td: *mut thread,
-    ) -> ::core::ffi::c_int,
->;
-pub type d_fdopen_t = ::core::option::Option<
-    unsafe extern "C" fn(
-        dev: *mut cdev,
-        oflags: ::core::ffi::c_int,
-        td: *mut thread,
-        fp: *mut file,
-    ) -> ::core::ffi::c_int,
->;
-pub type d_close_t = ::core::option::Option<
-    unsafe extern "C" fn(
-        dev: *mut cdev,
-        fflag: ::core::ffi::c_int,
-        devtype: ::core::ffi::c_int,
-        td: *mut thread,
-    ) -> ::core::ffi::c_int,
->;
-pub type d_strategy_t = ::core::option::Option<unsafe extern "C" fn(bp: *mut bio)>;
-pub type d_ioctl_t = ::core::option::Option<
-    unsafe extern "C" fn(
-        dev: *mut cdev,
-        cmd: u_long,
-        data: caddr_t,
-        fflag: ::core::ffi::c_int,
-        td: *mut thread,
-    ) -> ::core::ffi::c_int,
->;
-pub type d_read_t = ::core::option::Option<
-    unsafe extern "C" fn(
-        dev: *mut cdev,
-        uio: *mut uio,
-        ioflag: ::core::ffi::c_int,
-    ) -> ::core::ffi::c_int,
->;
-pub type d_write_t = ::core::option::Option<
-    unsafe extern "C" fn(
-        dev: *mut cdev,
-        uio: *mut uio,
-        ioflag: ::core::ffi::c_int,
-    ) -> ::core::ffi::c_int,
->;
-pub type d_poll_t = ::core::option::Option<
-    unsafe extern "C" fn(
-        dev: *mut cdev,
-        events: ::core::ffi::c_int,
-        td: *mut thread,
-    ) -> ::core::ffi::c_int,
->;
-pub type d_kqfilter_t = ::core::option::Option<
-    unsafe extern "C" fn(dev: *mut cdev, kn: *mut knote) -> ::core::ffi::c_int,
->;
-pub type d_mmap_t = ::core::option::Option<
-    unsafe extern "C" fn(
-        dev: *mut cdev,
-        offset: vm_ooffset_t,
-        paddr: *mut vm_paddr_t,
-        nprot: ::core::ffi::c_int,
-        memattr: *mut vm_memattr_t,
-    ) -> ::core::ffi::c_int,
->;
-pub type d_mmap_single_t = ::core::option::Option<
-    unsafe extern "C" fn(
-        cdev: *mut cdev,
-        offset: *mut vm_ooffset_t,
-        size: vm_size_t,
-        object: *mut *mut vm_object,
-        nprot: ::core::ffi::c_int,
-    ) -> ::core::ffi::c_int,
->;
-pub type d_purge_t = ::core::option::Option<unsafe extern "C" fn(dev: *mut cdev)>;
-pub type dumper_t = ::core::option::Option<
-    unsafe extern "C" fn(
-        _priv: *mut ::core::ffi::c_void,
-        _virtual: *mut ::core::ffi::c_void,
-        _offset: off_t,
-        _length: usize,
-    ) -> ::core::ffi::c_int,
->;
-pub type dumper_start_t = ::core::option::Option<
-    unsafe extern "C" fn(
-        di: *mut dumperinfo,
-        key: *mut ::core::ffi::c_void,
-        keysize: u32,
-    ) -> ::core::ffi::c_int,
->;
-pub type dumper_hdr_t = ::core::option::Option<
-    unsafe extern "C" fn(di: *mut dumperinfo, kdh: *mut kerneldumpheader) -> ::core::ffi::c_int,
->;
-#[repr(C)]
-pub struct cdevsw {
-    pub d_version: ::core::ffi::c_int,
-    pub d_flags: u_int,
-    pub d_name: *const ::core::ffi::c_char,
-    pub d_open: d_open_t,
-    pub d_fdopen: d_fdopen_t,
-    pub d_close: d_close_t,
-    pub d_read: d_read_t,
-    pub d_write: d_write_t,
-    pub d_ioctl: d_ioctl_t,
-    pub d_poll: d_poll_t,
-    pub d_mmap: d_mmap_t,
-    pub d_strategy: d_strategy_t,
-    pub d_spare0: *mut ::core::ffi::c_void,
-    pub d_kqfilter: d_kqfilter_t,
-    pub d_purge: d_purge_t,
-    pub d_mmap_single: d_mmap_single_t,
-    pub d_spare1: [i32; 3usize],
-    pub d_spare2: [*mut ::core::ffi::c_void; 3usize],
-    pub d_devs: cdevsw__bindgen_ty_1,
-    pub d_spare3: ::core::ffi::c_int,
-    pub __d_giant: cdevsw__bindgen_ty_2,
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct cdevsw__bindgen_ty_1 {
-    pub lh_first: *mut cdev,
-}
-impl Default for cdevsw__bindgen_ty_1 {
-    fn default() -> Self {
-        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-#[repr(C)]
-pub struct cdevsw__bindgen_ty_2 {
-    pub gianttrick: __BindgenUnionField<*mut cdevsw>,
-    pub postfree_list: __BindgenUnionField<cdevsw__bindgen_ty_2__bindgen_ty_1>,
-    pub bindgen_union_field: u64,
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct cdevsw__bindgen_ty_2__bindgen_ty_1 {
-    pub sle_next: *mut cdevsw,
-}
-impl Default for cdevsw__bindgen_ty_2__bindgen_ty_1 {
-    fn default() -> Self {
-        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-impl Default for cdevsw__bindgen_ty_2 {
-    fn default() -> Self {
-        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-impl Default for cdevsw {
-    fn default() -> Self {
-        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct devsw_module_data {
-    pub chainevh: ::core::option::Option<
-        unsafe extern "C" fn(
-            arg1: *mut module,
-            arg2: ::core::ffi::c_int,
-            arg3: *mut ::core::ffi::c_void,
-        ) -> ::core::ffi::c_int,
-    >,
-    pub chainarg: *mut ::core::ffi::c_void,
-}
-impl Default for devsw_module_data {
-    fn default() -> Self {
-        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct make_dev_args {
-    pub mda_size: usize,
-    pub mda_flags: ::core::ffi::c_int,
-    pub mda_devsw: *mut cdevsw,
-    pub mda_cr: *mut ucred,
-    pub mda_uid: uid_t,
-    pub mda_gid: gid_t,
-    pub mda_mode: ::core::ffi::c_int,
-    pub mda_unit: ::core::ffi::c_int,
-    pub mda_si_drv1: *mut ::core::ffi::c_void,
-    pub mda_si_drv2: *mut ::core::ffi::c_void,
-}
-impl Default for make_dev_args {
-    fn default() -> Self {
-        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-pub type d_priv_dtor_t =
-    ::core::option::Option<unsafe extern "C" fn(data: *mut ::core::ffi::c_void)>;
-pub type dev_clone_fn = ::core::option::Option<
-    unsafe extern "C" fn(
-        arg: *mut ::core::ffi::c_void,
-        cred: *mut ucred,
-        name: *mut ::core::ffi::c_char,
-        namelen: ::core::ffi::c_int,
-        result: *mut *mut cdev,
-    ),
->;
-#[repr(C)]
-#[derive(Debug)]
-pub struct eventhandler_entry_dev_clone {
-    pub ee: eventhandler_entry,
-    pub eh_func: dev_clone_fn,
-}
-impl Default for eventhandler_entry_dev_clone {
-    fn default() -> Self {
-        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct kerneldumpcrypto {
-    _unused: [u8; 0],
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct dumperinfo {
-    pub dumper: dumper_t,
-    pub dumper_start: dumper_start_t,
-    pub dumper_hdr: dumper_hdr_t,
-    pub priv_: *mut ::core::ffi::c_void,
-    pub blocksize: u_int,
-    pub maxiosize: u_int,
-    pub mediaoffset: off_t,
-    pub mediasize: off_t,
-    pub blockbuf: *mut ::core::ffi::c_void,
-    pub dumpoff: off_t,
-    pub origdumpoff: off_t,
-    pub kdcrypto: *mut kerneldumpcrypto,
-    pub kdcomp: *mut kerneldumpcomp,
-    pub di_next: dumperinfo__bindgen_ty_1,
-    pub di_devname: __IncompleteArrayField<::core::ffi::c_char>,
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct dumperinfo__bindgen_ty_1 {
-    pub tqe_next: *mut dumperinfo,
-    pub tqe_prev: *mut *mut dumperinfo,
-}
-impl Default for dumperinfo__bindgen_ty_1 {
-    fn default() -> Self {
-        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-impl Default for dumperinfo {
-    fn default() -> Self {
-        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct diocskerneldump_arg {
-    _unused: [u8; 0],
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -13238,48 +13325,6 @@ pub struct xfile {
     pub xf_flag: u_int,
     pub _xf_int_pad3: ::core::ffi::c_int,
     pub _xf_int64_pad: [i64; 6usize],
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct iovec {
-    pub iov_base: *mut ::core::ffi::c_void,
-    pub iov_len: usize,
-}
-impl Default for iovec {
-    fn default() -> Self {
-        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-pub const UIO_READ: uio_rw = 0;
-pub const UIO_WRITE: uio_rw = 1;
-pub type uio_rw = ::core::ffi::c_uint;
-pub const UIO_USERSPACE: uio_seg = 0;
-pub const UIO_SYSSPACE: uio_seg = 1;
-pub const UIO_NOCOPY: uio_seg = 2;
-pub type uio_seg = ::core::ffi::c_uint;
-#[repr(C)]
-#[derive(Debug)]
-pub struct uio {
-    pub uio_iov: *mut iovec,
-    pub uio_iovcnt: ::core::ffi::c_int,
-    pub uio_offset: off_t,
-    pub uio_resid: isize,
-    pub uio_segflg: uio_seg,
-    pub uio_rw: uio_rw,
-    pub uio_td: *mut thread,
-}
-impl Default for uio {
-    fn default() -> Self {
-        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
 }
 #[repr(C)]
 #[derive(Debug, Default)]
@@ -15488,6 +15533,11 @@ pub type pic_ipi_setup_t = ::core::option::Option<
 >;
 #[repr(C)]
 #[derive(Debug, Default)]
+pub struct kerneldumpcomp {
+    pub _address: u8,
+}
+#[repr(C)]
+#[derive(Debug, Default)]
 pub struct witness {
     pub _address: u8,
 }
@@ -15565,11 +15615,6 @@ pub struct sysentvec {
 #[repr(C)]
 #[derive(Debug, Default)]
 pub struct ktr_request {
-    pub _address: u8,
-}
-#[repr(C)]
-#[derive(Debug, Default)]
-pub struct kerneldumpcomp {
     pub _address: u8,
 }
 #[repr(C)]
@@ -15716,6 +15761,166 @@ unsafe extern "C" {
     pub static mut poisoned_buf: *mut ::core::ffi::c_void;
     pub fn panic(arg1: *const ::core::ffi::c_char, ...) -> !;
     pub fn vpanic(arg1: *const ::core::ffi::c_char, arg2: __va_list) -> !;
+    pub fn clone_setup(cdp: *mut *mut clonedevs);
+    pub fn clone_cleanup(arg1: *mut *mut clonedevs);
+    pub fn clone_create(
+        arg1: *mut *mut clonedevs,
+        arg2: *mut cdevsw,
+        unit: *mut ::core::ffi::c_int,
+        dev: *mut *mut cdev,
+        extra: ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int;
+    pub fn make_dev_args_init_impl(_args: *mut make_dev_args, _sz: usize);
+    pub fn delist_dev(_dev: *mut cdev);
+    pub fn destroy_dev(_dev: *mut cdev);
+    pub fn destroy_dev_sched(dev: *mut cdev) -> ::core::ffi::c_int;
+    pub fn destroy_dev_sched_cb(
+        dev: *mut cdev,
+        cb: ::core::option::Option<unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void)>,
+        arg: *mut ::core::ffi::c_void,
+    ) -> ::core::ffi::c_int;
+    pub fn destroy_dev_drain(csw: *mut cdevsw);
+    pub fn dev_copyname(dev: *mut cdev, path: *mut ::core::ffi::c_char, len: usize);
+    pub fn dev_refthread(_dev: *mut cdev, _ref: *mut ::core::ffi::c_int) -> *mut cdevsw;
+    pub fn devvn_refthread(
+        vp: *mut vnode,
+        devp: *mut *mut cdev,
+        _ref: *mut ::core::ffi::c_int,
+    ) -> *mut cdevsw;
+    pub fn dev_relthread(_dev: *mut cdev, _ref: ::core::ffi::c_int);
+    pub fn dev_depends(_pdev: *mut cdev, _cdev: *mut cdev);
+    pub fn dev_ref(dev: *mut cdev);
+    pub fn dev_refl(dev: *mut cdev);
+    pub fn dev_rel(dev: *mut cdev);
+    pub fn make_dev(
+        _devsw: *mut cdevsw,
+        _unit: ::core::ffi::c_int,
+        _uid: uid_t,
+        _gid: gid_t,
+        _perms: ::core::ffi::c_int,
+        _fmt: *const ::core::ffi::c_char,
+        ...
+    ) -> *mut cdev;
+    pub fn make_dev_cred(
+        _devsw: *mut cdevsw,
+        _unit: ::core::ffi::c_int,
+        _cr: *mut ucred,
+        _uid: uid_t,
+        _gid: gid_t,
+        _perms: ::core::ffi::c_int,
+        _fmt: *const ::core::ffi::c_char,
+        ...
+    ) -> *mut cdev;
+    pub fn make_dev_credf(
+        _flags: ::core::ffi::c_int,
+        _devsw: *mut cdevsw,
+        _unit: ::core::ffi::c_int,
+        _cr: *mut ucred,
+        _uid: uid_t,
+        _gid: gid_t,
+        _mode: ::core::ffi::c_int,
+        _fmt: *const ::core::ffi::c_char,
+        ...
+    ) -> *mut cdev;
+    pub fn make_dev_p(
+        _flags: ::core::ffi::c_int,
+        _cdev: *mut *mut cdev,
+        _devsw: *mut cdevsw,
+        _cr: *mut ucred,
+        _uid: uid_t,
+        _gid: gid_t,
+        _mode: ::core::ffi::c_int,
+        _fmt: *const ::core::ffi::c_char,
+        ...
+    ) -> ::core::ffi::c_int;
+    pub fn make_dev_s(
+        _args: *mut make_dev_args,
+        _cdev: *mut *mut cdev,
+        _fmt: *const ::core::ffi::c_char,
+        ...
+    ) -> ::core::ffi::c_int;
+    pub fn make_dev_alias(_pdev: *mut cdev, _fmt: *const ::core::ffi::c_char, ...) -> *mut cdev;
+    pub fn make_dev_alias_p(
+        _flags: ::core::ffi::c_int,
+        _cdev: *mut *mut cdev,
+        _pdev: *mut cdev,
+        _fmt: *const ::core::ffi::c_char,
+        ...
+    ) -> ::core::ffi::c_int;
+    pub fn make_dev_physpath_alias(
+        _flags: ::core::ffi::c_int,
+        _cdev: *mut *mut cdev,
+        _pdev: *mut cdev,
+        _old_alias: *mut cdev,
+        _physpath: *const ::core::ffi::c_char,
+    ) -> ::core::ffi::c_int;
+    pub fn dev_lock();
+    pub fn dev_unlock();
+    pub fn devfs_get_cdevpriv(datap: *mut *mut ::core::ffi::c_void) -> ::core::ffi::c_int;
+    pub fn devfs_set_cdevpriv(
+        priv_: *mut ::core::ffi::c_void,
+        dtr: d_priv_dtor_t,
+    ) -> ::core::ffi::c_int;
+    pub fn devfs_clear_cdevpriv();
+    pub fn devfs_foreach_cdevpriv(
+        dev: *mut cdev,
+        cb: ::core::option::Option<
+            unsafe extern "C" fn(
+                data: *mut ::core::ffi::c_void,
+                arg: *mut ::core::ffi::c_void,
+            ) -> ::core::ffi::c_int,
+        >,
+        arg: *mut ::core::ffi::c_void,
+    ) -> ::core::ffi::c_int;
+    pub fn devfs_alloc_cdp_inode() -> ino_t;
+    pub fn devfs_free_cdp_inode(ino: ino_t);
+    pub fn dev_stdclone(
+        _name: *mut ::core::ffi::c_char,
+        _namep: *mut *mut ::core::ffi::c_char,
+        _stem: *const ::core::ffi::c_char,
+        _unit: *mut ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int;
+    pub static mut dumping: ::core::ffi::c_int;
+    pub static mut dumped_core: bool_;
+    pub fn doadump(arg1: boolean_t) -> ::core::ffi::c_int;
+    pub fn dumper_create(
+        di_template: *const dumperinfo,
+        devname: *const ::core::ffi::c_char,
+        kda: *const diocskerneldump_arg,
+        dip: *mut *mut dumperinfo,
+    ) -> ::core::ffi::c_int;
+    pub fn dumper_destroy(di: *mut dumperinfo);
+    pub fn dumper_insert(
+        di_template: *const dumperinfo,
+        devname: *const ::core::ffi::c_char,
+        kda: *const diocskerneldump_arg,
+    ) -> ::core::ffi::c_int;
+    pub fn dumper_remove(
+        devname: *const ::core::ffi::c_char,
+        kda: *const diocskerneldump_arg,
+    ) -> ::core::ffi::c_int;
+    pub fn dumper_ddb_insert(arg1: *mut dumperinfo);
+    pub fn dumper_ddb_remove(arg1: *mut dumperinfo);
+    pub fn dump_start(di: *mut dumperinfo, kdh: *mut kerneldumpheader) -> ::core::ffi::c_int;
+    pub fn dump_append(
+        arg1: *mut dumperinfo,
+        arg2: *mut ::core::ffi::c_void,
+        arg3: usize,
+    ) -> ::core::ffi::c_int;
+    pub fn dump_write(
+        arg1: *mut dumperinfo,
+        arg2: *mut ::core::ffi::c_void,
+        arg3: off_t,
+        arg4: usize,
+    ) -> ::core::ffi::c_int;
+    pub fn dump_finish(di: *mut dumperinfo, kdh: *mut kerneldumpheader) -> ::core::ffi::c_int;
+    pub fn dump_init_header(
+        di: *const dumperinfo,
+        kdh: *mut kerneldumpheader,
+        magic: *const ::core::ffi::c_char,
+        archver: u32,
+        dumplen: u64,
+    );
     pub fn kobj_class_compile(cls: kobj_class_t);
     pub fn kobj_class_compile_static(cls: kobj_class_t, ops: kobj_ops_t);
     pub fn kobj_class_free(cls: kobj_class_t);
@@ -19802,6 +20007,89 @@ unsafe extern "C" {
         arg6: *mut smp_rendezvous_cpus_retry_arg,
     );
     pub fn smp_rendezvous_cpus_done(arg1: *mut smp_rendezvous_cpus_retry_arg);
+    pub fn sx_sysinit(arg: *const ::core::ffi::c_void);
+    pub fn sx_init_flags(
+        sx: *mut sx,
+        description: *const ::core::ffi::c_char,
+        opts: ::core::ffi::c_int,
+    );
+    pub fn sx_destroy(sx: *mut sx);
+    pub fn sx_try_slock_int(
+        sx: *mut sx,
+        file: *const ::core::ffi::c_char,
+        line: ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int;
+    pub fn sx_try_slock_(
+        sx: *mut sx,
+        file: *const ::core::ffi::c_char,
+        line: ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int;
+    pub fn sx_try_xlock_int(
+        sx: *mut sx,
+        file: *const ::core::ffi::c_char,
+        line: ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int;
+    pub fn sx_try_xlock_(
+        sx: *mut sx,
+        file: *const ::core::ffi::c_char,
+        line: ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int;
+    pub fn sx_try_upgrade_int(
+        sx: *mut sx,
+        file: *const ::core::ffi::c_char,
+        line: ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int;
+    pub fn sx_try_upgrade_(
+        sx: *mut sx,
+        file: *const ::core::ffi::c_char,
+        line: ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int;
+    pub fn sx_downgrade_int(
+        sx: *mut sx,
+        file: *const ::core::ffi::c_char,
+        line: ::core::ffi::c_int,
+    );
+    pub fn sx_downgrade_(sx: *mut sx, file: *const ::core::ffi::c_char, line: ::core::ffi::c_int);
+    pub fn _sx_slock_int(
+        sx: *mut sx,
+        opts: ::core::ffi::c_int,
+        file: *const ::core::ffi::c_char,
+        line: ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int;
+    pub fn _sx_slock(
+        sx: *mut sx,
+        opts: ::core::ffi::c_int,
+        file: *const ::core::ffi::c_char,
+        line: ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int;
+    pub fn _sx_xlock(
+        sx: *mut sx,
+        opts: ::core::ffi::c_int,
+        file: *const ::core::ffi::c_char,
+        line: ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int;
+    pub fn _sx_sunlock_int(sx: *mut sx, file: *const ::core::ffi::c_char, line: ::core::ffi::c_int);
+    pub fn _sx_sunlock(sx: *mut sx, file: *const ::core::ffi::c_char, line: ::core::ffi::c_int);
+    pub fn _sx_xunlock(sx: *mut sx, file: *const ::core::ffi::c_char, line: ::core::ffi::c_int);
+    pub fn _sx_xlock_hard(
+        sx: *mut sx,
+        x: usize,
+        opts: ::core::ffi::c_int,
+        file: *const ::core::ffi::c_char,
+        line: ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int;
+    pub fn _sx_xunlock_hard(
+        sx: *mut sx,
+        x: usize,
+        file: *const ::core::ffi::c_char,
+        line: ::core::ffi::c_int,
+    );
+    pub fn _sx_assert(
+        sx: *const sx,
+        what: ::core::ffi::c_int,
+        file: *const ::core::ffi::c_char,
+        line: ::core::ffi::c_int,
+    );
     pub fn taskqueue_create(
         name: *const ::core::ffi::c_char,
         mflags: ::core::ffi::c_int,
@@ -19895,6 +20183,74 @@ unsafe extern "C" {
         context: *mut ::core::ffi::c_void,
     ) -> *mut taskqueue;
     pub static mut taskqueue_bus: *mut taskqueue;
+    pub fn allocuio(iovcnt: u_int) -> *mut uio;
+    pub fn freeuio(uio: *mut uio);
+    pub fn cloneuio(uiop: *mut uio) -> *mut uio;
+    pub fn copyiniov(
+        iovp: *const iovec,
+        iovcnt: u_int,
+        iov: *mut *mut iovec,
+        error: ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int;
+    pub fn copyinuio(iovp: *const iovec, iovcnt: u_int, uiop: *mut *mut uio) -> ::core::ffi::c_int;
+    pub fn copyout_map(td: *mut thread, addr: *mut vm_offset_t, sz: usize) -> ::core::ffi::c_int;
+    pub fn copyout_unmap(td: *mut thread, addr: vm_offset_t, sz: usize) -> ::core::ffi::c_int;
+    pub fn exterr_copyout(td: *mut thread);
+    pub fn physcopyin(
+        src: *mut ::core::ffi::c_void,
+        dst: vm_paddr_t,
+        len: usize,
+    ) -> ::core::ffi::c_int;
+    pub fn physcopyout(
+        src: vm_paddr_t,
+        dst: *mut ::core::ffi::c_void,
+        len: usize,
+    ) -> ::core::ffi::c_int;
+    pub fn physcopyin_vlist(
+        src: *mut bus_dma_segment,
+        offset: off_t,
+        dst: vm_paddr_t,
+        len: usize,
+    ) -> ::core::ffi::c_int;
+    pub fn physcopyout_vlist(
+        src: vm_paddr_t,
+        dst: *mut bus_dma_segment,
+        offset: off_t,
+        len: usize,
+    ) -> ::core::ffi::c_int;
+    pub fn uioadvance(arg1: *mut uio, arg2: usize);
+    pub fn uiomove(
+        cp: *mut ::core::ffi::c_void,
+        n: ::core::ffi::c_int,
+        uio: *mut uio,
+    ) -> ::core::ffi::c_int;
+    pub fn uiomove_frombuf(
+        buf: *mut ::core::ffi::c_void,
+        buflen: ::core::ffi::c_int,
+        uio: *mut uio,
+    ) -> ::core::ffi::c_int;
+    pub fn uiomove_fromphys(
+        ma: *mut *mut vm_page,
+        offset: vm_offset_t,
+        n: ::core::ffi::c_int,
+        uio: *mut uio,
+    ) -> ::core::ffi::c_int;
+    pub fn uiomove_nofault(
+        cp: *mut ::core::ffi::c_void,
+        n: ::core::ffi::c_int,
+        uio: *mut uio,
+    ) -> ::core::ffi::c_int;
+    pub fn uiomove_object(
+        obj: *mut vm_object,
+        obj_size: off_t,
+        uio: *mut uio,
+    ) -> ::core::ffi::c_int;
+    pub fn uiomove_step(
+        cp: *mut ::core::ffi::c_void,
+        base: *mut ::core::ffi::c_void,
+        cnt: usize,
+        uio: *mut uio,
+    ) -> ::core::ffi::c_int;
     pub fn busdma_lock_mutex(arg: *mut ::core::ffi::c_void, op: bus_dma_lock_op_t);
     pub fn _busdma_dflt_lock(arg: *mut ::core::ffi::c_void, op: bus_dma_lock_op_t);
     pub fn bus_dma_tag_create(
@@ -20402,166 +20758,6 @@ unsafe extern "C" {
     pub fn selwakeup(sip: *mut selinfo);
     pub fn selwakeuppri(sip: *mut selinfo, pri: ::core::ffi::c_int);
     pub fn seltdfini(td: *mut thread);
-    pub fn clone_setup(cdp: *mut *mut clonedevs);
-    pub fn clone_cleanup(arg1: *mut *mut clonedevs);
-    pub fn clone_create(
-        arg1: *mut *mut clonedevs,
-        arg2: *mut cdevsw,
-        unit: *mut ::core::ffi::c_int,
-        dev: *mut *mut cdev,
-        extra: ::core::ffi::c_int,
-    ) -> ::core::ffi::c_int;
-    pub fn make_dev_args_init_impl(_args: *mut make_dev_args, _sz: usize);
-    pub fn delist_dev(_dev: *mut cdev);
-    pub fn destroy_dev(_dev: *mut cdev);
-    pub fn destroy_dev_sched(dev: *mut cdev) -> ::core::ffi::c_int;
-    pub fn destroy_dev_sched_cb(
-        dev: *mut cdev,
-        cb: ::core::option::Option<unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void)>,
-        arg: *mut ::core::ffi::c_void,
-    ) -> ::core::ffi::c_int;
-    pub fn destroy_dev_drain(csw: *mut cdevsw);
-    pub fn dev_copyname(dev: *mut cdev, path: *mut ::core::ffi::c_char, len: usize);
-    pub fn dev_refthread(_dev: *mut cdev, _ref: *mut ::core::ffi::c_int) -> *mut cdevsw;
-    pub fn devvn_refthread(
-        vp: *mut vnode,
-        devp: *mut *mut cdev,
-        _ref: *mut ::core::ffi::c_int,
-    ) -> *mut cdevsw;
-    pub fn dev_relthread(_dev: *mut cdev, _ref: ::core::ffi::c_int);
-    pub fn dev_depends(_pdev: *mut cdev, _cdev: *mut cdev);
-    pub fn dev_ref(dev: *mut cdev);
-    pub fn dev_refl(dev: *mut cdev);
-    pub fn dev_rel(dev: *mut cdev);
-    pub fn make_dev(
-        _devsw: *mut cdevsw,
-        _unit: ::core::ffi::c_int,
-        _uid: uid_t,
-        _gid: gid_t,
-        _perms: ::core::ffi::c_int,
-        _fmt: *const ::core::ffi::c_char,
-        ...
-    ) -> *mut cdev;
-    pub fn make_dev_cred(
-        _devsw: *mut cdevsw,
-        _unit: ::core::ffi::c_int,
-        _cr: *mut ucred,
-        _uid: uid_t,
-        _gid: gid_t,
-        _perms: ::core::ffi::c_int,
-        _fmt: *const ::core::ffi::c_char,
-        ...
-    ) -> *mut cdev;
-    pub fn make_dev_credf(
-        _flags: ::core::ffi::c_int,
-        _devsw: *mut cdevsw,
-        _unit: ::core::ffi::c_int,
-        _cr: *mut ucred,
-        _uid: uid_t,
-        _gid: gid_t,
-        _mode: ::core::ffi::c_int,
-        _fmt: *const ::core::ffi::c_char,
-        ...
-    ) -> *mut cdev;
-    pub fn make_dev_p(
-        _flags: ::core::ffi::c_int,
-        _cdev: *mut *mut cdev,
-        _devsw: *mut cdevsw,
-        _cr: *mut ucred,
-        _uid: uid_t,
-        _gid: gid_t,
-        _mode: ::core::ffi::c_int,
-        _fmt: *const ::core::ffi::c_char,
-        ...
-    ) -> ::core::ffi::c_int;
-    pub fn make_dev_s(
-        _args: *mut make_dev_args,
-        _cdev: *mut *mut cdev,
-        _fmt: *const ::core::ffi::c_char,
-        ...
-    ) -> ::core::ffi::c_int;
-    pub fn make_dev_alias(_pdev: *mut cdev, _fmt: *const ::core::ffi::c_char, ...) -> *mut cdev;
-    pub fn make_dev_alias_p(
-        _flags: ::core::ffi::c_int,
-        _cdev: *mut *mut cdev,
-        _pdev: *mut cdev,
-        _fmt: *const ::core::ffi::c_char,
-        ...
-    ) -> ::core::ffi::c_int;
-    pub fn make_dev_physpath_alias(
-        _flags: ::core::ffi::c_int,
-        _cdev: *mut *mut cdev,
-        _pdev: *mut cdev,
-        _old_alias: *mut cdev,
-        _physpath: *const ::core::ffi::c_char,
-    ) -> ::core::ffi::c_int;
-    pub fn dev_lock();
-    pub fn dev_unlock();
-    pub fn devfs_get_cdevpriv(datap: *mut *mut ::core::ffi::c_void) -> ::core::ffi::c_int;
-    pub fn devfs_set_cdevpriv(
-        priv_: *mut ::core::ffi::c_void,
-        dtr: d_priv_dtor_t,
-    ) -> ::core::ffi::c_int;
-    pub fn devfs_clear_cdevpriv();
-    pub fn devfs_foreach_cdevpriv(
-        dev: *mut cdev,
-        cb: ::core::option::Option<
-            unsafe extern "C" fn(
-                data: *mut ::core::ffi::c_void,
-                arg: *mut ::core::ffi::c_void,
-            ) -> ::core::ffi::c_int,
-        >,
-        arg: *mut ::core::ffi::c_void,
-    ) -> ::core::ffi::c_int;
-    pub fn devfs_alloc_cdp_inode() -> ino_t;
-    pub fn devfs_free_cdp_inode(ino: ino_t);
-    pub fn dev_stdclone(
-        _name: *mut ::core::ffi::c_char,
-        _namep: *mut *mut ::core::ffi::c_char,
-        _stem: *const ::core::ffi::c_char,
-        _unit: *mut ::core::ffi::c_int,
-    ) -> ::core::ffi::c_int;
-    pub static mut dumping: ::core::ffi::c_int;
-    pub static mut dumped_core: bool_;
-    pub fn doadump(arg1: boolean_t) -> ::core::ffi::c_int;
-    pub fn dumper_create(
-        di_template: *const dumperinfo,
-        devname: *const ::core::ffi::c_char,
-        kda: *const diocskerneldump_arg,
-        dip: *mut *mut dumperinfo,
-    ) -> ::core::ffi::c_int;
-    pub fn dumper_destroy(di: *mut dumperinfo);
-    pub fn dumper_insert(
-        di_template: *const dumperinfo,
-        devname: *const ::core::ffi::c_char,
-        kda: *const diocskerneldump_arg,
-    ) -> ::core::ffi::c_int;
-    pub fn dumper_remove(
-        devname: *const ::core::ffi::c_char,
-        kda: *const diocskerneldump_arg,
-    ) -> ::core::ffi::c_int;
-    pub fn dumper_ddb_insert(arg1: *mut dumperinfo);
-    pub fn dumper_ddb_remove(arg1: *mut dumperinfo);
-    pub fn dump_start(di: *mut dumperinfo, kdh: *mut kerneldumpheader) -> ::core::ffi::c_int;
-    pub fn dump_append(
-        arg1: *mut dumperinfo,
-        arg2: *mut ::core::ffi::c_void,
-        arg3: usize,
-    ) -> ::core::ffi::c_int;
-    pub fn dump_write(
-        arg1: *mut dumperinfo,
-        arg2: *mut ::core::ffi::c_void,
-        arg3: off_t,
-        arg4: usize,
-    ) -> ::core::ffi::c_int;
-    pub fn dump_finish(di: *mut dumperinfo, kdh: *mut kerneldumpheader) -> ::core::ffi::c_int;
-    pub fn dump_init_header(
-        di: *const dumperinfo,
-        kdh: *mut kerneldumpheader,
-        magic: *const ::core::ffi::c_char,
-        archver: u32,
-        dumplen: u64,
-    );
     pub fn foffset_lock(fp: *mut file, flags: ::core::ffi::c_int) -> off_t;
     pub fn foffset_lock_pair(
         fp1: *mut file,
@@ -20816,68 +21012,6 @@ unsafe extern "C" {
     ) -> ::core::ffi::c_int;
     #[link_name = "fo_cmp__extern"]
     pub fn fo_cmp(fp1: *mut file, fp2: *mut file, td: *mut thread) -> ::core::ffi::c_int;
-    pub fn allocuio(iovcnt: u_int) -> *mut uio;
-    pub fn freeuio(uio: *mut uio);
-    pub fn cloneuio(uiop: *mut uio) -> *mut uio;
-    pub fn copyiniov(
-        iovp: *const iovec,
-        iovcnt: u_int,
-        iov: *mut *mut iovec,
-        error: ::core::ffi::c_int,
-    ) -> ::core::ffi::c_int;
-    pub fn copyinuio(iovp: *const iovec, iovcnt: u_int, uiop: *mut *mut uio) -> ::core::ffi::c_int;
-    pub fn copyout_map(td: *mut thread, addr: *mut vm_offset_t, sz: usize) -> ::core::ffi::c_int;
-    pub fn copyout_unmap(td: *mut thread, addr: vm_offset_t, sz: usize) -> ::core::ffi::c_int;
-    pub fn exterr_copyout(td: *mut thread);
-    pub fn physcopyin(
-        src: *mut ::core::ffi::c_void,
-        dst: vm_paddr_t,
-        len: usize,
-    ) -> ::core::ffi::c_int;
-    pub fn physcopyout(
-        src: vm_paddr_t,
-        dst: *mut ::core::ffi::c_void,
-        len: usize,
-    ) -> ::core::ffi::c_int;
-    pub fn physcopyin_vlist(
-        src: *mut bus_dma_segment,
-        offset: off_t,
-        dst: vm_paddr_t,
-        len: usize,
-    ) -> ::core::ffi::c_int;
-    pub fn physcopyout_vlist(
-        src: vm_paddr_t,
-        dst: *mut bus_dma_segment,
-        offset: off_t,
-        len: usize,
-    ) -> ::core::ffi::c_int;
-    pub fn uioadvance(arg1: *mut uio, arg2: usize);
-    pub fn uiomove(
-        cp: *mut ::core::ffi::c_void,
-        n: ::core::ffi::c_int,
-        uio: *mut uio,
-    ) -> ::core::ffi::c_int;
-    pub fn uiomove_frombuf(
-        buf: *mut ::core::ffi::c_void,
-        buflen: ::core::ffi::c_int,
-        uio: *mut uio,
-    ) -> ::core::ffi::c_int;
-    pub fn uiomove_fromphys(
-        ma: *mut *mut vm_page,
-        offset: vm_offset_t,
-        n: ::core::ffi::c_int,
-        uio: *mut uio,
-    ) -> ::core::ffi::c_int;
-    pub fn uiomove_nofault(
-        cp: *mut ::core::ffi::c_void,
-        n: ::core::ffi::c_int,
-        uio: *mut uio,
-    ) -> ::core::ffi::c_int;
-    pub fn uiomove_object(
-        obj: *mut vm_object,
-        obj_size: off_t,
-        uio: *mut uio,
-    ) -> ::core::ffi::c_int;
     pub fn rangelock_init(lock: *mut rangelock);
     pub fn rangelock_destroy(lock: *mut rangelock);
     pub fn rangelock_unlock(lock: *mut rangelock, cookie: *mut ::core::ffi::c_void);
@@ -21945,8 +22079,6 @@ unsafe extern "C" {
     ) -> ::core::ffi::c_int;
     pub fn sound_oss_sysinfo(arg1: *mut oss_sysinfo);
     pub fn sound_oss_card_info(arg1: *mut oss_card_info) -> ::core::ffi::c_int;
-    #[link_name = "snd_format__extern"]
-    pub fn snd_format(f: u32, c: u32, e: u32) -> u32;
     #[doc = " @brief Unique descriptor for the MIXER_INIT() method"]
     pub static mut mixer_init_desc: kobjop_desc;
     #[link_name = "MIXER_INIT__extern"]
@@ -22134,8 +22266,6 @@ unsafe extern "C" {
     ) -> ::core::ffi::c_int;
     pub fn virtqueue_dequeue(vq: *mut virtqueue, len: *mut u32) -> *mut ::core::ffi::c_void;
     pub fn virtqueue_poll(vq: *mut virtqueue, len: *mut u32) -> *mut ::core::ffi::c_void;
-    pub fn vtsnd_device_probe(dev: device_t) -> ::core::ffi::c_int;
-    pub fn vtfs_device_probe(dev: device_t) -> ::core::ffi::c_int;
     #[doc = " @brief Unique descriptor for the GPIO_GET_BUS() method"]
     pub static mut gpio_get_bus_desc: kobjop_desc;
     #[link_name = "GPIO_GET_BUS__extern"]
