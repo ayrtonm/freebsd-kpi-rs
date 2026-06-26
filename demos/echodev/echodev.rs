@@ -131,6 +131,8 @@ impl CDevSw for EchoDev {
     }
 }
 
+static ECHODEV: Checked<Option<cdev_t>> = Checked::new(None);
+
 impl Module for EchoDev {
     fn on_load(data: *mut c_void) -> Result<()> {
         // Allocates the softc on the heap. Box is a uniquely-owned pointer to the heap.
@@ -156,11 +158,14 @@ impl Module for EchoDev {
             sx_init(&sc.state, c"echo");
             sc.state.get_mut().buf = Vec::fill_with_capacity(0u8, 64, M_WAITOK);
         })?;
+        *ECHODEV.get_mut() = Some(echodev);
         Ok(())
     }
 
     fn on_unload(data: *mut c_void) -> Result<()> {
-        //Self::destroy_dev(
+        let echodev = ECHODEV.get_mut().take().unwrap();
+        // This retuns a Box<EchoDevSoftc> which gets dropped when it goes out of scope
+        let sc = Self::destroy_dev(echodev);
         Ok(())
     }
 }

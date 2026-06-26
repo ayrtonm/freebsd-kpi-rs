@@ -35,8 +35,22 @@ use crate::ffi::Ptr;
 use crate::malloc::Malloc;
 use crate::boxed::Box;
 use core::ops::Range;
+use core::any::TypeId;
 
-pub type cdev_t = Ptr<bindings::cdev>;
+#[derive(Copy, Clone)]
+pub struct cdev_t(Ptr<bindings::cdev>, TypeId);
+
+impl cdev_t {
+    pub const fn new() -> Self {
+        Self(Ptr::null(), TypeId::of::<()>())
+    }
+}
+
+impl Default for cdev_t {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 #[derive(Default)]
 pub struct CDev {
@@ -67,12 +81,12 @@ pub trait CDevSw: CDevSwInternal {
         }
     }
 
-    // FIXME: CDev intentionally does not impl Copy/Clone so we can't really use this function
-    fn destroy_dev(dev: CDev) -> Box<Self::Softc, Self::MallocType> {
+    fn destroy_dev(dev: cdev_t) -> Box<Self::Softc, Self::MallocType> {
+        assert!(dev.1 == TypeId::of::<Self::Softc>());
         unsafe {
-            bindings::destroy_dev(dev.ptr.as_ptr())
+            bindings::destroy_dev(dev.0.as_ptr())
         };
-        let sc_ptr = unsafe { (*dev.ptr.as_ptr()).si_drv1 };
+        let sc_ptr = unsafe { (*dev.0.as_ptr()).si_drv1 };
         let sc = unsafe { sc_ptr.cast::<Self::Softc>() };
         unsafe {
             Box::from_raw(sc)
@@ -200,7 +214,7 @@ pub mod wrappers {
     use crate::ErrCode;
     use core::ptr::null_mut;
 
-    pub fn make_dev_s<T, M: Malloc, F>(args: MakeDevArgs<T, M>, sc_init: F) -> Result<cdev_t>
+    pub fn make_dev_s<T: 'static, M: Malloc, F>(args: MakeDevArgs<T, M>, sc_init: F) -> Result<cdev_t>
     where F: Fn(&mut T, CDev) {
         let mut outp = null_mut();
         let (mut args_raw, name) = args.into_raw();
@@ -216,6 +230,7 @@ pub mod wrappers {
         let dev_ptr = Ptr::new(outp);
         let sc_start = sc_ptr.addr();
         let sc_end = sc_start + size_of::<T>();
+        let dev_ptr = cdev_t(dev_ptr, TypeId::of::<T>());
         let dev = CDev {
             ptr: dev_ptr, sc_range: sc_start..sc_end,
         };
