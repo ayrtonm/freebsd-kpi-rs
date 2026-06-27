@@ -158,7 +158,7 @@ impl<T, M: Malloc> Box<T, M, DeviceOwned> {
     }
 }
 
-impl<T: ?Sized, M: Malloc, O: Ownership> Box<T, M, O> {
+impl<T: ?Sized, M: Malloc> Box<T, M, Owned> {
     pub fn into_raw(b: Self) -> *mut T {
         let res = b.0.as_ptr();
         forget(b);
