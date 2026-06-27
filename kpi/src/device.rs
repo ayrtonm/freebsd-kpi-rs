@@ -30,7 +30,7 @@ use crate::bindings::{device_state_t, device_t, driver_t};
 use crate::boxed::Box;
 use crate::vec::Vec;
 use crate::driver::Driver;
-use crate::ffi::{ArrayCString, Ref, UninitRef};
+use crate::ffi::{ArrayCString, UninitRef};
 use crate::kobj::{AsCType, AsRustType};
 use crate::malloc::{Malloc, MallocFlags};
 use crate::prelude::*;
@@ -520,10 +520,11 @@ mod tests {
     use super::*;
     use crate::driver;
     use crate::ffi::{Ref, UninitRef};
-    use crate::sync::Checked;
+    use core::sync::atomic::{AtomicPtr, Ordering};
     use crate::tests::{DriverManager, LoudDrop};
     use std::ffi::{CStr, c_void};
     use std::vec::Vec;
+    use core::ptr::null_mut;
 
     /* These are the drivers that will be used in tests */
     #[repr(C)]
@@ -535,11 +536,11 @@ mod tests {
     // This is only used to pipe a Device managed by one driver to another to ensure
     // device_get_softc type checking works as expected. It is unrealistic to do this via a static
     // like this, but this scenario does come up when a driver manages its children's device_t.
-    static STASHED_DEVICE: Checked<*const Device> = Checked::new(core::ptr::null());
+    static STASHED_DEVICE: AtomicPtr<Device> = AtomicPtr::new(null_mut());
 
     impl AnotherDriver {
         fn get_stashed_softc(dev: &Device) {
-            let test_driver_dev = unsafe { &**STASHED_DEVICE.get_mut() };
+            let test_driver_dev = unsafe { &*STASHED_DEVICE.load(Ordering::Relaxed) };
             let test_driver_sc = device_get_softc::<TestDriver>(test_driver_dev);
             let another_driver_sc = device_get_softc::<Self>(dev);
         }
@@ -566,7 +567,7 @@ mod tests {
             });
             let dev_ptr = sc.dev.as_ptr();
             if ofw_bus_is_compatible(dev_ptr, c"another_driver,get_softc") {
-                *STASHED_DEVICE.get_mut() = &sc.dev as *const Device;
+                STASHED_DEVICE.store(&sc.dev as *const Device as *mut Device, Ordering::Relaxed);
             }
             println!("{:x?}", sc);
             Ok(())
