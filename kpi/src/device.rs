@@ -196,6 +196,7 @@ impl MemoryRegion {
 
 /// Trait for types that own a [`MemoryRegion`], allowing KPIs and allocation functions to work
 /// with both [`Device`] and [`CDev`][crate::cdev::CDev].
+#[diagnostic::on_unimplemented(message = "You probably meant to pass in `&sc.dev` here")]
 pub trait MemoryManager {
     fn region(&self) -> &MemoryRegion;
 }
