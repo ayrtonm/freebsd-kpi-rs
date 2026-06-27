@@ -28,14 +28,13 @@
 
 use crate::bindings::{device_state_t, device_t, driver_t};
 use crate::boxed::Box;
+use crate::vec::Vec;
 use crate::driver::Driver;
 use crate::ffi::{ArrayCString, Ref, UninitRef};
 use crate::kobj::{AsCType, AsRustType};
 use crate::malloc::{Malloc, MallocFlags};
 use crate::prelude::*;
-use crate::vec::Vec;
 use crate::{ErrCode, define_interface};
-use core::alloc::Layout;
 use core::ffi::{CStr, c_int, c_void};
 use core::ops::Range;
 use core::ptr::{drop_in_place, null_mut};
@@ -117,21 +116,23 @@ impl MemoryRegion {
         let b_start = b.0.as_ptr().addr();
         let b_end = b_start + size_of::<T>();
         unsafe fn drop_box<T, M: Malloc>(ptr: *mut u8) {
-            drop_in_place(ptr.cast::<T>());
-            free(ptr.cast::<c_void>(), M::malloc_type());
+            unsafe {
+                drop_in_place(ptr.cast::<T>());
+                free(ptr.cast::<c_void>(), M::malloc_type());
+            }
         }
         self.add_range(b_start..b_end, drop_box::<T, M>, flags);
     }
 
-    pub fn add_vec_range<T, M: Malloc>(&self, v: &Vec<T, M>, flags: MallocFlags) {
-        let v_start = v.as_ptr().addr();
-        let layout = Layout::array::<T>(v.capacity()).unwrap();
-        let v_end = v_start + layout.size();
-        unsafe fn drop_vec<T, M: Malloc>(ptr: *mut u8) {
-            // TODO: drop each element in the slice
-            free(ptr.cast::<c_void>(), M::malloc_type());
+    pub fn add_boxed_slice_range<T, M: Malloc>(&self, b: &Box<[T], M>, flags: MallocFlags) {
+        let b_start = b.0.as_ptr().addr();
+        let b_end = b_start + size_of::<T>() * b.len();
+        unsafe fn drop_boxed_slice<T, M: Malloc>(ptr: *mut u8) {
+            // We cannot recover the length here, so we only free the memory.
+            // Elements must be dropped before free_allocation_list runs.
+            unsafe { free(ptr.cast::<c_void>(), M::malloc_type()) }
         }
-        self.add_range(v_start..v_end, drop_vec::<T, M>, flags);
+        self.add_range(b_start..b_end, drop_boxed_slice::<T, M>, flags);
     }
 
     fn add_range(&self, range: Range<usize>, drop_fn: unsafe fn(*mut u8), flags: MallocFlags) {
@@ -287,9 +288,8 @@ define_interface! {
         with desc device_detach_desc
         and typedef device_detach_t,
         with drop glue {
-            use core::ptr::drop_in_place;
-            let sc_ptr = dev as *const _ as *mut _;
-            unsafe { drop_in_place(sc_ptr) }
+            let sc_ptr = &raw const (*dev);
+            unsafe { core::ptr::drop_in_place(sc_ptr.cast_mut()) }
         };
     fn device_shutdown(dev: device_t) -> int,
         with desc device_shutdown_desc

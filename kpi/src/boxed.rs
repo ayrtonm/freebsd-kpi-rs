@@ -41,17 +41,24 @@ use core::ptr::{NonNull, drop_in_place};
 use core::{fmt, slice};
 
 /// Trait constraining the ownership parameter of `Box` to either `Owned` or `DeviceOwned`.
-pub trait Ownership {}
+pub trait Ownership {
+    const FREE_ON_DROP: bool;
+}
 
 /// Ownership marker for a `Box` that is freed when dropped.
 pub struct Owned;
-impl Ownership for Owned {}
+impl Ownership for Owned {
+    const FREE_ON_DROP: bool = true;
+}
 
 /// Ownership marker for a `Box` that is freed when its owning device is detached.
 ///
-/// A `Box<T, M, DeviceOwned>` cannot be dropped outside of detach. Attempting to do so will panic.
+/// A `Box<T, M, DeviceOwned>` is not freed on drop; its memory is freed when the owning
+/// Device or CDev is dropped.
 pub struct DeviceOwned;
-impl Ownership for DeviceOwned {}
+impl Ownership for DeviceOwned {
+    const FREE_ON_DROP: bool = false;
+}
 
 /// A pointer to something on the heap.
 ///
@@ -97,13 +104,15 @@ impl<T: Eq + ?Sized, M: Malloc, O: Ownership> Eq for Box<T, M, O> {}
 unsafe impl<T: Sync + ?Sized, M: Malloc, O: Ownership> Sync for Box<T, M, O> {}
 unsafe impl<T: Send + ?Sized, M: Malloc, O: Ownership> Send for Box<T, M, O> {}
 
-impl<T: ?Sized, M: Malloc> Drop for Box<T, M, Owned> {
+impl<T: ?Sized, M: Malloc, O: Ownership> Drop for Box<T, M, O> {
     fn drop(&mut self) {
-        let ptr = self.0.as_ptr();
-        // Drop everything that the T owns
-        unsafe { drop_in_place(ptr) }
-        // Deallocate the memory for the T
-        unsafe { free(ptr.cast::<c_void>(), M::malloc_type()) }
+        if O::FREE_ON_DROP {
+            let ptr = self.0.as_ptr();
+            // Drop everything that the T owns
+            unsafe { drop_in_place(ptr) }
+            // Deallocate the memory for the T
+            unsafe { free(ptr.cast::<c_void>(), M::malloc_type()) }
+        }
     }
 }
 
@@ -167,6 +176,12 @@ impl<T: ?Sized, M: Malloc> Box<T, M, Owned> {
 
     pub unsafe fn from_raw(ptr: *mut T) -> Self {
         Self(NonNull::new(ptr).unwrap(), PhantomData)
+    }
+}
+
+impl<T: ?Sized, M: Malloc, O: Ownership> Box<T, M, O> {
+    pub(crate) unsafe fn from_raw_unchecked(ptr: NonNull<T>) -> Self {
+        Self(ptr, PhantomData)
     }
 }
 

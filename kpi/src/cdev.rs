@@ -59,8 +59,8 @@ pub struct CDev {
 }
 
 impl CDev {
-    pub fn as_ptr(&self) -> cdev_t {
-        self.ptr
+    pub fn as_raw_ptr(&self) -> *mut bindings::cdev {
+        self.ptr.0.as_ptr()
     }
 }
 
@@ -264,16 +264,16 @@ pub mod wrappers {
             return Err(ErrCode::from(res));
         }
         let sc_mut_ref = unsafe { sc_ptr.as_mut().unwrap() };
-        let dev_ptr = Ptr::new(outp);
+        let raw_ptr = Ptr::new(outp);
         let sc_start = sc_ptr.addr();
         let sc_end = sc_start + size_of::<T>();
-        let dev_ptr = cdev_t(dev_ptr, Some(TypeId::of::<T>()));
+        let res = cdev_t(raw_ptr, Some(TypeId::of::<T>()));
         let dev = CDev {
-            ptr: dev_ptr,
+            ptr: cdev_t(raw_ptr, Some(TypeId::of::<T>())),
             region: MemoryRegion::new(sc_start, sc_end),
         };
         sc_init(sc_mut_ref, dev);
-        Ok(dev_ptr)
+        Ok(res)
     }
 
     pub fn uiomove_read(buf: &mut [u8], uio_ref: UioRef) -> Result<()> {

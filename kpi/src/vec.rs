@@ -109,12 +109,6 @@ impl<T, M: Malloc> Vec<T, M> {
         self.len
     }
 
-    pub fn with_capacity_in_dev(capacity: usize, dev: &Device, flags: MallocFlags) -> Self {
-        let v = Self::with_capacity(capacity, flags);
-        dev.add_vec_range(&v, flags);
-        v
-    }
-
     pub fn with_capacity(capacity: usize, flags: MallocFlags) -> Self {
         assert!(flags.contains(M_WAITOK));
         assert!(!flags.contains(M_NOWAIT));
@@ -209,10 +203,9 @@ impl<T, M: Malloc> Vec<T, M> {
     pub fn try_into_boxed_slice_for<R: MemoryManager>(self, owner: &R, flags: MallocFlags) -> Result<Box<[T], M, DeviceOwned>> {
         let owned = self.try_into_boxed_slice()?;
         let region = owner.region();
-        region.add_box_range(&owned, flags);
-        let ptr = owned.0;
-        forget(owned);
-        Ok(Box(ptr, PhantomData))
+        region.add_boxed_slice_range(&owned, flags);
+        let ptr = NonNull::new(Box::into_raw(owned)).unwrap();
+        Ok(unsafe { Box::from_raw_unchecked(ptr) })
     }
 
     pub fn try_into_boxed_slice(mut self) -> Result<Box<[T], M>> {
