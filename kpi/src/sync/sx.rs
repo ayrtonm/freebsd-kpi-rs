@@ -189,11 +189,13 @@ pub mod wrappers {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::device::MemoryRegion;
 
     #[test]
     fn basic_sx_exclusive() {
+        let owner = MemoryRegion::test_unchecked();
         let lock = SxLock::new(4u32);
-        sx_init(&lock, c"test");
+        sx_init(&lock, &owner, c"test");
         let mut x = sx_xlock(&lock);
         *x += 1;
         sx_xunlock(x);
@@ -201,8 +203,9 @@ mod tests {
 
     #[test]
     fn basic_sx_shared() {
+        let owner = MemoryRegion::test_unchecked();
         let lock = SxLock::new(4u32);
-        sx_init(&lock, c"test");
+        sx_init(&lock, &owner, c"test");
         let x = sx_slock(&lock);
         assert_eq!(*x, 4);
         sx_sunlock(x);

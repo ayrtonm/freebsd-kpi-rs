@@ -76,7 +76,22 @@ impl Default for MemoryRegion {
     }
 }
 
+impl MemoryManager for MemoryRegion {
+    fn region(&self) -> &MemoryRegion {
+        self
+    }
+}
+
 impl MemoryRegion {
+    /// Creates a MemoryRegion that considers all addresses in bounds. For testing only.
+    #[cfg(test)]
+    pub fn test_unchecked() -> Self {
+        MemoryRegion {
+            sc_range: 0..usize::MAX,
+            allocations_head: AtomicPtr::new(null_mut()),
+        }
+    }
+
     pub fn new(sc_start: usize, sc_end: usize) -> Self {
         MemoryRegion {
             sc_range: sc_start..sc_end,
