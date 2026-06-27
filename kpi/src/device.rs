@@ -62,9 +62,10 @@ pub struct MemoryRegion {
 struct AllocationRange {
     range: Range<usize>,
     next: *mut AllocationRange,
-    /// Drops the data in place and deallocates the memory. Set when the range is registered via
-    /// `add_box_range`.
-    drop_fn: unsafe fn(*mut u8),
+    /// Drops the data in place and deallocates the memory.
+    drop_fn: unsafe fn(*mut u8, usize),
+    /// Number of elements (1 for sized types, slice length for boxed slices).
+    elem_count: usize,
 }
 
 impl Default for MemoryRegion {
@@ -104,7 +105,7 @@ impl MemoryRegion {
         while !current.is_null() {
             let node: Box<AllocationRange> = unsafe { Box::from_raw(current) };
             current = node.next;
-            unsafe { (node.drop_fn)(node.range.start as *mut u8) };
+            unsafe { (node.drop_fn)(node.range.start as *mut u8, node.elem_count) };
             drop(node);
         }
     }
@@ -130,32 +131,36 @@ impl MemoryRegion {
     pub fn add_box_range<T, M: Malloc>(&self, b: &Box<T, M>, flags: MallocFlags) {
         let b_start = b.0.as_ptr().addr();
         let b_end = b_start + size_of::<T>();
-        unsafe fn drop_box<T, M: Malloc>(ptr: *mut u8) {
+        unsafe fn drop_box<T, M: Malloc>(ptr: *mut u8, _len: usize) {
             unsafe {
                 drop_in_place(ptr.cast::<T>());
                 free(ptr.cast::<c_void>(), M::malloc_type());
             }
         }
-        self.add_range(b_start..b_end, drop_box::<T, M>, flags);
+        self.add_range(b_start..b_end, drop_box::<T, M>, 1, flags);
     }
 
     pub fn add_boxed_slice_range<T, M: Malloc>(&self, b: &Box<[T], M>, flags: MallocFlags) {
+        let len = b.len();
         let b_start = b.0.as_ptr().addr();
-        let b_end = b_start + size_of::<T>() * b.len();
-        unsafe fn drop_boxed_slice<T, M: Malloc>(ptr: *mut u8) {
-            // We cannot recover the length here, so we only free the memory.
-            // Elements must be dropped before free_allocation_list runs.
-            unsafe { free(ptr.cast::<c_void>(), M::malloc_type()) }
+        let b_end = b_start + size_of::<T>() * len;
+        unsafe fn drop_boxed_slice<T, M: Malloc>(ptr: *mut u8, len: usize) {
+            unsafe {
+                let slice = core::ptr::slice_from_raw_parts_mut(ptr.cast::<T>(), len);
+                drop_in_place(slice);
+                free(ptr.cast::<c_void>(), M::malloc_type());
+            }
         }
-        self.add_range(b_start..b_end, drop_boxed_slice::<T, M>, flags);
+        self.add_range(b_start..b_end, drop_boxed_slice::<T, M>, len, flags);
     }
 
-    fn add_range(&self, range: Range<usize>, drop_fn: unsafe fn(*mut u8), flags: MallocFlags) {
+    fn add_range(&self, range: Range<usize>, drop_fn: unsafe fn(*mut u8, usize), elem_count: usize, flags: MallocFlags) {
         let node: Box<AllocationRange> = Box::new(
             AllocationRange {
                 range,
                 next: null_mut(),
                 drop_fn,
+                elem_count,
             },
             flags,
         );
