@@ -36,43 +36,53 @@ use crate::prelude::*;
 use crate::vec::Vec;
 use crate::{ErrCode, define_interface};
 use core::alloc::Layout;
-use core::ffi::{CStr, c_int};
+use core::ffi::{CStr, c_int, c_void};
 use core::ops::Range;
-use core::ptr::null_mut;
+use core::ptr::{drop_in_place, null_mut};
 use core::sync::atomic::{AtomicPtr, Ordering};
 
-/// A pointer to a device which is aware of the address ranges owned by the device driver's softc.
+/// Tracks address ranges owned by a softc, allowing KPIs to verify that a reference argument has a
+/// lifetime that matches the softc.
 ///
-/// Since the device softc is typically not refcounted and should usually be freed after
-/// device_detach, this provides a way for KPIs to check that an arbitrary reference argument has a
-/// lifetime that matches the softc for a device_t argument. This explicitly does not impl Copy or
-/// Clone because all compare-and-swap operations for a given device must operate on the same
-/// address.
+/// Used by both [`Device`] (for `device_t`) and [`CDev`][crate::cdev::CDev] (for `cdev`).
 #[derive(Debug)]
-pub struct Device {
-    // The underlying device
-    ptr: device_t,
-    // The softc address range. While this could be computed on demand using device_get_softc and
-    // device_get_driver, it's instead cached in the Device struct to give the rust compiler more
-    // opportunities to optimize out bounds checks that can be statically-determined to always pass.
+pub struct MemoryRegion {
+    // The softc address range. While this could be computed on demand, it's cached to give the rust
+    // compiler more opportunities to optimize out bounds checks that can be statically-determined to
+    // always pass.
     sc_range: Range<usize>,
-    // The head of a linked list of address ranges for each allocation owned by the device. While
+    // The head of a linked list of address ranges for each allocation owned by the softc. While
     // the softc may contain allocations not in this list (e.g. by using Box::new instead of
     // Box::new_in_dev) KPIs that require an argument live as long as the softc (e.g.
     // intr_isrc_register) will check this list if the argument is not directly embedded in the
     // softc. If the argument is not found in this list they will panic because at that point there
-    // is no way to tell if the argument may be freed before device_detach.
+    // is no way to tell if the argument may be freed before detach.
     allocations_head: AtomicPtr<AllocationRange>,
 }
 
 struct AllocationRange {
     range: Range<usize>,
     next: *mut AllocationRange,
+    /// Drops the data in place and deallocates the memory. Set when the range is registered via
+    /// `add_box_range`.
+    drop_fn: unsafe fn(*mut u8),
 }
 
-impl Device {
-    pub fn as_ptr(&self) -> device_t {
-        self.ptr
+impl Default for MemoryRegion {
+    fn default() -> Self {
+        MemoryRegion {
+            sc_range: 0..0,
+            allocations_head: AtomicPtr::new(null_mut()),
+        }
+    }
+}
+
+impl MemoryRegion {
+    pub fn new(sc_start: usize, sc_end: usize) -> Self {
+        MemoryRegion {
+            sc_range: sc_start..sc_end,
+            allocations_head: AtomicPtr::new(null_mut()),
+        }
     }
 
     pub unsafe fn free_allocation_list(&self) {
@@ -80,6 +90,7 @@ impl Device {
         while !current.is_null() {
             let node: Box<AllocationRange> = unsafe { Box::from_raw(current) };
             current = node.next;
+            unsafe { (node.drop_fn)(node.range.start as *mut u8) };
             drop(node);
         }
     }
@@ -105,21 +116,30 @@ impl Device {
     pub fn add_box_range<T, M: Malloc>(&self, b: &Box<T, M>, flags: MallocFlags) {
         let b_start = b.0.as_ptr().addr();
         let b_end = b_start + size_of::<T>();
-        self.add_range(b_start..b_end, flags);
+        unsafe fn drop_box<T, M: Malloc>(ptr: *mut u8) {
+            drop_in_place(ptr.cast::<T>());
+            free(ptr.cast::<c_void>(), M::malloc_type());
+        }
+        self.add_range(b_start..b_end, drop_box::<T, M>, flags);
     }
 
     pub fn add_vec_range<T, M: Malloc>(&self, v: &Vec<T, M>, flags: MallocFlags) {
         let v_start = v.as_ptr().addr();
         let layout = Layout::array::<T>(v.capacity()).unwrap();
         let v_end = v_start + layout.size();
-        self.add_range(v_start..v_end, flags);
+        unsafe fn drop_vec<T, M: Malloc>(ptr: *mut u8) {
+            // TODO: drop each element in the slice
+            free(ptr.cast::<c_void>(), M::malloc_type());
+        }
+        self.add_range(v_start..v_end, drop_vec::<T, M>, flags);
     }
 
-    fn add_range(&self, range: Range<usize>, flags: MallocFlags) {
+    fn add_range(&self, range: Range<usize>, drop_fn: unsafe fn(*mut u8), flags: MallocFlags) {
         let node: Box<AllocationRange> = Box::new(
             AllocationRange {
                 range,
                 next: null_mut(),
+                drop_fn,
             },
             flags,
         );
@@ -141,6 +161,40 @@ impl Device {
                 continue;
             }
         }
+    }
+}
+
+/// Trait for types that own a [`MemoryRegion`], allowing KPIs and allocation functions to work
+/// with both [`Device`] and [`CDev`][crate::cdev::CDev].
+pub trait MemoryManager {
+    fn region(&self) -> &MemoryRegion;
+}
+
+/// A pointer to a device which is aware of the address ranges owned by the device driver's softc.
+///
+/// This explicitly does not impl Copy or Clone because all compare-and-swap operations for a given
+/// device must operate on the same address.
+#[derive(Debug)]
+pub struct Device {
+    ptr: device_t,
+    region: MemoryRegion,
+}
+
+impl Device {
+    pub fn as_ptr(&self) -> device_t {
+        self.ptr
+    }
+}
+
+impl Drop for Device {
+    fn drop(&mut self) {
+        unsafe { self.region.free_allocation_list() }
+    }
+}
+
+impl MemoryManager for Device {
+    fn region(&self) -> &MemoryRegion {
+        &self.region
     }
 }
 
@@ -180,8 +234,7 @@ impl AsRustType<Device> for device_t {
         let sc_end = sc_start + sc_size;
         Device {
             ptr: self,
-            sc_range: sc_start..sc_end,
-            allocations_head: AtomicPtr::new(null_mut()),
+            region: MemoryRegion::new(sc_start, sc_end),
         }
     }
 }
@@ -234,10 +287,9 @@ define_interface! {
         with desc device_detach_desc
         and typedef device_detach_t,
         with drop glue {
-            // FIXME: drop the softc
-            //use core::ptr::drop_in_place;
-            //let sc_ptr = dev as *const _;
-            //unsafe { drop_in_place(sc_ptr.cast_mut()) }
+            use core::ptr::drop_in_place;
+            let sc_ptr = dev as *const _ as *mut _;
+            unsafe { drop_in_place(sc_ptr) }
         };
     fn device_shutdown(dev: device_t) -> int,
         with desc device_shutdown_desc

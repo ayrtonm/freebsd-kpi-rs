@@ -28,7 +28,7 @@
 
 //! The `Box<T>` type for heap allocation.
 
-use crate::device::Device;
+use crate::device::MemoryManager;
 use crate::malloc::{Malloc, MallocFlags};
 use crate::prelude::*;
 use core::cmp::PartialEq;
@@ -40,15 +40,33 @@ use core::ops::{Deref, DerefMut};
 use core::ptr::{NonNull, drop_in_place};
 use core::{fmt, slice};
 
+/// Trait constraining the ownership parameter of `Box` to either `Owned` or `DeviceOwned`.
+pub trait Ownership {}
+
+/// Ownership marker for a `Box` that is freed when dropped.
+pub struct Owned;
+impl Ownership for Owned {}
+
+/// Ownership marker for a `Box` that is freed when its owning device is detached.
+///
+/// A `Box<T, M, DeviceOwned>` cannot be dropped outside of detach. Attempting to do so will panic.
+pub struct DeviceOwned;
+impl Ownership for DeviceOwned {}
+
 /// A pointer to something on the heap.
 ///
 /// When a `Box<T>` is dropped, the T on the heap is deallocated. The memory layout of this type is
 /// equivalent to `void *ptr` in C.
+///
+/// The third type parameter `O` controls ownership semantics:
+/// - `Owned`: the box is freed when dropped, like a normal Rust `Box`. This is the default.
+/// - `DeviceOwned`: the box is freed when the device is detached. Dropping it outside of detach
+///   will panic.
 #[repr(C)]
-pub struct Box<T: ?Sized, M: Malloc = M_DEVBUF>(pub(crate) NonNull<T>, PhantomData<*mut M>);
+pub struct Box<T: ?Sized, M: Malloc = M_DEVBUF, O: Ownership = Owned>(pub(crate) NonNull<T>, PhantomData<(*mut M, O)>);
 
 // impl Deref to allow using a Box<T> like a T transparently
-impl<T: ?Sized, M: Malloc> Deref for Box<T, M> {
+impl<T: ?Sized, M: Malloc, O: Ownership> Deref for Box<T, M, O> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -56,32 +74,30 @@ impl<T: ?Sized, M: Malloc> Deref for Box<T, M> {
     }
 }
 
-impl<T: ?Sized, M: Malloc> DerefMut for Box<T, M> {
+impl<T: ?Sized, M: Malloc, O: Ownership> DerefMut for Box<T, M, O> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { self.0.as_mut() }
     }
 }
 
-impl<T: Debug + ?Sized, M: Malloc> Debug for Box<T, M> {
+impl<T: Debug + ?Sized, M: Malloc, O: Ownership> Debug for Box<T, M, O> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        // Use Box<T>'s Deref impl since it returns a &T
         Debug::fmt(self.deref(), f)
     }
 }
 
-impl<T: PartialEq + ?Sized, M: Malloc> PartialEq for Box<T, M> {
+impl<T: PartialEq + ?Sized, M: Malloc, O: Ownership> PartialEq for Box<T, M, O> {
     fn eq(&self, other: &Self) -> bool {
-        // Use Box<T>'s Deref impl since it returns a &T
         PartialEq::eq(self.deref(), other)
     }
 }
 
-impl<T: Eq + ?Sized, M: Malloc> Eq for Box<T, M> {}
+impl<T: Eq + ?Sized, M: Malloc, O: Ownership> Eq for Box<T, M, O> {}
 
-unsafe impl<T: Sync + ?Sized, M: Malloc> Sync for Box<T, M> {}
-unsafe impl<T: Send + ?Sized, M: Malloc> Send for Box<T, M> {}
+unsafe impl<T: Sync + ?Sized, M: Malloc, O: Ownership> Sync for Box<T, M, O> {}
+unsafe impl<T: Send + ?Sized, M: Malloc, O: Ownership> Send for Box<T, M, O> {}
 
-impl<T: ?Sized, M: Malloc> Drop for Box<T, M> {
+impl<T: ?Sized, M: Malloc> Drop for Box<T, M, Owned> {
     fn drop(&mut self) {
         let ptr = self.0.as_ptr();
         // Drop everything that the T owns
@@ -91,13 +107,7 @@ impl<T: ?Sized, M: Malloc> Drop for Box<T, M> {
     }
 }
 
-impl<T, M: Malloc> Box<T, M> {
-    pub fn new_in_dev(t: T, dev: &Device, flags: MallocFlags) -> Self {
-        let b = Self::new(t, flags);
-        dev.add_box_range(&b, flags);
-        b
-    }
-
+impl<T, M: Malloc> Box<T, M, Owned> {
     pub fn new(t: T, flags: MallocFlags) -> Self {
         assert!(flags.contains(M_WAITOK));
         assert!(!flags.contains(M_NOWAIT));
@@ -120,9 +130,35 @@ impl<T, M: Malloc> Box<T, M> {
             None => Err(ENOMEM),
         }
     }
+
 }
 
-impl<T: ?Sized, M: Malloc> Box<T, M> {
+impl<T, M: Malloc> Box<T, M, DeviceOwned> {
+    /// Allocates a new `Box` registered with the given device or cdev. The allocation will not be
+    /// freed until the owning device is detached.
+    ///
+    /// Panics if `flags` does not contain `M_WAITOK` or contains `M_NOWAIT`.
+    pub fn new_for<R: MemoryManager>(t: T, owner: &R, flags: MallocFlags) -> Self {
+        assert!(flags.contains(M_WAITOK));
+        assert!(!flags.contains(M_NOWAIT));
+        Self::try_new_for(t, owner, flags).unwrap()
+    }
+
+    /// Allocates a new `Box` registered with the given device or cdev. The allocation will not be
+    /// freed until the owning device is detached.
+    ///
+    /// Returns an error if allocation fails.
+    pub fn try_new_for<R: MemoryManager>(t: T, owner: &R, flags: MallocFlags) -> Result<Self> {
+        let owned: Box<T, M, Owned> = Box::try_new(t, flags)?;
+        let region = owner.region();
+        region.add_box_range(&owned, flags);
+        let ptr = owned.0;
+        forget(owned);
+        Ok(Box(ptr, PhantomData))
+    }
+}
+
+impl<T: ?Sized, M: Malloc, O: Ownership> Box<T, M, O> {
     pub fn into_raw(b: Self) -> *mut T {
         let res = b.0.as_ptr();
         forget(b);
@@ -134,19 +170,19 @@ impl<T: ?Sized, M: Malloc> Box<T, M> {
     }
 }
 
-impl<'a, T, M: Malloc> IntoIterator for &'a Box<[T], M> {
+impl<'a, T, M: Malloc, O: Ownership> IntoIterator for &'a Box<[T], M, O> {
     type Item = &'a T;
     type IntoIter = slice::Iter<'a, T>;
-    fn into_iter(self) -> <&'a Box<[T], M> as IntoIterator>::IntoIter {
+    fn into_iter(self) -> <&'a Box<[T], M, O> as IntoIterator>::IntoIter {
         // Rely on Deref<[T]> to use core::slice impl
         self.iter()
     }
 }
 
-impl<'a, T, M: Malloc> IntoIterator for &'a mut Box<[T], M> {
+impl<'a, T, M: Malloc, O: Ownership> IntoIterator for &'a mut Box<[T], M, O> {
     type Item = &'a mut T;
     type IntoIter = slice::IterMut<'a, T>;
-    fn into_iter(self) -> <&'a mut Box<[T], M> as IntoIterator>::IntoIter {
+    fn into_iter(self) -> <&'a mut Box<[T], M, O> as IntoIterator>::IntoIter {
         // Rely on DerefMut<[T]> to use core::slice impl
         self.iter_mut()
     }

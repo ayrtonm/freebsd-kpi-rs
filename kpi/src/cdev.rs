@@ -27,6 +27,7 @@
  */
 
 use crate::boxed::Box;
+use crate::device::{MemoryManager, MemoryRegion};
 use crate::ffi::Ptr;
 use crate::malloc::Malloc;
 use crate::prelude::*;
@@ -34,11 +35,9 @@ use core::any::TypeId;
 use core::ffi::{CStr, c_int, c_void};
 use core::marker::PhantomData;
 use core::mem::size_of;
-use core::ops::Range;
 use core::ptr::NonNull;
 
 #[allow(non_camel_case_types)]
-#[derive(Copy, Clone)]
 pub struct cdev_t(Ptr<bindings::cdev>, Option<TypeId>);
 
 impl cdev_t {
@@ -56,12 +55,24 @@ impl Default for cdev_t {
 #[derive(Default)]
 pub struct CDev {
     ptr: cdev_t,
-    _sc_range: Range<usize>,
+    region: MemoryRegion,
 }
 
 impl CDev {
     pub fn as_ptr(&self) -> cdev_t {
         self.ptr
+    }
+}
+
+impl Drop for CDev {
+    fn drop(&mut self) {
+        unsafe { self.region.free_allocation_list() }
+    }
+}
+
+impl MemoryManager for CDev {
+    fn region(&self) -> &MemoryRegion {
+        &self.region
     }
 }
 
@@ -96,13 +107,13 @@ pub trait CDevSw: CDevSwInternal {
         }
     }
 
-    fn destroy_dev(dev: cdev_t) -> Box<Self::Softc, Self::MallocType> {
+    fn destroy_dev(dev: cdev_t) {
         assert!(dev.1.unwrap() == TypeId::of::<Self::Softc>());
-        // Save the softc pointer before destroying the cdev
         let sc_ptr = unsafe { (*dev.0.as_ptr()).si_drv1 };
         unsafe { bindings::destroy_dev(dev.0.as_ptr()) };
-        let sc = sc_ptr.cast::<Self::Softc>();
-        unsafe { Box::from_raw(sc) }
+        let sc: Box<Self::Softc, Self::MallocType> =
+            unsafe { Box::from_raw(sc_ptr.cast::<Self::Softc>()) };
+        drop(sc);
     }
 }
 
@@ -259,7 +270,7 @@ pub mod wrappers {
         let dev_ptr = cdev_t(dev_ptr, Some(TypeId::of::<T>()));
         let dev = CDev {
             ptr: dev_ptr,
-            _sc_range: sc_start..sc_end,
+            region: MemoryRegion::new(sc_start, sc_end),
         };
         sc_init(sc_mut_ref, dev);
         Ok(dev_ptr)
