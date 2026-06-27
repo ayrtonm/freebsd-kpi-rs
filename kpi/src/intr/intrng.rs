@@ -31,7 +31,7 @@ use crate::bindings::{
     device_t, intr_irq_filter_t, intr_irqsrc, intr_map_data, intr_map_data_fdt, pcell_t, trapframe,
 };
 use crate::bus::{Filter, Resource};
-use crate::device::DeviceIf;
+use crate::device::{DeviceIf, MemoryManager};
 use crate::ffi::{ArrayCString, SubClass};
 use crate::kobj::AsRustType;
 use crate::ofw::XRef;
@@ -308,7 +308,7 @@ pub mod wrappers {
         flags: Option<IntrIsrcf>,
         name: &ArrayCString,
     ) -> Result<()> {
-        // TODO: bounds check irq arg
+        assert!(dev.region().in_bounds(isrc), "IrqSrc not in device-owned memory");
         let flags = flags.map(|f| f.0 as u32).unwrap_or(0);
         let isrc_ptr = SubClass::as_base_ptr(&isrc);
         let res = unsafe {
@@ -337,7 +337,7 @@ pub mod wrappers {
         arg: &T,
         root: IntrRoot,
     ) -> Result<()> {
-        // TODO: bounds check the arg
+        assert!(dev.region().in_bounds(arg), "callback argument not in device-owned memory");
         let xref = xref.0 as isize;
         let filter = unsafe { transmute::<Option<IrqFilter<T>>, intr_irq_filter_t>(Some(filter)) };
         let arg_ptr = (&*arg as *const T).cast_mut().cast::<c_void>();

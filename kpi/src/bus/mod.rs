@@ -28,7 +28,7 @@
 
 use crate::ErrCode;
 use crate::bindings::{bus_size_t, device_t, resource, resource_spec};
-use crate::device::Device;
+use crate::device::{MemoryManager, Device};
 use crate::kobj::{AsCType, AsRustType};
 use crate::prelude::*;
 use core::cell::UnsafeCell;
@@ -296,7 +296,7 @@ pub mod wrappers {
         handler: Handler<D::Softc>,
     ) -> Result<()> {
         let dev_ptr = dev.as_ptr();
-        // TODO: bounds check irq arg
+        assert!(dev.region().in_bounds(irq), "Irq not in device-owned memory");
         assert_eq!(device_get_driver(dev_ptr), <D as Driver>::DRIVER);
         if filter.is_none() && handler.is_none() {
             return Err(EDOOFUS);

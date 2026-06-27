@@ -179,7 +179,7 @@ impl BusDmaMem {
 pub mod wrappers {
     use super::*;
     use crate::ErrCode;
-    use bindings::{bus_dmamap_callback_t, bus_dmamap_t, device_t};
+    use bindings::{bus_dmamap_callback_t, bus_dmamap_t};
 
     gen_newtype! {
         BusDmaFlags as i32,
