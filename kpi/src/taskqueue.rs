@@ -28,7 +28,7 @@
 
 use crate::ErrCode;
 use crate::bindings::{task, task_fn_t, taskqueue};
-use crate::ffi::{ArrayCString};
+use crate::ffi::ArrayCString;
 use crate::intr::Priority;
 use crate::malloc::MallocFlags;
 use crate::prelude::*;

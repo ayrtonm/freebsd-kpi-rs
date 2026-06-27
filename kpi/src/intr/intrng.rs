@@ -26,12 +26,11 @@
  * SUCH DAMAGE.
  */
 
-use crate::device::Device;
 use crate::bindings::{
     device_t, intr_irq_filter_t, intr_irqsrc, intr_map_data, intr_map_data_fdt, pcell_t, trapframe,
 };
 use crate::bus::{Filter, Resource};
-use crate::device::{DeviceIf, MemoryManager};
+use crate::device::{Device, DeviceIf, MemoryManager};
 use crate::ffi::{ArrayCString, SubClass};
 use crate::kobj::AsRustType;
 use crate::ofw::XRef;
@@ -308,11 +307,20 @@ pub mod wrappers {
         flags: Option<IntrIsrcf>,
         name: &ArrayCString,
     ) -> Result<()> {
-        assert!(dev.region().in_bounds(isrc), "IrqSrc not in device-owned memory");
+        assert!(
+            dev.region().in_bounds(isrc),
+            "IrqSrc not in device-owned memory"
+        );
         let flags = flags.map(|f| f.0 as u32).unwrap_or(0);
         let isrc_ptr = SubClass::as_base_ptr(&isrc);
         let res = unsafe {
-            bindings::intr_isrc_register(isrc_ptr, dev.as_ptr(), flags, c"%s".as_ptr(), name.as_c_str())
+            bindings::intr_isrc_register(
+                isrc_ptr,
+                dev.as_ptr(),
+                flags,
+                c"%s".as_ptr(),
+                name.as_c_str(),
+            )
         };
         if res != 0 {
             return Err(ErrCode::from(res));
@@ -337,12 +345,16 @@ pub mod wrappers {
         arg: &T,
         root: IntrRoot,
     ) -> Result<()> {
-        assert!(dev.region().in_bounds(arg), "callback argument not in device-owned memory");
+        assert!(
+            dev.region().in_bounds(arg),
+            "callback argument not in device-owned memory"
+        );
         let xref = xref.0 as isize;
         let filter = unsafe { transmute::<Option<IrqFilter<T>>, intr_irq_filter_t>(Some(filter)) };
         let arg_ptr = (&*arg as *const T).cast_mut().cast::<c_void>();
-        let res =
-            unsafe { bindings::intr_pic_claim_root(dev.as_ptr(), xref, filter, arg_ptr, root.0 as u32) };
+        let res = unsafe {
+            bindings::intr_pic_claim_root(dev.as_ptr(), xref, filter, arg_ptr, root.0 as u32)
+        };
         if res != 0 {
             return Err(ErrCode::from(res));
         }
@@ -390,13 +402,7 @@ mod tests {
         }
         fn device_attach(uninit_sc: UninitRef<Self::Softc>, dev: Device) -> Result<()> {
             let sc = uninit_sc.init(IntcSoftc { dev });
-            intr_pic_claim_root(
-                &sc.dev,
-                XRef(0),
-                IntcDriver::handle_irq,
-                sc,
-                INTR_ROOT_IRQ,
-            )
+            intr_pic_claim_root(&sc.dev, XRef(0), IntcDriver::handle_irq, sc, INTR_ROOT_IRQ)
         }
         fn device_detach(_sc: &Self::Softc) -> Result<()> {
             Ok(())

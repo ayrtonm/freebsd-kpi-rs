@@ -28,7 +28,7 @@
 
 use crate::ErrCode;
 use crate::bindings::{bus_size_t, device_t, resource, resource_spec};
-use crate::device::{MemoryManager, Device};
+use crate::device::{Device, MemoryManager};
 use crate::kobj::{AsCType, AsRustType};
 use crate::prelude::*;
 use core::cell::UnsafeCell;
@@ -296,7 +296,10 @@ pub mod wrappers {
         handler: Handler<D::Softc>,
     ) -> Result<()> {
         let dev_ptr = dev.as_ptr();
-        assert!(dev.region().in_bounds(irq), "Irq not in device-owned memory");
+        assert!(
+            dev.region().in_bounds(irq),
+            "Irq not in device-owned memory"
+        );
         assert_eq!(device_get_driver(dev_ptr), <D as Driver>::DRIVER);
         if filter.is_none() && handler.is_none() {
             return Err(EDOOFUS);
@@ -350,7 +353,8 @@ pub mod wrappers {
     ) -> Result<Resource> {
         // TODO: as u32 needed because bindgen flag makes macros default to signed, but RF_ACTIVE is
         // a bitfield. Ideally there'd be a heuristic for choosing signedness in cases like this
-        let res = unsafe { bindings::bus_alloc_resource_any(dev.as_ptr(), ty.0, rid, flags.0 as u32) };
+        let res =
+            unsafe { bindings::bus_alloc_resource_any(dev.as_ptr(), ty.0, rid, flags.0 as u32) };
         if res.is_null() {
             Err(ENULLPTR)
         } else {
@@ -387,7 +391,11 @@ pub mod wrappers {
         };
         let mut resp: [*mut resource; N] = [null_mut(); N];
         let res = unsafe {
-            bindings::bus_alloc_resources(dev.as_ptr(), addr_of_mut!(spec).cast(), resp.as_mut_ptr())
+            bindings::bus_alloc_resources(
+                dev.as_ptr(),
+                addr_of_mut!(spec).cast(),
+                resp.as_mut_ptr(),
+            )
         };
         if res != 0 {
             Err(ErrCode::from(res))

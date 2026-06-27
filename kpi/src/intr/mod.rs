@@ -288,7 +288,7 @@ mod tests {
     use crate::bindings::device_t;
     use crate::device::{BusProbe, Device, DeviceIf};
     use crate::driver;
-    use crate::ffi::{UninitRef};
+    use crate::ffi::UninitRef;
     use crate::tests::{DriverManager, LoudDrop};
 
     #[repr(C)]

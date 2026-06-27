@@ -117,7 +117,10 @@ pub mod wrappers {
     use crate::device::MemoryManager;
 
     pub fn sx_init<R: MemoryManager>(lock: &SxLock<impl Sized>, owner: &R, name: &'static CStr) {
-        assert!(owner.region().in_bounds(lock), "SxLock not in device-owned memory");
+        assert!(
+            owner.region().in_bounds(lock),
+            "SxLock not in device-owned memory"
+        );
         let name_ptr = name.as_ptr();
         let sx_ptr = lock.inner.get();
         unsafe {

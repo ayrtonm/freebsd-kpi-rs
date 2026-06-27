@@ -215,9 +215,15 @@ pub mod wrappers {
         flags: Option<MtxFlags>,
     ) {
         if M::SPINS {
-            assert!(owner.region().in_bounds(lock), "SpinLock not in device-owned memory");
+            assert!(
+                owner.region().in_bounds(lock),
+                "SpinLock not in device-owned memory"
+            );
         } else {
-            assert!(owner.region().in_bounds(lock), "Mutex not in device-owned memory");
+            assert!(
+                owner.region().in_bounds(lock),
+                "Mutex not in device-owned memory"
+            );
         }
         let name_ptr = name.as_ptr();
         let kind_ptr = match kind {

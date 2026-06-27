@@ -70,7 +70,10 @@ impl Ownership for DeviceOwned {
 /// - `DeviceOwned`: the box is freed when the device is detached. Dropping it outside of detach
 ///   will panic.
 #[repr(C)]
-pub struct Box<T: ?Sized, M: Malloc = M_DEVBUF, O: Ownership = Owned>(pub(crate) NonNull<T>, PhantomData<(*mut M, O)>);
+pub struct Box<T: ?Sized, M: Malloc = M_DEVBUF, O: Ownership = Owned>(
+    pub(crate) NonNull<T>,
+    PhantomData<(*mut M, O)>,
+);
 
 // impl Deref to allow using a Box<T> like a T transparently
 impl<T: ?Sized, M: Malloc, O: Ownership> Deref for Box<T, M, O> {
@@ -139,7 +142,6 @@ impl<T, M: Malloc> Box<T, M, Owned> {
             None => Err(ENOMEM),
         }
     }
-
 }
 
 impl<T, M: Malloc> Box<T, M, DeviceOwned> {
@@ -299,7 +301,7 @@ impl<T, M: Malloc> LinkedList<T, M> {
         let mut cur_node = self.head;
         let mut prev_node: Option<NonNull<Node<T>>> = None;
         // TODO: Why was I reading this initially??
-        let mut next_node;// = self.head_as_mut().unwrap().next;
+        let mut next_node; // = self.head_as_mut().unwrap().next;
 
         while let Some(mut cur) = cur_node {
             next_node = unsafe { cur.as_ref().next };

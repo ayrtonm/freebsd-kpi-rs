@@ -27,11 +27,11 @@
  */
 
 use crate::ErrCode;
-use crate::device::Device;
 use crate::bindings::{
     bus_addr_t, bus_dma_lock_t, bus_dma_segment_t, bus_dma_tag_t, bus_dmamap, bus_size_t,
 };
-use crate::ffi::{Ptr};
+use crate::device::Device;
+use crate::ffi::Ptr;
 use crate::prelude::*;
 use core::ffi::{c_int, c_void};
 use core::mem::transmute;

@@ -27,7 +27,7 @@
  */
 
 use crate::boxed::Box;
-use crate::ffi::{SubClass};
+use crate::ffi::SubClass;
 use crate::kobj::{AsCType, AsRustType};
 use crate::malloc::Malloc;
 use crate::sync::arc::{Arc, InnerArc};

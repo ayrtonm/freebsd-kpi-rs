@@ -28,8 +28,8 @@
 
 use crate::ErrCode;
 use crate::bindings::{device_t, ofw_compat_data, phandle_t};
-use crate::device::Device;
 use crate::collections::Pod;
+use crate::device::Device;
 use crate::kobj::AsRustType;
 use crate::prelude::*;
 use core::ffi::{CStr, c_char, c_int};

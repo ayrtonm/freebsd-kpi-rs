@@ -196,11 +196,19 @@ impl<T, M: Malloc> Vec<T, M> {
         self.try_into_boxed_slice().unwrap()
     }
 
-    pub fn into_boxed_slice_for<R: MemoryManager>(self, owner: &R, flags: MallocFlags) -> Box<[T], M, DeviceOwned> {
+    pub fn into_boxed_slice_for<R: MemoryManager>(
+        self,
+        owner: &R,
+        flags: MallocFlags,
+    ) -> Box<[T], M, DeviceOwned> {
         self.try_into_boxed_slice_for(owner, flags).unwrap()
     }
 
-    pub fn try_into_boxed_slice_for<R: MemoryManager>(self, owner: &R, flags: MallocFlags) -> Result<Box<[T], M, DeviceOwned>> {
+    pub fn try_into_boxed_slice_for<R: MemoryManager>(
+        self,
+        owner: &R,
+        flags: MallocFlags,
+    ) -> Result<Box<[T], M, DeviceOwned>> {
         let owned = self.try_into_boxed_slice()?;
         let region = owner.region();
         region.add_boxed_slice_range(&owned, flags);

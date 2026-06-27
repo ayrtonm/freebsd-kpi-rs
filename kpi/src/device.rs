@@ -28,12 +28,12 @@
 
 use crate::bindings::{device_state_t, device_t, driver_t};
 use crate::boxed::Box;
-use crate::vec::Vec;
 use crate::driver::Driver;
 use crate::ffi::{ArrayCString, UninitRef};
 use crate::kobj::{AsCType, AsRustType};
 use crate::malloc::{Malloc, MallocFlags};
 use crate::prelude::*;
+use crate::vec::Vec;
 use crate::{ErrCode, define_interface};
 use core::ffi::{CStr, c_int, c_void};
 use core::ops::Range;
@@ -157,7 +157,13 @@ impl MemoryRegion {
         self.add_range(b_start..b_end, drop_boxed_slice::<T, M>, len, flags);
     }
 
-    fn add_range(&self, range: Range<usize>, drop_fn: unsafe fn(*mut u8, usize), elem_count: usize, flags: MallocFlags) {
+    fn add_range(
+        &self,
+        range: Range<usize>,
+        drop_fn: unsafe fn(*mut u8, usize),
+        elem_count: usize,
+        flags: MallocFlags,
+    ) {
         let node: Box<AllocationRange> = Box::new(
             AllocationRange {
                 range,
@@ -449,8 +455,9 @@ pub mod wrappers {
     pub fn device_get_children(dev: &Device) -> Result<Box<[device_t], M_TEMP>> {
         let mut devlistp = null_mut();
         let mut devcountp = 0;
-        let res =
-            unsafe { bindings::device_get_children(dev.as_ptr(), &raw mut devlistp, &raw mut devcountp) };
+        let res = unsafe {
+            bindings::device_get_children(dev.as_ptr(), &raw mut devlistp, &raw mut devcountp)
+        };
         if res != 0 {
             return Err(ErrCode::from(res));
         }
@@ -519,12 +526,12 @@ pub mod wrappers {
 mod tests {
     use super::*;
     use crate::driver;
-    use crate::ffi::{UninitRef};
-    use core::sync::atomic::{AtomicPtr, Ordering};
+    use crate::ffi::UninitRef;
     use crate::tests::{DriverManager, LoudDrop};
+    use core::ptr::null_mut;
+    use core::sync::atomic::{AtomicPtr, Ordering};
     use std::ffi::{CStr, c_void};
     use std::vec::Vec;
-    use core::ptr::null_mut;
 
     /* These are the drivers that will be used in tests */
     #[repr(C)]
