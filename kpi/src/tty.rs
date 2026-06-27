@@ -27,8 +27,26 @@
  */
 
 use crate::bindings;
+use crate::bindings::device_t;
+use crate::device::Device;
 use core::fmt;
 use core::hint::black_box;
+
+pub trait DebugDevice {
+    fn as_device_t(&self) -> device_t;
+}
+
+impl DebugDevice for Device {
+    fn as_device_t(&self) -> device_t {
+        self.as_ptr()
+    }
+}
+
+impl DebugDevice for device_t {
+    fn as_device_t(&self) -> device_t {
+        *self
+    }
+}
 
 pub struct TTY;
 
@@ -102,7 +120,8 @@ macro_rules! device_println {
         {
             #[cfg(not(feature = "std"))]
             unsafe {
-                let dev: $crate::bindings::device_t = $dev;
+                use $crate::tty::DebugDevice;
+                let dev = ($dev).as_device_t();
                 bindings::device_printf(dev, c"".as_ptr());
             }
             <$crate::tty::TTY as core::fmt::Write>::write_fmt(
