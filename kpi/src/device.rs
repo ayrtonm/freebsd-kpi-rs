@@ -99,13 +99,13 @@ impl MemoryRegion {
         let t_ptr = t as *const T;
         let t_start = t_ptr.addr();
         let t_end = t_start + size_of::<T>();
-        if self.sc_range.contains(&t_start) && self.sc_range.contains(&t_end) {
+        if t_start >= self.sc_range.start && t_end <= self.sc_range.end {
             return true;
         }
         let mut current = self.allocations_head.load(Ordering::Acquire);
         while !current.is_null() {
             let node = unsafe { &*current };
-            if node.range.contains(&t_start) && node.range.contains(&t_end) {
+            if t_start >= node.range.start && t_end <= node.range.end {
                 return true;
             }
             current = node.next;
