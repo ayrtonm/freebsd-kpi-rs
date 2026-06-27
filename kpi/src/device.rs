@@ -422,39 +422,23 @@ pub mod wrappers {
         BUS_PROBE_NOWILDCARD,
     }
 
-    pub fn device_get_softc<'sc, D: DeviceIf>(dev: device_t) -> Ref<'sc, D::Softc> {
-        let driver = device_get_driver(dev);
-        let class = unsafe { &*driver };
-        let mut method_ptr = class.methods;
-
-        while unsafe { (*method_ptr).func.is_some() } {
-            let desc = unsafe { (*method_ptr).desc };
-            if desc == &raw mut bindings::device_detach_desc {
-                panic!("must use device_get_softc_unchecked if driver implements device_detach");
-            }
-            method_ptr = unsafe { method_ptr.add(1) };
-        }
-        unsafe { device_get_softc_unchecked::<D>(dev) }
-    }
-
-    pub unsafe fn device_get_softc_unchecked<'sc, D: DeviceIf>(
-        dev: device_t,
-    ) -> Ref<'sc, D::Softc> {
-        assert_eq!(device_get_driver(dev), <D as Driver>::DRIVER);
-        let void_ptr = unsafe { bindings::device_get_softc(dev) };
+    pub fn device_get_softc<D: DeviceIf>(dev: &Device) -> &D::Softc {
+        let dev_ptr = dev.as_ptr();
+        assert_eq!(device_get_driver(dev_ptr), <D as Driver>::DRIVER);
+        let void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
         let sc_ptr = void_ptr.cast::<D::Softc>();
-        unsafe { Ref::from_raw(sc_ptr) }
+        unsafe { sc_ptr.as_ref().unwrap() }
     }
 
-    pub fn device_claim_softc(dev: device_t) {
-        unsafe { bindings::device_claim_softc(dev) }
+    pub fn device_claim_softc(dev: &Device) {
+        unsafe { bindings::device_claim_softc(dev.as_ptr()) }
     }
-    pub fn device_get_state(dev: device_t) -> device_state_t {
-        unsafe { bindings::device_get_state(dev) }
+    pub fn device_get_state(dev: &Device) -> device_state_t {
+        unsafe { bindings::device_get_state(dev.as_ptr()) }
     }
 
-    pub fn device_get_parent(dev: device_t) -> Result<device_t> {
-        let res = unsafe { bindings::device_get_parent(dev) };
+    pub fn device_get_parent(dev: &Device) -> Result<device_t> {
+        let res = unsafe { bindings::device_get_parent(dev.as_ptr()) };
         if res.as_ptr().is_null() {
             Err(ENULLPTR)
         } else {
@@ -462,11 +446,11 @@ pub mod wrappers {
         }
     }
 
-    pub fn device_get_children(dev: device_t) -> Result<Box<[device_t], M_TEMP>> {
+    pub fn device_get_children(dev: &Device) -> Result<Box<[device_t], M_TEMP>> {
         let mut devlistp = null_mut();
         let mut devcountp = 0;
         let res =
-            unsafe { bindings::device_get_children(dev, &raw mut devlistp, &raw mut devcountp) };
+            unsafe { bindings::device_get_children(dev.as_ptr(), &raw mut devlistp, &raw mut devcountp) };
         if res != 0 {
             return Err(ErrCode::from(res));
         }
@@ -488,24 +472,24 @@ pub mod wrappers {
         unsafe { bindings::device_set_desc(dev, desc_ptr) }
     }
 
-    pub fn device_get_desc(dev: device_t) -> ArrayCString {
-        let name_ptr = unsafe { bindings::device_get_desc(dev) };
+    pub fn device_get_desc(dev: &Device) -> ArrayCString {
+        let name_ptr = unsafe { bindings::device_get_desc(dev.as_ptr()) };
         assert!(!name_ptr.is_null());
         let name = unsafe { CStr::from_ptr(name_ptr) };
         ArrayCString::new(name)
     }
 
     /// Returns a copy of the device name
-    pub fn device_get_name(dev: device_t) -> ArrayCString {
-        let name_ptr = unsafe { bindings::device_get_name(dev) };
+    pub fn device_get_name(dev: &Device) -> ArrayCString {
+        let name_ptr = unsafe { bindings::device_get_name(dev.as_ptr()) };
         assert!(!name_ptr.is_null());
         let name = unsafe { CStr::from_ptr(name_ptr) };
         ArrayCString::new(name)
     }
 
     /// Returns a copy of the device name and unit number
-    pub fn device_get_nameunit(dev: device_t) -> ArrayCString {
-        let name_ptr = unsafe { bindings::device_get_nameunit(dev) };
+    pub fn device_get_nameunit(dev: &Device) -> ArrayCString {
+        let name_ptr = unsafe { bindings::device_get_nameunit(dev.as_ptr()) };
         assert!(!name_ptr.is_null());
         let name = unsafe { CStr::from_ptr(name_ptr) };
         ArrayCString::new(name)
@@ -516,12 +500,12 @@ pub mod wrappers {
     }
 
     pub fn device_add_child(
-        dev: device_t,
+        dev: &Device,
         name: &'static CStr,
         unit: Option<u32>,
     ) -> Result<device_t> {
         let unit = unit.unwrap_or(bindings::DEVICE_UNIT_ANY as u32);
-        let child = unsafe { bindings::device_add_child(dev, name.as_ptr(), unit as i32) };
+        let child = unsafe { bindings::device_add_child(dev.as_ptr(), name.as_ptr(), unit as i32) };
         if child.as_ptr().is_null() {
             Err(ENULLPTR)
         } else {
@@ -548,18 +532,16 @@ mod tests {
         dev: Device,
         const_data: u32,
     }
-    // This is only used to pipe a device_t managed by one driver to another to ensure
-    // device_get_softc! type checking works as expected. It is unrealistic to do this via a static
+    // This is only used to pipe a Device managed by one driver to another to ensure
+    // device_get_softc type checking works as expected. It is unrealistic to do this via a static
     // like this, but this scenario does come up when a driver manages its children's device_t.
-    static STASHED_DEVICE: Checked<device_t> = Checked::new(device_t::null());
+    static STASHED_DEVICE: Checked<*const Device> = Checked::new(core::ptr::null());
 
     impl AnotherDriver {
-        fn get_stashed_softc(dev: device_t) {
-            let test_driver_dev = *STASHED_DEVICE.get_mut();
-            // Cannot use device_get_softc! here since it would use AnotherDriver
-            let test_driver_sc =
-                unsafe { device_get_softc_unchecked::<TestDriver>(test_driver_dev) };
-            let another_driver_sc = unsafe { device_get_softc_unchecked::<Self>(dev) };
+        fn get_stashed_softc(dev: &Device) {
+            let test_driver_dev = unsafe { &**STASHED_DEVICE.get_mut() };
+            let test_driver_sc = device_get_softc::<TestDriver>(test_driver_dev);
+            let another_driver_sc = device_get_softc::<Self>(dev);
         }
     }
     impl DeviceIf for TestDriver {
@@ -582,9 +564,9 @@ mod tests {
                 dev,
                 const_data: 0xdeadbeef,
             });
-            let dev = sc.dev.as_ptr();
-            if ofw_bus_is_compatible(dev, c"another_driver,get_softc") {
-                *STASHED_DEVICE.get_mut() = dev;
+            let dev_ptr = sc.dev.as_ptr();
+            if ofw_bus_is_compatible(dev_ptr, c"another_driver,get_softc") {
+                *STASHED_DEVICE.get_mut() = &sc.dev as *const Device;
             }
             println!("{:x?}", sc);
             Ok(())
@@ -630,12 +612,12 @@ mod tests {
                 loud: LoudDrop,
             });
             println!("attaching another driver");
-            let dev = sc.dev.as_ptr();
+            let dev_ptr = sc.dev.as_ptr();
             // Store a pointer owning a refcount to AnotherDriver's Softc in a TestDriverSoftc for
             // some appropriate device_t. This means that AnotherDriver::device_detach will drop a
             // refcount but will not be able to free the softc (as shown by the LoudDrop Drop impl).
-            if ofw_bus_is_compatible(dev, c"another_driver,get_softc") {
-                Self::get_stashed_softc(dev);
+            if ofw_bus_is_compatible(dev_ptr, c"another_driver,get_softc") {
+                Self::get_stashed_softc(&sc.dev);
             }
             Ok(())
         }
