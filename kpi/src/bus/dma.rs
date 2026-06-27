@@ -31,14 +31,14 @@ use crate::device::Device;
 use crate::bindings::{
     bus_addr_t, bus_dma_lock_t, bus_dma_segment_t, bus_dma_tag_t, bus_dmamap, bus_size_t,
 };
-use crate::ffi::{Ptr, Ref};
+use crate::ffi::{Ptr};
 use crate::prelude::*;
 use core::ffi::{c_int, c_void};
 use core::mem::transmute;
 use core::ops::{BitOr, Range};
 use core::ptr::null_mut;
 
-pub type BusDmaMapFn<T> = extern "C" fn(Ref<T>, &bus_dma_segment_t, i32, i32);
+pub type BusDmaMapFn<T> = extern "C" fn(&T, &bus_dma_segment_t, i32, i32);
 type _RawBusDmaMapFn = extern "C" fn(*mut c_void, *mut bus_dma_segment_t, i32, i32);
 
 #[must_use]
@@ -240,16 +240,18 @@ pub mod wrappers {
         kva: BusDmaMem,
         len: bus_size_t,
         callback: Option<BusDmaMapFn<T>>,
-        arg: Ref<T>,
+        arg: &T,
         flags: Option<BusDmaFlags>,
     ) -> Result<()> {
+        // TODO: Add bounds check
+        //assert!(dev.region().in_bounds(arg), "callback argument not in device-owned memory");
         let flags = match flags {
             Some(flags) => flags.0,
             None => 0,
         };
         let callback =
             unsafe { transmute::<Option<BusDmaMapFn<T>>, bus_dmamap_callback_t>(callback) };
-        let arg = Ref::into_raw(arg).cast::<c_void>();
+        let arg = (arg as *const T).cast::<c_void>().cast_mut();
         let res = unsafe {
             bindings::bus_dmamap_load(
                 dmat.0,

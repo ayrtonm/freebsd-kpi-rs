@@ -30,7 +30,6 @@ use crate::ErrCode;
 use crate::bindings::{
     C_HARDCLOCK, callout, callout_func_t, ich_func_t, intr_config_hook, sbintime_t, tick_sbt,
 };
-use crate::ffi::Ref;
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::ffi::{c_int, c_void};
@@ -60,7 +59,7 @@ pub struct ConfigHook {
 unsafe impl Sync for ConfigHook {}
 unsafe impl Send for ConfigHook {}
 
-pub type ConfigHookFn<T> = extern "C" fn(Ref<T>);
+pub type ConfigHookFn<T> = extern "C" fn(&T);
 
 impl ConfigHook {
     pub unsafe fn new<T>(func: ConfigHookFn<T>, arg: *mut c_void) -> Self {
@@ -74,7 +73,7 @@ impl ConfigHook {
     }
 }
 
-pub type CalloutFn<T> = extern "C" fn(Ref<T>);
+pub type CalloutFn<T> = extern "C" fn(&T);
 
 #[derive(Debug, Default)]
 pub struct Callout {
@@ -224,16 +223,13 @@ pub mod wrappers {
         c: &mut Callout,
         ticks: sbintime_t,
         func: CalloutFn<T>,
-        arg: Ref<T>,
+        arg: &T,
     ) -> Result<()> {
-        // TODO: Ensure arg doesn't get turned into a reference after it's dropped
-        //if arg.get_callout().unwrap() != c as *mut Callout {
-        //    return Err(EINVAL);
-        //}
+        // TODO: bounds check arg
         let c_callout = c.inner.get();
         let time = ticks * unsafe { tick_sbt };
         let func = unsafe { transmute::<Option<CalloutFn<T>>, callout_func_t>(Some(func)) };
-        let arg_ptr = Ref::into_raw(arg).cast::<c_void>();
+        let arg_ptr = (arg as *const T).cast::<c_void>().cast_mut();
         let res = unsafe {
             bindings::callout_reset_sbt_on(c_callout, time, 0, func, arg_ptr, -1, C_HARDCLOCK)
         };
@@ -292,7 +288,7 @@ mod tests {
     use crate::bindings::device_t;
     use crate::device::{BusProbe, Device, DeviceIf};
     use crate::driver;
-    use crate::ffi::{Ref, UninitRef};
+    use crate::ffi::{UninitRef};
     use crate::tests::{DriverManager, LoudDrop};
 
     #[repr(C)]
@@ -322,7 +318,7 @@ mod tests {
     }
 
     impl HookDriver {
-        extern "C" fn deferred_attach(sc: Ref<HookSoftc>) {
+        extern "C" fn deferred_attach(sc: &HookSoftc) {
             println!("called config hook rust function/deferred_attach");
             config_intrhook_disestablish(&sc.hook);
         }

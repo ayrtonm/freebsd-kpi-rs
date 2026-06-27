@@ -519,7 +519,7 @@ pub mod wrappers {
 mod tests {
     use super::*;
     use crate::driver;
-    use crate::ffi::{Ref, UninitRef};
+    use crate::ffi::{UninitRef};
     use core::sync::atomic::{AtomicPtr, Ordering};
     use crate::tests::{DriverManager, LoudDrop};
     use std::ffi::{CStr, c_void};

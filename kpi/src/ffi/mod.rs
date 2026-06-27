@@ -28,11 +28,9 @@
 
 //! Utilities related to FFI with C.
 
-use crate::boxed::Box;
 use core::fmt;
 use core::fmt::{Debug, Formatter};
 use core::mem::MaybeUninit;
-use core::ops::{Deref, DerefMut};
 use core::ptr::null_mut;
 
 mod cstring;
@@ -112,126 +110,13 @@ impl<'a, T> UninitRef<'a, T> {
         )
     }
 
+    // FIXME: It's super easy to coerce this to a shared reference, hand it off to C then reuse the
+    // mutable reference while the C code can potentially invoke a callback. This should return &T
+    // and and unsafe init_mut should return &mut T. I'm pretty sure there's no real way to make
+    // init_mut safe.
     /// Initialize the externally-managed object to `t` and return a `UniqueRef` to the pointee.
     pub fn init(self, t: T) -> &'a mut T {
         *self.1 = true;
         self.0.write(t)
-    }
-}
-
-/// A unique pointer to an externally-managed object.
-#[repr(C)]
-#[derive(Debug)]
-pub struct UniqueRef<'a, T>(&'a mut T);
-
-impl<'a, T> UniqueRef<'a, T> {
-    /// Destroys a `UniqueRef` and returns an `Ref` to the same object.
-    pub fn into_ref(self) -> Ref<'a, T> {
-        Ref(self.0)
-    }
-
-    pub fn from_boxed(b: Box<T>) -> Self {
-        let ptr = Box::into_raw(b);
-        unsafe { Self::from_raw(ptr) }
-    }
-
-    pub unsafe fn from_raw(ptr: *mut T) -> Self {
-        UniqueRef(unsafe { ptr.as_mut().unwrap() })
-    }
-}
-
-/// Allows transparently using `UniqueRef<T>` like a `&T`.
-impl<'a, T> Deref for UniqueRef<'a, T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-/// Allows transparently using `UniqueRef<T>` like a `&mut T`.
-impl<'a, T> DerefMut for UniqueRef<'a, T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.0
-    }
-}
-
-/// A pointer to an externally-managed object.
-#[repr(C)]
-#[derive(Debug)]
-pub struct Ref<'a, T: ?Sized>(&'a T);
-
-/// Allows implicitly making copies of the `Ref<T>` just like `&T` allows.
-impl<'a, T> Copy for Ref<'a, T> {}
-
-/// Allows explicitly making copies of the `Ref<T>` just like `&T` allows.
-impl<'a, T> Clone for Ref<'a, T> {
-    fn clone(&self) -> Self {
-        Self(self.0)
-    }
-}
-
-impl<'a, T> Ref<'a, T> {
-    pub fn into_raw(x: Self) -> *mut T {
-        (x.0 as *const T).cast_mut()
-    }
-
-    pub fn into_ptr(x: Self) -> Ptr<T> {
-        let ptr = Self::into_raw(x);
-        Ptr::new(ptr)
-    }
-
-    pub fn from_boxed(b: Box<T>) -> Self {
-        let ptr = Box::into_raw(b);
-        unsafe { Self::from_raw(ptr) }
-    }
-
-    pub unsafe fn from_raw(ptr: *mut T) -> Self {
-        Self(unsafe { ptr.as_ref().unwrap() })
-    }
-
-    pub unsafe fn from_sync_ptr(ptr: Ptr<T>) -> Self {
-        Self(unsafe { ptr.0.as_ref().unwrap() })
-    }
-
-    /// Create an Ref<U> from an Ref<T> by accessing a field on T
-    ///
-    /// The `proj!` macro should be used instead of calling this directly.
-    ///
-    /// # Safety
-    ///
-    /// The function `f` must only access a single field (i.e. `x.field`)
-    pub unsafe fn map_field<U, F: FnOnce(&T) -> &U>(x: Self, f: F) -> Ref<'a, U> {
-        Ref(f(x.0))
-    }
-}
-
-impl<'a, T: FixedIdx> Ref<'a, T> {
-    /// Create an Ref<U> from an Ref<T> by indexing into T
-    ///
-    /// The `proj!` macro should be used instead of calling this directly.
-    ///
-    /// # Safety
-    ///
-    /// The function `f` must only index once into T (i.e. `x[n]`)
-    pub unsafe fn map_idx<U, F: FnOnce(&T) -> &U>(x: Self, f: F) -> Ref<'a, U> {
-        Ref(f(x.0))
-    }
-}
-
-#[diagnostic::on_unimplemented(
-    message = "Indexing into {Self} might not access the same address every time",
-    label = "Cannot create an Ref<T> from this. Use a boxed slice or array instead"
-)]
-pub unsafe trait FixedIdx {}
-unsafe impl<T, const N: usize> FixedIdx for [T; N] {}
-unsafe impl<T> FixedIdx for Box<[T]> {}
-
-/// Allows transparently using `Ref<T>` like a `&T`.
-impl<'a, T: ?Sized> Deref for Ref<'a, T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        self.0
     }
 }
