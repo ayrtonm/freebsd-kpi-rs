@@ -100,6 +100,9 @@ impl MemoryRegion {
         }
     }
 
+    // Not synchronized with add_range. If a driver races add_range against this (e.g. allocating
+    // during detach), the new node and its allocation will leak but no use-after-free occurs since
+    // the list is only traversed once here and never again.
     pub unsafe fn free_allocation_list(&self) {
         let mut current = self.allocations_head.load(Ordering::Acquire);
         while !current.is_null() {
