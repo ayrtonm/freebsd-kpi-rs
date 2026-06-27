@@ -155,7 +155,7 @@ impl Module for EchoDev {
         // the borrow, but leaves the responsibility of freeing the pointee to the owner.
         let echodev = make_dev_s(args, |sc, dev| {
             sc.dev = dev;
-            sx_init(&sc.state, c"echo");
+            sx_init(&sc.state, &sc.dev, c"echo");
             sc.state.get_mut().buf = Vec::fill_with_capacity(0u8, 64, M_WAITOK);
         })?;
         *ECHODEV.get_mut() = Some(echodev);
