@@ -193,8 +193,8 @@ pub mod misc {
         unsafe { bindings::rust_bindings_CPU_ISSET(cpu, set as *const cpuset_t as *mut cpuset_t) }
     }
     #[cfg(target_arch = "aarch64")]
-    pub fn gpiobus_add_bus(dev: device_t) -> Result<device_t> {
-        let res = unsafe { bindings::gpiobus_add_bus(dev) };
+    pub fn gpiobus_add_bus(dev: &crate::device::Device) -> Result<device_t> {
+        let res = unsafe { bindings::gpiobus_add_bus(dev.as_ptr()) };
         if res.0.is_null() {
             Err(ENULLPTR)
         } else {

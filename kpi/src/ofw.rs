@@ -28,6 +28,7 @@
 
 use crate::ErrCode;
 use crate::bindings::{device_t, ofw_compat_data, phandle_t};
+use crate::device::Device;
 use crate::collections::Pod;
 use crate::kobj::AsRustType;
 use crate::prelude::*;
@@ -154,15 +155,15 @@ pub mod wrappers {
         found.ok_or(ENULLPTR)
     }
 
-    pub fn ofw_bus_get_node(dev: device_t) -> Node {
-        let node = unsafe { bindings::ofw_bus_get_node(dev) };
+    pub fn ofw_bus_get_node(dev: &Device) -> Node {
+        let node = unsafe { bindings::ofw_bus_get_node(dev.as_ptr()) };
         Node(node)
     }
 
     // TODO: this will break if OF_device_register_xref ever changes to return non-zero
-    pub fn OF_device_register_xref(xref: XRef, dev: device_t) {
+    pub fn OF_device_register_xref(xref: XRef, dev: &Device) {
         unsafe {
-            bindings::OF_device_register_xref(xref.0, dev);
+            bindings::OF_device_register_xref(xref.0, dev.as_ptr());
         }
     }
 

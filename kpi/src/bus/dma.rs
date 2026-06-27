@@ -27,6 +27,7 @@
  */
 
 use crate::ErrCode;
+use crate::device::Device;
 use crate::bindings::{
     bus_addr_t, bus_dma_lock_t, bus_dma_segment_t, bus_dma_tag_t, bus_dmamap, bus_size_t,
 };
@@ -198,8 +199,8 @@ pub mod wrappers {
         BUS_DMASYNC_POSTWRITE,
     }
 
-    pub fn bus_get_dma_tag(dev: device_t) -> BusDmaTag {
-        BusDmaTag(unsafe { bindings::bus_get_dma_tag(dev) })
+    pub fn bus_get_dma_tag(dev: &Device) -> BusDmaTag {
+        BusDmaTag(unsafe { bindings::bus_get_dma_tag(dev.as_ptr()) })
     }
 
     pub fn bus_dma_tag_create(parent: BusDmaTag) -> BusDmaTagBuilder {

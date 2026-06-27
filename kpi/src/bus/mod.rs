@@ -28,6 +28,7 @@
 
 use crate::ErrCode;
 use crate::bindings::{bus_size_t, device_t, resource, resource_spec};
+use crate::device::Device;
 use crate::kobj::{AsCType, AsRustType};
 use crate::prelude::*;
 use core::cell::UnsafeCell;
@@ -288,41 +289,28 @@ pub mod wrappers {
     }
 
     pub fn bus_setup_intr<D: DeviceIf>(
-        dev: device_t,
+        dev: &Device,
         irq: &Irq,
         flags: c_int,
         filter: FilterFn<D::Softc>,
         handler: Handler<D::Softc>,
     ) -> Result<()> {
+        let dev_ptr = dev.as_ptr();
         // TODO: bounds check irq arg
-        assert_eq!(device_get_driver(dev), <D as Driver>::DRIVER);
-        unsafe {
-            let sc = bindings::device_get_softc(dev);
-            bus_setup_intr_unchecked::<D::Softc>(dev, irq, flags, filter, handler, sc)
-        }
-    }
-
-    unsafe fn bus_setup_intr_unchecked<T>(
-        dev: device_t,
-        irq: &Irq,
-        flags: c_int,
-        filter: FilterFn<T>,
-        handler: Handler<T>,
-        arg_ptr: *mut c_void,
-    ) -> Result<()> {
-        // TODO: bounds check irq arg
+        assert_eq!(device_get_driver(dev_ptr), <D as Driver>::DRIVER);
         if filter.is_none() && handler.is_none() {
             return Err(EDOOFUS);
         }
+        let sc = unsafe { bindings::device_get_softc(dev_ptr) };
         // SAFETY: These types are ABI-compatible
-        let filter = unsafe { transmute::<FilterFn<T>, RawFilterFn>(filter) };
+        let filter = unsafe { transmute::<FilterFn<D::Softc>, RawFilterFn>(filter) };
         // SAFETY: These types are ABI-compatible
-        let handler = unsafe { transmute::<Handler<T>, RawHandler>(handler) };
+        let handler = unsafe { transmute::<Handler<D::Softc>, RawHandler>(handler) };
 
         let cookiep = irq.cookie.get();
 
         let res = unsafe {
-            bindings::bus_setup_intr(dev, irq.res, flags, filter, handler, arg_ptr, cookiep)
+            bindings::bus_setup_intr(dev_ptr, irq.res, flags, filter, handler, sc, cookiep)
         };
         if res != 0 {
             return Err(ErrCode::from(res));
@@ -330,19 +318,14 @@ pub mod wrappers {
         Ok(())
     }
 
-    pub fn bus_teardown_intr(dev: device_t, irq: &Irq) -> Result<()> {
+    pub fn bus_teardown_intr(dev: &Device, irq: &Irq) -> Result<()> {
+        let dev_ptr = dev.as_ptr();
         let cookiep = irq.cookie.get();
         let cookie = unsafe { *cookiep };
-        let res = unsafe { bindings::bus_teardown_intr(dev, irq.res, cookie) };
+        let res = unsafe { bindings::bus_teardown_intr(dev_ptr, irq.res, cookie) };
         if res != 0 {
             Err(ErrCode::from(res))
         } else {
-            //let metadata_ptr = irq.metadata_ptr.load(Ordering::Relaxed);
-            //// SAFETY: The refcount was owned by the Ptr<T> passed in to and broken down to its raw
-            //// pars in bus_setup_intr
-            //unsafe {
-            //    RefCountData::release_ref(metadata_ptr);
-            //}
             Ok(())
         }
     }
@@ -360,14 +343,14 @@ pub mod wrappers {
     }
 
     pub fn bus_alloc_resource_any(
-        dev: device_t,
+        dev: &Device,
         ty: SysRes,
         rid: c_int,
         flags: ResFlags,
     ) -> Result<Resource> {
         // TODO: as u32 needed because bindgen flag makes macros default to signed, but RF_ACTIVE is
         // a bitfield. Ideally there'd be a heuristic for choosing signedness in cases like this
-        let res = unsafe { bindings::bus_alloc_resource_any(dev, ty.0, rid, flags.0 as u32) };
+        let res = unsafe { bindings::bus_alloc_resource_any(dev.as_ptr(), ty.0, rid, flags.0 as u32) };
         if res.is_null() {
             Err(ENULLPTR)
         } else {
@@ -380,7 +363,7 @@ pub mod wrappers {
     }
 
     pub fn bus_alloc_resources<const N: usize>(
-        dev: device_t,
+        dev: &Device,
         spec: [ResourceSpec; N],
     ) -> Result<[Resource; N]> {
         #[repr(C)]
@@ -404,7 +387,7 @@ pub mod wrappers {
         };
         let mut resp: [*mut resource; N] = [null_mut(); N];
         let res = unsafe {
-            bindings::bus_alloc_resources(dev, addr_of_mut!(spec).cast(), resp.as_mut_ptr())
+            bindings::bus_alloc_resources(dev.as_ptr(), addr_of_mut!(spec).cast(), resp.as_mut_ptr())
         };
         if res != 0 {
             Err(ErrCode::from(res))
@@ -496,7 +479,7 @@ mod tests {
     }
 
     impl IrqDriver {
-        fn setup(&self, dev: device_t, sc: &IrqSoftc, filter: bool, handler: bool) {
+        fn setup(&self, dev: &Device, sc: &IrqSoftc, filter: bool, handler: bool) {
             let filter = if filter {
                 Some(IrqDriver::filter as _)
             } else {
@@ -526,23 +509,24 @@ mod tests {
                 irq: Irq::default(),
                 loud: LoudDrop,
             });
-            let dev = sc.dev.as_ptr();
+            let dev = &sc.dev;
+            let dev_ptr = dev.as_ptr();
             assert_eq!(bus_setup_intr!(dev, &sc.irq, 0, None, None), Err(EDOOFUS));
-            if ofw_bus_is_compatible(dev, c"irq_driver,set_both") {
+            if ofw_bus_is_compatible(dev_ptr, c"irq_driver,set_both") {
                 irq_driver.setup(dev, sc, true, true);
             }
-            if ofw_bus_is_compatible(dev, c"irq_driver,set_filter") {
+            if ofw_bus_is_compatible(dev_ptr, c"irq_driver,set_filter") {
                 irq_driver.setup(dev, sc, true, false);
             }
-            if ofw_bus_is_compatible(dev, c"irq_driver,set_handler") {
+            if ofw_bus_is_compatible(dev_ptr, c"irq_driver,set_handler") {
                 irq_driver.setup(dev, sc, false, true);
             }
             Ok(())
         }
         fn device_detach(sc: &Self::Softc) -> Result<()> {
-            let dev = sc.dev.as_ptr();
-            if ofw_bus_is_compatible(dev, c"irq_driver,teardown_intr") {
-                bus_teardown_intr(dev, &sc.irq).unwrap();
+            let dev_ptr = sc.dev.as_ptr();
+            if ofw_bus_is_compatible(dev_ptr, c"irq_driver,teardown_intr") {
+                bus_teardown_intr(&sc.dev, &sc.irq).unwrap();
             }
             Ok(())
         }

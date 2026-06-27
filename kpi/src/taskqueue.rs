@@ -80,14 +80,14 @@ pub use wrappers::*;
 #[doc(hidden)]
 pub mod wrappers {
     use super::*;
-    use crate::bindings::device_t;
-    use crate::device::DeviceIf;
+    use crate::device::{Device, DeviceIf};
     use crate::driver::Driver;
 
-    pub fn task_init<D: DeviceIf>(dev: device_t, func: TaskFn<D::Softc>) -> Task {
-        assert_eq!(device_get_driver(dev), <D as Driver>::DRIVER);
+    pub fn task_init<D: DeviceIf>(dev: &Device, func: TaskFn<D::Softc>) -> Task {
+        let dev_ptr = dev.as_ptr();
+        assert_eq!(device_get_driver(dev_ptr), <D as Driver>::DRIVER);
         unsafe {
-            let sc = bindings::device_get_softc(dev);
+            let sc = bindings::device_get_softc(dev_ptr);
             Task::new(func, sc)
         }
     }

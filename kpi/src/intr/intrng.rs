@@ -26,6 +26,7 @@
  * SUCH DAMAGE.
  */
 
+use crate::device::Device;
 use crate::bindings::{
     device_t, intr_irq_filter_t, intr_irqsrc, intr_map_data, intr_map_data_fdt, pcell_t, trapframe,
 };
@@ -303,7 +304,7 @@ pub mod wrappers {
 
     pub fn intr_isrc_register<T>(
         isrc: &IrqSrc<T>,
-        dev: device_t,
+        dev: &Device,
         flags: Option<IntrIsrcf>,
         name: &ArrayCString,
     ) -> Result<()> {
@@ -311,7 +312,7 @@ pub mod wrappers {
         let flags = flags.map(|f| f.0 as u32).unwrap_or(0);
         let isrc_ptr = SubClass::as_base_ptr(&isrc);
         let res = unsafe {
-            bindings::intr_isrc_register(isrc_ptr, dev, flags, c"%s".as_ptr(), name.as_c_str())
+            bindings::intr_isrc_register(isrc_ptr, dev.as_ptr(), flags, c"%s".as_ptr(), name.as_c_str())
         };
         if res != 0 {
             return Err(ErrCode::from(res));
@@ -319,8 +320,8 @@ pub mod wrappers {
         Ok(())
     }
 
-    pub fn intr_pic_register(dev: device_t, xref: XRef) -> Result<()> {
-        let pic = unsafe { bindings::intr_pic_register(dev, xref.0 as _) };
+    pub fn intr_pic_register(dev: &Device, xref: XRef) -> Result<()> {
+        let pic = unsafe { bindings::intr_pic_register(dev.as_ptr(), xref.0 as _) };
         if pic.is_null() {
             Err(ENULLPTR)
         } else {
@@ -330,7 +331,7 @@ pub mod wrappers {
     }
 
     pub fn intr_pic_claim_root<T>(
-        dev: device_t,
+        dev: &Device,
         xref: XRef,
         filter: IrqFilter<T>,
         arg: &T,
@@ -341,15 +342,15 @@ pub mod wrappers {
         let filter = unsafe { transmute::<Option<IrqFilter<T>>, intr_irq_filter_t>(Some(filter)) };
         let arg_ptr = (&*arg as *const T).cast_mut().cast::<c_void>();
         let res =
-            unsafe { bindings::intr_pic_claim_root(dev, xref, filter, arg_ptr, root.0 as u32) };
+            unsafe { bindings::intr_pic_claim_root(dev.as_ptr(), xref, filter, arg_ptr, root.0 as u32) };
         if res != 0 {
             return Err(ErrCode::from(res));
         }
         Ok(())
     }
 
-    pub fn intr_ipi_pic_register(dev: device_t, priority: u32) -> Result<()> {
-        let res = unsafe { bindings::intr_ipi_pic_register(dev, priority) };
+    pub fn intr_ipi_pic_register(dev: &Device, priority: u32) -> Result<()> {
+        let res = unsafe { bindings::intr_ipi_pic_register(dev.as_ptr(), priority) };
         if res != 0 {
             return Err(ErrCode::from(res));
         }
@@ -390,7 +391,7 @@ mod tests {
         fn device_attach(uninit_sc: UninitRef<Self::Softc>, dev: Device) -> Result<()> {
             let sc = uninit_sc.init(IntcSoftc { dev });
             intr_pic_claim_root(
-                sc.dev.as_ptr(),
+                &sc.dev,
                 XRef(0),
                 IntcDriver::handle_irq,
                 sc,
