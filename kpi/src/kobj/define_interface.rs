@@ -127,6 +127,7 @@ macro_rules! define_c_function {
         #[allow(unused_mut)]
         #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) {
+            type SelfType = $driver_ty;
             //use core::any::{Any, TypeId};
             //let typedef_val = <$fn_name!(get_typedef)>::default();
             //let typedef_id = typedef_val.type_id();
@@ -157,6 +158,7 @@ macro_rules! define_c_function {
         #[allow(unused_mut)]
         #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) -> $ret {
+            type SelfType = $driver_ty;
             //use core::any::{Any, TypeId};
             //let typedef_val = <$fn_name!(get_typedef)>::default();
             //let typedef_id = typedef_val.type_id();
@@ -194,6 +196,7 @@ macro_rules! define_c_function {
         #[allow(unused_mut)]
         #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) -> $ret {
+            type SelfType = $driver_ty;
             //use core::any::{Any, TypeId};
             //let typedef_val = <$fn_name!(get_typedef)>::default();
             //let typedef_id = typedef_val.type_id();
