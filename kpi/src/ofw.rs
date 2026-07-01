@@ -94,15 +94,15 @@ pub struct Node(pub phandle_t);
 #[derive(Copy, Clone, Debug)]
 pub struct XRef(pub phandle_t);
 
-impl AsRustType<XRef> for phandle_t {
-    fn as_rust_type(self) -> XRef {
-        XRef(self)
+impl AsRustType<'_, XRef> for phandle_t {
+    fn as_rust_type(&self) -> XRef {
+        XRef(*self)
     }
 }
 
-impl AsRustType<Node> for phandle_t {
-    fn as_rust_type(self) -> Node {
-        Node(self)
+impl AsRustType<'_, Node> for phandle_t {
+    fn as_rust_type(&self) -> Node {
+        Node(*self)
     }
 }
 

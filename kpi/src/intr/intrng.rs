@@ -47,15 +47,15 @@ pub struct IntrRoot(c_int);
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct IntrIsrcf(pub c_int);
 
-impl AsRustType<MapData> for *mut intr_map_data {
-    fn as_rust_type(self) -> MapData {
-        MapData::new(self)
+impl AsRustType<'_, MapData> for *mut intr_map_data {
+    fn as_rust_type(&self) -> MapData {
+        MapData::new(*self)
     }
 }
 
-impl AsRustType<IntrRoot> for u32 {
-    fn as_rust_type(self) -> IntrRoot {
-        IntrRoot(self as i32)
+impl AsRustType<'_, IntrRoot> for u32 {
+    fn as_rust_type(&self) -> IntrRoot {
+        IntrRoot(*self as i32)
     }
 }
 
