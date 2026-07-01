@@ -35,8 +35,10 @@ use core::any::TypeId;
 use core::ffi::{CStr, c_int, c_void};
 use core::marker::PhantomData;
 use core::mem::size_of;
+use crate::define_interface;
 use crate::kobj::AsRustType;
 use core::ptr::NonNull;
+use crate::misc::Thread;
 
 #[allow(non_camel_case_types)]
 pub struct cdev_t(Ptr<bindings::cdev>, Option<TypeId>);
@@ -86,6 +88,12 @@ pub trait CDevSw: CDevSwInternal {
     type Softc: 'static + Sync;
     type MallocType: Malloc;
 
+    fn on_open(sc: &Self::Softc, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
+        unimplemented!()
+    }
+    fn on_close(sc: &Self::Softc, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
+        unimplemented!()
+    }
     fn on_read(sc: &Self::Softc, uio: UioRef, ioflag: c_int) -> Result<()> {
         unimplemented!()
     }
@@ -121,35 +129,18 @@ pub trait CDevSw: CDevSwInternal {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! cdev_field_for_trait_fn {
-    ($res:ident, on_read) => {
-        $res.d_read
-    };
-    ($res:ident, on_write) => {
-        $res.d_write
-    };
+    ($res:ident, on_read) => { $res.d_read };
+    ($res:ident, on_write) => { $res.d_write };
+    ($res:ident, on_open) => { $res.d_open };
+    ($res:ident, on_close) => { $res.d_close };
 }
 
-#[doc(hidden)]
-#[macro_export]
-macro_rules! c_fn_for_cdev {
-    ($unmangled_name:ident, $cdev_ty:ident, $on_read_or_on_write:ident) => {
-        extern "C" fn $unmangled_name(
-            dev: *mut $crate::bindings::cdev,
-            uio: *mut $crate::bindings::uio,
-            iof: core::ffi::c_int,
-        ) -> core::ffi::c_int {
-            use $crate::cdev::CDevSw;
-            let sc = dev.as_rust_type();
-            use $crate::kobj::AsRustType;
-            let uio_ref = uio.as_rust_type();
-            let res = <$cdev_ty as CDevSw>::$on_read_or_on_write(sc, uio_ref, iof);
-            use $crate::kobj::AsCType;
-            match res {
-                Ok(()) => 0,
-                Err(e) => e.as_c_type(),
-            }
-        }
-    };
+define_interface! {
+    in CDevSw
+    fn on_open(dev: *mut bindings::cdev, fflag: i32, devtype: i32, td: *mut bindings::thread) -> i32;
+    fn on_close(dev: *mut bindings::cdev, fflag: i32, devtype: i32, td: *mut bindings::thread) -> i32;
+    fn on_read(dev: *mut bindings::cdev, uio: *mut bindings::uio, iof: i32) -> i32;
+    fn on_write(dev: *mut bindings::cdev, uio: *mut bindings::uio, iof: i32) -> i32;
 }
 
 pub struct MakeDevArgs<T, M: Malloc> {
@@ -202,7 +193,7 @@ macro_rules! define_cdev {
             $($crate::cdev_field_for_trait_fn!(res, $trait_fn) = Some($unmangled_name);)*
             res
         }));
-        $($crate::c_fn_for_cdev!($unmangled_name, $cdev_ty, $trait_fn);)*
+        $($crate::$trait_fn!($cdev_ty x $unmangled_name);)*
     };
 }
 

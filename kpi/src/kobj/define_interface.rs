@@ -89,7 +89,7 @@ macro_rules! get_first {
 macro_rules! define_interface {
     (in $trait:ident
      $(fn $fn_name:ident($($arg_name:ident: $arg:ty$(,)?)*) $(-> $ret:ty)?
-     , with desc $desc:ident and typedef $typedef:ident
+     $(, with desc $desc:ident and typedef $typedef:ident)?
      $(, with init glue { $($init_glue:tt)* })?
      $(, with drop glue { $($drop_glue:tt)* })?
      $(, with prefix args { $($prefix_args:tt)* })?
@@ -98,8 +98,8 @@ macro_rules! define_interface {
             #[doc(hidden)]
             #[macro_export]
             macro_rules! $fn_name {
-                (get_typedef) => { $crate::bindings::$typedef };
-                (get_desc) => { $crate::bindings::$desc };
+                (get_typedef) => { $($crate::bindings::$typedef)* };
+                (get_desc) => { $($crate::bindings::$desc)* };
                 ($driver_ty:ident $driver_sym:ident $impl_fn_name:ident) => {
                     $crate::define_c_function! {
                         $driver_ty $driver_sym $impl_fn_name in $trait as
@@ -128,6 +128,7 @@ macro_rules! define_c_function {
         #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) {
             type SelfType = $driver_ty;
+            use $crate::kobj::{AsRustType, AsCType};
             //use core::any::{Any, TypeId};
             //let typedef_val = <$fn_name!(get_typedef)>::default();
             //let typedef_id = typedef_val.type_id();
@@ -159,6 +160,7 @@ macro_rules! define_c_function {
         #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) -> $ret {
             type SelfType = $driver_ty;
+            use $crate::kobj::{AsRustType, AsCType};
             //use core::any::{Any, TypeId};
             //let typedef_val = <$fn_name!(get_typedef)>::default();
             //let typedef_id = typedef_val.type_id();
@@ -197,6 +199,7 @@ macro_rules! define_c_function {
         #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) -> $ret {
             type SelfType = $driver_ty;
+            use $crate::kobj::{AsRustType, AsCType};
             //use core::any::{Any, TypeId};
             //let typedef_val = <$fn_name!(get_typedef)>::default();
             //let typedef_id = typedef_val.type_id();

@@ -14,7 +14,8 @@ use kpi::module::Module;
 use core::ptr::{NonNull, null_mut};
 use kpi::ErrCode;
 use kpi::prelude::*;
-use kpi::{define_module,define_cdev};
+use kpi::misc::Thread;
+use kpi::{define_module, define_cdev};
 use kpi::cdev::{CDev, UioRef, CDevSw, cdev_t};
 use kpi::vec::Vec;
 use kpi::sync::Checked;
@@ -42,6 +43,12 @@ impl CDevSw for EchoDev {
     type Softc = EchoDevSoftc;
     type MallocType = M_DEVBUF;
 
+    fn on_open(sc: &EchoDevSoftc, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
+        Ok(())
+    }
+    fn on_close(sc: &EchoDevSoftc, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
+        Ok(())
+    }
     fn on_read(sc: &EchoDevSoftc, uio: UioRef, ioflag: c_int) -> Result<()> {
         if uio.resid() == 0 {
             return Ok(());
@@ -174,6 +181,8 @@ define_cdev! {
     EchoDev, c"echo", echo_cdevsw,
     on_read: echodev_read,
     on_write: echodev_write,
+    on_open: echodev_open,
+    on_close: echodev_close,
 }
 
 define_module!(EchoDev, echodev_modevent);
