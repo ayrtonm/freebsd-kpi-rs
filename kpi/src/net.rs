@@ -1,18 +1,20 @@
 use crate::misc::Thread;
 use crate::prelude::*;
+use crate::define_interface;
+use crate::kobj::AsRustType;
 use core::marker::PhantomData;
 use core::ptr::NonNull;
 
 pub type SockAddr = bindings::sockaddr;
 
 pub trait ProtoSw {
-    fn attach(so: SocketRef, proto: u32, td: Thread) -> Result<()> {
+    fn pr_attach(so: SocketRef, proto: i32, td: Thread) -> Result<()> {
         unimplemented!()
     }
-    fn bind(so: SocketRef, addr: &SockAddr, td: Thread) -> Result<()> {
+    fn pr_bind(so: SocketRef, addr: &SockAddr, td: Thread) -> Result<()> {
         unimplemented!()
     }
-    fn listen(so: SocketRef, backlog: u32, td: Thread) -> Result<()> {
+    fn pr_listen(so: SocketRef, backlog: u32, td: Thread) -> Result<()> {
         unimplemented!()
     }
 }
@@ -20,9 +22,9 @@ pub trait ProtoSw {
 #[derive(Copy, Clone)]
 pub struct SocketRef<'a>(NonNull<bindings::socket>, PhantomData<&'a bindings::socket>);
 
-impl<'a> SocketRef<'a> {
-    pub fn new(ptr: &'a *mut bindings::socket) -> Self {
-        Self(NonNull::new(*ptr).unwrap(), PhantomData)
+impl<'a> AsRustType<'a, SocketRef<'a>> for *mut bindings::socket {
+    fn as_rust_type(&'a self) -> SocketRef {
+        SocketRef(NonNull::new(*self).unwrap(), PhantomData)
     }
 }
 
@@ -39,61 +41,16 @@ macro_rules! define_protosw {
         static $sw_name: $sw_ty = $sw_ty(core::cell::UnsafeCell::new({
             use core::mem::MaybeUninit;
             let mut res: $crate::bindings::protosw = unsafe { MaybeUninit::zeroed().assume_init() };
+            $(res.$trait_fn = Some($unmangled_name);)*
             res
         }));
-        $($crate::c_fn_for_protosw!($unmangled_name, $sw_ty, $trait_fn);)*
+        $($crate::$trait_fn!($sw_ty $unmangled_name);)*
     };
 }
 
-#[doc(hidden)]
-#[macro_export]
-macro_rules! c_fn_for_protosw {
-    ($unmangled_name:ident, $sw_ty:ident, on_attach) => {
-        extern "C" fn $unmangled_name(
-            so: *mut $crate::bindings::socket,
-            proto: u32,
-            td: *mut $crate::bindings::thread,
-        ) -> core::ffi::c_int {
-            use $crate::kobj::{AsRustType, AsCType};
-            let so_ref = $crate::net::SocketRef::new(&so);
-            let res = <$sw_ty as ProtoSw>::attach(so_ref, proto, td.as_rust_type());
-            match res {
-                Ok(()) => 0,
-                Err(e) => e.as_c_type(),
-            }
-        }
-    };
-
-    ($unmangled_name:ident, $sw_ty:ident, on_listen) => {
-        extern "C" fn $unmangled_name(
-            so: *mut $crate::bindings::socket,
-            proto: u32,
-            td: *mut $crate::bindings::thread,
-        ) -> core::ffi::c_int {
-            use $crate::kobj::{AsRustType, AsCType};
-            let so_ref = $crate::net::SocketRef::new(&so);
-            let res = <$sw_ty as ProtoSw>::listen(so_ref, proto, td.as_rust_type());
-            match res {
-                Ok(()) => 0,
-                Err(e) => e.as_c_type(),
-            }
-        }
-    };
-
-    ($unmangled_name:ident, $sw_ty:ident, on_bind) => {
-        extern "C" fn $unmangled_name(
-            so: *mut $crate::bindings::socket,
-            addr: *mut $crate::bindings::sockaddr,
-            td: *mut $crate::bindings::thread,
-        ) -> core::ffi::c_int {
-            use $crate::kobj::{AsRustType, AsCType};
-            let so_ref = $crate::net::SocketRef::new(&so);
-            let addr = unsafe { addr.as_ref().unwrap() };
-            let res = <$sw_ty as ProtoSw>::bind(so_ref, addr, td.as_rust_type());
-            match res {
-                Ok(()) => 0,
-                Err(e) => e.as_c_type(),
-            }
-        }
-    };
+define_interface! {
+    in ProtoSw
+    fn pr_attach(so: *mut bindings::socket, proto: i32, td: *mut bindings::thread) -> core::ffi::c_int;
+    fn pr_listen(so: *mut bindings::socket, proto: u32, td: *mut bindings::thread) -> core::ffi::c_int;
+    fn pr_bind(so: *mut bindings::socket, addr: *mut bindings::sockaddr, td: *mut bindings::thread) -> core::ffi::c_int;
 }
