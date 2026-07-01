@@ -1,11 +1,11 @@
-commit 9cd954e7bc40cb77afc2bf95a7aa7ecea9d1a4c7
+commit ee5bc49510da5ac65953bfba58f0046fda8cedb0
 Author: Ayrton Munoz <a.munoz3327@gmail.com>
 Date:   Mon Nov 10 23:25:51 2025 -0500
 
     conf: Integrate rust into kernel build system
 
 diff --git a/sys/conf/kern.post.mk b/sys/conf/kern.post.mk
-index 7cdfd17778d..9bebe988f7d 100644
+index 2abf1889d33..68c1c697d8c 100644
 --- a/sys/conf/kern.post.mk
 +++ b/sys/conf/kern.post.mk
 @@ -7,6 +7,7 @@
@@ -17,7 +17,7 @@ index 7cdfd17778d..9bebe988f7d 100644
  .include "dtb.build.mk"
  
 diff --git a/sys/conf/kern.pre.mk b/sys/conf/kern.pre.mk
-index 0251486247d..2d7f1fd1ec9 100644
+index d1556660094..8ffcb07b929 100644
 --- a/sys/conf/kern.pre.mk
 +++ b/sys/conf/kern.pre.mk
 @@ -21,6 +21,7 @@ _srcconf_included_:
@@ -28,7 +28,7 @@ index 0251486247d..2d7f1fd1ec9 100644
  .-include <local.kern.pre.mk>
  
  # The kernel build always occurs in the object directory which is .CURDIR.
-@@ -301,8 +302,8 @@ IPFILTER_C=		${NORMAL_C} ${IPFILTER_CFLAGS}
+@@ -293,8 +294,8 @@ IPFILTER_C=		${NORMAL_C} ${IPFILTER_CFLAGS}
  
  GEN_CFILES= $S/$M/$M/genassym.c ${MFILES:T:S/.m$/.c/}
  SYSTEM_CFILES= config.c env.c hints.c vnode_if.c
@@ -39,3 +39,19 @@ index 0251486247d..2d7f1fd1ec9 100644
  SYSTEM_OBJS+= ${SYSTEM_CFILES:.c=.o}
  SYSTEM_OBJS+= force-dynamic-hack.pico
  
+diff --git a/sys/conf/kmod.mk b/sys/conf/kmod.mk
+index c35116dfcaa..8c991e91f30 100644
+--- a/sys/conf/kmod.mk
++++ b/sys/conf/kmod.mk
+@@ -226,6 +226,11 @@ SRCS+=${SRCS.${_o}}
+ 
+ OBJS+=	${SRCS:N*.h:R:S/$/.o/g}
+ 
++.if defined(RUST_SRCS) && !empty(RUST_SRCS)
++.include "${SYSDIR}/rust/kmod.rust.mk"
++OBJS+=	${RUST_OBJS}
++.endif
++
+ .if !defined(PROG)
+ PROG=	${KMOD}.ko
+ .endif
