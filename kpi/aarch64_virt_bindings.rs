@@ -4945,11 +4945,10 @@ pub const SD_F_BUSY: i32 = 8;
 pub const SD_F_MPSAFE: i32 = 16;
 pub const SD_F_REGISTERED: i32 = 32;
 pub const SD_F_BITPERFECT: i32 = 64;
-pub const SD_F_EQ_ENABLED: i32 = 512;
-pub const SD_F_EQ_PC: i32 = 2048;
+pub const SD_F_EQ: i32 = 512;
 pub const SD_F_PVCHANS: i32 = 4096;
 pub const SD_F_RVCHANS: i32 = 8192;
-pub const SD_F_BITS : & [u8 ; 88] = b"\x10\x01SIMPLEX\x03SOFTPCMVOL\x04BUSY\x05MPSAFE\x06REGISTERED\x07BITPERFECT\nEQ_ENABLED\x0CEQ_PC\rPVCHANS\x0ERVCHANS\0" ;
+pub const SD_F_BITS : & [u8 ; 74] = b"\x10\x01SIMPLEX\x03SOFTPCMVOL\x04BUSY\x05MPSAFE\x06REGISTERED\x07BITPERFECT\nEQ\rPVCHANS\x0ERVCHANS\0" ;
 pub const PCM_MAXCHANS: i32 = 10000;
 pub const PCM_MODE_MIXER: i32 = 1;
 pub const PCM_MODE_PLAY: i32 = 2;
@@ -5017,6 +5016,297 @@ pub const VIRTIO_F_IOMMU_PLATFORM: i64 = 8589934592;
 pub const VIRTIO_TRANSPORT_F_START: i32 = 28;
 pub const VIRTIO_TRANSPORT_F_END: i32 = 34;
 pub const VIRTQUEUE_MAX_NAME_SZ: i32 = 32;
+pub const PR_ATOMIC: i32 = 1;
+pub const PR_ADDR: i32 = 2;
+pub const PR_CONNREQUIRED: i32 = 4;
+pub const PR_WANTRCVD: i32 = 8;
+pub const PR_IMPLOPCL: i32 = 32;
+pub const PR_CAPATTACH: i32 = 128;
+pub const PR_SOCKBUF: i32 = 256;
+pub const SOCK_STREAM: i32 = 1;
+pub const SOCK_DGRAM: i32 = 2;
+pub const SOCK_RAW: i32 = 3;
+pub const SOCK_RDM: i32 = 4;
+pub const SOCK_SEQPACKET: i32 = 5;
+pub const SOCK_CLOEXEC: i32 = 268435456;
+pub const SOCK_NONBLOCK: i32 = 536870912;
+pub const SOCK_CLOFORK: i32 = 1073741824;
+pub const ACCEPT4_INHERIT: i32 = 1;
+pub const ACCEPT4_COMPAT: i32 = 2;
+pub const SO_DEBUG: i32 = 1;
+pub const SO_ACCEPTCONN: i32 = 2;
+pub const SO_REUSEADDR: i32 = 4;
+pub const SO_KEEPALIVE: i32 = 8;
+pub const SO_DONTROUTE: i32 = 16;
+pub const SO_BROADCAST: i32 = 32;
+pub const SO_USELOOPBACK: i32 = 64;
+pub const SO_LINGER: i32 = 128;
+pub const SO_OOBINLINE: i32 = 256;
+pub const SO_REUSEPORT: i32 = 512;
+pub const SO_TIMESTAMP: i32 = 1024;
+pub const SO_NOSIGPIPE: i32 = 2048;
+pub const SO_ACCEPTFILTER: i32 = 4096;
+pub const SO_BINTIME: i32 = 8192;
+pub const SO_NO_OFFLOAD: i32 = 16384;
+pub const SO_NO_DDP: i32 = 32768;
+pub const SO_REUSEPORT_LB: i32 = 65536;
+pub const SO_RERROR: i32 = 131072;
+pub const SO_PASSRIGHTS: i32 = 262144;
+pub const SO_SNDBUF: i32 = 4097;
+pub const SO_RCVBUF: i32 = 4098;
+pub const SO_SNDLOWAT: i32 = 4099;
+pub const SO_RCVLOWAT: i32 = 4100;
+pub const SO_SNDTIMEO: i32 = 4101;
+pub const SO_RCVTIMEO: i32 = 4102;
+pub const SO_ERROR: i32 = 4103;
+pub const SO_TYPE: i32 = 4104;
+pub const SO_LABEL: i32 = 4105;
+pub const SO_PEERLABEL: i32 = 4112;
+pub const SO_LISTENQLIMIT: i32 = 4113;
+pub const SO_LISTENQLEN: i32 = 4114;
+pub const SO_LISTENINCQLEN: i32 = 4115;
+pub const SO_FIB: i32 = 4116;
+pub const SO_SETFIB: i32 = 4116;
+pub const SO_USER_COOKIE: i32 = 4117;
+pub const SO_PROTOCOL: i32 = 4118;
+pub const SO_PROTOTYPE: i32 = 4118;
+pub const SO_TS_CLOCK: i32 = 4119;
+pub const SO_MAX_PACING_RATE: i32 = 4120;
+pub const SO_DOMAIN: i32 = 4121;
+pub const SO_SPLICE: i32 = 4131;
+pub const SO_TS_REALTIME_MICRO: i32 = 0;
+pub const SO_TS_BINTIME: i32 = 1;
+pub const SO_TS_REALTIME: i32 = 2;
+pub const SO_TS_MONOTONIC: i32 = 3;
+pub const SO_TS_DEFAULT: i32 = 0;
+pub const SO_TS_CLOCK_MAX: i32 = 3;
+pub const SO_VENDOR: i64 = 2147483648;
+pub const SOL_SOCKET: i32 = 65535;
+pub const AF_UNSPEC: i32 = 0;
+pub const AF_UNIX: i32 = 1;
+pub const AF_INET: i32 = 2;
+pub const AF_IMPLINK: i32 = 3;
+pub const AF_PUP: i32 = 4;
+pub const AF_CHAOS: i32 = 5;
+pub const AF_NETBIOS: i32 = 6;
+pub const AF_ISO: i32 = 7;
+pub const AF_OSI: i32 = 7;
+pub const AF_ECMA: i32 = 8;
+pub const AF_DATAKIT: i32 = 9;
+pub const AF_CCITT: i32 = 10;
+pub const AF_SNA: i32 = 11;
+pub const AF_DECnet: i32 = 12;
+pub const AF_DLI: i32 = 13;
+pub const AF_LAT: i32 = 14;
+pub const AF_HYLINK: i32 = 15;
+pub const AF_APPLETALK: i32 = 16;
+pub const AF_ROUTE: i32 = 17;
+pub const AF_LINK: i32 = 18;
+pub const pseudo_AF_XTP: i32 = 19;
+pub const AF_COIP: i32 = 20;
+pub const AF_CNT: i32 = 21;
+pub const pseudo_AF_RTIP: i32 = 22;
+pub const AF_IPX: i32 = 23;
+pub const AF_SIP: i32 = 24;
+pub const pseudo_AF_PIP: i32 = 25;
+pub const AF_ISDN: i32 = 26;
+pub const AF_E164: i32 = 26;
+pub const pseudo_AF_KEY: i32 = 27;
+pub const AF_INET6: i32 = 28;
+pub const AF_NATM: i32 = 29;
+pub const AF_ATM: i32 = 30;
+pub const pseudo_AF_HDRCMPLT: i32 = 31;
+pub const AF_NETGRAPH: i32 = 32;
+pub const AF_SLOW: i32 = 33;
+pub const AF_SCLUSTER: i32 = 34;
+pub const AF_ARP: i32 = 35;
+pub const AF_BLUETOOTH: i32 = 36;
+pub const AF_IEEE80211: i32 = 37;
+pub const AF_NETLINK: i32 = 38;
+pub const AF_INET_SDP: i32 = 40;
+pub const AF_INET6_SDP: i32 = 42;
+pub const AF_HYPERV: i32 = 43;
+pub const AF_DIVERT: i32 = 44;
+pub const AF_IPFWLOG: i32 = 46;
+pub const AF_MAX: i32 = 46;
+pub const AF_VENDOR00: i32 = 39;
+pub const AF_VENDOR01: i32 = 41;
+pub const AF_VENDOR03: i32 = 45;
+pub const AF_VENDOR04: i32 = 47;
+pub const AF_VENDOR05: i32 = 49;
+pub const AF_VENDOR06: i32 = 51;
+pub const AF_VENDOR07: i32 = 53;
+pub const AF_VENDOR08: i32 = 55;
+pub const AF_VENDOR09: i32 = 57;
+pub const AF_VENDOR10: i32 = 59;
+pub const AF_VENDOR11: i32 = 61;
+pub const AF_VENDOR12: i32 = 63;
+pub const AF_VENDOR13: i32 = 65;
+pub const AF_VENDOR14: i32 = 67;
+pub const AF_VENDOR15: i32 = 69;
+pub const AF_VENDOR16: i32 = 71;
+pub const AF_VENDOR17: i32 = 73;
+pub const AF_VENDOR18: i32 = 75;
+pub const AF_VENDOR19: i32 = 77;
+pub const AF_VENDOR20: i32 = 79;
+pub const AF_VENDOR21: i32 = 81;
+pub const AF_VENDOR22: i32 = 83;
+pub const AF_VENDOR23: i32 = 85;
+pub const AF_VENDOR24: i32 = 87;
+pub const AF_VENDOR25: i32 = 89;
+pub const AF_VENDOR26: i32 = 91;
+pub const AF_VENDOR27: i32 = 93;
+pub const AF_VENDOR28: i32 = 95;
+pub const AF_VENDOR29: i32 = 97;
+pub const AF_VENDOR30: i32 = 99;
+pub const AF_VENDOR31: i32 = 101;
+pub const AF_VENDOR32: i32 = 103;
+pub const AF_VENDOR33: i32 = 105;
+pub const AF_VENDOR34: i32 = 107;
+pub const AF_VENDOR35: i32 = 109;
+pub const AF_VENDOR36: i32 = 111;
+pub const AF_VENDOR37: i32 = 113;
+pub const AF_VENDOR38: i32 = 115;
+pub const AF_VENDOR39: i32 = 117;
+pub const AF_VENDOR40: i32 = 119;
+pub const AF_VENDOR41: i32 = 121;
+pub const AF_VENDOR42: i32 = 123;
+pub const AF_VENDOR43: i32 = 125;
+pub const AF_VENDOR44: i32 = 127;
+pub const AF_VENDOR45: i32 = 129;
+pub const AF_VENDOR46: i32 = 131;
+pub const AF_VENDOR47: i32 = 133;
+pub const SOCK_MAXADDRLEN: i32 = 255;
+pub const _SS_MAXSIZE: i32 = 128;
+pub const PF_UNSPEC: i32 = 0;
+pub const PF_INET: i32 = 2;
+pub const PF_IMPLINK: i32 = 3;
+pub const PF_PUP: i32 = 4;
+pub const PF_CHAOS: i32 = 5;
+pub const PF_NETBIOS: i32 = 6;
+pub const PF_ISO: i32 = 7;
+pub const PF_OSI: i32 = 7;
+pub const PF_ECMA: i32 = 8;
+pub const PF_DATAKIT: i32 = 9;
+pub const PF_CCITT: i32 = 10;
+pub const PF_SNA: i32 = 11;
+pub const PF_DECnet: i32 = 12;
+pub const PF_DLI: i32 = 13;
+pub const PF_LAT: i32 = 14;
+pub const PF_HYLINK: i32 = 15;
+pub const PF_APPLETALK: i32 = 16;
+pub const PF_ROUTE: i32 = 17;
+pub const PF_LINK: i32 = 18;
+pub const PF_XTP: i32 = 19;
+pub const PF_COIP: i32 = 20;
+pub const PF_CNT: i32 = 21;
+pub const PF_SIP: i32 = 24;
+pub const PF_IPX: i32 = 23;
+pub const PF_RTIP: i32 = 22;
+pub const PF_PIP: i32 = 25;
+pub const PF_ISDN: i32 = 26;
+pub const PF_KEY: i32 = 27;
+pub const PF_INET6: i32 = 28;
+pub const PF_NATM: i32 = 29;
+pub const PF_ATM: i32 = 30;
+pub const PF_NETGRAPH: i32 = 32;
+pub const PF_SLOW: i32 = 33;
+pub const PF_SCLUSTER: i32 = 34;
+pub const PF_ARP: i32 = 35;
+pub const PF_BLUETOOTH: i32 = 36;
+pub const PF_IEEE80211: i32 = 37;
+pub const PF_NETLINK: i32 = 38;
+pub const PF_INET_SDP: i32 = 40;
+pub const PF_INET6_SDP: i32 = 42;
+pub const PF_HYPERV: i32 = 43;
+pub const PF_DIVERT: i32 = 44;
+pub const PF_IPFWLOG: i32 = 46;
+pub const PF_MAX: i32 = 46;
+pub const NET_RT_DUMP: i32 = 1;
+pub const NET_RT_FLAGS: i32 = 2;
+pub const NET_RT_IFLIST: i32 = 3;
+pub const NET_RT_IFMALIST: i32 = 4;
+pub const NET_RT_IFLISTL: i32 = 5;
+pub const NET_RT_NHOP: i32 = 6;
+pub const NET_RT_NHGRP: i32 = 7;
+pub const SOMAXCONN: i32 = 128;
+pub const MSG_OOB: i32 = 1;
+pub const MSG_PEEK: i32 = 2;
+pub const MSG_DONTROUTE: i32 = 4;
+pub const MSG_EOR: i32 = 8;
+pub const MSG_TRUNC: i32 = 16;
+pub const MSG_CTRUNC: i32 = 32;
+pub const MSG_WAITALL: i32 = 64;
+pub const MSG_DONTWAIT: i32 = 128;
+pub const MSG_EOF: i32 = 256;
+pub const MSG_NOTIFICATION: i32 = 8192;
+pub const MSG_NBIO: i32 = 16384;
+pub const MSG_COMPAT: i32 = 32768;
+pub const MSG_SOCALLBCK: i32 = 65536;
+pub const MSG_NOSIGNAL: i32 = 131072;
+pub const MSG_CMSG_CLOEXEC: i32 = 262144;
+pub const MSG_WAITFORONE: i32 = 524288;
+pub const MSG_MORETOCOME: i32 = 1048576;
+pub const MSG_TLSAPPDATA: i32 = 2097152;
+pub const MSG_CMSG_CLOFORK: i32 = 4194304;
+pub const CMGROUP_MAX: i32 = 16;
+pub const SCM_RIGHTS: i32 = 1;
+pub const SCM_TIMESTAMP: i32 = 2;
+pub const SCM_CREDS: i32 = 3;
+pub const SCM_BINTIME: i32 = 4;
+pub const SCM_REALTIME: i32 = 5;
+pub const SCM_MONOTONIC: i32 = 6;
+pub const SCM_TIME_INFO: i32 = 7;
+pub const SCM_CREDS2: i32 = 8;
+pub const ST_INFO_HW: i32 = 1;
+pub const ST_INFO_HW_HPREC: i32 = 2;
+pub const SF_NODISKIO: i32 = 1;
+pub const SF_MNOWAIT: i32 = 2;
+pub const SF_USER_READAHEAD: i32 = 8;
+pub const SF_NOCACHE: i32 = 16;
+pub const SB_TLS_RX: i32 = 1;
+pub const SB_TLS_RX_RUNNING: i32 = 2;
+pub const SB_WAIT: i32 = 4;
+pub const SB_SEL: i32 = 8;
+pub const SB_ASYNC: i32 = 16;
+pub const SB_UPCALL: i32 = 32;
+pub const SB_AUTOLOWAT: i32 = 64;
+pub const SB_AIO: i32 = 128;
+pub const SB_KNOTE: i32 = 256;
+pub const SB_NOCOALESCE: i32 = 512;
+pub const SB_IN_TOE: i32 = 1024;
+pub const SB_AUTOSIZE: i32 = 2048;
+pub const SB_AIO_RUNNING: i32 = 8192;
+pub const SB_SPLICED: i32 = 16384;
+pub const SB_TLS_RX_RESYNC: i32 = 32768;
+pub const SBS_CANTSENDMORE: i32 = 16;
+pub const SBS_CANTRCVMORE: i32 = 32;
+pub const SBS_RCVATMARK: i32 = 64;
+pub const SB_MAX: i32 = 8388608;
+pub const UXST_PEER_AIO: i32 = 1;
+pub const UXST_PEER_SEL: i32 = 2;
+pub const CAP_RIGHTS_VERSION_00: i32 = 0;
+pub const CAP_RIGHTS_VERSION: i32 = 0;
+pub const SS_ISCONNECTED: i32 = 2;
+pub const SS_ISCONNECTING: i32 = 4;
+pub const SS_ISDISCONNECTING: i32 = 8;
+pub const SS_NBIO: i32 = 256;
+pub const SS_ASYNC: i32 = 512;
+pub const SS_ISDISCONNECTED: i32 = 8192;
+pub const SBL_WAIT: i32 = 1;
+pub const SBL_NOINTR: i32 = 2;
+pub const SBL_VALID: i32 = 3;
+pub const HHOOK_SOCKET_OPT: i32 = 0;
+pub const HHOOK_SOCKET_CREATE: i32 = 1;
+pub const HHOOK_SOCKET_RCV: i32 = 2;
+pub const HHOOK_SOCKET_SND: i32 = 3;
+pub const HHOOK_FILT_SOREAD: i32 = 4;
+pub const HHOOK_FILT_SOWRITE: i32 = 5;
+pub const HHOOK_SOCKET_CLOSE: i32 = 6;
+pub const HHOOK_SOCKET_NEWCONN: i32 = 7;
+pub const HHOOK_SOCKET_LAST: i32 = 7;
+pub const SU_OK: i32 = 0;
+pub const SU_ISCONNECTED: i32 = 1;
 pub const GPIOBUS_WAIT: i32 = 1;
 pub const GPIOBUS_DONTWAIT: i32 = 2;
 pub type __int8_t = ::core::ffi::c_schar;
@@ -5308,11 +5598,6 @@ pub type u_register_t = __u_register_t;
 pub type uid_t = __uid_t;
 pub type useconds_t = __useconds_t;
 pub type cap_ioctl_t = ::core::ffi::c_ulong;
-#[repr(C)]
-#[derive(Debug)]
-pub struct cap_rights {
-    _unused: [u8; 0],
-}
 pub type cap_rights_t = cap_rights;
 pub type kpaddr_t = __uint64_t;
 pub type kvaddr_t = __uint64_t;
@@ -9754,11 +10039,6 @@ pub struct racct {
 #[repr(C)]
 #[derive(Debug)]
 pub struct sleepqueue {
-    _unused: [u8; 0],
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct socket {
     _unused: [u8; 0],
 }
 #[repr(C)]
@@ -15280,6 +15560,1009 @@ impl Default for vq_alloc_info {
         }
     }
 }
+#[repr(C)]
+#[derive(Debug)]
+pub struct ifnet {
+    _unused: [u8; 0],
+}
+pub type pr_ctloutput_t = ::core::option::Option<
+    unsafe extern "C" fn(arg1: *mut socket, arg2: *mut sockopt) -> ::core::ffi::c_int,
+>;
+pub type pr_setsbopt_t = ::core::option::Option<
+    unsafe extern "C" fn(arg1: *mut socket, arg2: *mut sockopt) -> ::core::ffi::c_int,
+>;
+pub type pr_abort_t = ::core::option::Option<unsafe extern "C" fn(arg1: *mut socket)>;
+pub type pr_accept_t = ::core::option::Option<
+    unsafe extern "C" fn(arg1: *mut socket, arg2: *mut sockaddr) -> ::core::ffi::c_int,
+>;
+pub type pr_attach_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        arg1: *mut socket,
+        arg2: ::core::ffi::c_int,
+        arg3: *mut thread,
+    ) -> ::core::ffi::c_int,
+>;
+pub type pr_bind_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        arg1: *mut socket,
+        arg2: *mut sockaddr,
+        arg3: *mut thread,
+    ) -> ::core::ffi::c_int,
+>;
+pub type pr_connect_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        arg1: *mut socket,
+        arg2: *mut sockaddr,
+        arg3: *mut thread,
+    ) -> ::core::ffi::c_int,
+>;
+pub type pr_connect2_t = ::core::option::Option<
+    unsafe extern "C" fn(arg1: *mut socket, arg2: *mut socket) -> ::core::ffi::c_int,
+>;
+pub type pr_control_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        arg1: *mut socket,
+        arg2: ::core::ffi::c_ulong,
+        arg3: *mut ::core::ffi::c_void,
+        arg4: *mut ifnet,
+        arg5: *mut thread,
+    ) -> ::core::ffi::c_int,
+>;
+pub type pr_detach_t = ::core::option::Option<unsafe extern "C" fn(arg1: *mut socket)>;
+pub type pr_disconnect_t =
+    ::core::option::Option<unsafe extern "C" fn(arg1: *mut socket) -> ::core::ffi::c_int>;
+pub type pr_listen_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        arg1: *mut socket,
+        arg2: ::core::ffi::c_int,
+        arg3: *mut thread,
+    ) -> ::core::ffi::c_int,
+>;
+pub type pr_peeraddr_t = ::core::option::Option<
+    unsafe extern "C" fn(arg1: *mut socket, arg2: *mut sockaddr) -> ::core::ffi::c_int,
+>;
+pub type pr_rcvd_t = ::core::option::Option<
+    unsafe extern "C" fn(arg1: *mut socket, arg2: ::core::ffi::c_int) -> ::core::ffi::c_int,
+>;
+pub type pr_rcvoob_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        arg1: *mut socket,
+        arg2: *mut mbuf,
+        arg3: ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int,
+>;
+pub const PRUS_OOB: pr_send_flags_t = 1;
+pub const PRUS_EOF: pr_send_flags_t = 2;
+pub const PRUS_MORETOCOME: pr_send_flags_t = 4;
+pub const PRUS_NOTREADY: pr_send_flags_t = 8;
+pub const PRUS_IPV6: pr_send_flags_t = 16;
+pub type pr_send_flags_t = ::core::ffi::c_uint;
+pub type pr_send_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        arg1: *mut socket,
+        arg2: ::core::ffi::c_int,
+        arg3: *mut mbuf,
+        arg4: *mut sockaddr,
+        arg5: *mut mbuf,
+        arg6: *mut thread,
+    ) -> ::core::ffi::c_int,
+>;
+pub type pr_sendfile_wait_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        arg1: *mut socket,
+        arg2: off_t,
+        arg3: *mut ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int,
+>;
+pub type pr_ready_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        arg1: *mut socket,
+        arg2: *mut mbuf,
+        arg3: ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int,
+>;
+pub type pr_sense_t = ::core::option::Option<
+    unsafe extern "C" fn(arg1: *mut socket, arg2: *mut stat) -> ::core::ffi::c_int,
+>;
+pub type pr_shutdown_t = ::core::option::Option<
+    unsafe extern "C" fn(arg1: *mut socket, arg2: shutdown_how) -> ::core::ffi::c_int,
+>;
+pub type pr_sockaddr_t = ::core::option::Option<
+    unsafe extern "C" fn(arg1: *mut socket, arg2: *mut sockaddr) -> ::core::ffi::c_int,
+>;
+pub type pr_sosend_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        arg1: *mut socket,
+        arg2: *mut sockaddr,
+        arg3: *mut uio,
+        arg4: *mut mbuf,
+        arg5: *mut mbuf,
+        arg6: ::core::ffi::c_int,
+        arg7: *mut thread,
+    ) -> ::core::ffi::c_int,
+>;
+pub type pr_soreceive_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        arg1: *mut socket,
+        arg2: *mut *mut sockaddr,
+        arg3: *mut uio,
+        arg4: *mut *mut mbuf,
+        arg5: *mut *mut mbuf,
+        arg6: *mut ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int,
+>;
+pub type pr_sopoll_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        arg1: *mut socket,
+        arg2: ::core::ffi::c_int,
+        arg3: *mut thread,
+    ) -> ::core::ffi::c_int,
+>;
+pub type pr_kqfilter_t = ::core::option::Option<
+    unsafe extern "C" fn(arg1: *mut socket, arg2: *mut knote) -> ::core::ffi::c_int,
+>;
+pub type pr_sosetlabel_t = ::core::option::Option<unsafe extern "C" fn(arg1: *mut socket)>;
+pub type pr_close_t = ::core::option::Option<unsafe extern "C" fn(arg1: *mut socket)>;
+pub type pr_fdclose_t = ::core::option::Option<unsafe extern "C" fn(arg1: *mut socket)>;
+pub type pr_bindat_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        arg1: ::core::ffi::c_int,
+        arg2: *mut socket,
+        arg3: *mut sockaddr,
+        arg4: *mut thread,
+    ) -> ::core::ffi::c_int,
+>;
+pub type pr_connectat_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        arg1: ::core::ffi::c_int,
+        arg2: *mut socket,
+        arg3: *mut sockaddr,
+        arg4: *mut thread,
+    ) -> ::core::ffi::c_int,
+>;
+pub type pr_aio_queue_t = ::core::option::Option<
+    unsafe extern "C" fn(arg1: *mut socket, arg2: *mut kaiocb) -> ::core::ffi::c_int,
+>;
+pub type pr_chmod_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        arg1: *mut socket,
+        arg2: __mode_t,
+        arg3: *mut ucred,
+        arg4: *mut thread,
+    ) -> ::core::ffi::c_int,
+>;
+#[repr(C)]
+#[derive(Debug)]
+pub struct protosw {
+    pub pr_type: ::core::ffi::c_short,
+    pub pr_protocol: ::core::ffi::c_short,
+    pub pr_flags: ::core::ffi::c_short,
+    pub pr_unused: ::core::ffi::c_short,
+    pub pr_domain: *mut domain,
+    pub pr_soreceive: pr_soreceive_t,
+    pub pr_sosend: pr_sosend_t,
+    pub pr_send: pr_send_t,
+    pub pr_sendfile_wait: pr_sendfile_wait_t,
+    pub pr_ready: pr_ready_t,
+    pub pr_sopoll: pr_sopoll_t,
+    pub pr_attach: pr_attach_t,
+    pub pr_detach: pr_detach_t,
+    pub pr_connect: pr_connect_t,
+    pub pr_disconnect: pr_disconnect_t,
+    pub pr_close: pr_close_t,
+    pub pr_fdclose: pr_fdclose_t,
+    pub pr_rcvd: pr_rcvd_t,
+    pub pr_aio_queue: pr_aio_queue_t,
+    pub pr_bind: pr_bind_t,
+    pub pr_bindat: pr_bindat_t,
+    pub pr_listen: pr_listen_t,
+    pub pr_accept: pr_accept_t,
+    pub pr_connectat: pr_connectat_t,
+    pub pr_connect2: pr_connect2_t,
+    pub pr_control: pr_control_t,
+    pub pr_rcvoob: pr_rcvoob_t,
+    pub pr_abort: pr_abort_t,
+    pub pr_ctloutput: pr_ctloutput_t,
+    pub pr_peeraddr: pr_peeraddr_t,
+    pub pr_sockaddr: pr_sockaddr_t,
+    pub pr_sense: pr_sense_t,
+    pub pr_sosetlabel: pr_sosetlabel_t,
+    pub pr_setsbopt: pr_setsbopt_t,
+    pub pr_chmod: pr_chmod_t,
+    pub pr_kqfilter: pr_kqfilter_t,
+    pub pr_shutdown: pr_shutdown_t,
+}
+impl Default for protosw {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct domain {
+    pub _address: u8,
+}
+pub type sa_family_t = __sa_family_t;
+pub type socklen_t = __socklen_t;
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct linger {
+    pub l_onoff: ::core::ffi::c_int,
+    pub l_linger: ::core::ffi::c_int,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct accept_filter_arg {
+    pub af_name: [::core::ffi::c_char; 16usize],
+    pub af_arg: [::core::ffi::c_char; 240usize],
+}
+impl Default for accept_filter_arg {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct sockaddr {
+    pub sa_len: ::core::ffi::c_uchar,
+    pub sa_family: sa_family_t,
+    pub sa_data: [::core::ffi::c_char; 14usize],
+}
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct sockproto {
+    pub sp_family: ::core::ffi::c_ushort,
+    pub sp_protocol: ::core::ffi::c_ushort,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct sockaddr_storage {
+    pub ss_len: ::core::ffi::c_uchar,
+    pub ss_family: sa_family_t,
+    pub __ss_pad1: [::core::ffi::c_char; 6usize],
+    pub __ss_align: __int64_t,
+    pub __ss_pad2: [::core::ffi::c_char; 112usize],
+}
+impl Default for sockaddr_storage {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct msghdr {
+    pub msg_name: *mut ::core::ffi::c_void,
+    pub msg_namelen: socklen_t,
+    pub msg_iov: *mut iovec,
+    pub msg_iovlen: ::core::ffi::c_int,
+    pub msg_control: *mut ::core::ffi::c_void,
+    pub msg_controllen: socklen_t,
+    pub msg_flags: ::core::ffi::c_int,
+}
+impl Default for msghdr {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct cmsghdr {
+    pub cmsg_len: socklen_t,
+    pub cmsg_level: ::core::ffi::c_int,
+    pub cmsg_type: ::core::ffi::c_int,
+}
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct cmsgcred {
+    pub cmcred_pid: pid_t,
+    pub cmcred_uid: uid_t,
+    pub cmcred_euid: uid_t,
+    pub cmcred_gid: gid_t,
+    pub cmcred_ngroups: ::core::ffi::c_short,
+    pub cmcred_groups: [gid_t; 16usize],
+}
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct sockcred {
+    pub sc_uid: uid_t,
+    pub sc_euid: uid_t,
+    pub sc_gid: gid_t,
+    pub sc_egid: gid_t,
+    pub sc_ngroups: ::core::ffi::c_int,
+    pub sc_groups: [gid_t; 1usize],
+}
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct sockcred2 {
+    pub sc_version: ::core::ffi::c_int,
+    pub sc_pid: pid_t,
+    pub sc_uid: uid_t,
+    pub sc_euid: uid_t,
+    pub sc_gid: gid_t,
+    pub sc_egid: gid_t,
+    pub sc_ngroups: ::core::ffi::c_int,
+    pub sc_groups: [gid_t; 1usize],
+}
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct sock_timestamp_info {
+    pub st_info_flags: __uint32_t,
+    pub st_info_pad0: __uint32_t,
+    pub st_info_rsv: [__uint64_t; 7usize],
+}
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct osockaddr {
+    pub sa_family: ::core::ffi::c_ushort,
+    pub sa_data: [::core::ffi::c_char; 14usize],
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct omsghdr {
+    pub msg_name: *mut ::core::ffi::c_char,
+    pub msg_namelen: ::core::ffi::c_int,
+    pub msg_iov: *mut iovec,
+    pub msg_iovlen: ::core::ffi::c_int,
+    pub msg_accrights: *mut ::core::ffi::c_char,
+    pub msg_accrightslen: ::core::ffi::c_int,
+}
+impl Default for omsghdr {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub const SHUT_RD: shutdown_how = 0;
+pub const SHUT_WR: shutdown_how = 1;
+pub const SHUT_RDWR: shutdown_how = 2;
+pub type shutdown_how = i32;
+#[repr(C)]
+#[derive(Debug)]
+pub struct sf_hdtr {
+    pub headers: *mut iovec,
+    pub hdr_cnt: ::core::ffi::c_int,
+    pub trailers: *mut iovec,
+    pub trl_cnt: ::core::ffi::c_int,
+}
+impl Default for sf_hdtr {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct mmsghdr {
+    pub msg_hdr: msghdr,
+    pub msg_len: isize,
+}
+impl Default for mmsghdr {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct splice {
+    pub sp_fd: ::core::ffi::c_int,
+    pub sp_max: off_t,
+    pub sp_idle: timeval,
+}
+pub type so_gen_t = u64;
+#[repr(C)]
+#[derive(Debug)]
+pub struct ktls_session {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+pub struct sockbuf {
+    pub sb_sel: *mut selinfo,
+    pub sb_state: ::core::ffi::c_short,
+    pub sb_flags: ::core::ffi::c_short,
+    pub sb_acc: u_int,
+    pub sb_ccc: u_int,
+    pub sb_mbcnt: u_int,
+    pub sb_ctl: u_int,
+    pub sb_hiwat: u_int,
+    pub sb_lowat: u_int,
+    pub sb_mbmax: u_int,
+    pub sb_timeo: sbintime_t,
+    pub sb_upcall: ::core::option::Option<
+        unsafe extern "C" fn(
+            arg1: *mut socket,
+            arg2: *mut ::core::ffi::c_void,
+            arg3: ::core::ffi::c_int,
+        ) -> ::core::ffi::c_int,
+    >,
+    pub sb_upcallarg: *mut ::core::ffi::c_void,
+    pub sb_aiojobq: sockbuf__bindgen_ty_1,
+    pub sb_aiotask: task,
+    pub __bindgen_anon_1: sockbuf__bindgen_ty_2,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct sockbuf__bindgen_ty_1 {
+    pub tqh_first: *mut kaiocb,
+    pub tqh_last: *mut *mut kaiocb,
+}
+impl Default for sockbuf__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+pub struct sockbuf__bindgen_ty_2 {
+    pub __bindgen_anon_1: __BindgenUnionField<sockbuf__bindgen_ty_2__bindgen_ty_1>,
+    pub __bindgen_anon_2: __BindgenUnionField<sockbuf__bindgen_ty_2__bindgen_ty_2>,
+    pub __bindgen_anon_3: __BindgenUnionField<sockbuf__bindgen_ty_2__bindgen_ty_3>,
+    pub __bindgen_anon_4: __BindgenUnionField<sockbuf__bindgen_ty_2__bindgen_ty_4>,
+    pub bindgen_union_field: [u64; 12usize],
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct sockbuf__bindgen_ty_2__bindgen_ty_1 {
+    pub sb_mtx: *mut mtx,
+    pub sb_mb: *mut mbuf,
+    pub sb_mbtail: *mut mbuf,
+    pub sb_lastrecord: *mut mbuf,
+    pub sb_sndptr: *mut mbuf,
+    pub sb_fnrdy: *mut mbuf,
+    pub sb_sndptroff: u_int,
+    pub sb_tlscc: u_int,
+    pub sb_tlsdcc: u_int,
+    pub sb_mtls: *mut mbuf,
+    pub sb_mtlstail: *mut mbuf,
+    pub sb_tls_seqno: u64,
+    pub sb_tls_info: *mut ktls_session,
+}
+impl Default for sockbuf__bindgen_ty_2__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct sockbuf__bindgen_ty_2__bindgen_ty_2 {
+    pub uxst_mbq: sockbuf__bindgen_ty_2__bindgen_ty_2__bindgen_ty_1,
+    pub uxst_fnrdy: *mut mbuf,
+    pub uxst_peer: *mut socket,
+    pub uxst_flags: u_int,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct sockbuf__bindgen_ty_2__bindgen_ty_2__bindgen_ty_1 {
+    pub stqh_first: *mut mbuf,
+    pub stqh_last: *mut *mut mbuf,
+}
+impl Default for sockbuf__bindgen_ty_2__bindgen_ty_2__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for sockbuf__bindgen_ty_2__bindgen_ty_2 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+pub struct sockbuf__bindgen_ty_2__bindgen_ty_3 {
+    pub uxdg_mb: sockbuf__bindgen_ty_2__bindgen_ty_3__bindgen_ty_1,
+    pub uxdg_peeked: *mut mbuf,
+    pub __bindgen_anon_1: sockbuf__bindgen_ty_2__bindgen_ty_3__bindgen_ty_2,
+    pub uxdg_cc: u_int,
+    pub uxdg_ctl: u_int,
+    pub uxdg_mbcnt: u_int,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct sockbuf__bindgen_ty_2__bindgen_ty_3__bindgen_ty_1 {
+    pub stqh_first: *mut mbuf,
+    pub stqh_last: *mut *mut mbuf,
+}
+impl Default for sockbuf__bindgen_ty_2__bindgen_ty_3__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+pub struct sockbuf__bindgen_ty_2__bindgen_ty_3__bindgen_ty_2 {
+    pub uxdg_conns:
+        __BindgenUnionField<sockbuf__bindgen_ty_2__bindgen_ty_3__bindgen_ty_2__bindgen_ty_1>,
+    pub uxdg_clist:
+        __BindgenUnionField<sockbuf__bindgen_ty_2__bindgen_ty_3__bindgen_ty_2__bindgen_ty_2>,
+    pub bindgen_union_field: [u64; 2usize],
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct sockbuf__bindgen_ty_2__bindgen_ty_3__bindgen_ty_2__bindgen_ty_1 {
+    pub tqh_first: *mut sockbuf,
+    pub tqh_last: *mut *mut sockbuf,
+}
+impl Default for sockbuf__bindgen_ty_2__bindgen_ty_3__bindgen_ty_2__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct sockbuf__bindgen_ty_2__bindgen_ty_3__bindgen_ty_2__bindgen_ty_2 {
+    pub tqe_next: *mut sockbuf,
+    pub tqe_prev: *mut *mut sockbuf,
+}
+impl Default for sockbuf__bindgen_ty_2__bindgen_ty_3__bindgen_ty_2__bindgen_ty_2 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for sockbuf__bindgen_ty_2__bindgen_ty_3__bindgen_ty_2 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for sockbuf__bindgen_ty_2__bindgen_ty_3 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct sockbuf__bindgen_ty_2__bindgen_ty_4 {
+    pub nl_queue: sockbuf__bindgen_ty_2__bindgen_ty_4__bindgen_ty_1,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct sockbuf__bindgen_ty_2__bindgen_ty_4__bindgen_ty_1 {
+    pub tqh_first: *mut nl_buf,
+    pub tqh_last: *mut *mut nl_buf,
+}
+impl Default for sockbuf__bindgen_ty_2__bindgen_ty_4__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for sockbuf__bindgen_ty_2__bindgen_ty_4 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for sockbuf__bindgen_ty_2 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for sockbuf {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub const SO_RCV: sb_which = 0;
+pub const SO_SND: sb_which = 1;
+pub type sb_which = ::core::ffi::c_uint;
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct cap_rights {
+    pub cr_rights: [u64; 2usize],
+}
+pub const SOPT_GET: sopt_dir = 0;
+pub const SOPT_SET: sopt_dir = 1;
+pub type sopt_dir = ::core::ffi::c_uint;
+#[repr(C)]
+#[derive(Debug)]
+pub struct sockopt {
+    pub sopt_dir: sopt_dir,
+    pub sopt_level: ::core::ffi::c_int,
+    pub sopt_name: ::core::ffi::c_int,
+    pub sopt_val: *mut ::core::ffi::c_void,
+    pub sopt_valsize: usize,
+    pub sopt_rights: *const cap_rights,
+    pub sopt_td: *mut thread,
+}
+impl Default for sockopt {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct vnet {
+    _unused: [u8; 0],
+}
+pub type so_upcall_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        arg1: *mut socket,
+        arg2: *mut ::core::ffi::c_void,
+        arg3: ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int,
+>;
+pub type so_dtor_t = ::core::option::Option<unsafe extern "C" fn(arg1: *mut socket)>;
+pub const SQ_NONE: socket_qstate = 0;
+pub const SQ_INCOMP: socket_qstate = 2048;
+pub const SQ_COMP: socket_qstate = 4096;
+pub type socket_qstate = ::core::ffi::c_uint;
+#[repr(C)]
+pub struct so_splice {
+    pub src: *mut socket,
+    pub dst: *mut socket,
+    pub max: off_t,
+    pub mtx: mtx,
+    pub wq_index: ::core::ffi::c_uint,
+    pub state: so_splice_so_splice_state,
+    pub timeout: timeout_task,
+    pub next: so_splice__bindgen_ty_1,
+}
+pub const SPLICE_INIT: so_splice_so_splice_state = 0;
+pub const SPLICE_IDLE: so_splice_so_splice_state = 1;
+pub const SPLICE_QUEUED: so_splice_so_splice_state = 2;
+pub const SPLICE_RUNNING: so_splice_so_splice_state = 3;
+pub const SPLICE_CLOSING: so_splice_so_splice_state = 4;
+pub const SPLICE_CLOSED: so_splice_so_splice_state = 5;
+pub const SPLICE_EXCEPTION: so_splice_so_splice_state = 6;
+pub type so_splice_so_splice_state = ::core::ffi::c_uint;
+#[repr(C)]
+#[derive(Debug)]
+pub struct so_splice__bindgen_ty_1 {
+    pub stqe_next: *mut so_splice,
+}
+impl Default for so_splice__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for so_splice {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct accept_queue {
+    pub tqh_first: *mut socket,
+    pub tqh_last: *mut *mut socket,
+}
+impl Default for accept_queue {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[repr(align(128))]
+pub struct socket {
+    pub so_lock: mtx,
+    pub so_count: u_int,
+    pub so_rdsel: selinfo,
+    pub so_wrsel: selinfo,
+    pub so_options: ::core::ffi::c_int,
+    pub so_type: ::core::ffi::c_short,
+    pub so_state: ::core::ffi::c_short,
+    pub so_pcb: *mut ::core::ffi::c_void,
+    pub so_vnet: *mut vnet,
+    pub so_proto: *mut protosw,
+    pub so_linger: ::core::ffi::c_short,
+    pub so_timeo: ::core::ffi::c_short,
+    pub so_error: u_short,
+    pub so_rerror: u_short,
+    pub so_sigio: *mut sigio,
+    pub so_cred: *mut ucred,
+    pub so_label: *mut label,
+    pub so_gencnt: so_gen_t,
+    pub so_emuldata: *mut ::core::ffi::c_void,
+    pub so_dtor: so_dtor_t,
+    pub osd: osd,
+    pub so_fibnum: ::core::ffi::c_int,
+    pub so_user_cookie: u32,
+    pub so_ts_clock: ::core::ffi::c_int,
+    pub so_max_pacing_rate: u32,
+    pub so_splice: *mut so_splice,
+    pub so_splice_back: *mut so_splice,
+    pub so_splice_sent: off_t,
+    pub __bindgen_padding_0: [u64; 5usize],
+    pub so_snd_sx: sx,
+    pub so_snd_mtx: mtx,
+    pub __bindgen_padding_1: [u64; 8usize],
+    pub so_rcv_sx: sx,
+    pub so_rcv_mtx: mtx,
+    pub __bindgen_anon_1: socket__bindgen_ty_1,
+}
+#[repr(C)]
+pub struct socket__bindgen_ty_1 {
+    pub __bindgen_anon_1: __BindgenUnionField<socket__bindgen_ty_1__bindgen_ty_1>,
+    pub __bindgen_anon_2: __BindgenUnionField<socket__bindgen_ty_1__bindgen_ty_2>,
+    pub bindgen_union_field: [u64; 59usize],
+}
+#[repr(C)]
+pub struct socket__bindgen_ty_1__bindgen_ty_1 {
+    pub so_rcv: sockbuf,
+    pub so_snd: sockbuf,
+    pub so_list: socket__bindgen_ty_1__bindgen_ty_1__bindgen_ty_1,
+    pub so_listen: *mut socket,
+    pub so_qstate: socket_qstate,
+    pub so_peerlabel: *mut label,
+    pub so_oobmark: u_long,
+    pub so_ktls_rx_list: socket__bindgen_ty_1__bindgen_ty_1__bindgen_ty_2,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct socket__bindgen_ty_1__bindgen_ty_1__bindgen_ty_1 {
+    pub tqe_next: *mut socket,
+    pub tqe_prev: *mut *mut socket,
+}
+impl Default for socket__bindgen_ty_1__bindgen_ty_1__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct socket__bindgen_ty_1__bindgen_ty_1__bindgen_ty_2 {
+    pub stqe_next: *mut socket,
+}
+impl Default for socket__bindgen_ty_1__bindgen_ty_1__bindgen_ty_2 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for socket__bindgen_ty_1__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct socket__bindgen_ty_1__bindgen_ty_2 {
+    pub sol_incomp: accept_queue,
+    pub sol_comp: accept_queue,
+    pub sol_qlen: u_int,
+    pub sol_incqlen: u_int,
+    pub sol_qlimit: u_int,
+    pub sol_accept_filter: *mut accept_filter,
+    pub sol_accept_filter_arg: *mut ::core::ffi::c_void,
+    pub sol_accept_filter_str: *mut ::core::ffi::c_char,
+    pub sol_upcall: so_upcall_t,
+    pub sol_upcallarg: *mut ::core::ffi::c_void,
+    pub sol_sbrcv_lowat: ::core::ffi::c_int,
+    pub sol_sbsnd_lowat: ::core::ffi::c_int,
+    pub sol_sbrcv_hiwat: u_int,
+    pub sol_sbsnd_hiwat: u_int,
+    pub sol_sbrcv_flags: ::core::ffi::c_short,
+    pub sol_sbsnd_flags: ::core::ffi::c_short,
+    pub sol_sbrcv_timeo: sbintime_t,
+    pub sol_sbsnd_timeo: sbintime_t,
+    pub sol_lastover: timeval,
+    pub sol_overcount: ::core::ffi::c_int,
+}
+impl Default for socket__bindgen_ty_1__bindgen_ty_2 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for socket__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for socket {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct accept_filter {
+    pub accf_name: [::core::ffi::c_char; 16usize],
+    pub accf_callback: ::core::option::Option<
+        unsafe extern "C" fn(
+            so: *mut socket,
+            arg: *mut ::core::ffi::c_void,
+            waitflag: ::core::ffi::c_int,
+        ) -> ::core::ffi::c_int,
+    >,
+    pub accf_create: ::core::option::Option<
+        unsafe extern "C" fn(
+            so: *mut socket,
+            arg: *mut ::core::ffi::c_char,
+        ) -> *mut ::core::ffi::c_void,
+    >,
+    pub accf_destroy: ::core::option::Option<unsafe extern "C" fn(so: *mut socket)>,
+    pub accf_next: accept_filter__bindgen_ty_1,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct accept_filter__bindgen_ty_1 {
+    pub sle_next: *mut accept_filter,
+}
+impl Default for accept_filter__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for accept_filter {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct socket_hhook_data {
+    pub so: *mut socket,
+    pub m: *mut mbuf,
+    pub hctx: *mut ::core::ffi::c_void,
+    pub status: ::core::ffi::c_int,
+}
+impl Default for socket_hhook_data {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct xsocket {
+    pub xso_len: ksize_t,
+    pub xso_so: kvaddr_t,
+    pub so_pcb: kvaddr_t,
+    pub so_oobmark: u64,
+    pub so_splice_so: kvaddr_t,
+    pub so_spare64: [i64; 7usize],
+    pub xso_protocol: i32,
+    pub xso_family: i32,
+    pub so_qlen: u32,
+    pub so_incqlen: u32,
+    pub so_qlimit: u32,
+    pub so_pgid: pid_t,
+    pub so_uid: uid_t,
+    pub so_fibnum: i32,
+    pub so_spare32: [i32; 7usize],
+    pub so_type: i16,
+    pub so_options: i16,
+    pub so_linger: i16,
+    pub so_state: i16,
+    pub so_timeo: i16,
+    pub so_error: u16,
+    pub so_rcv: xsocket_xsockbuf,
+    pub so_snd: xsocket_xsockbuf,
+}
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct xsocket_xsockbuf {
+    pub sb_cc: u32,
+    pub sb_hiwat: u32,
+    pub sb_mbcnt: u32,
+    pub sb_spare0: u32,
+    pub sb_spare1: u32,
+    pub sb_mbmax: u32,
+    pub sb_lowat: i32,
+    pub sb_timeo: i32,
+    pub sb_flags: i16,
+}
 #[doc = " @brief A function implementing the GPIO_GET_BUS() method"]
 pub type gpio_get_bus_t = ::core::option::Option<unsafe extern "C" fn(dev: device_t) -> device_t>;
 #[doc = " @brief A function implementing the GPIO_PIN_MAX() method"]
@@ -15579,11 +16862,6 @@ pub struct plimit {
 }
 #[repr(C)]
 #[derive(Debug, Default)]
-pub struct vnet {
-    pub _address: u8,
-}
-#[repr(C)]
-#[derive(Debug, Default)]
 pub struct filedesc_to_leader {
     pub _address: u8,
 }
@@ -15625,6 +16903,11 @@ pub struct cdev_privdata {
 #[repr(C)]
 #[derive(Debug, Default)]
 pub struct asid_set {
+    pub _address: u8,
+}
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct nl_buf {
     pub _address: u8,
 }
 unsafe extern "C" {
@@ -19068,7 +20351,7 @@ unsafe extern "C" {
     pub fn witness_releaseok(arg1: *mut lock_object);
     pub fn witness_file(arg1: *mut lock_object) -> *const ::core::ffi::c_char;
     pub fn witness_thread_exit(arg1: *mut thread);
-    pub fn witness_startup_count() -> ::core::ffi::c_int;
+    pub fn witness_startup_count(arg1: u_long) -> u_long;
     pub fn witness_startup(arg1: *mut ::core::ffi::c_void);
     #[doc = " descr is a string that describes each entry in the table. The general\n form is the grammar (TYPE:pnp_name[/pnp_name];)*\n where TYPE is one of the following:\n\tU8\tuint8_t element\n\tV8\tlike U8 and 0xff means match any\n\tG16\tuint16_t element, any value >= matches\n\tL16\tuint16_t element, any value <= matches\n\tM16\tuint16_t element, mask of which of the following fields to use.\n\tU16\tuint16_t element\n\tV16\tlike U16 and 0xffff means match any\n\tU32\tuint32_t element\n\tV32\tlike U32 and 0xffffffff means match any\n\tW32\tTwo 16-bit values with first pnp_name in LSW and second in MSW.\n\tZ\tpointer to a string to match exactly\n\tD\tpointer to a string to human readable description for device\n\tP\tA pointer that should be ignored\n\tE\tEISA PNP Identifier (in binary, but bus publishes string)\n\tT\tKey for whole table. pnp_name=value. must be last, if present.\n\n The pnp_name \"#\" is reserved for other fields that should be ignored.\n Otherwise pnp_name must match the name from the parent device's pnpinfo\n output. The second pnp_name is used for the W32 type."]
     pub static mut modules_sx: sx;
@@ -22079,6 +23362,8 @@ unsafe extern "C" {
     ) -> ::core::ffi::c_int;
     pub fn sound_oss_sysinfo(arg1: *mut oss_sysinfo);
     pub fn sound_oss_card_info(arg1: *mut oss_card_info) -> ::core::ffi::c_int;
+    #[link_name = "snd_format__extern"]
+    pub fn snd_format(f: u32, c: u32, e: u32) -> u32;
     #[doc = " @brief Unique descriptor for the MIXER_INIT() method"]
     pub static mut mixer_init_desc: kobjop_desc;
     #[link_name = "MIXER_INIT__extern"]
@@ -22266,6 +23551,393 @@ unsafe extern "C" {
     ) -> ::core::ffi::c_int;
     pub fn virtqueue_dequeue(vq: *mut virtqueue, len: *mut u32) -> *mut ::core::ffi::c_void;
     pub fn virtqueue_poll(vq: *mut virtqueue, len: *mut u32) -> *mut ::core::ffi::c_void;
+    pub fn pffinddomain(family: ::core::ffi::c_int) -> *mut domain;
+    pub fn pffindproto(
+        family: ::core::ffi::c_int,
+        type_: ::core::ffi::c_int,
+        proto: ::core::ffi::c_int,
+    ) -> *mut protosw;
+    pub fn protosw_register(arg1: *mut domain, arg2: *mut protosw) -> ::core::ffi::c_int;
+    pub fn protosw_unregister(arg1: *mut protosw) -> ::core::ffi::c_int;
+    pub static mut inetdomain: domain;
+    pub static mut inet6domain: domain;
+    pub fn so_options_get(arg1: *const socket) -> ::core::ffi::c_int;
+    pub fn so_options_set(arg1: *mut socket, arg2: ::core::ffi::c_int);
+    pub fn so_error_get(arg1: *const socket) -> ::core::ffi::c_int;
+    pub fn so_error_set(arg1: *mut socket, arg2: ::core::ffi::c_int);
+    pub fn sbappend(sb: *mut sockbuf, m: *mut mbuf, flags: ::core::ffi::c_int);
+    pub fn sbappend_locked(sb: *mut sockbuf, m: *mut mbuf, flags: ::core::ffi::c_int);
+    pub fn sbappendstream(sb: *mut sockbuf, m: *mut mbuf, flags: ::core::ffi::c_int);
+    pub fn sbappendstream_locked(sb: *mut sockbuf, m: *mut mbuf, flags: ::core::ffi::c_int);
+    pub fn sbappendaddr(
+        sb: *mut sockbuf,
+        asa: *const sockaddr,
+        m0: *mut mbuf,
+        control: *mut mbuf,
+    ) -> ::core::ffi::c_int;
+    pub fn sbappendaddr_locked(
+        sb: *mut sockbuf,
+        asa: *const sockaddr,
+        m0: *mut mbuf,
+        control: *mut mbuf,
+    ) -> ::core::ffi::c_int;
+    pub fn sbappendaddr_nospacecheck_locked(
+        sb: *mut sockbuf,
+        asa: *const sockaddr,
+        m0: *mut mbuf,
+        control: *mut mbuf,
+    ) -> ::core::ffi::c_int;
+    pub fn sbappendcontrol(
+        sb: *mut sockbuf,
+        m0: *mut mbuf,
+        control: *mut mbuf,
+        flags: ::core::ffi::c_int,
+    );
+    pub fn sbappendcontrol_locked(
+        sb: *mut sockbuf,
+        m0: *mut mbuf,
+        control: *mut mbuf,
+        flags: ::core::ffi::c_int,
+    );
+    pub fn sbappendrecord(sb: *mut sockbuf, m0: *mut mbuf);
+    pub fn sbappendrecord_locked(sb: *mut sockbuf, m0: *mut mbuf);
+    pub fn sbcompress(sb: *mut sockbuf, m: *mut mbuf, n: *mut mbuf);
+    pub fn sbcreatecontrol(
+        p: *const ::core::ffi::c_void,
+        size: u_int,
+        type_: ::core::ffi::c_int,
+        level: ::core::ffi::c_int,
+        wait: ::core::ffi::c_int,
+    ) -> *mut mbuf;
+    pub fn sbdestroy(arg1: *mut socket, arg2: sb_which);
+    pub fn sbdrop(sb: *mut sockbuf, len: ::core::ffi::c_int);
+    pub fn sbdrop_locked(sb: *mut sockbuf, len: ::core::ffi::c_int);
+    pub fn sbcut_locked(sb: *mut sockbuf, len: ::core::ffi::c_int) -> *mut mbuf;
+    pub fn sbdroprecord(sb: *mut sockbuf);
+    pub fn sbdroprecord_locked(sb: *mut sockbuf);
+    pub fn sbflush(sb: *mut sockbuf);
+    pub fn sbflush_locked(sb: *mut sockbuf);
+    pub fn sbrelease(arg1: *mut socket, arg2: sb_which);
+    pub fn sbrelease_locked(arg1: *mut socket, arg2: sb_which);
+    pub fn sbsetopt(so: *mut socket, arg1: *mut sockopt) -> ::core::ffi::c_int;
+    pub fn sbreserve_locked(so: *mut socket, which: sb_which, cc: u_long, td: *mut thread)
+    -> bool_;
+    pub fn sbreserve_locked_limit(
+        so: *mut socket,
+        which: sb_which,
+        cc: u_long,
+        buf_max: u_long,
+        td: *mut thread,
+    ) -> bool_;
+    pub fn sbsndptr_adv(sb: *mut sockbuf, mb: *mut mbuf, len: u_int);
+    pub fn sbsndptr_noadv(sb: *mut sockbuf, off: u_int, moff: *mut u_int) -> *mut mbuf;
+    pub fn sbsndmbuf(sb: *mut sockbuf, off: u_int, moff: *mut u_int) -> *mut mbuf;
+    pub fn sbwait(arg1: *mut socket, arg2: sb_which) -> ::core::ffi::c_int;
+    pub fn sballoc(arg1: *mut sockbuf, arg2: *mut mbuf);
+    pub fn sbfree(arg1: *mut sockbuf, arg2: *mut mbuf);
+    pub fn sballoc_ktls_rx(sb: *mut sockbuf, m: *mut mbuf);
+    pub fn sbfree_ktls_rx(sb: *mut sockbuf, m: *mut mbuf);
+    pub fn sbready(
+        arg1: *mut sockbuf,
+        arg2: *mut mbuf,
+        arg3: ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int;
+    #[link_name = "sbavail__extern"]
+    pub fn sbavail(sb: *mut sockbuf) -> u_int;
+    #[link_name = "sbused__extern"]
+    pub fn sbused(sb: *mut sockbuf) -> u_int;
+    #[link_name = "sbspace__extern"]
+    pub fn sbspace(sb: *mut sockbuf) -> ::core::ffi::c_long;
+    pub static cap_accept_rights: cap_rights_t;
+    pub static cap_bind_rights: cap_rights_t;
+    pub static cap_connect_rights: cap_rights_t;
+    pub static cap_event_rights: cap_rights_t;
+    pub static cap_fchdir_rights: cap_rights_t;
+    pub static cap_fchflags_rights: cap_rights_t;
+    pub static cap_fchmod_rights: cap_rights_t;
+    pub static cap_fchown_rights: cap_rights_t;
+    pub static cap_fchroot_rights: cap_rights_t;
+    pub static cap_fcntl_rights: cap_rights_t;
+    pub static cap_fexecve_rights: cap_rights_t;
+    pub static cap_flock_rights: cap_rights_t;
+    pub static cap_fpathconf_rights: cap_rights_t;
+    pub static cap_fstat_rights: cap_rights_t;
+    pub static cap_fstatfs_rights: cap_rights_t;
+    pub static cap_fsync_rights: cap_rights_t;
+    pub static cap_ftruncate_rights: cap_rights_t;
+    pub static cap_futimes_rights: cap_rights_t;
+    pub static cap_getpeername_rights: cap_rights_t;
+    pub static cap_getsockopt_rights: cap_rights_t;
+    pub static cap_getsockname_rights: cap_rights_t;
+    pub static cap_inotify_add_rights: cap_rights_t;
+    pub static cap_inotify_rm_rights: cap_rights_t;
+    pub static cap_ioctl_rights: cap_rights_t;
+    pub static cap_linkat_source_rights: cap_rights_t;
+    pub static cap_linkat_target_rights: cap_rights_t;
+    pub static cap_listen_rights: cap_rights_t;
+    pub static cap_mkdirat_rights: cap_rights_t;
+    pub static cap_mkfifoat_rights: cap_rights_t;
+    pub static cap_mknodat_rights: cap_rights_t;
+    pub static cap_mmap_rights: cap_rights_t;
+    pub static cap_no_rights: cap_rights_t;
+    pub static cap_pdgetpid_rights: cap_rights_t;
+    pub static cap_pdkill_rights: cap_rights_t;
+    pub static cap_pdwait_rights: cap_rights_t;
+    pub static cap_pread_rights: cap_rights_t;
+    pub static cap_pwrite_rights: cap_rights_t;
+    pub static cap_read_rights: cap_rights_t;
+    pub static cap_recv_rights: cap_rights_t;
+    pub static cap_renameat_source_rights: cap_rights_t;
+    pub static cap_renameat_target_rights: cap_rights_t;
+    pub static cap_seek_rights: cap_rights_t;
+    pub static cap_send_rights: cap_rights_t;
+    pub static cap_send_connect_rights: cap_rights_t;
+    pub static cap_setsockopt_rights: cap_rights_t;
+    pub static cap_shutdown_rights: cap_rights_t;
+    pub static cap_symlinkat_rights: cap_rights_t;
+    pub static cap_unlinkat_rights: cap_rights_t;
+    pub static cap_write_rights: cap_rights_t;
+    pub fn sosetopt(so: *mut socket, sopt: *mut sockopt) -> ::core::ffi::c_int;
+    pub fn sogetopt(so: *mut socket, sopt: *mut sockopt) -> ::core::ffi::c_int;
+    pub fn sooptcopyin(
+        sopt: *mut sockopt,
+        buf: *mut ::core::ffi::c_void,
+        len: usize,
+        minlen: usize,
+    ) -> ::core::ffi::c_int;
+    pub fn sooptcopyout(
+        sopt: *mut sockopt,
+        buf: *const ::core::ffi::c_void,
+        len: usize,
+    ) -> ::core::ffi::c_int;
+    pub fn soopt_getm(sopt: *mut sockopt, mp: *mut *mut mbuf) -> ::core::ffi::c_int;
+    pub fn soopt_mcopyin(sopt: *mut sockopt, m: *mut mbuf) -> ::core::ffi::c_int;
+    pub fn soopt_mcopyout(sopt: *mut sockopt, m: *mut mbuf) -> ::core::ffi::c_int;
+    pub fn accept_filt_getopt(arg1: *mut socket, arg2: *mut sockopt) -> ::core::ffi::c_int;
+    pub fn accept_filt_setopt(arg1: *mut socket, arg2: *mut sockopt) -> ::core::ffi::c_int;
+    pub fn so_setsockopt(
+        so: *mut socket,
+        level: ::core::ffi::c_int,
+        optname: ::core::ffi::c_int,
+        optval: *mut ::core::ffi::c_void,
+        optlen: usize,
+    ) -> ::core::ffi::c_int;
+    #[link_name = "sobuf__extern"]
+    pub fn sobuf(so: *mut socket, which: sb_which) -> *mut sockbuf;
+    #[link_name = "soeventmtx__extern"]
+    pub fn soeventmtx(so: *mut socket, which: sb_which) -> *mut mtx;
+    #[link_name = "soreadable__extern"]
+    pub fn soreadable(so: *mut socket) -> bool_;
+    pub static mut M_ACCF: [malloc_type; 1usize];
+    pub static mut M_PCB: [malloc_type; 1usize];
+    pub static mut M_SONAME: [malloc_type; 1usize];
+    pub static mut maxsockets: ::core::ffi::c_int;
+    pub static mut sb_max: u_long;
+    pub static mut so_gencnt: so_gen_t;
+    pub fn getsockaddr(
+        namp: *mut *mut sockaddr,
+        uaddr: *const sockaddr,
+        len: usize,
+    ) -> ::core::ffi::c_int;
+    pub fn getsock_cap(
+        td: *mut thread,
+        fd: ::core::ffi::c_int,
+        rightsp: *const cap_rights_t,
+        fpp: *mut *mut file,
+        havecaps: *mut filecaps,
+    ) -> ::core::ffi::c_int;
+    pub fn getsock(
+        td: *mut thread,
+        fd: ::core::ffi::c_int,
+        rightsp: *const cap_rights_t,
+        fpp: *mut *mut file,
+    ) -> ::core::ffi::c_int;
+    pub fn soabort(so: *mut socket);
+    pub fn soaccept(so: *mut socket, sa: *mut sockaddr) -> ::core::ffi::c_int;
+    pub fn sopeeraddr(so: *mut socket, sa: *mut sockaddr) -> ::core::ffi::c_int;
+    pub fn sosockaddr(so: *mut socket, sa: *mut sockaddr) -> ::core::ffi::c_int;
+    pub fn soaio_enqueue(task: *mut task);
+    pub fn soaio_rcv(context: *mut ::core::ffi::c_void, pending: ::core::ffi::c_int);
+    pub fn soaio_snd(context: *mut ::core::ffi::c_void, pending: ::core::ffi::c_int);
+    pub fn socheckuid(so: *mut socket, uid: uid_t) -> ::core::ffi::c_int;
+    pub fn sobind(so: *mut socket, nam: *mut sockaddr, td: *mut thread) -> ::core::ffi::c_int;
+    pub fn sobindat(
+        fd: ::core::ffi::c_int,
+        so: *mut socket,
+        nam: *mut sockaddr,
+        td: *mut thread,
+    ) -> ::core::ffi::c_int;
+    pub fn soclose(so: *mut socket) -> ::core::ffi::c_int;
+    pub fn soconnect(so: *mut socket, nam: *mut sockaddr, td: *mut thread) -> ::core::ffi::c_int;
+    pub fn soconnectat(
+        fd: ::core::ffi::c_int,
+        so: *mut socket,
+        nam: *mut sockaddr,
+        td: *mut thread,
+    ) -> ::core::ffi::c_int;
+    pub fn soconnect2(so1: *mut socket, so2: *mut socket) -> ::core::ffi::c_int;
+    pub fn socreate(
+        dom: ::core::ffi::c_int,
+        aso: *mut *mut socket,
+        type_: ::core::ffi::c_int,
+        proto: ::core::ffi::c_int,
+        cred: *mut ucred,
+        td: *mut thread,
+    ) -> ::core::ffi::c_int;
+    pub fn sodisconnect(so: *mut socket) -> ::core::ffi::c_int;
+    pub fn sodtor_set(arg1: *mut socket, arg2: so_dtor_t);
+    pub fn sodupsockaddr(sa: *const sockaddr, mflags: ::core::ffi::c_int) -> *mut sockaddr;
+    pub fn sohasoutofband(so: *mut socket);
+    pub fn solisten(
+        so: *mut socket,
+        backlog: ::core::ffi::c_int,
+        td: *mut thread,
+    ) -> ::core::ffi::c_int;
+    pub fn solisten_proto(so: *mut socket, backlog: ::core::ffi::c_int);
+    pub fn solisten_proto_abort(so: *mut socket);
+    pub fn solisten_proto_check(so: *mut socket) -> ::core::ffi::c_int;
+    pub fn solisten_enqueue(arg1: *mut socket, arg2: ::core::ffi::c_int) -> bool_;
+    pub fn solisten_dequeue(
+        arg1: *mut socket,
+        arg2: *mut *mut socket,
+        arg3: ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int;
+    pub fn solisten_clone(arg1: *mut socket) -> *mut socket;
+    pub fn sonewconn(head: *mut socket, connstatus: ::core::ffi::c_int) -> *mut socket;
+    pub fn sopeeloff(arg1: *mut socket, arg2: *mut protosw) -> *mut socket;
+    pub fn sopoll_generic(
+        so: *mut socket,
+        events: ::core::ffi::c_int,
+        td: *mut thread,
+    ) -> ::core::ffi::c_int;
+    pub fn sokqfilter_generic(so: *mut socket, kn: *mut knote) -> ::core::ffi::c_int;
+    pub fn soaio_queue_generic(so: *mut socket, job: *mut kaiocb) -> ::core::ffi::c_int;
+    pub fn soreceive(
+        so: *mut socket,
+        paddr: *mut *mut sockaddr,
+        uio: *mut uio,
+        mp0: *mut *mut mbuf,
+        controlp: *mut *mut mbuf,
+        flagsp: *mut ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int;
+    pub fn soreceive_stream(
+        so: *mut socket,
+        paddr: *mut *mut sockaddr,
+        uio: *mut uio,
+        mp0: *mut *mut mbuf,
+        controlp: *mut *mut mbuf,
+        flagsp: *mut ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int;
+    pub fn soreceive_dgram(
+        so: *mut socket,
+        paddr: *mut *mut sockaddr,
+        uio: *mut uio,
+        mp0: *mut *mut mbuf,
+        controlp: *mut *mut mbuf,
+        flagsp: *mut ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int;
+    pub fn soreceive_generic(
+        so: *mut socket,
+        paddr: *mut *mut sockaddr,
+        uio: *mut uio,
+        mp0: *mut *mut mbuf,
+        controlp: *mut *mut mbuf,
+        flagsp: *mut ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int;
+    pub fn sorele_locked(so: *mut socket);
+    pub fn sodealloc(arg1: *mut socket);
+    pub fn soreserve(so: *mut socket, sndcc: u_long, rcvcc: u_long) -> ::core::ffi::c_int;
+    pub fn sorflush(so: *mut socket);
+    pub fn sosend(
+        so: *mut socket,
+        addr: *mut sockaddr,
+        uio: *mut uio,
+        top: *mut mbuf,
+        control: *mut mbuf,
+        flags: ::core::ffi::c_int,
+        td: *mut thread,
+    ) -> ::core::ffi::c_int;
+    pub fn sousrsend(
+        so: *mut socket,
+        addr: *mut sockaddr,
+        uio: *mut uio,
+        control: *mut mbuf,
+        flags: ::core::ffi::c_int,
+        arg1: *mut proc_,
+    ) -> ::core::ffi::c_int;
+    pub fn sosend_dgram(
+        so: *mut socket,
+        addr: *mut sockaddr,
+        uio: *mut uio,
+        top: *mut mbuf,
+        control: *mut mbuf,
+        flags: ::core::ffi::c_int,
+        td: *mut thread,
+    ) -> ::core::ffi::c_int;
+    pub fn sosend_generic(
+        so: *mut socket,
+        addr: *mut sockaddr,
+        uio: *mut uio,
+        top: *mut mbuf,
+        control: *mut mbuf,
+        flags: ::core::ffi::c_int,
+        td: *mut thread,
+    ) -> ::core::ffi::c_int;
+    pub fn sendfile_wait_generic(
+        so: *mut socket,
+        need: off_t,
+        space: *mut ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int;
+    pub fn sosetfib(so: *mut socket, fibnum: ::core::ffi::c_int) -> ::core::ffi::c_int;
+    pub fn soshutdown(so: *mut socket, arg1: shutdown_how) -> ::core::ffi::c_int;
+    pub fn soupcall_clear(arg1: *mut socket, arg2: sb_which);
+    pub fn soupcall_set(
+        arg1: *mut socket,
+        arg2: sb_which,
+        arg3: so_upcall_t,
+        arg4: *mut ::core::ffi::c_void,
+    );
+    pub fn solisten_upcall_set(
+        arg1: *mut socket,
+        arg2: so_upcall_t,
+        arg3: *mut ::core::ffi::c_void,
+    );
+    pub fn sorwakeup_locked(arg1: *mut socket);
+    pub fn sowwakeup_locked(arg1: *mut socket);
+    pub fn sowakeup_aio(arg1: *mut socket, arg2: sb_which);
+    pub fn solisten_wakeup(arg1: *mut socket);
+    pub fn selsocket(
+        so: *mut socket,
+        events: ::core::ffi::c_int,
+        tv: *mut timeval,
+        td: *mut thread,
+    ) -> ::core::ffi::c_int;
+    pub fn soisconnected(so: *mut socket);
+    pub fn soisconnecting(so: *mut socket);
+    pub fn soisdisconnected(so: *mut socket);
+    pub fn soisdisconnecting(so: *mut socket);
+    pub fn socantrcvmore(so: *mut socket);
+    pub fn socantrcvmore_locked(so: *mut socket);
+    pub fn socantsendmore(so: *mut socket);
+    pub fn socantsendmore_locked(so: *mut socket);
+    pub fn soroverflow(so: *mut socket);
+    pub fn soroverflow_locked(so: *mut socket);
+    pub fn soiolock(so: *mut socket, sx: *mut sx, flags: ::core::ffi::c_int) -> ::core::ffi::c_int;
+    pub fn soiounlock(sx: *mut sx);
+    pub fn so_splice_dispatch(sp: *mut so_splice);
+    pub fn accept_filt_add(filt: *mut accept_filter) -> ::core::ffi::c_int;
+    pub fn accept_filt_del(name: *mut ::core::ffi::c_char) -> ::core::ffi::c_int;
+    pub fn accept_filt_get(name: *mut ::core::ffi::c_char) -> *mut accept_filter;
+    pub fn pr_listen_notsupp(
+        so: *mut socket,
+        backlog: ::core::ffi::c_int,
+        td: *mut thread,
+    ) -> ::core::ffi::c_int;
+    pub fn sotoxsocket(so: *mut socket, xso: *mut xsocket);
+    pub fn sbtoxsockbuf(sb: *mut sockbuf, xsb: *mut xsocket_xsockbuf);
+    pub fn vtsocket_device_probe(dev: device_t) -> ::core::ffi::c_int;
+    pub fn vtsnd_device_probe(dev: device_t) -> ::core::ffi::c_int;
+    pub fn vtfs_device_probe(dev: device_t) -> ::core::ffi::c_int;
     #[doc = " @brief Unique descriptor for the GPIO_GET_BUS() method"]
     pub static mut gpio_get_bus_desc: kobjop_desc;
     #[link_name = "GPIO_GET_BUS__extern"]
