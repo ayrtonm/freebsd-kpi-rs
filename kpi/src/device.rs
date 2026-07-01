@@ -270,50 +270,37 @@ impl AsRustType<Device> for device_t {
     }
 }
 
-#[doc(hidden)]
-#[macro_export]
-macro_rules! device_attach {
-    (get_typedef) => {
-        device_attach_t
-    };
-    (get_desc) => {
-        device_attach_desc
-    };
-    ($driver_ty:ident $driver_sym:ident $impl_fn_name:ident) => {
-        $crate::define_c_function! {
-            $driver_ty $driver_sym $impl_fn_name in DeviceIf as
-            fn device_attach(dev: device_t) -> int;
-            with init glue {
-                use $crate::bindings;
-                use $crate::ffi::UninitRef;
-                use $crate::kobj::KobjLayout;
-                use $crate::device::Device;
-
-                let dev: Device = dev;
-                let dev_ptr = dev.as_ptr();
-                let mut sc_init = false;
-                let void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
-                let sc_ptr = void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
-
-                let uninit_sc = unsafe { UninitRef::from_raw(sc_ptr, &mut sc_init) };
-            }
-            with drop glue {
-                // drop glue is only called if device_attach succeeded
-                if !sc_init {
-                    device_println!(dev_ptr, "Must call .init() on UninitRef<Softc> in device_attach");
-                    return bindings::ENXIO;
-                }
-            }
-            with prefix args { uninit_sc }
-        }
-    };
-}
-
 define_interface! {
     in DeviceIf
     fn device_probe(dev: device_t) -> int,
         with desc device_probe_desc
         and typedef device_probe_t;
+    fn device_attach(dev: device_t) -> int,
+        with desc device_attach_desc
+        and typedef device_attach_t,
+        with init glue {
+            use $crate::bindings;
+            use $crate::ffi::UninitRef;
+            use $crate::kobj::KobjLayout;
+            use $crate::device::Device;
+
+            let dev: Device = dev;
+            let dev_ptr = dev.as_ptr();
+            let mut sc_init = false;
+            let void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
+            type Softc = <SelfType as KobjLayout>::Layout;
+            let sc_ptr = void_ptr.cast::<Softc>();
+
+            let uninit_sc = unsafe { UninitRef::from_raw(sc_ptr, &mut sc_init) };
+        },
+        with drop glue {
+            // drop glue is only called if device_attach succeeded
+            if !sc_init {
+                device_println!(dev_ptr, "Must call .init() on UninitRef<Softc> in device_attach");
+                return bindings::ENXIO;
+            }
+        },
+        with prefix args { uninit_sc };
     fn device_detach(dev: device_t) -> int,
         with desc device_detach_desc
         and typedef device_detach_t,
