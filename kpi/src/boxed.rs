@@ -60,6 +60,8 @@ impl Ownership for DeviceOwned {
     const FREE_ON_DROP: bool = false;
 }
 
+pub type DeviceBox<T, M = M_DEVBUF> = Box<T, M, DeviceOwned>;
+
 /// A pointer to something on the heap.
 ///
 /// When a `Box<T>` is dropped, the T on the heap is deallocated. The memory layout of this type is
