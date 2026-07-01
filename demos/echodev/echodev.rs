@@ -43,13 +43,13 @@ impl CDevSw for EchoDev {
     type Softc = EchoDevSoftc;
     type MallocType = M_DEVBUF;
 
-    fn on_open(sc: &EchoDevSoftc, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
+    fn d_open(sc: &EchoDevSoftc, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
         Ok(())
     }
-    fn on_close(sc: &EchoDevSoftc, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
+    fn d_close(sc: &EchoDevSoftc, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
         Ok(())
     }
-    fn on_read(sc: &EchoDevSoftc, uio: UioRef, ioflag: c_int) -> Result<()> {
+    fn d_read(sc: &EchoDevSoftc, uio: UioRef, ioflag: c_int) -> Result<()> {
         if uio.resid() == 0 {
             return Ok(());
         }
@@ -100,7 +100,7 @@ impl CDevSw for EchoDev {
         res
     }
 
-    fn on_write(sc: &EchoDevSoftc, uio: UioRef, ioflag: c_int) -> Result<()> {
+    fn d_write(sc: &EchoDevSoftc, uio: UioRef, ioflag: c_int) -> Result<()> {
         if uio.resid() == 0 {
             return Ok(());
         }
@@ -179,10 +179,10 @@ impl Module for EchoDev {
 
 define_cdev! {
     EchoDev, c"echo", echo_cdevsw,
-    on_read: echodev_read,
-    on_write: echodev_write,
-    on_open: echodev_open,
-    on_close: echodev_close,
+    d_read: echodev_read,
+    d_write: echodev_write,
+    d_open: echodev_open,
+    d_close: echodev_close,
 }
 
 define_module!(EchoDev, echodev_modevent);

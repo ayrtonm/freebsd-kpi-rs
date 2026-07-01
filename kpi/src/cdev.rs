@@ -88,16 +88,16 @@ pub trait CDevSw: CDevSwInternal {
     type Softc: 'static + Sync;
     type MallocType: Malloc;
 
-    fn on_open(sc: &Self::Softc, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
+    fn d_open(sc: &Self::Softc, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
         unimplemented!()
     }
-    fn on_close(sc: &Self::Softc, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
+    fn d_close(sc: &Self::Softc, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
         unimplemented!()
     }
-    fn on_read(sc: &Self::Softc, uio: UioRef, ioflag: c_int) -> Result<()> {
+    fn d_read(sc: &Self::Softc, uio: UioRef, ioflag: c_int) -> Result<()> {
         unimplemented!()
     }
-    fn on_write(sc: &Self::Softc, uio: UioRef, ioflag: c_int) -> Result<()> {
+    fn d_write(sc: &Self::Softc, uio: UioRef, ioflag: c_int) -> Result<()> {
         unimplemented!()
     }
     fn make_dev_args_init(
@@ -126,21 +126,12 @@ pub trait CDevSw: CDevSwInternal {
     }
 }
 
-#[doc(hidden)]
-#[macro_export]
-macro_rules! cdev_field_for_trait_fn {
-    ($res:ident, on_read) => { $res.d_read };
-    ($res:ident, on_write) => { $res.d_write };
-    ($res:ident, on_open) => { $res.d_open };
-    ($res:ident, on_close) => { $res.d_close };
-}
-
 define_interface! {
     in CDevSw
-    fn on_open(dev: *mut bindings::cdev, fflag: i32, devtype: i32, td: *mut bindings::thread) -> i32;
-    fn on_close(dev: *mut bindings::cdev, fflag: i32, devtype: i32, td: *mut bindings::thread) -> i32;
-    fn on_read(dev: *mut bindings::cdev, uio: *mut bindings::uio, iof: i32) -> i32;
-    fn on_write(dev: *mut bindings::cdev, uio: *mut bindings::uio, iof: i32) -> i32;
+    fn d_open(dev: *mut bindings::cdev, fflag: i32, devtype: i32, td: *mut bindings::thread) -> i32;
+    fn d_close(dev: *mut bindings::cdev, fflag: i32, devtype: i32, td: *mut bindings::thread) -> i32;
+    fn d_read(dev: *mut bindings::cdev, uio: *mut bindings::uio, iof: i32) -> i32;
+    fn d_write(dev: *mut bindings::cdev, uio: *mut bindings::uio, iof: i32) -> i32;
 }
 
 pub struct MakeDevArgs<T, M: Malloc> {
@@ -190,7 +181,7 @@ macro_rules! define_cdev {
             res.d_version = $crate::bindings::D_VERSION;
             let _ty_ck: &'static core::ffi::CStr = $driver_name;
             res.d_name = $driver_name.as_ptr();
-            $($crate::cdev_field_for_trait_fn!(res, $trait_fn) = Some($unmangled_name);)*
+            $(res.$trait_fn = Some($unmangled_name);)*
             res
         }));
         $($crate::$trait_fn!($cdev_ty $unmangled_name);)*
