@@ -85,6 +85,8 @@ pub mod intr;
 pub mod malloc;
 /// Trait and macro for defining module event behavior
 pub mod module;
+/// protosw
+pub mod net;
 /// Devicetree utilities
 #[cfg(feature = "fdt")]
 pub mod ofw;
@@ -133,6 +135,16 @@ pub mod misc {
     use crate::bindings;
     use crate::bindings::{cpuset_t, u_int};
     use core::ffi::c_int;
+    use crate::ffi::Ptr;
+    use crate::kobj::AsRustType;
+
+    pub struct Thread(Ptr<bindings::thread>);
+
+    impl AsRustType<Thread> for *mut bindings::thread {
+        fn as_rust_type(self) -> Thread {
+            Thread(Ptr::new(self))
+        }
+    }
 
     #[cfg(target_arch = "aarch64")]
     pub const PAGE_SHIFT_4K: u64 = crate::bindings::PAGE_SHIFT_4K as u64;

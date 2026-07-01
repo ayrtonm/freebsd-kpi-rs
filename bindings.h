@@ -86,9 +86,16 @@
 #include "mixer_if.h"
 #endif
 
-#if defined(WITH_VIRTIO)
+#if __has_include(<dev/virtio/virtio.h>)
 #include <dev/virtio/virtio.h>
 #include <dev/virtio/virtqueue.h>
+#endif
+
+#include <sys/protosw.h>
+#include <sys/socket.h>
+
+#if __has_include(<dev/virtio/socket/virtio_socket.h>)
+#include <dev/virtio/socket/virtio_socket.h>
 #endif
 
 #if __has_include(<dev/virtio/sound/virtio_snd.h>)
