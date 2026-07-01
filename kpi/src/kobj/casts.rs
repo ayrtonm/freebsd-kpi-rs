@@ -32,6 +32,7 @@ use crate::kobj::{AsCType, AsRustType};
 use crate::malloc::Malloc;
 use crate::sync::arc::{Arc, InnerArc};
 use core::ffi::c_void;
+use core::ptr::null_mut;
 
 // Allow passing through C types into rust unchanged
 impl<T> AsRustType<T> for T {
@@ -131,5 +132,11 @@ impl<T, M: Malloc> AsCType<*mut c_void, c_void> for Box<T, M> {
 impl<T> AsCType<*mut c_void, c_void> for Arc<T> {
     fn as_c_type(self) -> *mut c_void {
         Arc::into_raw(self).cast::<c_void>()
+    }
+}
+
+impl<T> AsCType<*mut T> for () {
+    fn as_c_type(self) -> *mut T {
+        null_mut()
     }
 }
