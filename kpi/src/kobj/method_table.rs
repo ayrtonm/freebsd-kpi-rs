@@ -54,10 +54,8 @@ macro_rules! method_table {
             #[cfg(not(test))]
             use core::ffi::{c_void, c_int};
 
-            // Import all interfaces in the KPI crate and the AsRustType/AsCType traits since the
-            // extern "C" functions use them.
+            // Import all interfaces in the KPI crate
             use $crate::kobj::interfaces::*;
-            use $crate::kobj::{AsRustType, AsCType};
 
             // Import all macros from this crate
             use $crate::*;

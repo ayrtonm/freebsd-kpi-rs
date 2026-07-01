@@ -9,6 +9,7 @@ use core::ptr::NonNull;
 
 pub type SockAddr = bindings::sockaddr;
 
+#[allow(unused_variables)]
 pub trait ProtoSw {
     // Protocol control block storing state of an active connection
     type Pcb;

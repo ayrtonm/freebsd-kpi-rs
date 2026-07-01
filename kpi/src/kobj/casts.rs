@@ -26,11 +26,8 @@
  * SUCH DAMAGE.
  */
 
-use crate::boxed::Box;
 use crate::ffi::SubClass;
 use crate::kobj::{AsCType, AsRustType};
-use crate::malloc::Malloc;
-use crate::sync::arc::{Arc, InnerArc};
 use core::ffi::c_void;
 use core::ptr::null_mut;
 
