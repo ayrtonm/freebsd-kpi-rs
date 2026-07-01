@@ -140,9 +140,9 @@ pub mod misc {
 
     pub struct Thread(Ptr<bindings::thread>);
 
-    impl AsRustType<Thread> for *mut bindings::thread {
-        fn as_rust_type(self) -> Thread {
-            Thread(Ptr::new(self))
+    impl AsRustType<'_, Thread> for *mut bindings::thread {
+        fn as_rust_type(&self) -> Thread {
+            Thread(Ptr::new(*self))
         }
     }
 

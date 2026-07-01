@@ -34,10 +34,10 @@ use crate::sync::arc::{Arc, InnerArc};
 use core::ffi::c_void;
 use core::ptr::null_mut;
 
-// Allow passing through C types into rust unchanged
-impl<T> AsRustType<T> for T {
-    fn as_rust_type(self) -> T {
-        self
+// Allow passing through C types that impl Copy into rust unchanged
+impl<T: Copy> AsRustType<'_, T> for T {
+    fn as_rust_type(&self) -> T {
+        *self
     }
 }
 
@@ -47,96 +47,48 @@ impl<T> AsCType<T> for T {
     }
 }
 
+impl<T> AsCType<*mut T> for () {
+    fn as_c_type(self) -> *mut T {
+        null_mut()
+    }
+}
+
 // Allow turning pointers to shared references
-impl<'a, T> AsRustType<&'a T> for *mut T {
-    fn as_rust_type(self) -> &'a T {
+impl<'a, T> AsRustType<'a, &'a T> for *mut T {
+    fn as_rust_type(&'a self) -> &'a T {
         unsafe { self.as_ref().unwrap() }
     }
 }
 
 // Allow casting void pointers then turning them to shared references
-impl<'a, T> AsRustType<&'a T, c_void> for *mut c_void {
-    fn as_rust_type(self) -> &'a T {
+impl<'a, T> AsRustType<'a, &'a T, c_void> for *mut c_void {
+    fn as_rust_type(&'a self) -> &'a T {
         unsafe { self.cast::<T>().as_ref().unwrap() }
     }
 }
 
 // Allow turning pointers to a base type to shared references to a SubClass<B, _>
-impl<'a, B, F> AsRustType<&'a SubClass<B, F>> for *mut B {
-    fn as_rust_type(self) -> &'a SubClass<B, F> {
-        unsafe { SubClass::from_base_ptr(self) }
+impl<'a, B, F> AsRustType<'a, &'a SubClass<B, F>> for *mut B {
+    fn as_rust_type(&'a self) -> &'a SubClass<B, F> {
+        unsafe { SubClass::from_base_ptr(*self) }
     }
 }
 
 // Allow the previous three operations for unique references
-impl<'a, T> AsRustType<&'a mut T> for *mut T {
-    fn as_rust_type(self) -> &'a mut T {
+impl<'a, T> AsRustType<'a, &'a mut T> for *mut T {
+    fn as_rust_type(&'a self) -> &'a mut T {
         unsafe { self.as_mut().unwrap() }
     }
 }
 
-impl<'a, T> AsRustType<&'a mut T, c_void> for *mut c_void {
-    fn as_rust_type(self) -> &'a mut T {
+impl<'a, T> AsRustType<'a, &'a mut T, c_void> for *mut c_void {
+    fn as_rust_type(&'a self) -> &'a mut T {
         unsafe { self.cast::<T>().as_mut().unwrap() }
     }
 }
 
-impl<'a, B, F> AsRustType<&'a mut SubClass<B, F>> for *mut B {
-    fn as_rust_type(self) -> &'a mut SubClass<B, F> {
-        unsafe { SubClass::from_base_ptr_mut(self) }
-    }
-}
-
-impl<T, M: Malloc> AsRustType<Box<T, M>> for *mut T {
-    fn as_rust_type(self) -> Box<T, M> {
-        unsafe { Box::from_raw(self) }
-    }
-}
-
-impl<T, M: Malloc> AsRustType<Arc<T, M>> for *mut T {
-    fn as_rust_type(self) -> Arc<T, M> {
-        unsafe { Arc::from_raw(self.cast::<InnerArc<T>>()) }
-    }
-}
-
-impl<T, M: Malloc> AsRustType<Box<T, M>, c_void> for *mut c_void {
-    fn as_rust_type(self) -> Box<T, M> {
-        unsafe { Box::from_raw(self.cast::<T>()) }
-    }
-}
-
-impl<T, M: Malloc> AsRustType<Arc<T, M>, c_void> for *mut c_void {
-    fn as_rust_type(self) -> Arc<T, M> {
-        unsafe { Arc::from_raw(self.cast::<InnerArc<T>>()) }
-    }
-}
-
-impl<T, M: Malloc> AsCType<*mut T> for Box<T, M> {
-    fn as_c_type(self) -> *mut T {
-        Box::into_raw(self)
-    }
-}
-
-impl<T> AsCType<*mut T> for Arc<T> {
-    fn as_c_type(self) -> *mut T {
-        Arc::into_raw(self)
-    }
-}
-
-impl<T, M: Malloc> AsCType<*mut c_void, c_void> for Box<T, M> {
-    fn as_c_type(self) -> *mut c_void {
-        Box::into_raw(self).cast::<c_void>()
-    }
-}
-
-impl<T> AsCType<*mut c_void, c_void> for Arc<T> {
-    fn as_c_type(self) -> *mut c_void {
-        Arc::into_raw(self).cast::<c_void>()
-    }
-}
-
-impl<T> AsCType<*mut T> for () {
-    fn as_c_type(self) -> *mut T {
-        null_mut()
+impl<'a, B, F> AsRustType<'a, &'a mut SubClass<B, F>> for *mut B {
+    fn as_rust_type(&'a self) -> &'a mut SubClass<B, F> {
+        unsafe { SubClass::from_base_ptr_mut(*self) }
     }
 }

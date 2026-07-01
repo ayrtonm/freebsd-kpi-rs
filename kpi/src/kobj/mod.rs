@@ -52,8 +52,8 @@ pub trait AsCType<T, X = ()> {
     fn as_c_type(self) -> T;
 }
 
-pub trait AsRustType<T, X = ()> {
-    fn as_rust_type(self) -> T;
+pub trait AsRustType<'a, T, X = ()> {
+    fn as_rust_type(&'a self) -> T;
 }
 
 // UnsafeCell needed to ensure static ends up in .data

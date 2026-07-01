@@ -246,25 +246,26 @@ impl AsCType<c_int> for BusProbe {
 // Allows turning device_t arguments appearing in kobj interfaces into a Ref to any type. It's the
 // responsibility of a kobj trait authors to restrict the Ref to the softc's type or to one of its
 // base classes.
-impl<'a, T> AsRustType<&'a T> for device_t {
-    fn as_rust_type(self) -> &'a T {
-        let void_ptr = unsafe { bindings::device_get_softc(self) };
+impl<'a, T> AsRustType<'a, &'a T> for device_t {
+    fn as_rust_type(&'a self) -> &'a T {
+        let void_ptr = unsafe { bindings::device_get_softc(*self) };
         let sc_ptr = void_ptr.cast::<T>();
         unsafe { sc_ptr.as_ref().unwrap() }
     }
 }
 
 // Should only be called once per device_t during init since it assumes there are no allocations.
-impl AsRustType<Device> for device_t {
-    fn as_rust_type(self) -> Device {
-        let sc = unsafe { bindings::device_get_softc(self) };
-        let driver = unsafe { bindings::device_get_driver(self) };
+impl AsRustType<'_, Device> for device_t {
+    fn as_rust_type(&self) -> Device {
+        let dev = *self;
+        let sc = unsafe { bindings::device_get_softc(dev) };
+        let driver = unsafe { bindings::device_get_driver(dev) };
         // Equals core::mem::size_of::<SoftcTy>() which includes padding
         let sc_size = unsafe { (*driver).size };
         let sc_start = sc.addr();
         let sc_end = sc_start + sc_size;
         Device {
-            ptr: self,
+            ptr: dev,
             region: MemoryRegion::new(sc_start, sc_end),
         }
     }

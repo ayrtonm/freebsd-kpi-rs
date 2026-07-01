@@ -65,10 +65,10 @@ type RawHandler = Option<unsafe extern "C" fn(*mut c_void)>;
 pub type FilterFn<T> = Option<extern "C" fn(&T) -> Filter>;
 pub type Handler<T> = Option<extern "C" fn(&T)>;
 
-impl AsRustType<Resource> for *mut resource {
-    fn as_rust_type(self) -> Resource {
+impl AsRustType<'_, Resource> for *mut resource {
+    fn as_rust_type(&self) -> Resource {
         Resource {
-            res: self,
+            res: *self,
             rid: None,
             ty: None,
         }
