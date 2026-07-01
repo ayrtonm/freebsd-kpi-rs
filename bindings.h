@@ -93,6 +93,7 @@
 
 #include <sys/protosw.h>
 #include <sys/socket.h>
+#include <sys/socketvar.h>
 
 #if __has_include(<dev/virtio/socket/virtio_socket.h>)
 #include <dev/virtio/socket/virtio_socket.h>
