@@ -35,6 +35,7 @@ use core::any::TypeId;
 use core::ffi::{CStr, c_int, c_void};
 use core::marker::PhantomData;
 use core::mem::size_of;
+use crate::kobj::AsRustType;
 use core::ptr::NonNull;
 
 #[allow(non_camel_case_types)]
@@ -138,14 +139,9 @@ macro_rules! c_fn_for_cdev {
             iof: core::ffi::c_int,
         ) -> core::ffi::c_int {
             use $crate::cdev::CDevSw;
-            let sc_ptr = unsafe { (*dev).si_drv1 };
-            let sc = unsafe {
-                sc_ptr
-                    .cast::<<$cdev_ty as CDevSw>::Softc>()
-                    .as_ref()
-                    .unwrap()
-            };
-            let uio_ref = unsafe { $crate::cdev::UioRef::new(&uio) };
+            let sc = dev.as_rust_type();
+            use $crate::kobj::AsRustType;
+            let uio_ref = uio.as_rust_type();
             let res = <$cdev_ty as CDevSw>::$on_read_or_on_write(sc, uio_ref, iof);
             use $crate::kobj::AsCType;
             match res {
@@ -210,14 +206,24 @@ macro_rules! define_cdev {
     };
 }
 
+impl<'a, T> AsRustType<'a, &'a T, T> for *mut bindings::cdev {
+    fn as_rust_type(&'a self) -> &'a T {
+        let dev = *self;
+        let sc_ptr = unsafe { (*dev).si_drv1 };
+        unsafe { sc_ptr.cast::<T>().as_ref().unwrap() }
+    }
+}
+
 #[derive(Copy, Clone)]
 pub struct UioRef<'a>(NonNull<bindings::uio>, PhantomData<&'a bindings::uio>);
 
-impl<'a> UioRef<'a> {
-    pub unsafe fn new(ptr: &'a *mut bindings::uio) -> Self {
-        Self(NonNull::new(*ptr).unwrap(), PhantomData)
+impl<'a> AsRustType<'a, UioRef<'a>> for *mut bindings::uio {
+    fn as_rust_type(&'a self) -> UioRef {
+        UioRef(NonNull::new(*self).unwrap(), PhantomData)
     }
+}
 
+impl<'a> UioRef<'a> {
     pub fn offset(&self) -> usize {
         unsafe { self.0.read().uio_offset.try_into().unwrap() }
     }
