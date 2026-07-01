@@ -100,9 +100,9 @@ macro_rules! define_interface {
             macro_rules! $fn_name {
                 (get_typedef) => { $($crate::bindings::$typedef)* };
                 (get_desc) => { $($crate::bindings::$desc)* };
-                ($driver_ty:ident $driver_sym:ident $impl_fn_name:ident) => {
+                ($driver_ty:ident $impl_fn_name:ident) => {
                     $crate::define_c_function! {
-                        $driver_ty $driver_sym $impl_fn_name in $trait as
+                        $driver_ty $impl_fn_name in $trait as
                         fn $fn_name($($arg_name: $arg,)*) $(-> $ret)*;
                         with init glue { $($($init_glue)*)* }
                         with drop glue { $($($drop_glue)*)* }
@@ -118,7 +118,7 @@ macro_rules! define_interface {
 #[macro_export]
 macro_rules! define_c_function {
     (
-        $driver_ty:ident $driver_sym:ident $impl:ident in $trait:ident as
+        $driver_ty:ident $impl:ident in $trait:ident as
         fn $fn_name:ident($($arg_name:ident: $arg:ty$(,)?)*);
         $(with init glue { $($init_glue:tt)* })?
         $(with drop glue { $($drop_glue:tt)* })?
@@ -149,7 +149,7 @@ macro_rules! define_c_function {
         }
     };
     (
-        $driver_ty:ident $driver_sym:ident $impl:ident in $trait:ident as
+        $driver_ty:ident $impl:ident in $trait:ident as
         fn $fn_name:ident($($arg_name:ident: $arg:ty$(,)?)*) -> $ret:ty;
         $(with init glue { $($init_glue:tt)* })?
         $(with drop glue { $($drop_glue:tt)* })?
@@ -188,7 +188,7 @@ macro_rules! define_c_function {
         }
     };
     (
-        $driver_ty:ident $driver_sym:ident $impl:ident in $trait:ident as
+        $driver_ty:ident $impl:ident in $trait:ident as
         fn $fn_name:ident($($arg_name:ident: $arg:ty$(,)?)*) -> $ret:ty;
         $(with init glue { $($init_glue:tt)* })?
         $(with drop glue { $($drop_glue:tt)* })?
