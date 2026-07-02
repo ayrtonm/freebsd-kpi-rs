@@ -79,6 +79,19 @@ impl<T> Ptr<T> {
         Self(ptr)
     }
 
+    /// Creates a new `Ptr` from a reference.
+    ///
+    /// `Ptr` does not guarantee that the pointee will not be freed/move so this technically doesn't
+    /// need to be marked as unsafe. Here the unsafe marker is more of a lint against mis-use.
+    ///
+    /// # Safety
+    ///
+    /// The caller should ensure that the pointee will live at the same address for as long as the
+    /// return value will be needed.
+    pub const unsafe fn from_ref(x: &T) -> Self {
+        Self(x as *const T as *mut T)
+    }
+
     /// Get a raw pointer for the `Ptr`
     pub fn as_ptr(self) -> *mut T {
         self.0
