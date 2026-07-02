@@ -85,3 +85,14 @@ macro_rules! base {
         }
     };
 }
+
+#[macro_export]
+macro_rules! proj {
+    (& $struct:ident -> $field_name:ident) => {
+        {
+            use core::pin::Pin;
+            let _ty_ck: &Pin<&_> = &$struct;
+            unsafe { Pin::map_unchecked($struct, |s| &s.$field_name) }
+        }
+    };
+}

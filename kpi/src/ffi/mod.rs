@@ -30,6 +30,7 @@
 
 use core::fmt;
 use core::fmt::{Debug, Formatter};
+use core::pin::Pin;
 use core::mem::MaybeUninit;
 use core::ptr::null_mut;
 
@@ -123,13 +124,10 @@ impl<'a, T> UninitRef<'a, T> {
         )
     }
 
-    // FIXME: It's super easy to coerce this to a shared reference, hand it off to C then reuse the
-    // mutable reference while the C code can potentially invoke a callback. This should return &T
-    // and and unsafe init_mut should return &mut T. I'm pretty sure there's no real way to make
-    // init_mut safe.
-    /// Initialize the externally-managed object to `t` and return a `UniqueRef` to the pointee.
-    pub fn init(self, t: T) -> &'a mut T {
+    /// Initialize the externally-managed object to `t` and return a pinned reference to the pointee
+    pub fn init(self, t: T) -> Pin<&'a T> {
         *self.1 = true;
-        self.0.write(t)
+        let res = self.0.write(t);
+        unsafe { Pin::new_unchecked(res) }
     }
 }

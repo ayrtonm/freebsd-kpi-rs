@@ -26,6 +26,7 @@
  * SUCH DAMAGE.
  */
 
+use core::pin::Pin;
 use crate::bindings::{device_state_t, device_t, driver_t};
 use crate::boxed::Box;
 use crate::driver::Driver;
@@ -246,11 +247,12 @@ impl AsCType<c_int> for BusProbe {
 // Allows turning device_t arguments appearing in kobj interfaces into a Ref to any type. It's the
 // responsibility of a kobj trait authors to restrict the Ref to the softc's type or to one of its
 // base classes.
-impl<'a, T> AsRustType<'a, &'a T> for device_t {
-    fn as_rust_type(&'a self) -> &'a T {
+impl<'a, T> AsRustType<'a, Pin<&'a T>> for device_t {
+    fn as_rust_type(&'a self) -> Pin<&'a T> {
         let void_ptr = unsafe { bindings::device_get_softc(*self) };
         let sc_ptr = void_ptr.cast::<T>();
-        unsafe { sc_ptr.as_ref().unwrap() }
+        let sc_ref = unsafe { sc_ptr.as_ref().unwrap() };
+        unsafe { Pin::new_unchecked(sc_ref) }
     }
 }
 
@@ -382,19 +384,19 @@ pub trait DeviceIf: Driver {
     /// example, if a softc struct includes a `Box<T>` field (i.e. a pointer to the heap with
     /// ownership of a `T`) the `T` in the heap will also be freed. This applies recursively through
     /// any number of layers of indirection.
-    fn device_detach(sc: &Self::Softc) -> Result<()> {
+    fn device_detach(sc: Pin<&Self::Softc>) -> Result<()> {
         unimplemented!()
     }
-    fn device_shutdown(sc: &Self::Softc) -> Result<()> {
+    fn device_shutdown(sc: Pin<&Self::Softc>) -> Result<()> {
         unimplemented!()
     }
-    fn device_suspend(sc: &Self::Softc) -> Result<()> {
+    fn device_suspend(sc: Pin<&Self::Softc>) -> Result<()> {
         unimplemented!()
     }
-    fn device_resume(sc: &Self::Softc) -> Result<()> {
+    fn device_resume(sc: Pin<&Self::Softc>) -> Result<()> {
         unimplemented!()
     }
-    fn device_quiesce(sc: &Self::Softc) -> Result<()> {
+    fn device_quiesce(sc: Pin<&Self::Softc>) -> Result<()> {
         unimplemented!()
     }
 }
