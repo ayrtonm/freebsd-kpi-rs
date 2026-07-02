@@ -292,7 +292,7 @@ define_interface! {
             type Softc = <SelfType as KobjLayout>::Layout;
             let sc_ptr = void_ptr.cast::<Softc>();
 
-            let uninit_sc = unsafe { UninitRef::from_raw(sc_ptr, &mut sc_init) };
+            let uninit_sc = unsafe { UninitRef::from_raw(&sc_ptr, &mut sc_init) };
         },
         with drop glue {
             // drop glue is only called if device_attach succeeded

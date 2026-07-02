@@ -115,7 +115,7 @@ unsafe impl<T> Send for Ptr<T> {}
 pub struct UninitRef<'a, T>(&'a mut MaybeUninit<T>, &'a mut bool);
 
 impl<'a, T> UninitRef<'a, T> {
-    pub unsafe fn from_raw(ptr: *mut T, init: &'a mut bool) -> Self {
+    pub unsafe fn from_raw(ptr: &'a *mut T, init: &'a mut bool) -> Self {
         *init = false;
         Self(
             unsafe { ptr.cast::<MaybeUninit<T>>().as_mut().unwrap() },
