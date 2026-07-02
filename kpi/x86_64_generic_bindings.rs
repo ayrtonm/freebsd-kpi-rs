@@ -25183,57 +25183,39 @@ unsafe extern "C" {
     pub fn vtfs_device_probe(dev: device_t) -> ::core::ffi::c_int;
     pub fn rust_bindings_CPU_SET(cpu: u_int, set: *mut cpuset_t);
     pub fn rust_bindings_CPU_ISSET(cpu: u_int, set: *mut cpuset_t) -> bool_;
-    pub fn rust_bindings_bus_space_barrier(
-        s: bus_space_tag_t,
-        h: bus_space_handle_t,
-        o: bus_size_t,
-        len: bus_size_t,
-        flags: ::core::ffi::c_int,
+    pub fn fn_bus_space_barrier(
+        a: bus_space_tag_t,
+        b: bus_space_handle_t,
+        c: bus_size_t,
+        d: bus_size_t,
+        e: ::core::ffi::c_int,
     );
-    pub fn rust_bindings_bus_barrier(
-        r: *mut resource,
-        o: bus_size_t,
-        len: bus_size_t,
-        flags: ::core::ffi::c_int,
-    );
-    pub fn rust_bindings_bus_space_map(
-        s: bus_space_tag_t,
-        a: bus_addr_t,
-        sz: bus_size_t,
-        f: ::core::ffi::c_int,
-        hp: *mut bus_space_handle_t,
+    pub fn fn_bus_barrier(a: *mut resource, b: bus_size_t, c: bus_size_t, d: ::core::ffi::c_int);
+    pub fn fn_bus_space_map(
+        a: bus_space_tag_t,
+        b: bus_addr_t,
+        c: bus_size_t,
+        d: ::core::ffi::c_int,
+        e: *mut bus_space_handle_t,
     ) -> ::core::ffi::c_int;
-    pub fn rust_bindings_mtx_initialized(mutex: *const mtx) -> usize;
-    pub fn rust_bindings_bus_read_1(res: *mut resource, offset: bus_size_t) -> u8;
-    pub fn rust_bindings_bus_write_region_1(
-        res: *mut resource,
-        o: bus_size_t,
-        p: *mut u8,
-        count: bus_size_t,
-    );
-    pub fn rust_bindings_bus_write_1(res: *mut resource, offset: bus_size_t, value: u8);
-    pub fn rust_bindings_bus_read_2(res: *mut resource, offset: bus_size_t) -> u16;
-    pub fn rust_bindings_bus_write_region_2(
-        res: *mut resource,
-        o: bus_size_t,
-        p: *mut u16,
-        count: bus_size_t,
-    );
-    pub fn rust_bindings_bus_write_2(res: *mut resource, offset: bus_size_t, value: u16);
-    pub fn rust_bindings_bus_read_4(res: *mut resource, offset: bus_size_t) -> u32;
-    pub fn rust_bindings_bus_write_region_4(
-        res: *mut resource,
-        o: bus_size_t,
-        p: *mut u32,
-        count: bus_size_t,
-    );
-    pub fn rust_bindings_bus_write_4(res: *mut resource, offset: bus_size_t, value: u32);
-    pub fn fn_mtx_lock(a: *mut mtx);
-    pub fn fn_mtx_lock_spin(a: *mut mtx);
     pub fn fn_mtx_init(
         a: *mut mtx,
         b: *const ::core::ffi::c_char,
         c: *const ::core::ffi::c_char,
         d: ::core::ffi::c_int,
     );
+    pub fn fn_mtx_initialized(a: *const mtx) -> usize;
+    pub fn fn_mtx_lock(a: *mut mtx);
+    pub fn fn_mtx_lock_spin(a: *mut mtx);
+    pub fn fn_mtx_unlock(a: *mut mtx);
+    pub fn fn_mtx_unlock_spin(a: *mut mtx);
+    pub fn fn_bus_read_1(res: *mut resource, offset: bus_size_t) -> u8;
+    pub fn fn_bus_write_region_1(res: *mut resource, o: bus_size_t, p: *mut u8, count: bus_size_t);
+    pub fn fn_bus_write_1(res: *mut resource, offset: bus_size_t, value: u8);
+    pub fn fn_bus_read_2(res: *mut resource, offset: bus_size_t) -> u16;
+    pub fn fn_bus_write_region_2(res: *mut resource, o: bus_size_t, p: *mut u16, count: bus_size_t);
+    pub fn fn_bus_write_2(res: *mut resource, offset: bus_size_t, value: u16);
+    pub fn fn_bus_read_4(res: *mut resource, offset: bus_size_t) -> u32;
+    pub fn fn_bus_write_region_4(res: *mut resource, o: bus_size_t, p: *mut u32, count: bus_size_t);
+    pub fn fn_bus_write_4(res: *mut resource, offset: bus_size_t, value: u32);
 }
