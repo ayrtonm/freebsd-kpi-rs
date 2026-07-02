@@ -288,18 +288,13 @@ pub mod wrappers {
         RF_UNMAPPED
     }
 
-    pub fn bus_setup_intr<D: DeviceIf>(
-        dev: &Device,
+    pub unsafe fn bus_setup_intr_unchecked<D: DeviceIf>(
+        dev_ptr: device_t,
         irq: &Irq,
         flags: c_int,
         filter: FilterFn<D::Softc>,
         handler: Handler<D::Softc>,
     ) -> Result<()> {
-        let dev_ptr = dev.as_ptr();
-        assert!(
-            dev.region().in_bounds(irq),
-            "Irq not in device-owned memory"
-        );
         assert_eq!(device_get_driver(dev_ptr), <D as Driver>::DRIVER);
         if filter.is_none() && handler.is_none() {
             return Err(EDOOFUS);
@@ -319,6 +314,23 @@ pub mod wrappers {
             return Err(ErrCode::from(res));
         };
         Ok(())
+    }
+
+    pub fn bus_setup_intr<D: DeviceIf>(
+        dev: &Device,
+        irq: &Irq,
+        flags: c_int,
+        filter: FilterFn<D::Softc>,
+        handler: Handler<D::Softc>,
+    ) -> Result<()> {
+        let dev_ptr = dev.as_ptr();
+        assert!(
+            dev.region().in_bounds(irq),
+            "Irq not in device-owned memory"
+        );
+        unsafe {
+            bus_setup_intr_unchecked::<D>(dev_ptr, irq, flags, filter, handler)
+        }
     }
 
     pub fn bus_teardown_intr(dev: &Device, irq: &Irq) -> Result<()> {
