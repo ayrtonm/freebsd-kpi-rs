@@ -124,7 +124,7 @@ macro_rules! define_c_function {
         $(with drop glue { $($drop_glue:tt)* })?
         $(with prefix args { $($prefix_args:ident)* })?
     ) => {
-        #[allow(unused_mut)]
+        #[allow(unused)]
         #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) {
             type SelfType = $driver_ty;
@@ -156,7 +156,7 @@ macro_rules! define_c_function {
         $(with prefix args { $($prefix_args:ident)* })?
         $(rust returns $ret_as_rust_ty:ty)?
     ) => {
-        #[allow(unused_mut)]
+        #[allow(unused)]
         #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) -> $ret {
             type SelfType = $driver_ty;
@@ -195,7 +195,7 @@ macro_rules! define_c_function {
         $(with prefix args { $($prefix_args:ident)* })?
         infallible
     ) => {
-        #[allow(unused_mut)]
+        #[allow(unused)]
         #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) -> $ret {
             type SelfType = $driver_ty;

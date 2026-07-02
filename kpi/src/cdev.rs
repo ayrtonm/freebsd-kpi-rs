@@ -186,7 +186,7 @@ impl<'a, T> AsRustType<'a, &'a T, T> for *mut bindings::cdev {
 pub struct UioRef<'a>(NonNull<bindings::uio>, PhantomData<&'a bindings::uio>);
 
 impl<'a> AsRustType<'a, UioRef<'a>> for *mut bindings::uio {
-    fn as_rust_type(&'a self) -> UioRef {
+    fn as_rust_type(&'a self) -> UioRef<'a> {
         UioRef(NonNull::new(*self).unwrap(), PhantomData)
     }
 }

@@ -43,8 +43,8 @@ pub struct SocketRef<'a>(NonNull<bindings::socket>, PhantomData<&'a bindings::so
 
 pub struct SockLockGuard<'a> {
     so_lock: *mut bindings::mtx,
-    so_options: &'a mut i32,
-    so_state: &'a mut i16,
+    pub so_options: &'a mut i32,
+    pub so_state: &'a mut i16,
 }
 
 impl<'a> Drop for SockLockGuard<'a> {
@@ -62,7 +62,7 @@ impl<'a> SocketRef<'a> {
         i32::from(unsafe { (*so_ptr).so_type })
     }
 
-    pub fn sock_lock(&self) -> SockLockGuard {
+    pub fn sock_lock(&self) -> SockLockGuard<'_> {
         let so_ptr = self.0.as_ptr();
         let so_lock = unsafe { &raw mut (*so_ptr).so_lock };
         unsafe { bindings::__mtx_lock_flags(so_lock.cast::<usize>(), 0, c"".as_ptr(), 0) };
@@ -79,7 +79,7 @@ impl<'a> SocketRef<'a> {
 }
 
 impl<'a> AsRustType<'a, SocketRef<'a>> for *mut bindings::socket {
-    fn as_rust_type(&'a self) -> SocketRef {
+    fn as_rust_type(&'a self) -> SocketRef<'a> {
         SocketRef(NonNull::new(*self).unwrap(), PhantomData)
     }
 }

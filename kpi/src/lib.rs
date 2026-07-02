@@ -138,7 +138,7 @@ pub mod misc {
     use crate::ffi::Ptr;
     use crate::kobj::AsRustType;
 
-    pub struct Thread(Ptr<bindings::thread>);
+    pub struct Thread(pub Ptr<bindings::thread>);
 
     impl AsRustType<'_, Thread> for *mut bindings::thread {
         fn as_rust_type(&self) -> Thread {

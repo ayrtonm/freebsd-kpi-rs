@@ -27,7 +27,7 @@
  */
 
 use crate::ErrCode;
-use crate::bindings::{bus_size_t, device_t, resource, resource_spec};
+use crate::bindings::{bus_size_t, resource, resource_spec};
 use crate::device::{Device};
 use crate::kobj::{AsCType, AsRustType};
 use crate::prelude::*;
@@ -261,7 +261,6 @@ pub use wrappers::*;
 #[doc(hidden)]
 pub mod wrappers {
     use super::*;
-    use crate::device::DeviceIf;
     use bindings::{bus_space_handle_t, bus_space_tag_t};
 
     gen_newtype! {
