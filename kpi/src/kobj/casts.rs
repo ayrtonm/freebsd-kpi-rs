@@ -31,10 +31,17 @@ use crate::kobj::{AsCType, AsRustType};
 use core::ffi::c_void;
 use core::ptr::null_mut;
 
-// Allow passing through C types that impl Copy into rust unchanged
+// Allow passing through C types that impl Copy into rust by value
 impl<T: Copy> AsRustType<'_, T> for T {
     fn as_rust_type(&self) -> T {
         *self
+    }
+}
+
+// Allow passing through all C types into rust by reference
+impl<'a, T> AsRustType<'a, &'a T, &'a T> for T {
+    fn as_rust_type(&'a self) -> &'a T {
+        self
     }
 }
 

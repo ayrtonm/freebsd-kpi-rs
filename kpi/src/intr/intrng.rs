@@ -27,7 +27,7 @@
  */
 
 use crate::bindings::{
-    device_t, intr_irq_filter_t, intr_irqsrc, intr_map_data, intr_map_data_fdt, pcell_t, trapframe,
+    device_t, intr_irq_filter_t, intr_irqsrc, intr_map_data, intr_map_data_fdt, pcell_t, trapframe, cpuset_t
 };
 use crate::bus::{Filter, Resource};
 use crate::device::{Device, DeviceIf, MemoryManager};
@@ -237,7 +237,7 @@ pub trait PicIf: DeviceIf {
     fn pic_ipi_send(
         sc: &Self::Softc,
         isrc: &IrqSrc<Self::IrqSrcFields>,
-        cpus: bindings::cpuset_t,
+        cpus: &cpuset_t,
         ipi: u32,
     ) {
         unimplemented!()
