@@ -41,10 +41,40 @@ pub trait ProtoSw {
 #[derive(Copy, Clone)]
 pub struct SocketRef<'a>(NonNull<bindings::socket>, PhantomData<&'a bindings::socket>);
 
+pub struct SockLockGuard<'a> {
+    so_lock: *mut bindings::mtx,
+    so_options: &'a mut i32,
+    so_state: &'a mut i16,
+}
+
+impl<'a> Drop for SockLockGuard<'a> {
+    fn drop(&mut self) {
+        unsafe { bindings::__mtx_unlock_flags(self.so_lock.cast::<usize>(), 0, c"".as_ptr(), 0) };
+    }
+}
+
+// sys/socketvar.h contains a comment with what locks each struct socket field. That key is used to
+// define the following methods
 impl<'a> SocketRef<'a> {
     pub fn get_type(&self) -> i32 {
         let so_ptr = self.0.as_ptr();
+        // SAFETY: constant after allocation, no locking required.
         i32::from(unsafe { (*so_ptr).so_type })
+    }
+
+    pub fn sock_lock(&self) -> SockLockGuard {
+        let so_ptr = self.0.as_ptr();
+        let so_lock = unsafe { &raw mut (*so_ptr).so_lock };
+        unsafe { bindings::__mtx_lock_flags(so_lock.cast::<usize>(), 0, c"".as_ptr(), 0) };
+        let so_options_ptr = unsafe { &raw mut (*so_ptr).so_options };
+        let so_options = unsafe { so_options_ptr.as_mut().unwrap() };
+        let so_state_ptr = unsafe { &raw mut (*so_ptr).so_state };
+        let so_state = unsafe { so_state_ptr.as_mut().unwrap() };
+        SockLockGuard {
+            so_lock,
+            so_options,
+            so_state,
+        }
     }
 }
 
