@@ -87,30 +87,6 @@ macro_rules! base {
 }
 
 #[macro_export]
-macro_rules! proj {
-    (& $ext_ref:ident [ $idx:expr ]) => {
-        unsafe { $crate::ffi::Ref::map_idx($ext_ref, |x| &x[$idx]) }
-    };
-    (& $ext_ref:ident -> $field:ident) => {
-        unsafe { $crate::ffi::Ref::map_field($ext_ref, |x| &x.$field) }
-    };
-    (& $ext_ref:ident -> $field:ident $($rest:tt)*) => {
-        {
-        let res = unsafe { $crate::ffi::Ref::map_field($ext_ref, |x| &x.$field) };
-        let res = proj!(&res $($rest)*);
-        res
-        }
-    };
-    (& $ext_ref:ident [ $idx:expr ] $($rest:tt)*) => {
-        {
-        let res = unsafe { $crate::ffi::Ref::map_idx($ext_ref, |x| &x[$idx]) };
-        let res = proj!(&res $($rest)*);
-        res
-        }
-    };
-}
-
-#[macro_export]
 macro_rules! device_get_softc {
     ($($args:tt)*) => {
         $crate::prelude::device_get_softc::<Self>($($args)*)
