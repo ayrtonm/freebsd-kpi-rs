@@ -30,6 +30,7 @@ use crate::ffi::SubClass;
 use crate::kobj::{AsCType, AsRustType};
 use core::ffi::c_void;
 use core::ptr::null_mut;
+use core::pin::Pin;
 
 // Allow passing through C types that impl Copy into rust by value
 impl<T: Copy> AsRustType<'_, T> for T {
@@ -64,10 +65,22 @@ impl<'a, T> AsRustType<'a, &'a T> for *mut T {
     }
 }
 
+impl<'a, T> AsRustType<'a, Pin<&'a T>, Pin<&'a T>> for *mut T {
+    fn as_rust_type(&'a self) -> Pin<&'a T> {
+        unsafe { Pin::new_unchecked(self.as_ref().unwrap()) }
+    }
+}
+
 // Allow casting void pointers then turning them to shared references
 impl<'a, T> AsRustType<'a, &'a T, c_void> for *mut c_void {
     fn as_rust_type(&'a self) -> &'a T {
         unsafe { self.cast::<T>().as_ref().unwrap() }
+    }
+}
+
+impl<'a, T> AsRustType<'a, Pin<&'a T>, c_void> for *mut c_void {
+    fn as_rust_type(&'a self) -> Pin<&'a T> {
+        unsafe { Pin::new_unchecked(self.cast::<T>().as_ref().unwrap()) }
     }
 }
 
