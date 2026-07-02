@@ -493,7 +493,7 @@ mod tests {
             } else {
                 None
             };
-            bus_setup_intr(dev, proj!(&sc->irq), 0, filter, handler, sc).unwrap();
+            bus_setup_intr(dev, proj!(&sc.irq), 0, filter, handler, sc).unwrap();
         }
     }
 
@@ -513,7 +513,7 @@ mod tests {
                 loud: LoudDrop,
             });
             let dev = sc.dev;
-            assert_eq!(bus_setup_intr(dev, proj!(&sc->irq), 0, None, None, sc), Err(EDOOFUS));
+            assert_eq!(bus_setup_intr(dev, proj!(&sc.irq), 0, None, None, sc), Err(EDOOFUS));
             if ofw_bus_is_compatible(dev, c"irq_driver,set_both") {
                 irq_driver.setup(dev, sc, true, true);
             }

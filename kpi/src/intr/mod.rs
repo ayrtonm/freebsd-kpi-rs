@@ -308,8 +308,8 @@ mod tests {
             let hook = ConfigHook::new();
             let loud = LoudDrop;
             let sc = uninit_sc.init(HookSoftc { dev, hook, loud });
-            proj!(&sc->hook).init(hook_driver_deferred_attach, sc);
-            config_intrhook_establish(proj!(&sc->hook)).unwrap();
+            proj!(&sc.hook).init(hook_driver_deferred_attach, sc);
+            config_intrhook_establish(proj!(&sc.hook)).unwrap();
             Ok(())
         }
         fn device_detach(_sc: Pin<&Self::Softc>) -> Result<()> {

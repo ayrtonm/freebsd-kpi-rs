@@ -357,11 +357,12 @@ impl<T> Drop for SpinLockGuard<'_, T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::boxed::Box;
 
     #[test]
     fn basic_mutex() {
-        let lock = Mutex::new(4u32);
-        mtx_init(&lock, c"", None, None);
+        let lock = Box::pin(Mutex::new(4u32));
+        mtx_init(lock.as_ref(), c"", None, None);
         let mut x = mtx_lock(&lock);
         *x += 1;
         mtx_unlock(x);
@@ -369,8 +370,8 @@ mod tests {
 
     #[test]
     fn basic_spinlock() {
-        let lock = SpinLock::new(4u32);
-        mtx_init(&lock, c"", None, None);
+        let lock = Box::pin(SpinLock::new(4u32));
+        mtx_init(lock.as_ref(), c"", None, None);
         let mut x = mtx_lock_spin(&lock);
         *x += 1;
         mtx_unlock_spin(x);
