@@ -155,8 +155,8 @@ pub mod wrappers {
         found.ok_or(ENULLPTR)
     }
 
-    pub fn ofw_bus_get_node(dev: &Device) -> Node {
-        let node = unsafe { bindings::ofw_bus_get_node(dev.as_ptr()) };
+    pub fn ofw_bus_get_node(dev: device_t) -> Node {
+        let node = unsafe { bindings::ofw_bus_get_node(dev) };
         Node(node)
     }
 
