@@ -101,7 +101,7 @@ macro_rules! pic_map_intr {
     (get_desc) => {
         $crate::bindings::pic_map_intr_desc
     };
-    ($driver_ty:ident $driver_sym:ident $impl_fn_name:ident) => {
+    ($driver_ty:ident $impl_fn_name:ident) => {
         #[allow(unused_mut)]
         #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $impl_fn_name(
@@ -114,12 +114,11 @@ macro_rules! pic_map_intr {
             //let this_fn_id = TypeId::of::<Option<
             //assert!(typedef_id == this_fn_id);
             use $crate::bindings;
-            use $crate::ffi::Ref;
-            use $crate::kobj::KobjLayout;
+            use $crate::kobj::{KobjLayout, AsRustType, AsCType};
 
             let void_ptr = unsafe { bindings::device_get_softc(dev) };
             let sc_ptr = void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
-            let sc = unsafe { Ref::from_raw(sc_ptr) };
+            let sc = unsafe { sc_ptr.as_ref().unwrap() };
             let data = data.as_rust_type();
             let res = match <$driver_ty as PicIf>::pic_map_intr(&sc, data) {
                 Ok(isrc_ref) => {
@@ -141,7 +140,7 @@ macro_rules! pic_ipi_setup {
     (get_desc) => {
         $crate::bindings::pic_ipi_setup_desc
     };
-    ($driver_ty:ident $driver_sym:ident $impl_fn_name:ident) => {
+    ($driver_ty:ident $impl_fn_name:ident) => {
         #[allow(unused_mut)]
         #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $impl_fn_name(
@@ -154,12 +153,11 @@ macro_rules! pic_ipi_setup {
             //let this_fn_id = TypeId::of::<Option<
             //assert!(typedef_id == this_fn_id);
             use $crate::bindings;
-            use $crate::ffi::Ref;
-            use $crate::kobj::KobjLayout;
+            use $crate::kobj::{KobjLayout, AsRustType, AsCType};
 
             let void_ptr = unsafe { bindings::device_get_softc(dev) };
             let sc_ptr = void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
-            let sc = unsafe { Ref::from_raw(sc_ptr) };
+            let sc = unsafe { sc_ptr.as_ref().unwrap() };
             let res = match <$driver_ty as PicIf>::pic_ipi_setup(&sc, ipi) {
                 Ok(isrc_ref) => {
                     unsafe {
