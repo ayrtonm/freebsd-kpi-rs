@@ -27,10 +27,10 @@
  */
 
 use crate::bindings::{
-    device_t, intr_irq_filter_t, intr_irqsrc, intr_map_data, intr_map_data_fdt, pcell_t, trapframe, cpuset_t
+    intr_irq_filter_t, intr_irqsrc, intr_map_data, intr_map_data_fdt, pcell_t, trapframe, cpuset_t
 };
 use crate::bus::{Filter, Resource};
-use crate::device::{Device, DeviceIf, MemoryManager};
+use crate::device::{Device, DeviceIf};
 use crate::ffi::{ArrayCString, SubClass};
 use crate::kobj::AsRustType;
 use crate::ofw::XRef;
@@ -38,6 +38,7 @@ use crate::prelude::*;
 use crate::{ErrCode, define_interface};
 use core::ffi::{c_int, c_void};
 use core::mem::transmute;
+use core::pin::Pin;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -59,7 +60,7 @@ impl AsRustType<'_, IntrRoot> for u32 {
     }
 }
 
-pub type IrqFilter<T> = extern "C" fn(&T) -> Filter;
+pub type IrqFilter<T> = extern "C" fn(Pin<&T>) -> Filter;
 
 define_interface! {
     in PicIf
@@ -192,7 +193,7 @@ impl PicIf for {Self} {{
 pub trait PicIf: DeviceIf {
     type IrqSrcFields;
     fn pic_setup_intr(
-        sc: &Self::Softc,
+        sc: Pin<&Self::Softc>,
         isrc: &IrqSrc<Self::IrqSrcFields>,
         res: Resource,
         data: MapData,
@@ -200,42 +201,42 @@ pub trait PicIf: DeviceIf {
         unimplemented!()
     }
     fn pic_teardown_intr(
-        sc: &Self::Softc,
+        sc: Pin<&Self::Softc>,
         isrc: &IrqSrc<Self::IrqSrcFields>,
         res: Resource,
         data: MapData,
     ) -> Result<()> {
         unimplemented!()
     }
-    fn pic_map_intr(sc: &Self::Softc, data: MapData) -> Result<&IrqSrc<Self::IrqSrcFields>> {
+    fn pic_map_intr(sc: Pin<&Self::Softc>, data: MapData) -> Result<&IrqSrc<Self::IrqSrcFields>> {
         unimplemented!()
     }
-    fn pic_enable_intr(sc: &Self::Softc, isrc: &IrqSrc<Self::IrqSrcFields>) {
+    fn pic_enable_intr(sc: Pin<&Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
-    fn pic_disable_intr(sc: &Self::Softc, isrc: &IrqSrc<Self::IrqSrcFields>) {
+    fn pic_disable_intr(sc: Pin<&Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
-    fn pic_post_filter(sc: &Self::Softc, isrc: &IrqSrc<Self::IrqSrcFields>) {
+    fn pic_post_filter(sc: Pin<&Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
-    fn pic_post_ithread(sc: &Self::Softc, isrc: &IrqSrc<Self::IrqSrcFields>) {
+    fn pic_post_ithread(sc: Pin<&Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
-    fn pic_pre_ithread(sc: &Self::Softc, isrc: &IrqSrc<Self::IrqSrcFields>) {
+    fn pic_pre_ithread(sc: Pin<&Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
-    fn pic_bind_intr(sc: &Self::Softc, isrc: &IrqSrc<Self::IrqSrcFields>) -> Result<()> {
+    fn pic_bind_intr(sc: Pin<&Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) -> Result<()> {
         unimplemented!()
     }
-    fn pic_init_secondary(sc: &Self::Softc, root: IntrRoot) {
+    fn pic_init_secondary(sc: Pin<&Self::Softc>, root: IntrRoot) {
         unimplemented!()
     }
-    fn pic_ipi_setup(sc: &Self::Softc, ipi: u32) -> Result<&IrqSrc<Self::IrqSrcFields>> {
+    fn pic_ipi_setup(sc: Pin<&Self::Softc>, ipi: u32) -> Result<&IrqSrc<Self::IrqSrcFields>> {
         unimplemented!()
     }
     fn pic_ipi_send(
-        sc: &Self::Softc,
+        sc: Pin<&Self::Softc>,
         isrc: &IrqSrc<Self::IrqSrcFields>,
         cpus: &cpuset_t,
         ipi: u32,
@@ -300,15 +301,11 @@ pub mod wrappers {
     }
 
     pub fn intr_isrc_register<T>(
-        isrc: &IrqSrc<T>,
-        dev: &Device,
+        isrc: Pin<&IrqSrc<T>>,
+        dev: Device,
         flags: Option<IntrIsrcf>,
         name: &ArrayCString,
     ) -> Result<()> {
-        assert!(
-            dev.region().in_bounds(isrc),
-            "IrqSrc not in device-owned memory"
-        );
         let flags = flags.map(|f| f.0 as u32).unwrap_or(0);
         let isrc_ptr = SubClass::as_base_ptr(&isrc);
         let res = unsafe {
@@ -326,7 +323,7 @@ pub mod wrappers {
         Ok(())
     }
 
-    pub fn intr_pic_register(dev: &Device, xref: XRef) -> Result<()> {
+    pub fn intr_pic_register(dev: Device, xref: XRef) -> Result<()> {
         let pic = unsafe { bindings::intr_pic_register(dev.as_ptr(), xref.0 as _) };
         if pic.is_null() {
             Err(ENULLPTR)
@@ -337,19 +334,15 @@ pub mod wrappers {
     }
 
     pub fn intr_pic_claim_root<T>(
-        dev: &Device,
+        dev: Device,
         xref: XRef,
         filter: IrqFilter<T>,
-        arg: &T,
+        arg: Pin<&T>,
         root: IntrRoot,
     ) -> Result<()> {
-        assert!(
-            dev.region().in_bounds(arg),
-            "callback argument not in device-owned memory"
-        );
         let xref = xref.0 as isize;
         let filter = unsafe { transmute::<Option<IrqFilter<T>>, intr_irq_filter_t>(Some(filter)) };
-        let arg_ptr = (&*arg as *const T).cast_mut().cast::<c_void>();
+        let arg_ptr = (arg.get_ref() as *const T).cast::<c_void>().cast_mut();
         let res = unsafe {
             bindings::intr_pic_claim_root(dev.as_ptr(), xref, filter, arg_ptr, root.0 as u32)
         };
@@ -359,7 +352,7 @@ pub mod wrappers {
         Ok(())
     }
 
-    pub fn intr_ipi_pic_register(dev: &Device, priority: u32) -> Result<()> {
+    pub fn intr_ipi_pic_register(dev: Device, priority: u32) -> Result<()> {
         let res = unsafe { bindings::intr_ipi_pic_register(dev.as_ptr(), priority) };
         if res != 0 {
             return Err(ErrCode::from(res));
@@ -392,7 +385,7 @@ mod tests {
     }
     impl DeviceIf for IntcDriver {
         type Softc = IntcSoftc;
-        fn device_probe(dev: device_t) -> Result<BusProbe> {
+        fn device_probe(dev: Device) -> Result<BusProbe> {
             if !ofw_bus_is_compatible(dev, c"intr,intc_driver") {
                 return Err(ENXIO);
             }
@@ -400,9 +393,9 @@ mod tests {
         }
         fn device_attach(uninit_sc: UninitRef<Self::Softc>, dev: Device) -> Result<()> {
             let sc = uninit_sc.init(IntcSoftc { dev });
-            intr_pic_claim_root(&sc.dev, XRef(0), IntcDriver::handle_irq, sc, INTR_ROOT_IRQ)
+            intr_pic_claim_root(sc.dev, XRef(0), IntcDriver::handle_irq, sc, INTR_ROOT_IRQ)
         }
-        fn device_detach(_sc: &Self::Softc) -> Result<()> {
+        fn device_detach(_sc: Pin<&Self::Softc>) -> Result<()> {
             Ok(())
         }
     }
@@ -417,7 +410,7 @@ mod tests {
         type IrqSrcFields = IntcIrqSrc;
 
         fn pic_setup_intr(
-            _sc: &Self::Softc,
+            _sc: Pin<&Self::Softc>,
             isrc: &IrqSrc<Self::IrqSrcFields>,
             _res: Resource,
             _data: MapData,
@@ -429,7 +422,7 @@ mod tests {
     }
 
     impl IntcDriver {
-        extern "C" fn handle_irq(sc: &IntcSoftc) -> Filter {
+        extern "C" fn handle_irq(sc: Pin<&IntcSoftc>) -> Filter {
             println!("invoked irq handler {sc:x?}");
             FILTER_HANDLED
         }

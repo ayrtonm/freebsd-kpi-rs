@@ -195,7 +195,6 @@ pub use wrappers::*;
 #[doc(hidden)]
 pub mod wrappers {
     use super::*;
-    use crate::device::MemoryManager;
 
     gen_newtype! {
         MtxFlags as i32,
@@ -207,24 +206,12 @@ pub mod wrappers {
         MTX_NEW,
     }
 
-    pub fn mtx_init<M: Lockable, R: MemoryManager>(
+    pub fn mtx_init<M: Lockable>(
         lock: &M,
-        owner: &R,
         name: &'static CStr,
         kind: Option<&'static CStr>,
         flags: Option<MtxFlags>,
     ) {
-        if M::SPINS {
-            assert!(
-                owner.region().in_bounds(lock),
-                "SpinLock not in device-owned memory"
-            );
-        } else {
-            assert!(
-                owner.region().in_bounds(lock),
-                "Mutex not in device-owned memory"
-            );
-        }
         let name_ptr = name.as_ptr();
         let kind_ptr = match kind {
             Some(k) => k.as_ptr(),
@@ -375,13 +362,11 @@ impl<T> Drop for SpinLockGuard<'_, T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::device::MemoryRegion;
 
     #[test]
     fn basic_mutex() {
-        let owner = MemoryRegion::test_unchecked();
         let lock = Mutex::new(4u32);
-        mtx_init(&lock, &owner, c"", None, None);
+        mtx_init(&lock, c"", None, None);
         let mut x = mtx_lock(&lock);
         *x += 1;
         mtx_unlock(x);
@@ -389,9 +374,8 @@ mod tests {
 
     #[test]
     fn basic_spinlock() {
-        let owner = MemoryRegion::test_unchecked();
         let lock = SpinLock::new(4u32);
-        mtx_init(&lock, &owner, c"", None, None);
+        mtx_init(&lock, c"", None, None);
         let mut x = mtx_lock_spin(&lock);
         *x += 1;
         mtx_unlock_spin(x);

@@ -27,7 +27,6 @@
  */
 
 use crate::boxed::Box;
-use crate::device::{MemoryManager, MemoryRegion};
 use crate::ffi::Ptr;
 use crate::malloc::Malloc;
 use crate::prelude::*;
@@ -58,24 +57,11 @@ impl Default for cdev_t {
 #[derive(Default)]
 pub struct CDev {
     ptr: cdev_t,
-    region: MemoryRegion,
 }
 
 impl CDev {
     pub fn as_raw_ptr(&self) -> *mut bindings::cdev {
         self.ptr.0.as_ptr()
-    }
-}
-
-impl Drop for CDev {
-    fn drop(&mut self) {
-        unsafe { self.region.free_allocation_list() }
-    }
-}
-
-impl MemoryManager for CDev {
-    fn region(&self) -> &MemoryRegion {
-        &self.region
     }
 }
 
@@ -253,12 +239,9 @@ pub mod wrappers {
         }
         let sc_mut_ref = unsafe { sc_ptr.as_mut().unwrap() };
         let raw_ptr = Ptr::new(outp);
-        let sc_start = sc_ptr.addr();
-        let sc_end = sc_start + size_of::<T>();
         let res = cdev_t(raw_ptr, Some(TypeId::of::<T>()));
         let dev = CDev {
             ptr: cdev_t(raw_ptr, Some(TypeId::of::<T>())),
-            region: MemoryRegion::new(sc_start, sc_end),
         };
         sc_init(sc_mut_ref, dev);
         Ok(res)

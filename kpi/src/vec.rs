@@ -28,8 +28,7 @@
 
 //! The `Vec<T>` type for contiguous growable arrays allocated in the heap.
 
-use crate::boxed::{Box, DeviceOwned};
-use crate::device::MemoryManager;
+use crate::boxed::{Box};
 use crate::malloc::{Malloc, MallocFlags};
 use crate::prelude::*;
 use core::alloc::Layout;
@@ -194,26 +193,6 @@ impl<T, M: Malloc> Vec<T, M> {
 
     pub fn into_boxed_slice(self) -> Box<[T], M> {
         self.try_into_boxed_slice().unwrap()
-    }
-
-    pub fn into_boxed_slice_for<R: MemoryManager>(
-        self,
-        owner: &R,
-        flags: MallocFlags,
-    ) -> Box<[T], M, DeviceOwned> {
-        self.try_into_boxed_slice_for(owner, flags).unwrap()
-    }
-
-    pub fn try_into_boxed_slice_for<R: MemoryManager>(
-        self,
-        owner: &R,
-        flags: MallocFlags,
-    ) -> Result<Box<[T], M, DeviceOwned>> {
-        let owned = self.try_into_boxed_slice()?;
-        let region = owner.region();
-        region.add_boxed_slice_range(&owned, flags);
-        let ptr = NonNull::new(Box::into_raw(owned)).unwrap();
-        Ok(unsafe { Box::from_raw_unchecked(ptr) })
     }
 
     pub fn try_into_boxed_slice(mut self) -> Result<Box<[T], M>> {

@@ -92,7 +92,6 @@ BINDGEN_FLAGS= \
 	--default-macro-constant-type signed \
 	--merge-extern-blocks \
 	--builtins \
-	--blocklist-item 'device_t' \
 	--blocklist-item '__va_list' \
 	--blocklist-item 'mcontext_t' \
 	--blocklist-item 'vfpstate' \

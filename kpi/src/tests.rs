@@ -31,7 +31,7 @@
 use crate::bindings;
 #[cfg(feature = "intrng")]
 use crate::bindings::intr_irq_filter_t;
-use crate::bindings::{
+use crate::bindings::{_device,
     device_attach_t, device_detach_t, device_probe_t, device_state_t, device_t, driver_filter_t,
     driver_intr_t, driver_t, intr_config_hook, kobjop_desc, pic_setup_intr_t, resource, u_int,
 };
@@ -139,7 +139,7 @@ impl DriverManager {
         self.dev_counter += 1;
         let id = self.dev_counter;
         self.devices.push(TestDevice {
-            dev: device_t::null(),
+            dev: null_mut(),
             id,
             is_ok: true,
             assigned_driver: None,
@@ -152,7 +152,7 @@ impl DriverManager {
             desc: None,
         });
         let device = self.devices.last_mut().unwrap();
-        device.dev = device_t::new(device as *mut TestDevice as _);
+        device.dev = (device as *mut TestDevice).cast::<_device>();
         device
     }
 
@@ -246,7 +246,7 @@ impl DriverManager {
 
     pub fn trigger_irq(&self, dev: device_t) {
         for candidate in &self.devices {
-            if candidate.dev.as_ptr() != dev.as_ptr() {
+            if candidate.dev != dev {
                 continue;
             }
             let (func, arg) = candidate.filter.expect("haven't called `bus_setup_intr`");
@@ -270,7 +270,7 @@ impl DriverManager {
 
     pub fn trigger_pic_root(&self, dev: device_t) {
         for candidate in &self.devices {
-            if candidate.dev.as_ptr() != dev.as_ptr() {
+            if candidate.dev != dev {
                 continue;
             }
             let (func, arg) = candidate.pic_root.unwrap();
@@ -309,10 +309,10 @@ impl Drop for NoDrop {
 }
 
 fn test_dev<'a>(dev: device_t) -> &'a TestDevice {
-    unsafe { dev.as_ptr().cast::<TestDevice>().as_ref().unwrap() }
+    unsafe { dev.cast::<TestDevice>().as_ref().unwrap() }
 }
 fn test_dev_mut<'a>(dev: device_t) -> &'a mut TestDevice {
-    unsafe { dev.as_ptr().cast::<TestDevice>().as_mut().unwrap() }
+    unsafe { dev.cast::<TestDevice>().as_mut().unwrap() }
 }
 
 mod unmangled_fns {

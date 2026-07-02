@@ -27,7 +27,7 @@
  */
 
 use crate::ErrCode;
-use crate::bindings::{device_t, ofw_compat_data, phandle_t};
+use crate::bindings::{ofw_compat_data, phandle_t};
 use crate::collections::Pod;
 use crate::device::Device;
 use crate::kobj::AsRustType;
@@ -114,13 +114,13 @@ pub use wrappers::*;
 pub mod wrappers {
     use super::*;
 
-    pub fn ofw_bus_status_okay(dev: device_t) -> bool {
-        unsafe { bindings::ofw_bus_status_okay(dev) != 0 }
+    pub fn ofw_bus_status_okay(dev: Device) -> bool {
+        unsafe { bindings::ofw_bus_status_okay(dev.as_ptr()) != 0 }
     }
 
-    pub fn ofw_bus_is_compatible(dev: device_t, compat: &CStr) -> bool {
+    pub fn ofw_bus_is_compatible(dev: Device, compat: &CStr) -> bool {
         let compat_ptr = compat.as_ptr();
-        let res = unsafe { bindings::ofw_bus_is_compatible(dev, compat_ptr) };
+        let res = unsafe { bindings::ofw_bus_is_compatible(dev.as_ptr(), compat_ptr) };
         res == 1
     }
 
@@ -129,12 +129,12 @@ pub mod wrappers {
     /// Returns a reference to the first compatible entry or `Err` if none are found. Unlike the C
     /// version, `compat` does not need to be explicitly terminated by a null entry.
     pub fn ofw_bus_search_compatible<T, const N: usize>(
-        dev: device_t,
+        dev: Device,
         compat: &OfwCompatData<T, N>,
     ) -> Result<&'static T> {
         let compat_ptr = unsafe {
             bindings::ofw_bus_search_compatible(
-                dev,
+                dev.as_ptr(),
                 compat as *const OfwCompatData<T, N> as *const OfwCompatEntry<T>
                     as *const ofw_compat_data,
             )
@@ -155,13 +155,12 @@ pub mod wrappers {
         found.ok_or(ENULLPTR)
     }
 
-    pub fn ofw_bus_get_node(dev: device_t) -> Node {
-        let node = unsafe { bindings::ofw_bus_get_node(dev) };
+    pub fn ofw_bus_get_node(dev: Device) -> Node {
+        let node = unsafe { bindings::ofw_bus_get_node(dev.as_ptr()) };
         Node(node)
     }
 
-    // TODO: this will break if OF_device_register_xref ever changes to return non-zero
-    pub fn OF_device_register_xref(xref: XRef, dev: &Device) {
+    pub fn OF_device_register_xref(xref: XRef, dev: Device) {
         unsafe {
             bindings::OF_device_register_xref(xref.0, dev.as_ptr());
         }
@@ -216,12 +215,12 @@ pub mod wrappers {
         }
     }
 
-    pub fn OF_device_from_xref(xref: XRef) -> Result<device_t> {
+    pub fn OF_device_from_xref(xref: XRef) -> Result<Device> {
         let res = unsafe { bindings::OF_device_from_xref(xref.0) };
-        if res.as_ptr().is_null() {
+        if res.is_null() {
             Err(ENULLPTR)
         } else {
-            Ok(res)
+            Ok(Device::new(res))
         }
     }
 

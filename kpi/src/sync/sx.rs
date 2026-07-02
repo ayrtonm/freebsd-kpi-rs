@@ -114,13 +114,8 @@ pub use wrappers::*;
 #[doc(hidden)]
 pub mod wrappers {
     use super::*;
-    use crate::device::MemoryManager;
 
-    pub fn sx_init<R: MemoryManager>(lock: &SxLock<impl Sized>, owner: &R, name: &'static CStr) {
-        assert!(
-            owner.region().in_bounds(lock),
-            "SxLock not in device-owned memory"
-        );
+    pub fn sx_init(lock: &SxLock<impl Sized>, name: &'static CStr) {
         let name_ptr = name.as_ptr();
         let sx_ptr = lock.inner.get();
         unsafe {
@@ -192,13 +187,11 @@ pub mod wrappers {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::device::MemoryRegion;
 
     #[test]
     fn basic_sx_exclusive() {
-        let owner = MemoryRegion::test_unchecked();
         let lock = SxLock::new(4u32);
-        sx_init(&lock, &owner, c"test");
+        sx_init(&lock, c"test");
         let mut x = sx_xlock(&lock);
         *x += 1;
         sx_xunlock(x);
@@ -206,9 +199,8 @@ mod tests {
 
     #[test]
     fn basic_sx_shared() {
-        let owner = MemoryRegion::test_unchecked();
         let lock = SxLock::new(4u32);
-        sx_init(&lock, &owner, c"test");
+        sx_init(&lock, c"test");
         let x = sx_slock(&lock);
         assert_eq!(*x, 4);
         sx_sunlock(x);

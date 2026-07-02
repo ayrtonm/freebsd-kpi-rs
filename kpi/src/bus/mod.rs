@@ -28,7 +28,7 @@
 
 use crate::ErrCode;
 use crate::bindings::{bus_size_t, device_t, resource, resource_spec};
-use crate::device::{Device, MemoryManager};
+use crate::device::{Device};
 use crate::kobj::{AsCType, AsRustType};
 use crate::prelude::*;
 use core::cell::UnsafeCell;
@@ -36,6 +36,7 @@ use core::ffi::{c_int, c_void};
 use core::mem::transmute;
 use core::ops::BitOr;
 use core::ptr::{addr_of_mut, null_mut};
+use core::pin::Pin;
 
 pub mod dma;
 
@@ -62,8 +63,8 @@ impl BitOr<ResFlags> for ResFlags {
 pub type RawFilterFn = Option<unsafe extern "C" fn(*mut c_void) -> i32>;
 type RawHandler = Option<unsafe extern "C" fn(*mut c_void)>;
 
-pub type FilterFn<T> = Option<extern "C" fn(&T) -> Filter>;
-pub type Handler<T> = Option<extern "C" fn(&T)>;
+pub type FilterFn<T> = Option<extern "C" fn(Pin<&T>) -> Filter>;
+pub type Handler<T> = Option<extern "C" fn(Pin<&T>)>;
 
 impl AsRustType<'_, Resource> for *mut resource {
     fn as_rust_type(&self) -> Resource {
@@ -261,7 +262,6 @@ pub use wrappers::*;
 pub mod wrappers {
     use super::*;
     use crate::device::DeviceIf;
-    use crate::driver::Driver;
     use bindings::{bus_space_handle_t, bus_space_tag_t};
 
     gen_newtype! {
@@ -288,27 +288,28 @@ pub mod wrappers {
         RF_UNMAPPED
     }
 
-    pub unsafe fn bus_setup_intr_unchecked<D: DeviceIf>(
-        dev_ptr: device_t,
-        irq: &Irq,
+    pub fn bus_setup_intr<T>(
+        dev: Device,
+        irq: Pin<&Irq>,
         flags: c_int,
-        filter: FilterFn<D::Softc>,
-        handler: Handler<D::Softc>,
+        filter: FilterFn<T>,
+        handler: Handler<T>,
+        arg: Pin<&T>,
     ) -> Result<()> {
-        assert_eq!(device_get_driver(dev_ptr), <D as Driver>::DRIVER);
+        let dev_ptr = dev.as_ptr();
         if filter.is_none() && handler.is_none() {
             return Err(EDOOFUS);
         }
-        let sc = unsafe { bindings::device_get_softc(dev_ptr) };
         // SAFETY: These types are ABI-compatible
-        let filter = unsafe { transmute::<FilterFn<D::Softc>, RawFilterFn>(filter) };
+        let filter = unsafe { transmute::<FilterFn<T>, RawFilterFn>(filter) };
         // SAFETY: These types are ABI-compatible
-        let handler = unsafe { transmute::<Handler<D::Softc>, RawHandler>(handler) };
+        let handler = unsafe { transmute::<Handler<T>, RawHandler>(handler) };
 
         let cookiep = irq.cookie.get();
 
+        let arg_ptr = (arg.get_ref() as *const T).cast::<c_void>().cast_mut();
         let res = unsafe {
-            bindings::bus_setup_intr(dev_ptr, irq.res, flags, filter, handler, sc, cookiep)
+            bindings::bus_setup_intr(dev_ptr, irq.res, flags, filter, handler, arg_ptr, cookiep)
         };
         if res != 0 {
             return Err(ErrCode::from(res));
@@ -316,24 +317,7 @@ pub mod wrappers {
         Ok(())
     }
 
-    pub fn bus_setup_intr<D: DeviceIf>(
-        dev: &Device,
-        irq: &Irq,
-        flags: c_int,
-        filter: FilterFn<D::Softc>,
-        handler: Handler<D::Softc>,
-    ) -> Result<()> {
-        let dev_ptr = dev.as_ptr();
-        assert!(
-            dev.region().in_bounds(irq),
-            "Irq not in device-owned memory"
-        );
-        unsafe {
-            bus_setup_intr_unchecked::<D>(dev_ptr, irq, flags, filter, handler)
-        }
-    }
-
-    pub fn bus_teardown_intr(dev: &Device, irq: &Irq) -> Result<()> {
+    pub fn bus_teardown_intr(dev: Device, irq: &Irq) -> Result<()> {
         let dev_ptr = dev.as_ptr();
         let cookiep = irq.cookie.get();
         let cookie = unsafe { *cookiep };
@@ -358,7 +342,7 @@ pub mod wrappers {
     }
 
     pub fn bus_alloc_resource_any(
-        dev: &Device,
+        dev: Device,
         ty: SysRes,
         rid: c_int,
         flags: ResFlags,
@@ -379,7 +363,7 @@ pub mod wrappers {
     }
 
     pub fn bus_alloc_resources<const N: usize>(
-        dev: &Device,
+        dev: Device,
         spec: [ResourceSpec; N],
     ) -> Result<[Resource; N]> {
         #[repr(C)]
@@ -486,7 +470,7 @@ pub mod wrappers {
 mod tests {
     use super::*;
     use crate::device::{BusProbe, Device, DeviceIf};
-    use crate::driver;
+    use crate::{driver};
     use crate::ffi::UninitRef;
     use crate::tests::{DriverManager, LoudDrop};
 
@@ -499,7 +483,7 @@ mod tests {
     }
 
     impl IrqDriver {
-        fn setup(&self, dev: &Device, sc: &IrqSoftc, filter: bool, handler: bool) {
+        fn setup(&self, dev: Device, sc: Pin<&IrqSoftc>, filter: bool, handler: bool) {
             let filter = if filter {
                 Some(IrqDriver::filter as _)
             } else {
@@ -510,14 +494,14 @@ mod tests {
             } else {
                 None
             };
-            bus_setup_intr!(dev, &sc.irq, 0, filter, handler).unwrap();
+            bus_setup_intr(dev, proj!(&sc->irq), 0, filter, handler, sc).unwrap();
         }
     }
 
     impl DeviceIf for IrqDriver {
         type Softc = IrqSoftc;
 
-        fn device_probe(dev: device_t) -> Result<BusProbe> {
+        fn device_probe(dev: Device) -> Result<BusProbe> {
             if !ofw_bus_is_compatible(dev, c"bus,irq_driver") {
                 return Err(ENXIO);
             }
@@ -529,39 +513,37 @@ mod tests {
                 irq: Irq::default(),
                 loud: LoudDrop,
             });
-            let dev = &sc.dev;
-            let dev_ptr = dev.as_ptr();
-            assert_eq!(bus_setup_intr!(dev, &sc.irq, 0, None, None), Err(EDOOFUS));
-            if ofw_bus_is_compatible(dev_ptr, c"irq_driver,set_both") {
+            let dev = sc.dev;
+            assert_eq!(bus_setup_intr(dev, proj!(&sc->irq), 0, None, None, sc), Err(EDOOFUS));
+            if ofw_bus_is_compatible(dev, c"irq_driver,set_both") {
                 irq_driver.setup(dev, sc, true, true);
             }
-            if ofw_bus_is_compatible(dev_ptr, c"irq_driver,set_filter") {
+            if ofw_bus_is_compatible(dev, c"irq_driver,set_filter") {
                 irq_driver.setup(dev, sc, true, false);
             }
-            if ofw_bus_is_compatible(dev_ptr, c"irq_driver,set_handler") {
+            if ofw_bus_is_compatible(dev, c"irq_driver,set_handler") {
                 irq_driver.setup(dev, sc, false, true);
             }
             Ok(())
         }
-        fn device_detach(sc: &Self::Softc) -> Result<()> {
-            let dev_ptr = sc.dev.as_ptr();
-            if ofw_bus_is_compatible(dev_ptr, c"irq_driver,teardown_intr") {
-                bus_teardown_intr(&sc.dev, &sc.irq).unwrap();
+        fn device_detach(sc: Pin<&Self::Softc>) -> Result<()> {
+            if ofw_bus_is_compatible(sc.dev, c"irq_driver,teardown_intr") {
+                bus_teardown_intr(sc.dev, &sc.irq).unwrap();
             }
             Ok(())
         }
     }
 
     impl IrqDriver {
-        extern "C" fn filter(sc: &IrqSoftc) -> Filter {
+        extern "C" fn filter(sc: Pin<&IrqSoftc>) -> Filter {
             println!("called filter");
-            if ofw_bus_is_compatible(sc.dev.as_ptr(), c"irq_driver,filter_handled") {
+            if ofw_bus_is_compatible(sc.dev, c"irq_driver,filter_handled") {
                 FILTER_HANDLED
             } else {
                 FILTER_SCHEDULE_THREAD
             }
         }
-        extern "C" fn handler(sc: &IrqSoftc) {
+        extern "C" fn handler(sc: Pin<&IrqSoftc>) {
             println!("called handler {sc:x?}");
         }
     }
