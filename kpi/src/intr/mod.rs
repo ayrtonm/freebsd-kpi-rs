@@ -63,14 +63,26 @@ unsafe impl Send for ConfigHook {}
 pub type ConfigHookFn<T> = extern "C" fn(Pin<&T>);
 
 impl ConfigHook {
-    pub unsafe fn new<T>(func: ConfigHookFn<T>, arg: *mut c_void) -> Self {
-        let mut c_hook = intr_config_hook::default();
-        c_hook.ich_arg = arg;
-        c_hook.ich_func = unsafe { transmute::<Option<ConfigHookFn<T>>, ich_func_t>(Some(func)) };
-
+    pub fn new() -> Self {
+        let c_hook = intr_config_hook::default();
         Self {
             inner: UnsafeCell::new(c_hook),
         }
+    }
+
+    pub fn init<T>(self: Pin<&Self>, func: ConfigHookFn<T>, arg: Pin<&T>) {
+        let c_hook = self.inner.get();
+        let arg_ptr = arg.get_ref() as *const T;
+        unsafe {
+            (*c_hook).ich_arg = arg_ptr.cast::<c_void>().cast_mut();
+            (*c_hook).ich_func = transmute::<Option<ConfigHookFn<T>>, ich_func_t>(Some(func));
+        }
+    }
+}
+
+impl Drop for ConfigHook {
+    fn drop(&mut self) {
+        config_intrhook_disestablish(self)
     }
 }
 
@@ -107,8 +119,6 @@ pub use wrappers::*;
 #[doc(hidden)]
 pub mod wrappers {
     use super::*;
-    use crate::device::{DeviceIf, Device};
-    use crate::driver::Driver;
     use core::ffi::CStr;
 
     gen_newtype! {
@@ -180,17 +190,7 @@ pub mod wrappers {
     #[cfg(feature = "intrng")]
     pub use intrng::wrappers::*;
 
-    pub fn config_intrhook_init<D: DeviceIf>(
-        dev: Device,
-        func: ConfigHookFn<D::Softc>,
-    ) -> ConfigHook {
-        assert_eq!(device_get_driver(dev), <D as Driver>::DRIVER);
-        unsafe {
-            let sc = bindings::device_get_softc(dev.as_ptr());
-            ConfigHook::new(func, sc)
-        }
-    }
-    pub fn config_intrhook_establish(hook: &ConfigHook) -> Result<()> {
+    pub fn config_intrhook_establish(hook: Pin<&ConfigHook>) -> Result<()> {
         if !cold() {
             return Err(EPERM);
         }
@@ -305,10 +305,11 @@ mod tests {
             Ok(BUS_PROBE_DEFAULT)
         }
         fn device_attach(uninit_sc: UninitRef<Self::Softc>, dev: Device) -> Result<()> {
-            let hook = config_intrhook_init::<Self>(dev, HookDriver::deferred_attach);
+            let hook = ConfigHook::new();
             let loud = LoudDrop;
             let sc = uninit_sc.init(HookSoftc { dev, hook, loud });
-            config_intrhook_establish(&sc.hook).unwrap();
+            proj!(&sc->hook).init(hook_driver_deferred_attach, sc);
+            config_intrhook_establish(proj!(&sc->hook)).unwrap();
             Ok(())
         }
         fn device_detach(_sc: Pin<&Self::Softc>) -> Result<()> {
@@ -316,11 +317,9 @@ mod tests {
         }
     }
 
-    impl HookDriver {
-        extern "C" fn deferred_attach(sc: Pin<&HookSoftc>) {
-            println!("called config hook rust function/deferred_attach");
-            config_intrhook_disestablish(&sc.hook);
-        }
+    extern "C" fn hook_driver_deferred_attach(sc: Pin<&HookSoftc>) {
+        println!("called config hook rust function/deferred_attach");
+        config_intrhook_disestablish(&sc.hook);
     }
 
     #[test]
