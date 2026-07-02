@@ -417,12 +417,16 @@ pub mod wrappers {
         BUS_PROBE_NOWILDCARD,
     }
 
-    pub fn device_get_softc<D: DeviceIf>(dev: &Device) -> &D::Softc {
-        let dev_ptr = dev.as_ptr();
+    pub unsafe fn device_get_softc_unchecked<'sc, D: DeviceIf>(dev_ptr: device_t) -> &'sc D::Softc {
         assert_eq!(device_get_driver(dev_ptr), <D as Driver>::DRIVER);
         let void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
         let sc_ptr = void_ptr.cast::<D::Softc>();
         unsafe { sc_ptr.as_ref().unwrap() }
+    }
+
+    pub fn device_get_softc<D: DeviceIf>(dev: &Device) -> &D::Softc {
+        let dev_ptr = dev.as_ptr();
+        unsafe { device_get_softc_unchecked::<D>(dev_ptr) }
     }
 
     pub fn device_claim_softc(dev: &Device) {
