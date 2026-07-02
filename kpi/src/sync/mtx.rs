@@ -27,6 +27,7 @@
  */
 
 use crate::ErrCode;
+use core::pin::Pin;
 use crate::bindings::{MTX_DEF, MTX_SPIN, mtx};
 use crate::prelude::*;
 use crate::sync::Mutable;
@@ -207,7 +208,7 @@ pub mod wrappers {
     }
 
     pub fn mtx_init<M: Lockable>(
-        lock: &M,
+        lock: Pin<&M>,
         name: &'static CStr,
         kind: Option<&'static CStr>,
         flags: Option<MtxFlags>,
@@ -224,11 +225,9 @@ pub mod wrappers {
         };
         let mtx_impl = lock.get_impl_mut();
         let mtx_ptr = mtx_impl.inner.get();
-        let mtx_lock_ptr = unsafe { &raw mut (*mtx_ptr).mtx_lock };
         unsafe {
-            // TODO: The cast was added recently and should probably be fixed on the C side
-            bindings::_mtx_init(
-                mtx_lock_ptr.cast::<usize>(),
+            bindings::fn_mtx_init(
+                mtx_ptr,
                 name_ptr,
                 kind_ptr,
                 variant | flags,
@@ -240,9 +239,8 @@ pub mod wrappers {
         let mtx_impl = &mutex.mtx_impl;
 
         let mtx_ptr = mtx_impl.inner.get();
-        let mtx_lock_ptr = unsafe { &raw mut (*mtx_ptr).mtx_lock };
         unsafe {
-            bindings::__mtx_lock_flags(mtx_lock_ptr.cast::<usize>(), 0, c"".as_ptr(), 0);
+            bindings::fn_mtx_lock(mtx_ptr);
         };
         MutexGuard { lock: mutex }
     }
@@ -250,9 +248,8 @@ pub mod wrappers {
         let mtx_impl = &mutex.mtx_impl;
 
         let mtx_ptr = mtx_impl.inner.get();
-        let mtx_lock_ptr = unsafe { &raw mut (*mtx_ptr).mtx_lock };
         unsafe {
-            bindings::__mtx_lock_spin_flags(mtx_lock_ptr.cast::<usize>(), 0, c"".as_ptr(), 0);
+            bindings::fn_mtx_lock_spin(mtx_ptr);
         };
         SpinLockGuard { lock: mutex }
     }
@@ -340,9 +337,8 @@ impl<T> Drop for MutexGuard<'_, T> {
         let mtx_impl = &self.lock.mtx_impl;
 
         let mtx_ptr = mtx_impl.inner.get();
-        let mtx_lock_ptr = unsafe { &raw mut (*mtx_ptr).mtx_lock };
         unsafe {
-            bindings::__mtx_unlock_flags(mtx_lock_ptr.cast::<usize>(), 0, c"".as_ptr(), 0);
+            bindings::fn_mtx_unlock(mtx_ptr);
         };
     }
 }
@@ -352,9 +348,8 @@ impl<T> Drop for SpinLockGuard<'_, T> {
         let mtx_impl = &self.lock.mtx_impl;
 
         let mtx_ptr = mtx_impl.inner.get();
-        let mtx_lock_ptr = unsafe { &raw mut (*mtx_ptr).mtx_lock };
         unsafe {
-            bindings::__mtx_unlock_spin_flags(mtx_lock_ptr.cast::<usize>(), 0, c"".as_ptr(), 0);
+            bindings::fn_mtx_unlock_spin(mtx_ptr);
         };
     }
 }
@@ -381,15 +376,17 @@ mod tests {
         mtx_unlock_spin(x);
     }
 
-    // These are just basic tests to make sure the guards work as expected
-    #[unsafe(no_mangle)]
-    extern "C" fn _mtx_init() {}
-    #[unsafe(no_mangle)]
-    extern "C" fn __mtx_lock_flags() {}
-    #[unsafe(no_mangle)]
-    extern "C" fn __mtx_unlock_flags() {}
-    #[unsafe(no_mangle)]
-    extern "C" fn __mtx_lock_spin_flags() {}
-    #[unsafe(no_mangle)]
-    extern "C" fn __mtx_unlock_spin_flags() {}
+    mod unmangled_fns {
+        // These are just basic tests to make sure the guards work as expected
+        #[unsafe(no_mangle)]
+        extern "C" fn fn_mtx_init() {}
+        #[unsafe(no_mangle)]
+        extern "C" fn fn_mtx_lock() {}
+        #[unsafe(no_mangle)]
+        extern "C" fn fn_mtx_unlock() {}
+        #[unsafe(no_mangle)]
+        extern "C" fn fn_mtx_lock_spin() {}
+        #[unsafe(no_mangle)]
+        extern "C" fn fn_mtx_unlock_spin() {}
+    }
 }

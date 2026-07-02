@@ -2854,6 +2854,9 @@ pub const CPUID_STDEXT3_L1D_FLUSH: i32 = 268435456;
 pub const CPUID_STDEXT3_ARCH_CAP: i32 = 536870912;
 pub const CPUID_STDEXT3_CORE_CAP: i32 = 1073741824;
 pub const CPUID_STDEXT3_SSBD: i64 = 2147483648;
+pub const CPUID_STDEXT4_SHA512: i32 = 1;
+pub const CPUID_STDEXT4_SM3: i32 = 2;
+pub const CPUID_STDEXT4_SM4: i32 = 4;
 pub const CPUID_STDEXT4_LASS: i32 = 64;
 pub const CPUID_STDEXT4_FRED: i32 = 131072;
 pub const CPUID_STDEXT4_LKGS: i32 = 262144;
@@ -4734,7 +4737,8 @@ pub const AF_INET6_SDP: i32 = 42;
 pub const AF_HYPERV: i32 = 43;
 pub const AF_DIVERT: i32 = 44;
 pub const AF_IPFWLOG: i32 = 46;
-pub const AF_MAX: i32 = 46;
+pub const AF_VSOCK: i32 = 46;
+pub const AF_MAX: i32 = 47;
 pub const AF_VENDOR00: i32 = 39;
 pub const AF_VENDOR01: i32 = 41;
 pub const AF_VENDOR03: i32 = 45;
@@ -4827,7 +4831,8 @@ pub const PF_INET6_SDP: i32 = 42;
 pub const PF_HYPERV: i32 = 43;
 pub const PF_DIVERT: i32 = 44;
 pub const PF_IPFWLOG: i32 = 46;
-pub const PF_MAX: i32 = 46;
+pub const PF_VSOCK: i32 = 46;
+pub const PF_MAX: i32 = 47;
 pub const NET_RT_DUMP: i32 = 1;
 pub const NET_RT_FLAGS: i32 = 2;
 pub const NET_RT_IFLIST: i32 = 3;
@@ -5219,6 +5224,7 @@ pub type boolean_t = ::core::ffi::c_uint;
 pub struct _device {
     _unused: [u8; 0],
 }
+pub type device_t = *mut _device;
 pub type intfptr_t = __intfptr_t;
 pub type intrmask_t = __uint32_t;
 pub type uintfptr_t = __uintfptr_t;
@@ -16352,6 +16358,7 @@ impl Default for pcmchan_syncmember {
     }
 }
 #[repr(C)]
+#[derive(Debug)]
 pub struct pcm_channel {
     pub methods: kobj_t,
     pub pid: pid_t,
@@ -16831,6 +16838,7 @@ pub const FEEDVOLUME_ENABLE: _bindgen_ty_10 = 3;
 pub const FEEDVOLUME_BYPASS: _bindgen_ty_10 = 4;
 pub type _bindgen_ty_10 = ::core::ffi::c_uint;
 #[repr(C)]
+#[derive(Debug)]
 pub struct snd_mixer {
     pub ops: kobj_ops_t,
     pub devinfo: *mut ::core::ffi::c_void,
@@ -16879,6 +16887,7 @@ impl Default for sndcard_func {
     }
 }
 #[repr(C)]
+#[derive(Debug)]
 pub struct snddev_info {
     pub channels: snddev_info__bindgen_ty_1,
     pub playcount: ::core::ffi::c_uint,
@@ -25219,4 +25228,12 @@ unsafe extern "C" {
         count: bus_size_t,
     );
     pub fn rust_bindings_bus_write_4(res: *mut resource, offset: bus_size_t, value: u32);
+    pub fn fn_mtx_lock(a: *mut mtx);
+    pub fn fn_mtx_lock_spin(a: *mut mtx);
+    pub fn fn_mtx_init(
+        a: *mut mtx,
+        b: *const ::core::ffi::c_char,
+        c: *const ::core::ffi::c_char,
+        d: ::core::ffi::c_int,
+    );
 }

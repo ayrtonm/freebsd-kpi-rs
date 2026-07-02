@@ -88,11 +88,33 @@ macro_rules! base {
 
 #[macro_export]
 macro_rules! proj {
-    (& $struct:ident -> $field_name:ident) => {
+    (& $struct:ident . $field_name:ident) => {
         {
             use core::pin::Pin;
             let _ty_ck: &Pin<&_> = &$struct;
             unsafe { Pin::map_unchecked($struct, |s| &s.$field_name) }
+        }
+    };
+    (& $indexable:ident [ $idx:expr ]) => {
+        {
+            use core::pin::Pin;
+            let _ty_ck: &Pin<&_> = &$indexable;
+            $crate::ffi::assert_pin_has_fixed_index($indexable);
+            unsafe { Pin::map_unchecked($indexable, |a| &a[$idx]) }
+        }
+    };
+    (& $struct:ident . $field:ident $($rest:tt)*) => {
+        {
+            let first_proj = $crate::proj!(&$struct.$field);
+            let res = $crate::proj!(& first_proj $($rest)*);
+            res
+        }
+    };
+    (& $indexable:ident [ $idx:expr ] $($rest:tt)*) => {
+        {
+            let first_proj = $crate::proj!(&$indexable[$idx]);
+            let res = $crate::proj!(& first_proj $($rest)*);
+            res
         }
     };
 }

@@ -136,6 +136,8 @@ pub mod misc {
     use crate::bindings::{cpuset_t, u_int};
     use core::ffi::c_int;
     use crate::ffi::Ptr;
+    #[cfg(target_arch = "aarch64")]
+    use crate::device::Device;
     use crate::kobj::AsRustType;
 
     pub struct Thread(pub Ptr<bindings::thread>);
@@ -205,12 +207,12 @@ pub mod misc {
         unsafe { bindings::rust_bindings_CPU_ISSET(cpu, set as *const cpuset_t as *mut cpuset_t) }
     }
     #[cfg(target_arch = "aarch64")]
-    pub fn gpiobus_add_bus(dev: &crate::device::Device) -> Result<device_t> {
+    pub fn gpiobus_add_bus(dev: crate::device::Device) -> Result<Device> {
         let res = unsafe { bindings::gpiobus_add_bus(dev.as_ptr()) };
-        if res.0.is_null() {
+        if res.is_null() {
             Err(ENULLPTR)
         } else {
-            Ok(res)
+            Ok(Device::new(res))
         }
     }
 }

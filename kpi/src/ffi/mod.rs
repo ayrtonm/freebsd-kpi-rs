@@ -32,6 +32,9 @@ use core::fmt;
 use core::fmt::{Debug, Formatter};
 use core::pin::Pin;
 use core::mem::MaybeUninit;
+use crate::sync::arc::Arc;
+use crate::boxed::Box;
+use crate::malloc::Malloc;
 use core::ptr::null_mut;
 
 mod cstring;
@@ -82,14 +85,10 @@ impl<T> Ptr<T> {
 
     /// Creates a new `Ptr` from a reference.
     ///
-    /// `Ptr` does not guarantee that the pointee will not be freed/move so this technically doesn't
-    /// need to be marked as unsafe. Here the unsafe marker is more of a lint against mis-use.
-    ///
-    /// # Safety
-    ///
-    /// The caller should ensure that the pointee will live at the same address for as long as the
-    /// return value will be needed.
-    pub const unsafe fn from_ref(x: &T) -> Self {
+    /// `Ptr` does not guarantee that the pointee will not be freed/move so the caller should ensure
+    /// that the pointee will live at the same address for as long as the return value will be
+    /// needed.
+    pub const fn from_ref(x: &T) -> Self {
         Self(x as *const T as *mut T)
     }
 
@@ -131,3 +130,14 @@ impl<'a, T> UninitRef<'a, T> {
         unsafe { Pin::new_unchecked(res) }
     }
 }
+
+pub unsafe trait FixedIndex {}
+unsafe impl<T, const N: usize> FixedIndex for [T; N] {}
+unsafe impl<T> FixedIndex for [T] {}
+
+unsafe impl<T, M: Malloc> FixedIndex for Box<[T], M> {}
+unsafe impl<T, M: Malloc, const N: usize> FixedIndex for Box<[T; N], M> {}
+
+unsafe impl<T, M: Malloc, const N: usize> FixedIndex for Arc<[T; N], M> {}
+
+pub fn assert_pin_has_fixed_index<T: FixedIndex>(_p: Pin<&T>) {}

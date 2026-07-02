@@ -86,7 +86,11 @@
 #include "mixer_if.h"
 #endif
 
-#if __has_include(<dev/virtio/virtio.h>)
+// FIXME: The second part is a workaround for what is arguably a bug in the APPLE KERNCONF
+// i.e. the build has -I flags that pick up virtio headers, but omits the virtio sources leading
+// to an undefined symbol ld error. This wouldn't be a problem except that bindgen generates a
+// inlines.o which references the symbols declared by the virtio headers
+#if __has_include(<dev/virtio/virtio.h>) && !defined(KERNCONF_APPLE)
 #include <dev/virtio/virtio.h>
 #include <dev/virtio/virtqueue.h>
 #endif
@@ -172,34 +176,50 @@ rust_bindings_CPU_AFF1(uint64_t mpidr) {
 }
 #endif
 
-void
-rust_bindings_bus_space_barrier(bus_space_tag_t s, bus_space_handle_t h, bus_size_t o, bus_size_t len, int flags) {
-    return bus_space_barrier(s, h, o, len, flags);
-}
+#define FN1(macro, ret, ty1) \
+    ret fn_##macro(ty1 a) { \
+        return macro(a); \
+    }
 
-void
-rust_bindings_bus_barrier(struct resource *r, bus_size_t o, bus_size_t len, int flags) {
-    return bus_barrier(r, o, len, flags);
-}
+#define FN2(macro, ret, ty1, ty2) \
+    ret fn_##macro(ty1 a, ty2 b) { \
+        return macro(a, b); \
+    }
 
-int
-rust_bindings_bus_space_map(bus_space_tag_t s, bus_addr_t a, bus_size_t sz, int f, bus_space_handle_t *hp) {
-    return bus_space_map(s, a, sz, f, hp);
-}
+#define FN3(macro, ret, ty1, ty2, ty3) \
+    ret fn_##macro(ty1 a, ty2 b, ty3 c) { \
+        return macro(a, b, c); \
+    }
 
-size_t
-rust_bindings_mtx_initialized(const struct mtx *mutex) {
-    return mtx_initialized(mutex);
-}
+#define FN4(macro, ret, ty1, ty2, ty3, ty4) \
+    ret fn_##macro(ty1 a, ty2 b, ty3 c, ty4 d) { \
+        return macro(a, b, c, d); \
+    }
+
+#define FN5(macro, ret, ty1, ty2, ty3, ty4, ty5) \
+    ret fn_##macro(ty1 a, ty2 b, ty3 c, ty4 d, ty5 e) { \
+        return macro(a, b, c, d, e); \
+    }
+
+FN5(bus_space_barrier, void, bus_space_tag_t, bus_space_handle_t, bus_size_t, bus_size_t, int)
+FN4(bus_barrier, void, struct resource*, bus_size_t, bus_size_t, int)
+FN5(bus_space_map, int, bus_space_tag_t, bus_addr_t, bus_size_t, int, bus_space_handle_t*)
+
+FN4(mtx_init, void, struct mtx*, const char*, const char*, int)
+FN1(mtx_initialized, size_t, const struct mtx*)
+FN1(mtx_lock, void, struct mtx*)
+FN1(mtx_lock_spin, void, struct mtx*)
+FN1(mtx_unlock, void, struct mtx*)
+FN1(mtx_unlock_spin, void, struct mtx*)
 
 #define BUS_N(n, ty) \
-    ty rust_bindings_bus_read_##n(struct resource *res, bus_size_t offset) { \
+    ty fn_bus_read_##n(struct resource *res, bus_size_t offset) { \
         return bus_read_##n(res, offset); \
     } \
-    void rust_bindings_bus_write_region_##n(struct resource *res, bus_size_t o, ty *p, bus_size_t count) { \
+    void fn_bus_write_region_##n(struct resource *res, bus_size_t o, ty *p, bus_size_t count) { \
         return bus_write_region_##n(res, o, p, count); \
     } \
-    void rust_bindings_bus_write_##n(struct resource *res, bus_size_t offset, ty value) { \
+    void fn_bus_write_##n(struct resource *res, bus_size_t offset, ty value) { \
         return bus_write_##n(res, offset, value); \
     }
 

@@ -437,30 +437,30 @@ pub mod wrappers {
     }
     bus_n!(
         bus_read_1,
-        rust_bindings_bus_read_1,
+        fn_bus_read_1,
         bus_write_1,
-        rust_bindings_bus_write_1,
+        fn_bus_write_1,
         u8
     );
     bus_n!(
         bus_read_2,
-        rust_bindings_bus_read_2,
+        fn_bus_read_2,
         bus_write_2,
-        rust_bindings_bus_write_2,
+        fn_bus_write_2,
         u16
     );
     bus_n!(
         bus_read_4,
-        rust_bindings_bus_read_4,
+        fn_bus_read_4,
         bus_write_4,
-        rust_bindings_bus_write_4,
+        fn_bus_write_4,
         u32
     );
     bus_n!(
         bus_read_8,
-        rust_bindings_bus_read_8,
+        fn_bus_read_8,
         bus_write_8,
-        rust_bindings_bus_write_8,
+        fn_bus_write_8,
         u64
     );
 }

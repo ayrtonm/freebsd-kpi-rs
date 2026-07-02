@@ -115,13 +115,15 @@ macro_rules! pic_map_intr {
             //let this_fn_id = TypeId::of::<Option<
             //assert!(typedef_id == this_fn_id);
             use $crate::bindings;
+            use core::pin::Pin;
             use $crate::kobj::{KobjLayout, AsRustType, AsCType};
 
             let void_ptr = unsafe { bindings::device_get_softc(dev) };
             let sc_ptr = void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
-            let sc = unsafe { sc_ptr.as_ref().unwrap() };
+            let sc_ref = unsafe { sc_ptr.as_ref().unwrap() };
+            let sc = unsafe { Pin::new_unchecked(sc_ref) };
             let data = data.as_rust_type();
-            let res = match <$driver_ty as PicIf>::pic_map_intr(&sc, data) {
+            let res = match <$driver_ty as PicIf>::pic_map_intr(sc, data) {
                 Ok(isrc_ref) => {
                     unsafe {
                         *isrcp = base!(&isrc_ref);
@@ -154,12 +156,14 @@ macro_rules! pic_ipi_setup {
             //let this_fn_id = TypeId::of::<Option<
             //assert!(typedef_id == this_fn_id);
             use $crate::bindings;
+            use core::pin::Pin;
             use $crate::kobj::{KobjLayout, AsRustType, AsCType};
 
             let void_ptr = unsafe { bindings::device_get_softc(dev) };
             let sc_ptr = void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
-            let sc = unsafe { sc_ptr.as_ref().unwrap() };
-            let res = match <$driver_ty as PicIf>::pic_ipi_setup(&sc, ipi) {
+            let sc_ref = unsafe { sc_ptr.as_ref().unwrap() };
+            let sc = unsafe { Pin::new_unchecked(sc_ref) };
+            let res = match <$driver_ty as PicIf>::pic_ipi_setup(sc, ipi) {
                 Ok(isrc_ref) => {
                     unsafe {
                         *isrcp = base!(&isrc_ref);
@@ -208,7 +212,7 @@ pub trait PicIf: DeviceIf {
     ) -> Result<()> {
         unimplemented!()
     }
-    fn pic_map_intr(sc: Pin<&Self::Softc>, data: MapData) -> Result<&IrqSrc<Self::IrqSrcFields>> {
+    fn pic_map_intr(sc: Pin<&Self::Softc>, data: MapData) -> Result<Pin<&IrqSrc<Self::IrqSrcFields>>> {
         unimplemented!()
     }
     fn pic_enable_intr(sc: Pin<&Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
@@ -232,7 +236,7 @@ pub trait PicIf: DeviceIf {
     fn pic_init_secondary(sc: Pin<&Self::Softc>, root: IntrRoot) {
         unimplemented!()
     }
-    fn pic_ipi_setup(sc: Pin<&Self::Softc>, ipi: u32) -> Result<&IrqSrc<Self::IrqSrcFields>> {
+    fn pic_ipi_setup(sc: Pin<&Self::Softc>, ipi: u32) -> Result<Pin<&IrqSrc<Self::IrqSrcFields>>> {
         unimplemented!()
     }
     fn pic_ipi_send(

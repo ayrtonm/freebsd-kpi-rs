@@ -27,6 +27,7 @@
  */
 
 use crate::ErrCode;
+use core::pin::Pin;
 use crate::bindings::{task, task_fn_t, taskqueue};
 use crate::ffi::ArrayCString;
 use crate::intr::Priority;
@@ -53,7 +54,7 @@ impl Taskqueue {
 unsafe impl Sync for Taskqueue {}
 unsafe impl Send for Taskqueue {}
 
-pub type TaskFn<T> = extern "C" fn(&T, u32);
+pub type TaskFn<T> = extern "C" fn(Pin<&T>, u32);
 
 #[derive(Debug)]
 pub struct Task {
@@ -61,12 +62,18 @@ pub struct Task {
 }
 
 impl Task {
-    pub unsafe fn new<T>(func: TaskFn<T>, arg: *mut c_void) -> Self {
-        let mut c_task = task::default();
-        c_task.ta_func = unsafe { transmute::<Option<TaskFn<T>>, task_fn_t>(Some(func)) };
-        c_task.ta_context = arg;
+    pub fn new() -> Self {
+        let c_task = task::default();
         Self {
             inner: UnsafeCell::new(c_task),
+        }
+    }
+    pub fn init<T>(self: Pin<&Self>, func: TaskFn<T>, arg: Pin<&T>) {
+        let c_task = self.inner.get();
+        let arg_ptr = arg.get_ref() as *const T;
+        unsafe {
+            (*c_task).ta_context = arg_ptr.cast_mut().cast::<c_void>();
+            (*c_task).ta_func = unsafe { transmute::<Option<TaskFn<T>>, task_fn_t>(Some(func)) };
         }
     }
 }
@@ -82,15 +89,6 @@ pub mod wrappers {
     use super::*;
     use crate::device::{Device, DeviceIf};
     use crate::driver::Driver;
-
-    pub fn task_init<D: DeviceIf>(dev: Device, func: TaskFn<D::Softc>) -> Task {
-        let dev_ptr = dev.as_ptr();
-        assert_eq!(device_get_driver(dev), <D as Driver>::DRIVER);
-        unsafe {
-            let sc = bindings::device_get_softc(dev_ptr);
-            Task::new(func, sc)
-        }
-    }
 
     // Max queue name is 32 chars which is over the ArrayCString limit
     pub fn taskqueue_create(
