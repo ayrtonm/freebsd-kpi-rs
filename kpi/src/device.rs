@@ -436,8 +436,8 @@ pub mod wrappers {
         unsafe { bindings::device_get_state(dev.as_ptr()) }
     }
 
-    pub fn device_get_parent(dev: &Device) -> Result<device_t> {
-        let res = unsafe { bindings::device_get_parent(dev.as_ptr()) };
+    pub fn device_get_parent(dev_ptr: device_t) -> Result<device_t> {
+        let res = unsafe { bindings::device_get_parent(dev_ptr) };
         if res.as_ptr().is_null() {
             Err(ENULLPTR)
         } else {
