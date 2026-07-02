@@ -85,31 +85,3 @@ macro_rules! base {
         }
     };
 }
-
-#[macro_export]
-macro_rules! device_get_softc {
-    ($($args:tt)*) => {
-        $crate::prelude::device_get_softc::<Self>($($args)*)
-    };
-}
-
-#[macro_export]
-macro_rules! bus_setup_intr {
-    ($($args:tt)*) => {
-        $crate::prelude::bus_setup_intr::<Self>($($args)*)
-    };
-}
-
-#[macro_export]
-macro_rules! config_intrhook_init {
-    ($($args:tt)*) => {
-        $crate::prelude::config_intrhook_init::<Self>($($args)*)
-    };
-}
-
-#[macro_export]
-macro_rules! task_init {
-    ($($args:tt)*) => {
-        $crate::prelude::task_init::<Self>($($args)*)
-    };
-}
