@@ -32,7 +32,7 @@ use core::fmt;
 use core::fmt::{Debug, Formatter};
 use core::mem::MaybeUninit;
 use core::ops::{Deref, DerefMut};
-use core::ptr::read;
+use core::ptr;
 use core::sync::atomic::{AtomicBool, Ordering};
 
 /// Rust-style atomic reference counting with memory backed malloc(9)
@@ -144,7 +144,7 @@ impl<T: Debug> Debug for Checked<T> {
         // Just read the pointer and don't overcomplicate things. There may be mutable references to
         // the pointee so this is a best effort thing and may not be fully reliable, but it avoids
         // panics (as self.get_mut() might) while being informative.
-        let t = unsafe { read(self.t.get()) };
+        let t = unsafe { ptr::read(self.t.get()) };
         f.debug_struct("Checked")
             .field("t", &t)
             .field("borrowed", &self.borrowed)
