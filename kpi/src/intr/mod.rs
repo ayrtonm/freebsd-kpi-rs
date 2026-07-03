@@ -34,6 +34,7 @@ use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::ffi::{c_int, c_void};
 use core::mem::transmute;
+use core::ptr;
 use core::ptr::null_mut;
 use core::pin::Pin;
 
@@ -253,22 +254,17 @@ pub mod wrappers {
         wmesg: &CStr,
         timo: i32,
     ) -> Result<()> {
-        let chan_ptr = chan as *const T; //Ref::into_raw(chan).cast::<c_void>();
+        let chan_ptr = ptr::from_ref(chan);
         let wmesg_ptr = wmesg.as_ptr();
         let priority = match new_priority {
             Some(Priority(p)) => p,
             None => 0,
         };
         let res = unsafe {
-            bindings::_sleep(
-                chan_ptr.cast::<c_void>(),
-                null_mut(),
+            bindings::fn_tsleep(chan_ptr.cast::<c_void>(),
                 priority,
                 wmesg_ptr,
-                bindings::tick_sbt * timo as i64,
-                0,
-                bindings::C_HARDCLOCK,
-            )
+                timo)
         };
         if res != 0 {
             return Err(ErrCode::from(res));
@@ -277,7 +273,7 @@ pub mod wrappers {
     }
 
     pub fn wakeup<T>(chan: &T) {
-        let chan_ptr = chan as *const T; //Ref::into_raw(chan).cast::<c_void>();
+        let chan_ptr = ptr::from_ref(chan);
         unsafe { bindings::wakeup(chan_ptr.cast::<c_void>()) }
     }
 }

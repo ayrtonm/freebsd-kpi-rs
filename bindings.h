@@ -212,6 +212,8 @@ FN1(mtx_lock_spin, void, struct mtx*)
 FN1(mtx_unlock, void, struct mtx*)
 FN1(mtx_unlock_spin, void, struct mtx*)
 
+FN4(tsleep, int, const void*, int, const char*, int)
+
 #define BUS_N(n, ty) \
     ty fn_bus_read_##n(struct resource *res, bus_size_t offset) { \
         return bus_read_##n(res, offset); \
