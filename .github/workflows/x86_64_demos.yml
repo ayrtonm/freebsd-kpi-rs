@@ -25,11 +25,11 @@ jobs:
         mkdir -p ../obj
         echo "MAKEOBJDIRPREFIX=${PWD%/*}/obj" >> $GITHUB_ENV
 
-    - name: Checkout FreeBSD src virtio_snd branch
+    - name: Checkout FreeBSD src virtio branch
       uses: actions/checkout@v5
       with:
         repository: ayrtonm/freebsd-src
-        ref: virtio_snd
+        ref: virtio
 
     - name: Checkout KPI repo
       uses: actions/checkout@v5
