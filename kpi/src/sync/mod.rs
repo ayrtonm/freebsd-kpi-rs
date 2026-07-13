@@ -33,7 +33,7 @@ use core::fmt::{Debug, Formatter};
 use core::mem::MaybeUninit;
 use core::ops::{Deref, DerefMut};
 use core::ptr;
-use core::sync::atomic::{AtomicBool, Ordering};
+use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 
 /// Rust-style atomic reference counting with memory backed malloc(9)
 pub mod arc;
@@ -42,10 +42,14 @@ pub mod mtx;
 /// Shared/Exclusive lock backed by sx(9)
 pub mod sx;
 
+const ONCE_INIT_UNINIT: u8 = 0;
+const ONCE_INIT_RUNNING: u8 = 1;
+const ONCE_INIT_COMPLETE: u8 = 2;
+
 #[derive(Debug)]
 pub struct OnceInit<T> {
     t: UnsafeCell<MaybeUninit<T>>,
-    init: AtomicBool,
+    state: AtomicU8,
 }
 
 impl<T> Default for OnceInit<T> {
@@ -58,26 +62,37 @@ impl<T> OnceInit<T> {
     pub fn uninit() -> Self {
         Self {
             t: UnsafeCell::new(MaybeUninit::uninit()),
-            init: AtomicBool::new(false),
+            state: AtomicU8::new(ONCE_INIT_UNINIT),
         }
     }
 
     pub fn new(t: T) -> Self {
         Self {
             t: UnsafeCell::new(MaybeUninit::new(t)),
-            init: AtomicBool::new(true),
+            state: AtomicU8::new(ONCE_INIT_COMPLETE),
         }
     }
 
     pub fn init(&self, t: T) -> &mut T {
-        if !self
-            .init
-            .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
-            .is_ok()
+        // Claim exclusive right to write `t`. This alone doesn't need to publish anything to
+        // readers yet, since the state isn't COMPLETE until after the write below.
+        if self
+            .state
+            .compare_exchange(
+                ONCE_INIT_UNINIT,
+                ONCE_INIT_RUNNING,
+                Ordering::Relaxed,
+                Ordering::Relaxed,
+            )
+            .is_err()
         {
             panic!("already init {:?}", type_name::<T>());
         }
-        unsafe { self.t.get().as_mut().unwrap().write(t) }
+        let r = unsafe { self.t.get().as_mut().unwrap().write(t) };
+        // Release-pairs with the Acquire load in try_get() so the write above is visible to any
+        // thread that observes COMPLETE.
+        self.state.store(ONCE_INIT_COMPLETE, Ordering::Release);
+        r
     }
 
     pub fn get(&self) -> &T {
@@ -85,7 +100,7 @@ impl<T> OnceInit<T> {
     }
 
     pub fn try_get(&self) -> Option<&T> {
-        if !self.init.load(Ordering::Relaxed) {
+        if self.state.load(Ordering::Acquire) != ONCE_INIT_COMPLETE {
             None
         } else {
             Some(unsafe { self.t.get().as_ref().unwrap().assume_init_ref() })
@@ -93,7 +108,7 @@ impl<T> OnceInit<T> {
     }
 
     pub fn is_init(&self) -> bool {
-        self.init.load(Ordering::Relaxed)
+        self.state.load(Ordering::Relaxed) == ONCE_INIT_COMPLETE
     }
 }
 
@@ -221,7 +236,7 @@ impl<T: ?Sized> DerefMut for CheckedGuard<'_, T> {
 
 impl<T: ?Sized> Drop for CheckedGuard<'_, T> {
     fn drop(&mut self) {
-        self.borrowed.store(false, Ordering::Relaxed);
+        self.borrowed.store(false, Ordering::Release);
     }
 }
 
