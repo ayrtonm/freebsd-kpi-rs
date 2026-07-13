@@ -58,6 +58,9 @@ impl_pod_for! {
     i8 i16 i32 i64 i128
 }
 
+// TODO: Move all Pod stuff somewhere else (maybe the ffi module)
+pub fn assert_is_pod<T: Pod>() {}
+
 /// A type owning data which may be appended to an sglist
 ///
 /// # Implementation Safety
