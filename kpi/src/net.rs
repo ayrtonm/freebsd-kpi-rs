@@ -156,8 +156,12 @@ pub mod wrappers {
 #[macro_export]
 macro_rules! define_protosw {
     (
-        $sw_ty:ident, $sw_name:ident, $sock_ty:expr,
-        $($trait_fn:ident: $unmangled_name:ident,)*
+        static $sw_name:ident: $sw_ty:ident = {
+            pr_type: $sock_ty:expr,
+            pr_protocol: $sock_protocol:expr,
+            pr_flags: $sock_flags:expr,
+            $($trait_fn:ident: $unmangled_name:ident,)*
+        }
     ) => {
         #[repr(C)]
         pub struct $sw_ty(core::cell::UnsafeCell<$crate::bindings::protosw>);
@@ -167,7 +171,9 @@ macro_rules! define_protosw {
         static $sw_name: $sw_ty = $sw_ty(core::cell::UnsafeCell::new({
             use core::mem::MaybeUninit;
             let mut res: $crate::bindings::protosw = unsafe { MaybeUninit::zeroed().assume_init() };
-            res.pr_type = $sock_ty as i16;
+            res.pr_type = $sock_ty;
+            res.pr_protocol = $sock_protocol;
+            res.pr_flags = $sock_flags;
             $(res.$trait_fn = Some($unmangled_name);)*
             res
         }));
