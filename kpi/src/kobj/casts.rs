@@ -65,6 +65,12 @@ impl<'a, T> AsRustType<'a, &'a T> for *mut T {
     }
 }
 
+impl<'a, T> AsRustType<'a, Option<&'a T>, Option<&'a T>> for *mut T {
+    fn as_rust_type(&'a self) -> Option<&'a T> {
+        unsafe { self.as_ref() }
+    }
+}
+
 impl<'a, T> AsRustType<'a, Pin<&'a T>, Pin<&'a T>> for *mut T {
     fn as_rust_type(&'a self) -> Pin<&'a T> {
         unsafe { Pin::new_unchecked(self.as_ref().unwrap()) }
