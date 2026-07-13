@@ -6,41 +6,70 @@ use crate::kobj::AsRustType;
 use crate::boxed::Box;
 use core::marker::PhantomData;
 use core::ptr::NonNull;
+use crate::malloc::Malloc;
 use core::sync::atomic::{AtomicU16, Ordering};
 
 pub type SockAddr = bindings::sockaddr;
+
+#[macro_export]
+macro_rules! define_sockaddr {
+    (struct $addr_name:ident {
+        $($field:ident: $field_ty:ty,)*
+    }) => {
+        #[repr(C)]
+        #[derive(Debug, PartialEq, Eq, Copy, Clone)]
+        struct $addr_name {
+            sa_len: core::ffi::c_char,
+            sa_family: bindings::sa_family_t,
+            $($field: $field_ty,)*
+        }
+        impl $addr_name {
+            pub fn from_ref(addr: &SockAddr) -> $addr_name {
+                // Assert all address fields are plain-ol-data
+                $($crate::collections::assert_is_pod::<$field_ty>();)*
+
+                // FIXME: take sa_len and sa_family into account
+                // Assert there is no implicit padding
+                let size_sum = 0 $( + size_of::<$field_ty>())*;
+                assert!(size_sum == size_of::<$addr_name>());
+
+                let mut offset = 0;
+                let sa_data = &addr.sa_data;
+                $(
+                    let $field = <$field_ty>::from_ne_bytes(sa_data[offset..offset + size_of::<$field_ty>()].try_into().unwrap());
+                    offset += size_of::<$field_ty>();
+                )*
+                Self {
+                    sa_len: addr.sa_len,
+                    sa_family: addr.sa_family,
+                    $($field,)*
+                }
+            }
+        }
+    };
+}
 
 #[allow(unused_variables)]
 pub trait ProtoSw {
     // Protocol control block storing state of an active connection
     type Pcb;
 
-    fn pr_attach(so: SocketRef, proto: i32, td: Thread) -> Result<()> {
+    fn pr_attach(so: Socket<Self::Pcb>, proto: i32, td: Thread) -> Result<()> {
         unimplemented!()
     }
-    fn pr_bind(so: SocketRef, addr: &SockAddr, td: Thread) -> Result<()> {
+    fn pr_bind(so: Socket<Self::Pcb>, addr: Option<&SockAddr>, td: Thread) -> Result<()> {
         unimplemented!()
     }
-    fn pr_listen(so: SocketRef, backlog: i32, td: Thread) -> Result<()> {
+    fn pr_listen(so: Socket<Self::Pcb>, backlog: i32, td: Thread) -> Result<()> {
         unimplemented!()
-    }
-
-    // TODO: leaks the box on error
-    fn set_pcb(so: SocketRef, pcb: Box<Self::Pcb>) -> Result<()>{//, Option<Box<Self::Pcb>>) {
-        let so_ptr = so.0.as_ptr();
-        let pcb_ptr = unsafe { (*so_ptr).so_pcb };
-        if !pcb_ptr.is_null() {
-            return Err(EISCONN);//, Some(pcb));
-        }
-        unsafe {
-            (*so_ptr).so_pcb = Box::into_raw(pcb).cast::<c_void>();
-        }
-        Ok(())
     }
 }
 
 #[derive(Copy, Clone)]
-pub struct SocketRef<'a>(NonNull<bindings::socket>, PhantomData<&'a bindings::socket>);
+pub struct Socket<'a, P> {
+    ptr: NonNull<bindings::socket>,
+    _marker: PhantomData<&'a P>,
+}
 
 pub struct SockLockGuard<'a> {
     so_lock: *mut bindings::mtx,
@@ -60,50 +89,68 @@ impl<'a> Drop for SockLockGuard<'a> {
 
 // sys/socketvar.h contains a comment with what locks each struct socket field. That key is used to
 // define the following methods
-impl<'a> SocketRef<'a> {
+impl<'a, P> Socket<'a, P> {
+    pub fn so_pcb_set<M: Malloc>(&self, pcb: Box<P, M>) -> Result<()> {
+        let so_ptr = self.ptr.as_ptr();
+        let pcb_ptr = unsafe { (*so_ptr).so_pcb };
+        if !pcb_ptr.is_null() {
+            return Err(EISCONN);
+        }
+        unsafe {
+            (*so_ptr).so_pcb = Box::into_raw(pcb).cast::<c_void>()
+        };
+        Ok(())
+    }
+
+    pub fn so_pcb(&self) -> Option<&P> {
+        let so_ptr = self.ptr.as_ptr();
+        let pcb_ptr = unsafe { (*so_ptr).so_pcb };
+        NonNull::new(pcb_ptr).map(|pcb| unsafe { pcb.cast::<P>().as_ref() })
+    }
+
     pub fn so_type(&self) -> i32 {
-        let so_ptr = self.0.as_ptr();
+        let so_ptr = self.ptr.as_ptr();
         // SAFETY: constant after allocation, no locking required.
         i32::from(unsafe { (*so_ptr).so_type })
     }
 
     // TODO: Can I return a shared reference?
     pub fn so_cred(&self) -> *mut bindings::ucred {
-        let so_ptr = self.0.as_ptr();
+        let so_ptr = self.ptr.as_ptr();
         // SAFETY: constant after allocation, no locking required.
         unsafe { (*so_ptr).so_cred }
     }
 
     // TODO: Can I return a shared reference?
     pub fn so_vnet(&self) -> *mut bindings::vnet {
-        let so_ptr = self.0.as_ptr();
+        let so_ptr = self.ptr.as_ptr();
         // SAFETY: constant after allocation, no locking required.
         unsafe { (*so_ptr).so_vnet }
     }
 
     // TODO: Can I return a shared reference?
     pub fn so_proto(&self) -> *mut bindings::protosw {
-        let so_ptr = self.0.as_ptr();
+        let so_ptr = self.ptr.as_ptr();
         // SAFETY: constant after allocation, no locking required.
         unsafe { (*so_ptr).so_proto }
     }
 
     pub fn so_error(&self) -> u16 {
-        let so_ptr = self.0.as_ptr();
+        let so_ptr = self.ptr.as_ptr();
         let so_error_ptr = unsafe { &raw mut (*so_ptr).so_error };
         // SAFETY: field is aligned to u16 and only used in other atomic u16 accesses
         unsafe { AtomicU16::from_ptr(so_error_ptr).load(Ordering::Relaxed) }
     }
 
     pub fn so_rerror(&self) -> u16 {
-        let so_ptr = self.0.as_ptr();
+        let so_ptr = self.ptr.as_ptr();
         let so_rerror_ptr = unsafe { &raw mut (*so_ptr).so_rerror };
         // SAFETY: field is aligned to u16 and only used in other atomic u16 accesses
         unsafe { AtomicU16::from_ptr(so_rerror_ptr).load(Ordering::Relaxed) }
     }
 
     fn sock_lock(&self) -> SockLockGuard<'_> {
-        let so_ptr = self.0.as_ptr();
+        let so_ptr = self.ptr.as_ptr();
         let so_lock = unsafe { &raw mut (*so_ptr).so_lock };
 
         unsafe { bindings::fn_mtx_lock(so_lock) };
@@ -138,9 +185,12 @@ impl<'a> SocketRef<'a> {
     }
 }
 
-impl<'a> AsRustType<'a, SocketRef<'a>> for *mut bindings::socket {
-    fn as_rust_type(&'a self) -> SocketRef<'a> {
-        SocketRef(NonNull::new(*self).unwrap(), PhantomData)
+impl<'a, P> AsRustType<'a, Socket<'a, P>> for *mut bindings::socket {
+    fn as_rust_type(&'a self) -> Socket<'a, P> {
+        Socket {
+            ptr: NonNull::new(*self).unwrap(),
+            _marker: PhantomData,
+        }
     }
 }
 
@@ -148,7 +198,7 @@ impl<'a> AsRustType<'a, SocketRef<'a>> for *mut bindings::socket {
 pub mod wrappers {
     use super::*;
 
-    pub fn SOCK_LOCK<'a>(so: &'a SocketRef<'_>) -> SockLockGuard<'a> {
+    pub fn SOCK_LOCK<'a, P>(so: &'a Socket<'_, P>) -> SockLockGuard<'a> {
         so.sock_lock()
     }
 }
