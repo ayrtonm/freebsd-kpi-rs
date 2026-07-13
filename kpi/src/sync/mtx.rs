@@ -33,7 +33,7 @@ use crate::prelude::*;
 use crate::sync::Mutable;
 use core::cell::UnsafeCell;
 use core::ffi::{CStr, c_int, c_void};
-use core::mem::drop;
+use core::mem::{drop, MaybeUninit};
 use core::ops::{Deref, DerefMut};
 use core::ptr::null_mut;
 
@@ -110,8 +110,9 @@ pub struct MtxCommon {
 }
 
 impl MtxCommon {
-    pub fn new() -> Self {
-        let inner = UnsafeCell::new(mtx::default());
+    pub const fn new() -> Self {
+        let m: mtx = unsafe { MaybeUninit::zeroed().assume_init() };
+        let inner = UnsafeCell::new(m);
         Self { inner }
     }
 }
@@ -129,7 +130,7 @@ pub struct Mutex<T> {
 }
 
 impl<T> Mutex<T> {
-    pub fn new(t: T) -> Self {
+    pub const fn new(t: T) -> Self {
         let mtx_impl = MtxCommon::new();
         Self {
             mtx_impl,
@@ -153,7 +154,7 @@ pub struct SpinLock<T> {
 }
 
 impl<T> SpinLock<T> {
-    pub fn new(t: T) -> Self {
+    pub const fn new(t: T) -> Self {
         let mtx_impl = MtxCommon::new();
         Self {
             mtx_impl,
