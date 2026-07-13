@@ -260,6 +260,9 @@ pub mod prelude {
     pub use crate::malloc::wrappers::*;
 
     #[doc(inline)]
+    pub use crate::net::wrappers::*;
+
+    #[doc(inline)]
     #[cfg(feature = "fdt")]
     pub use crate::ofw::wrappers::*;
 
