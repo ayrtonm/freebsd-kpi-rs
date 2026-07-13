@@ -7,6 +7,7 @@ use crate::boxed::Box;
 use core::marker::PhantomData;
 use core::ptr::NonNull;
 use crate::malloc::Malloc;
+use crate::ErrCode;
 use core::sync::atomic::{AtomicU16, Ordering};
 
 pub type SockAddr = bindings::sockaddr;
@@ -19,8 +20,6 @@ macro_rules! define_sockaddr {
         #[repr(C)]
         #[derive(Debug, PartialEq, Eq, Copy, Clone)]
         struct $addr_name {
-            sa_len: core::ffi::c_char,
-            sa_family: bindings::sa_family_t,
             $($field: $field_ty,)*
         }
         impl $addr_name {
@@ -28,7 +27,6 @@ macro_rules! define_sockaddr {
                 // Assert all address fields are plain-ol-data
                 $($crate::collections::assert_is_pod::<$field_ty>();)*
 
-                // FIXME: take sa_len and sa_family into account
                 // Assert there is no implicit padding
                 let size_sum = 0 $( + size_of::<$field_ty>())*;
                 assert!(size_sum == size_of::<$addr_name>());
@@ -40,8 +38,6 @@ macro_rules! define_sockaddr {
                     offset += size_of::<$field_ty>();
                 )*
                 Self {
-                    sa_len: addr.sa_len,
-                    sa_family: addr.sa_family,
                     $($field,)*
                 }
             }
@@ -63,6 +59,12 @@ pub trait ProtoSw {
     fn pr_listen(so: Socket<Self::Pcb>, backlog: i32, td: Thread) -> Result<()> {
         unimplemented!()
     }
+    fn pr_accept(so: Socket<Self::Pcb>, addr: &SockAddr) -> Result<()> {
+        unimplemented!()
+    }
+    fn pr_connect(so: Socket<Self::Pcb>, addr: Option<&SockAddr>, td: Thread) -> Result<()> {
+        unimplemented!()
+    }
 }
 
 #[derive(Copy, Clone)]
@@ -72,6 +74,7 @@ pub struct Socket<'a, P> {
 }
 
 pub struct SockLockGuard<'a> {
+    ptr: NonNull<bindings::socket>,
     so_lock: *mut bindings::mtx,
     pub so_options: &'a mut i32,
     pub so_state: &'a mut i16,
@@ -174,6 +177,7 @@ impl<'a, P> Socket<'a, P> {
         let so_splice_back = unsafe { so_splice_back_ptr.as_mut().unwrap() };
 
         SockLockGuard {
+            ptr: self.ptr,
             so_lock,
             so_options,
             so_state,
@@ -200,6 +204,22 @@ pub mod wrappers {
 
     pub fn SOCK_LOCK<'a, P>(so: &'a Socket<'_, P>) -> SockLockGuard<'a> {
         so.sock_lock()
+    }
+
+    pub fn SOCK_UNLOCK<'a>(sock_lock: SockLockGuard<'a>) {
+        drop(sock_lock)
+    }
+
+    pub fn solisten_proto_check<'a>(sock_lock: &SockLockGuard<'a>) -> Result<()> {
+        let res = unsafe { bindings::solisten_proto_check(sock_lock.ptr.as_ptr()) };
+        if res != 0 {
+            return Err(ErrCode::from(res));
+        }
+        Ok(())
+    }
+
+    pub fn solisten_proto<'a>(sock_lock: &SockLockGuard<'a>, backlog: i32) {
+        unsafe { bindings::solisten_proto(sock_lock.ptr.as_ptr(), backlog) }
     }
 }
 
@@ -234,6 +254,8 @@ macro_rules! define_protosw {
 define_interface! {
     in ProtoSw
     fn pr_attach(so: *mut bindings::socket, proto: i32, td: *mut bindings::thread) -> core::ffi::c_int;
-    fn pr_listen(so: *mut bindings::socket, backlog: i32, td: *mut bindings::thread) -> core::ffi::c_int;
     fn pr_bind(so: *mut bindings::socket, addr: *mut bindings::sockaddr, td: *mut bindings::thread) -> core::ffi::c_int;
+    fn pr_listen(so: *mut bindings::socket, backlog: i32, td: *mut bindings::thread) -> core::ffi::c_int;
+    fn pr_accept(so: *mut bindings::socket, addr: *mut bindings::sockaddr) -> core::ffi::c_int;
+    fn pr_connect(so: *mut bindings::socket, addr: *mut bindings::sockaddr, td: *mut bindings::thread) -> core::ffi::c_int;
 }
