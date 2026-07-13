@@ -179,6 +179,10 @@ impl<T, M: Malloc> LinkedList<T, M> {
         self.len
     }
 
+    pub fn iter(&self) -> Iter<'_, T> {
+        self.into_iter()
+    }
+
     fn head_as_mut(&mut self) -> Option<&mut Node<T>> {
         unsafe { self.head.map(|mut ptr| ptr.as_mut()) }
     }
@@ -274,6 +278,35 @@ impl<T, M: Malloc> LinkedList<T, M> {
                 prev_node = cur_node;
             }
             cur_node = next_node;
+        }
+    }
+}
+
+pub struct Iter<'a, T> {
+    next: Option<NonNull<Node<T>>>,
+    _marker: PhantomData<&'a T>,
+}
+
+impl<'a, T> Iterator for Iter<'a, T> {
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.next.map(|node| unsafe {
+            let node = node.as_ref();
+            self.next = node.next;
+            &node.elt
+        })
+    }
+}
+
+impl<'a, T, M: Malloc> IntoIterator for &'a LinkedList<T, M> {
+    type Item = &'a T;
+    type IntoIter = Iter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        Iter {
+            next: self.head,
+            _marker: PhantomData,
         }
     }
 }
