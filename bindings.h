@@ -212,6 +212,14 @@ FN1(mtx_lock_spin, void, struct mtx*)
 FN1(mtx_unlock, void, struct mtx*)
 FN1(mtx_unlock_spin, void, struct mtx*)
 
+FN2(sx_init, void, struct sx *, const char *)
+FN1(sx_slock, void, struct sx *)
+FN1(sx_sunlock, void, struct sx *)
+FN1(sx_xlock, void, struct sx *)
+FN1(sx_xunlock, void, struct sx *)
+FN5(sx_sleep, int, void *, struct sx *, int, const char *, int);
+
+
 FN4(tsleep, int, const void*, int, const char*, int)
 
 #define BUS_N(n, ty) \

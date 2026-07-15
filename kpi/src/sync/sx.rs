@@ -50,7 +50,7 @@ impl<T> Drop for SxSharedGuard<'_, T> {
     fn drop(&mut self) {
         let sx_ptr = self.lock.inner.get();
         unsafe {
-            bindings::_sx_sunlock(sx_ptr, c"".as_ptr(), 0);
+            bindings::fn_sx_sunlock(sx_ptr)
         }
     }
 }
@@ -77,7 +77,7 @@ impl<T> Drop for SxExclusiveGuard<'_, T> {
     fn drop(&mut self) {
         let sx_ptr = self.lock.inner.get();
         unsafe {
-            bindings::_sx_xunlock(sx_ptr, c"".as_ptr(), 0);
+            bindings::fn_sx_xunlock(sx_ptr)
         }
     }
 }
@@ -114,28 +114,29 @@ pub use wrappers::*;
 #[doc(hidden)]
 pub mod wrappers {
     use super::*;
+    use core::pin::Pin;
 
-    pub fn sx_init(lock: &SxLock<impl Sized>, name: &'static CStr) {
+    pub fn sx_init<T>(lock: Pin<&SxLock<T>>, name: &'static CStr) {
         let name_ptr = name.as_ptr();
         let sx_ptr = lock.inner.get();
         unsafe {
-            bindings::sx_init_flags(sx_ptr, name_ptr, 0);
+            bindings::fn_sx_init(sx_ptr, name_ptr)
         }
     }
 
     pub fn sx_slock<T>(lock: &SxLock<T>) -> SxSharedGuard<'_, T> {
         let sx_ptr = lock.inner.get();
         unsafe {
-            bindings::_sx_slock(sx_ptr, 0, c"".as_ptr(), 0);
-        }
+            bindings::fn_sx_slock(sx_ptr)
+        };
         SxSharedGuard { lock }
     }
 
     pub fn sx_xlock<T>(lock: &SxLock<T>) -> SxExclusiveGuard<'_, T> {
         let sx_ptr = lock.inner.get();
         unsafe {
-            bindings::_sx_xlock(sx_ptr, 0, c"".as_ptr(), 0);
-        }
+            bindings::fn_sx_xlock(sx_ptr)
+        };
         SxExclusiveGuard { lock }
     }
 
@@ -148,19 +149,16 @@ pub mod wrappers {
     ) -> (SxExclusiveGuard<'a, T>, Result<()>) {
         let lock = guard.lock;
         let sx_ptr = lock.inner.get();
-        let lock_obj_ptr = unsafe { &raw mut (*sx_ptr).lock_object };
 
         core::mem::forget(guard);
 
         let res = unsafe {
-            bindings::_sleep(
-                (chan as *const C).cast::<c_void>(),
-                lock_obj_ptr,
+            bindings::fn_sx_sleep(
+                (chan as *const C).cast::<c_void>().cast_mut(),
+                sx_ptr,
                 pri,
                 wmesg.as_ptr(),
-                bindings::tick_sbt * timo as i64,
-                0,
-                bindings::C_HARDCLOCK,
+                timo,
             )
         };
 
