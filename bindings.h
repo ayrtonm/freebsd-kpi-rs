@@ -201,26 +201,28 @@ rust_bindings_CPU_AFF1(uint64_t mpidr) {
         return macro(a, b, c, d, e); \
     }
 
-FN5(bus_space_barrier, void, bus_space_tag_t, bus_space_handle_t, bus_size_t, bus_size_t, int)
-FN4(bus_barrier, void, struct resource*, bus_size_t, bus_size_t, int)
-FN5(bus_space_map, int, bus_space_tag_t, bus_addr_t, bus_size_t, int, bus_space_handle_t*)
+FN5(bus_space_barrier, void, bus_space_tag_t, bus_space_handle_t, bus_size_t, bus_size_t, int);
+FN4(bus_barrier, void, struct resource*, bus_size_t, bus_size_t, int);
+FN5(bus_space_map, int, bus_space_tag_t, bus_addr_t, bus_size_t, int, bus_space_handle_t*);
 
-FN4(mtx_init, void, struct mtx*, const char*, const char*, int)
-FN1(mtx_initialized, size_t, const struct mtx*)
-FN1(mtx_lock, void, struct mtx*)
-FN1(mtx_lock_spin, void, struct mtx*)
-FN1(mtx_unlock, void, struct mtx*)
-FN1(mtx_unlock_spin, void, struct mtx*)
+FN4(mtx_init, void, struct mtx*, const char*, const char*, int);
+FN1(mtx_initialized, size_t, const struct mtx*);
+FN1(mtx_lock, void, struct mtx*);
+FN1(mtx_lock_spin, void, struct mtx*);
+FN1(mtx_unlock, void, struct mtx*);
+FN1(mtx_unlock_spin, void, struct mtx*);
 
-FN2(sx_init, void, struct sx *, const char *)
-FN1(sx_slock, void, struct sx *)
-FN1(sx_sunlock, void, struct sx *)
-FN1(sx_xlock, void, struct sx *)
-FN1(sx_xunlock, void, struct sx *)
+FN2(sx_init, void, struct sx *, const char *);
+FN1(sx_slock, void, struct sx *);
+FN1(sx_sunlock, void, struct sx *);
+FN1(sx_xlock, void, struct sx *);
+FN1(sx_xunlock, void, struct sx *);
 FN5(sx_sleep, int, void *, struct sx *, int, const char *, int);
 
+FN1(callout_drain, int, struct callout*);
+FN4(callout_reset, int, struct callout*, int, callout_func_t, void*);
 
-FN4(tsleep, int, const void*, int, const char*, int)
+FN4(tsleep, int, const void*, int, const char*, int);
 
 #define BUS_N(n, ty) \
     ty fn_bus_read_##n(struct resource *res, bus_size_t offset) { \

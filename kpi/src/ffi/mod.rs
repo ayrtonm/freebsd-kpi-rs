@@ -29,9 +29,10 @@
 //! Utilities related to FFI with C.
 
 use core::fmt;
+use crate::bindings::u_int;
 use core::fmt::{Debug, Formatter};
 use core::pin::Pin;
-use core::mem::MaybeUninit;
+use core::mem::{forget, MaybeUninit};
 use crate::sync::arc::{Arc, InnerArc};
 use crate::boxed::Box;
 use crate::malloc::Malloc;
@@ -134,17 +135,25 @@ impl<'a, T> UninitRef<'a, T> {
 }
 
 #[repr(C)]
-pub struct Ref<'a, T>(pub(crate) &'a InnerArc<T>);
+pub struct Ref<'a, T: 'static>(pub(crate) &'a InnerArc<T>);
 
 #[repr(C)]
-pub struct RefCounted<T: 'static>(&'static InnerArc<T>);
+pub struct RefCounted<T: 'static>(pub(crate) &'static InnerArc<T>);
 
 impl<T> RefCounted<T> {
-    pub fn new<'a>(r: Ref<'a, T>) -> RefCounted<T> {
+    pub fn new_from_ref<'a>(r: Ref<'a, T>) -> RefCounted<T> {
         let inner_ptr = (r.0 as *const InnerArc<T>).cast_mut();
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
         unsafe { bindings::refcount_acquire(count_ptr) };
         RefCounted(unsafe { inner_ptr.as_ref().unwrap() })
+    }
+
+    pub fn into_raw(self) -> (*mut T, *mut u_int) {
+        let inner_ptr = (self.0 as *const InnerArc<T>).cast_mut();
+        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
+        let t_ptr = unsafe { &raw mut (*inner_ptr).t };
+        forget(self);
+        (t_ptr, count_ptr)
     }
 }
 
@@ -159,7 +168,7 @@ impl<T> Drop for RefCounted<T> {
 
 impl<T> Clone for RefCounted<T> {
     fn clone(&self) -> Self {
-        RefCounted::new(Ref(self.0))
+        RefCounted::new_from_ref(Ref(self.0))
     }
 }
 

@@ -28,11 +28,12 @@
 
 use crate::ErrCode;
 use crate::bindings::{
-    C_HARDCLOCK, callout, callout_func_t, ich_func_t, intr_config_hook, sbintime_t, tick_sbt,
+    C_HARDCLOCK, callout, callout_func_t, ich_func_t, intr_config_hook, sbintime_t, tick_sbt, u_int,
 };
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::ffi::{c_int, c_void};
+use crate::ffi::{Ref, RefCounted};
 use core::mem::transmute;
 use core::ptr;
 use core::ptr::null_mut;
@@ -87,11 +88,12 @@ impl Drop for ConfigHook {
     }
 }
 
-pub type CalloutFn<T> = extern "C" fn(&T);
+pub type CalloutFn<T> = extern "C" fn(Ref<T>);
 
 #[derive(Debug, Default)]
 pub struct Callout {
     inner: UnsafeCell<callout>,
+    count_ptr: *mut u_int,
 }
 
 unsafe impl Sync for Callout {}
@@ -100,7 +102,7 @@ unsafe impl Send for Callout {}
 impl Callout {
     pub fn new() -> Self {
         let inner = UnsafeCell::new(callout::default());
-        Self { inner }
+        Self { inner, count_ptr: null_mut() }
     }
 }
 
@@ -217,22 +219,28 @@ pub mod wrappers {
     pub fn callout_drain(c: *mut Callout) {
         let inner_ptr = unsafe { &raw mut (*c).inner };
         let c_callout = UnsafeCell::raw_get(inner_ptr);
-        let _res = unsafe { bindings::_callout_stop_safe(c_callout, bindings::CS_DRAIN) };
+        let _res = unsafe { bindings::fn_callout_drain(c_callout) };
     }
 
     pub fn callout_reset<T>(
         c: &mut Callout,
-        ticks: sbintime_t,
+        ticks: u32,
         func: CalloutFn<T>,
-        arg: &T,
+        arg: Ref<T>,
     ) -> Result<()> {
-        // TODO: bounds check arg
+        if !c.count_ptr.is_null() {
+            let last = unsafe { bindings::refcount_release(c.count_ptr) };
+            assert!(!last);
+        }
+        let (arg_ptr, count_ptr) = RefCounted::into_raw(RefCounted::new_from_ref(arg));
+        c.count_ptr = count_ptr;
+
         let c_callout = c.inner.get();
-        let time = ticks * unsafe { tick_sbt };
+        let ticks = ticks.try_into().unwrap();
         let func = unsafe { transmute::<Option<CalloutFn<T>>, callout_func_t>(Some(func)) };
-        let arg_ptr = (arg as *const T).cast::<c_void>().cast_mut();
+
         let res = unsafe {
-            bindings::callout_reset_sbt_on(c_callout, time, 0, func, arg_ptr, -1, C_HARDCLOCK)
+            bindings::fn_callout_reset(c_callout, ticks, func, arg_ptr.cast::<c_void>())
         };
         if res != 0 {
             return Err(ErrCode::from(res));
@@ -240,7 +248,7 @@ pub mod wrappers {
         Ok(())
     }
 
-    pub fn callout_schedule(c: &mut Callout, ticks: sbintime_t) -> Result<()> {
+    pub fn callout_schedule(c: &mut Callout, ticks: u32) -> Result<()> {
         let res = unsafe { bindings::callout_schedule(c.inner.get(), ticks.try_into().unwrap()) };
         if res != 0 {
             return Err(ErrCode::from(res));
