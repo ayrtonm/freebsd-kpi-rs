@@ -43,11 +43,6 @@ use core::{fmt, slice};
 ///
 /// When a `Box<T>` is dropped, the T on the heap is deallocated. The memory layout of this type is
 /// equivalent to `void *ptr` in C.
-///
-/// The third type parameter `O` controls ownership semantics:
-/// - `Owned`: the box is freed when dropped, like a normal Rust `Box`. This is the default.
-/// - `DeviceOwned`: the box is freed when the device is detached. Dropping it outside of detach
-///   will panic.
 #[repr(C)]
 pub struct Box<T: ?Sized, M: Malloc = M_DEVBUF>(pub(crate) NonNull<T>, PhantomData<*mut M>);
 
