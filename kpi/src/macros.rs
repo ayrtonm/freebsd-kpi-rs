@@ -91,14 +91,14 @@ macro_rules! proj {
     (& $struct:ident . $field_name:ident) => {
         {
             use core::pin::Pin;
-            let _ty_ck: &Pin<&_> = &$struct;
-            unsafe { Pin::map_unchecked($struct, |s| &s.$field_name) }
+            $crate::ffi::assert_is_pinning(&$struct);
+            unsafe { Pin::new(&$struct.$field_name) }
         }
     };
     (& $indexable:ident [ $idx:expr ]) => {
         {
             use core::pin::Pin;
-            let _ty_ck: &Pin<&_> = &$indexable;
+            let _ty_ck: &Pin<_> = &$indexable;
             $crate::ffi::assert_pin_has_fixed_index($indexable);
             unsafe { Pin::map_unchecked($indexable, |a| &a[$idx]) }
         }

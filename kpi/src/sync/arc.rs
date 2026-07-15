@@ -38,8 +38,17 @@ use core::ptr::{NonNull, drop_in_place};
 
 #[repr(C)]
 pub struct InnerArc<T> {
-    t: T,
-    count: UnsafeCell<u_int>,
+    pub(crate) t: T,
+    pub(crate) count: UnsafeCell<u_int>,
+}
+
+impl<T> InnerArc<T> {
+    pub(crate) fn new(t: T) -> Self {
+        Self {
+            t,
+            count: UnsafeCell::new(0),
+        }
+    }
 }
 
 /// A pointer to an object on the heap which owns a refcount to its pointee.
@@ -95,6 +104,14 @@ impl<T, M: Malloc> Arc<T, M> {
     /// Creates an `Arc<T>` from a pointer.
     pub unsafe fn from_raw(ptr: *mut InnerArc<T>) -> Self {
         Self(NonNull::new(ptr).unwrap(), PhantomData)
+    }
+
+    pub fn clone_from_ref(x: &InnerArc<T>) -> Arc<T> {
+        let ptr = x as *const InnerArc<T>;
+        let tmp_arc = unsafe { Arc::from_raw(ptr.cast_mut()) };
+        let new_arc = tmp_arc.clone();
+        Arc::into_raw(tmp_arc);
+        new_arc
     }
 
     fn count_ptr(&self) -> *mut u_int {

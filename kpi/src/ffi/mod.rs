@@ -32,10 +32,13 @@ use core::fmt;
 use core::fmt::{Debug, Formatter};
 use core::pin::Pin;
 use core::mem::MaybeUninit;
-use crate::sync::arc::Arc;
+use crate::sync::arc::{Arc, InnerArc};
 use crate::boxed::Box;
 use crate::malloc::Malloc;
 use core::ptr::null_mut;
+use core::ops::Deref;
+use core::cell::UnsafeCell;
+use crate::prelude::*;
 
 mod cstring;
 mod subclass;
@@ -112,22 +115,75 @@ unsafe impl<T> Send for Ptr<T> {}
 
 /// A unique pointer to an uninitialized, externally-managed object.
 #[derive(Debug)]
-pub struct UninitRef<'a, T>(&'a mut MaybeUninit<T>, &'a mut bool);
+pub struct UninitRef<'a, T>(&'a mut MaybeUninit<InnerArc<T>>, &'a mut bool);
 
 impl<'a, T> UninitRef<'a, T> {
-    pub unsafe fn from_raw(ptr: &'a *mut T, init: &'a mut bool) -> Self {
-        *init = false;
-        Self(
-            unsafe { ptr.cast::<MaybeUninit<T>>().as_mut().unwrap() },
-            init,
-        )
+    pub unsafe fn from_raw(ptr: &'a mut MaybeUninit<InnerArc<T>>, init: &'a mut bool) -> Self {
+        Self(ptr, init)
     }
 
     /// Initialize the externally-managed object to `t` and return a pinned reference to the pointee
-    pub fn init(self, t: T) -> Pin<&'a T> {
+    pub fn init(self, t: T) -> Ref<'a, T> {
+        let res = self.0.write(InnerArc::new(t));
         *self.1 = true;
-        let res = self.0.write(t);
-        unsafe { Pin::new_unchecked(res) }
+        let inner_ptr = (res as *const InnerArc<T>).cast_mut();
+        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
+        unsafe { bindings::refcount_init(count_ptr, 1) };
+        Ref(res)
+    }
+}
+
+#[repr(C)]
+pub struct Ref<'a, T>(pub(crate) &'a InnerArc<T>);
+
+#[repr(C)]
+pub struct RefCounted<T: 'static>(&'static InnerArc<T>);
+
+impl<T> RefCounted<T> {
+    pub fn new<'a>(r: Ref<'a, T>) -> RefCounted<T> {
+        let inner_ptr = (r.0 as *const InnerArc<T>).cast_mut();
+        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
+        unsafe { bindings::refcount_acquire(count_ptr) };
+        RefCounted(unsafe { inner_ptr.as_ref().unwrap() })
+    }
+}
+
+impl<T> Drop for RefCounted<T> {
+    fn drop(&mut self) {
+        let inner_ptr = (self.0 as *const InnerArc<T>).cast_mut();
+        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
+        let last = unsafe { bindings::refcount_release(count_ptr) };
+        assert!(!last);
+    }
+}
+
+impl<T> Clone for RefCounted<T> {
+    fn clone(&self) -> Self {
+        RefCounted::new(Ref(self.0))
+    }
+}
+
+impl<T> Deref for RefCounted<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0.t
+    }
+}
+
+impl<'a, T> Copy for Ref<'a, T> {}
+
+impl<'a, T> Clone for Ref<'a, T> {
+    fn clone(&self) -> Self {
+        Self(self.0)
+    }
+}
+
+impl<'a, T> Deref for Ref<'a, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0.t
     }
 }
 
@@ -141,3 +197,8 @@ unsafe impl<T, M: Malloc, const N: usize> FixedIndex for Box<[T; N], M> {}
 unsafe impl<T, M: Malloc, const N: usize> FixedIndex for Arc<[T; N], M> {}
 
 pub fn assert_pin_has_fixed_index<T: FixedIndex>(_p: Pin<&T>) {}
+
+pub unsafe trait IsPinning {}
+unsafe impl<T> IsPinning for Pin<T> {}
+unsafe impl<'a, T> IsPinning for Ref<'a, T> {}
+pub fn assert_is_pinning<P: IsPinning>(_p: &P) {}

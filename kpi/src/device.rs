@@ -38,6 +38,8 @@ use crate::vec::Vec;
 use crate::{ErrCode, define_interface};
 use core::ffi::{CStr, c_int};
 use core::ptr::{null_mut};
+use crate::sync::arc::InnerArc;
+use crate::ffi::Ref;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
@@ -77,12 +79,12 @@ impl AsRustType<'_, Device> for device_t {
 // Allows turning a device_t argument appearing in kobj interfaces into a Pin<&T> to any type. It's
 // the responsibility of a kobj trait authors to restrict the Ref to the softc's type or to one of
 // its base classes.
-impl<'a, T> AsRustType<'a, Pin<&'a T>> for device_t {
-    fn as_rust_type(&'a self) -> Pin<&'a T> {
+impl<'a, T> AsRustType<'a, Ref<'a, T>> for device_t {
+    fn as_rust_type(&'a self) -> Ref<'a, T> {
         let void_ptr = unsafe { bindings::device_get_softc(*self) };
-        let sc_ptr = void_ptr.cast::<T>();
+        let sc_ptr = void_ptr.cast::<InnerArc<T>>();
         let sc_ref = unsafe { sc_ptr.as_ref().unwrap() };
-        unsafe { Pin::new_unchecked(sc_ref) }
+        Ref(sc_ref)
     }
 }
 
@@ -99,16 +101,18 @@ define_interface! {
             use $crate::device::Device;
             use $crate::ffi::UninitRef;
             use $crate::kobj::KobjLayout;
+            use core::mem::MaybeUninit;
 
             // Used to constrain type inference
             let dev: Device = dev;
 
-            let mut sc_init = false;
             let void_ptr = unsafe { bindings::device_get_softc(dev.as_ptr()) };
             type Softc = <SelfType as KobjLayout>::Layout;
-            let sc_ptr = void_ptr.cast::<Softc>();
+            let sc_ptr = void_ptr.cast::<MaybeUninit<Softc>>();
+            let sc_ref = unsafe { sc_ptr.as_mut().unwrap() };
+            let mut sc_init = false;
 
-            let uninit_sc = unsafe { UninitRef::from_raw(&sc_ptr, &mut sc_init) };
+            let uninit_sc = unsafe { UninitRef::from_raw(sc_ref, &mut sc_init) };
         },
         with drop glue {
             // drop glue is only called if device_attach succeeded
@@ -198,19 +202,19 @@ pub trait DeviceIf: Driver {
     /// example, if a softc struct includes a `Box<T>` field (i.e. a pointer to the heap with
     /// ownership of a `T`) the `T` in the heap will also be freed. This applies recursively through
     /// any number of layers of indirection.
-    fn device_detach(sc: Pin<&Self::Softc>) -> Result<()> {
+    fn device_detach(sc: Ref<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
-    fn device_shutdown(sc: Pin<&Self::Softc>) -> Result<()> {
+    fn device_shutdown(sc: Ref<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
-    fn device_suspend(sc: Pin<&Self::Softc>) -> Result<()> {
+    fn device_suspend(sc: Ref<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
-    fn device_resume(sc: Pin<&Self::Softc>) -> Result<()> {
+    fn device_resume(sc: Ref<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
-    fn device_quiesce(sc: Pin<&Self::Softc>) -> Result<()> {
+    fn device_quiesce(sc: Ref<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
 }

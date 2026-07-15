@@ -33,13 +33,14 @@ macro_rules! define_sockaddr {
 
                 let mut offset = 0;
                 let sa_data = &addr.sa_data;
-                $(
-                    let $field = <$field_ty>::from_ne_bytes(sa_data[offset..offset + size_of::<$field_ty>()].try_into().unwrap());
-                    offset += size_of::<$field_ty>();
-                )*
-                Self {
-                    $($field,)*
-                }
+                todo!("")
+                //$(
+                //    let $field = <$field_ty>::from_ne_bytes(sa_data[offset..offset + size_of::<$field_ty>()].try_into().unwrap());
+                //    offset += size_of::<$field_ty>();
+                //)*
+                //Self {
+                //    $($field,)*
+                //}
             }
         }
     };
