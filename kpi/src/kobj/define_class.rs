@@ -28,7 +28,11 @@
 
 #[macro_export]
 macro_rules! define_class {
-    ($class_sym:ident, $class_name:expr, $class_ty:ident, $method_table:ident
+    (
+        static $class_sym:ident: $class_ty:ident = {
+            name: $class_name:expr,
+            methods: $method_table:ident$(,)?
+        }$(;)?
         $(inherit from $($base_classes:ident)*,)?
     ) => {
         // UnsafeCell needed to ensure static ends up in .data

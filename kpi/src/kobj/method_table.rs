@@ -28,9 +28,11 @@
 
 #[macro_export]
 macro_rules! method_table {
-    ($class_sym:ident, $class_ty:ident, $method_table:ident = {
-        $($if_fn:ident $impl:ident $(defined in $lang:ident)?,)*
-    }; $(with interfaces from { $($extra_imports:path$(,)?)* };)? ) => {
+    ($class_sym:ident, $class_ty:ident,
+    static $method_table:ident = {
+        $($if_fn:ident: $impl:ident $(defined in $lang:ident)?,)*
+    }$(;)?
+    $(with interfaces from { $($extra_imports:path$(,)?)* };)? ) => {
 
         // Define a new module to avoid polluting the namespace in which this macro was invoked.
         // Arbitrarily choose $class_sym (a unique ELF symbol) as the module name to allow using

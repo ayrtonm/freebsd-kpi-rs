@@ -67,13 +67,31 @@ pub trait Driver: KobjClass {
 /// This is followed by other exported C functions and the name of the `$driver_ty` method
 /// implementing them
 #[macro_export]
-macro_rules! driver {
-    ($driver_sym:ident, $driver_name:expr, $driver_ty:ident, $method_table:ident = { $($if_fn:ident $impl_name:ident $(defined in $lang:ident)?,)* }
-        $(,inherit from $($base_classes:ident)*,)?
-        $(with interfaces from { $($extra_imports:path$(,)?)* };)?
+macro_rules! define_driver {
+    (
+        static $driver_sym:ident: $driver_ty:ident = {
+            name: $driver_name:expr$(,)?
+        }$(;)?
+        static $method_table:ident = {
+            $($if_fn:ident: $impl_name:ident $(defined in $lang:ident)?,)*
+        }$(;)?
+        $(inherit from $($base_classes:ident)*,)?
+        $(with interfaces from { $($extra_imports:path$(,)?)* })?
     ) => {
-        $crate::define_class!($driver_sym, $driver_name, $driver_ty, $method_table $(inherit from $($base_classes)*,)*);
-        $crate::method_table!($driver_sym, $driver_ty, $method_table = { $($if_fn $impl_name $(defined in $lang)*,)* }; $(with interfaces from { $($extra_imports)* };)*);
+        $crate::define_class! {
+            static $driver_sym: $driver_ty = {
+                name: $driver_name,
+                methods: $method_table,
+            };
+            $(inherit from $($base_classes)*,)*
+        }
+        $crate::method_table! {
+            $driver_sym, $driver_ty,
+            static $method_table = {
+                $($if_fn: $impl_name $(defined in $lang)*,)*
+            };
+            $(with interfaces from { $($extra_imports)* };)*
+        }
 
         impl $crate::kobj::KobjLayout for $driver_ty {
             type Layout = $crate::sync::arc::InnerArc<<$driver_ty as $crate::device::DeviceIf>::Softc>;
