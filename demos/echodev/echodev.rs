@@ -15,6 +15,7 @@ use core::ptr::{NonNull, null_mut};
 use kpi::ErrCode;
 use kpi::prelude::*;
 use kpi::misc::Thread;
+use core::pin::Pin;
 use kpi::{define_module, define_cdev};
 use kpi::cdev::{CDev, UioRef, CDevSw, cdev_t};
 use kpi::vec::Vec;
@@ -43,13 +44,13 @@ impl CDevSw for EchoDev {
     type Softc = EchoDevSoftc;
     type MallocType = M_DEVBUF;
 
-    fn d_open(sc: &EchoDevSoftc, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
+    fn d_open(sc: Pin<&EchoDevSoftc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
         Ok(())
     }
-    fn d_close(sc: &EchoDevSoftc, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
+    fn d_close(sc: Pin<&EchoDevSoftc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
         Ok(())
     }
-    fn d_read(sc: &EchoDevSoftc, uio: UioRef, ioflag: c_int) -> Result<()> {
+    fn d_read(sc: Pin<&EchoDevSoftc>, uio: UioRef, ioflag: c_int) -> Result<()> {
         if uio.resid() == 0 {
             return Ok(());
         }
@@ -100,7 +101,7 @@ impl CDevSw for EchoDev {
         res
     }
 
-    fn d_write(sc: &EchoDevSoftc, uio: UioRef, ioflag: c_int) -> Result<()> {
+    fn d_write(sc: Pin<&EchoDevSoftc>, uio: UioRef, ioflag: c_int) -> Result<()> {
         if uio.resid() == 0 {
             return Ok(());
         }
@@ -162,7 +163,7 @@ impl Module for EchoDev {
         // the borrow, but leaves the responsibility of freeing the pointee to the owner.
         let echodev = make_dev_s(args, |sc, dev| {
             sc.dev = dev;
-            sx_init(&sc.state, c"echo");
+            //sx_init(&sc.state, c"echo");
             sc.state.get_mut().buf = Vec::fill_with_capacity(0u8, 64, M_WAITOK);
         })?;
         *ECHODEV.get_mut() = Some(echodev);

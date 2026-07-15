@@ -38,6 +38,7 @@ use crate::define_interface;
 use crate::kobj::AsRustType;
 use core::ptr::NonNull;
 use crate::misc::Thread;
+use core::pin::Pin;
 
 #[allow(non_camel_case_types)]
 pub struct cdev_t(Ptr<bindings::cdev>, Option<TypeId>);
@@ -74,16 +75,16 @@ pub trait CDevSw: CDevSwInternal {
     type Softc: 'static + Sync;
     type MallocType: Malloc;
 
-    fn d_open(sc: &Self::Softc, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
+    fn d_open(sc: Pin<&Self::Softc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
         unimplemented!()
     }
-    fn d_close(sc: &Self::Softc, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
+    fn d_close(sc: Pin<&Self::Softc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
         unimplemented!()
     }
-    fn d_read(sc: &Self::Softc, uio: UioRef, ioflag: c_int) -> Result<()> {
+    fn d_read(sc: Pin<&Self::Softc>, uio: UioRef, ioflag: c_int) -> Result<()> {
         unimplemented!()
     }
-    fn d_write(sc: &Self::Softc, uio: UioRef, ioflag: c_int) -> Result<()> {
+    fn d_write(sc: Pin<&Self::Softc>, uio: UioRef, ioflag: c_int) -> Result<()> {
         unimplemented!()
     }
     fn make_dev_args_init(
@@ -174,11 +175,12 @@ macro_rules! define_cdev {
     };
 }
 
-impl<'a, T> AsRustType<'a, &'a T, T> for *mut bindings::cdev {
-    fn as_rust_type(&'a self) -> &'a T {
+impl<'a, T> AsRustType<'a, Pin<&'a T>, T> for *mut bindings::cdev {
+    fn as_rust_type(&'a self) -> Pin<&'a T> {
         let dev = *self;
         let sc_ptr = unsafe { (*dev).si_drv1 };
-        unsafe { sc_ptr.cast::<T>().as_ref().unwrap() }
+        let res = unsafe { sc_ptr.cast::<T>().as_ref().unwrap() };
+        unsafe { Pin::new_unchecked(res) }
     }
 }
 
