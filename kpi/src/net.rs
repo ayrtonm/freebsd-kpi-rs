@@ -3,7 +3,7 @@ use crate::misc::Thread;
 use crate::prelude::*;
 use crate::define_interface;
 use crate::kobj::AsRustType;
-use crate::boxed::Box;
+use crate::sync::arc::Arc;
 use core::marker::PhantomData;
 use core::ptr::NonNull;
 use crate::malloc::Malloc;
@@ -48,7 +48,7 @@ macro_rules! define_sockaddr {
 #[allow(unused_variables)]
 pub trait ProtoSw {
     // Protocol control block storing state of an active connection
-    type Pcb;
+    type Pcb: 'static + Sync;
 
     fn pr_attach(so: Socket<Self::Pcb>, proto: i32, td: Thread) -> Result<()> {
         unimplemented!()
@@ -59,7 +59,7 @@ pub trait ProtoSw {
     fn pr_listen(so: Socket<Self::Pcb>, backlog: i32, td: Thread) -> Result<()> {
         unimplemented!()
     }
-    fn pr_accept(so: Socket<Self::Pcb>, addr: &SockAddr) -> Result<()> {
+    fn pr_accept(so: Socket<Self::Pcb>, addr: Option<&SockAddr>) -> Result<()> {
         unimplemented!()
     }
     fn pr_connect(so: Socket<Self::Pcb>, addr: Option<&SockAddr>, td: Thread) -> Result<()> {
@@ -93,14 +93,14 @@ impl<'a> Drop for SockLockGuard<'a> {
 // sys/socketvar.h contains a comment with what locks each struct socket field. That key is used to
 // define the following methods
 impl<'a, P> Socket<'a, P> {
-    pub fn so_pcb_set<M: Malloc>(&self, pcb: Box<P, M>) -> Result<()> {
+    pub fn so_pcb_set<M: Malloc>(&self, pcb: Arc<P, M>) -> Result<()> {
         let so_ptr = self.ptr.as_ptr();
         let pcb_ptr = unsafe { (*so_ptr).so_pcb };
         if !pcb_ptr.is_null() {
             return Err(EISCONN);
         }
         unsafe {
-            (*so_ptr).so_pcb = Box::into_raw(pcb).cast::<c_void>()
+            (*so_ptr).so_pcb = Arc::into_raw(pcb).cast::<c_void>()
         };
         Ok(())
     }
