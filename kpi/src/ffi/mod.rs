@@ -163,6 +163,9 @@ impl<'a, T> Uninit<'a, T> {
 pub struct Loan<'a, T: 'static>(pub(crate) &'a LoanLayout<T>);
 
 impl<'a, T> Loan<'a, T> {
+    pub unsafe fn from_raw(ptr: &'a LoanLayout<T>) -> Self {
+        Self(ptr)
+    }
     pub fn device(&self) -> Device {
         Device::new(self.0.dev)
     }
