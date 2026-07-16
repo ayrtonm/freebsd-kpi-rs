@@ -29,24 +29,22 @@
 //! Utilities related to FFI with C.
 
 use core::fmt;
-use crate::bindings::{device_t, u_int};
 use core::fmt::{Debug, Formatter};
 use core::pin::Pin;
-use core::mem::{forget, MaybeUninit};
 use crate::sync::arc::{Arc};
 use crate::boxed::Box;
-use crate::device::Device;
 use crate::malloc::Malloc;
-use core::ptr;
 use core::ptr::null_mut;
 use core::ops::Deref;
 use core::cell::UnsafeCell;
 use crate::prelude::*;
 
 mod cstring;
+mod lease;
 mod subclass;
 
 pub use cstring::{ArrayCString, CString, ToArrayCString};
+pub use lease::{Loan, Lease, LeaseSlot, Uninit, LoanLayout};
 pub use subclass::{SubClass, SubClassOf};
 
 /// A pointer type implementing `Sync`.
@@ -116,133 +114,6 @@ impl<T> Ptr<T> {
 unsafe impl<T> Sync for Ptr<T> {}
 unsafe impl<T> Send for Ptr<T> {}
 
-#[repr(C)]
-pub struct LoanLayout<T> {
-    t: MaybeUninit<T>,
-    dev: device_t,
-    count: UnsafeCell<u_int>,
-}
-
-/// A unique pointer to an uninitialized, externally-managed object.
-pub struct Uninit<'a, T>(&'a mut LoanLayout<T>, Option<&'a mut bool>);
-
-impl<'a, T> Uninit<'a, T> {
-    pub unsafe fn from_raw(ptr: &'a mut LoanLayout<T>, dev: device_t) -> Self {
-        ptr.dev = dev;
-        Self(ptr, None)
-    }
-
-    pub fn set_init_flag(&mut self, flag: &'a mut bool) {
-        self.1 = Some(flag);
-    }
-
-    pub fn device(&self) -> Device {
-        Device::new(self.0.dev)
-    }
-
-    /// Initialize the externally-managed object to `t` and return a pinned reference to the pointee
-    pub fn init(self, t: T) -> Loan<'a, T> {
-        self.0.t.write(t);
-        self.1.map(|init| *init = true);
-        let inner_ptr = ptr::from_ref(self.0).cast_mut();
-        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
-        unsafe { bindings::refcount_init(count_ptr, 1) };
-        Loan(unsafe { inner_ptr.as_ref().unwrap() })
-    }
-}
-
-/// A pointer that may be opted into refcounting if requested.
-#[repr(C)]
-pub struct Loan<'a, T: 'static>(pub(crate) &'a LoanLayout<T>);
-
-impl<'a, T> Loan<'a, T> {
-    pub unsafe fn from_raw(ptr: &'a LoanLayout<T>) -> Self {
-        Self(ptr)
-    }
-
-    pub fn into_raw(self) -> (*mut T, *mut u_int) {
-        let inner_ptr = ptr::from_ref(self.0).cast_mut();
-        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
-        let t_ptr = self.0.t.as_ptr().cast_mut();
-        (t_ptr, count_ptr)
-    }
-
-    pub fn device(&self) -> Device {
-        Device::new(self.0.dev)
-    }
-
-    pub fn lease(&self) -> Lease<T> {
-        let inner_ptr = ptr::from_ref(self.0).cast_mut();
-        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
-        unsafe { bindings::refcount_acquire(count_ptr) };
-        Lease(unsafe { inner_ptr.as_ref().unwrap() })
-    }
-}
-
-impl<'a, T: 'static + Debug> Debug for Loan<'a, T> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Debug::fmt(&self.0.t, f)
-    }
-}
-
-impl<'a, T> Copy for Loan<'a, T> {}
-
-impl<'a, T> Clone for Loan<'a, T> {
-    fn clone(&self) -> Self {
-        Self(self.0)
-    }
-}
-
-impl<'a, T> Deref for Loan<'a, T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        unsafe {
-            self.0.t.assume_init_ref()
-        }
-    }
-}
-
-/// A pointer to a refcounted object.
-#[repr(C)]
-pub struct Lease<T: 'static>(pub(crate) &'static LoanLayout<T>);
-
-impl<T> Lease<T> {
-    pub fn device(&self) -> Device {
-        Device::new(self.0.dev)
-    }
-
-    pub fn lease(&self) -> Self {
-        Loan(self.0).lease()
-    }
-
-    pub fn into_raw(self) -> (*mut T, *mut u_int) {
-        let inner_ptr = ptr::from_ref(self.0).cast_mut();
-        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
-        let t_ptr = self.0.t.as_ptr().cast_mut();
-        forget(self);
-        (t_ptr, count_ptr)
-    }
-}
-
-impl<T> Drop for Lease<T> {
-    fn drop(&mut self) {
-        let inner_ptr = ptr::from_ref(self.0).cast_mut();
-        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
-        let last = unsafe { bindings::refcount_release(count_ptr) };
-        assert!(!last);
-    }
-}
-
-impl<T> Deref for Lease<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        unsafe {
-            self.0.t.assume_init_ref()
-        }
-    }
-}
 
 pub unsafe trait FixedIndex {}
 unsafe impl<T, const N: usize> FixedIndex for [T; N] {}

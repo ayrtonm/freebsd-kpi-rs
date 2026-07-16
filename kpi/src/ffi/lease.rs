@@ -26,12 +26,144 @@
  * SUCH DAMAGE.
  */
 
-use crate::ffi::Lease;
 use core::cell::UnsafeCell;
-use core::mem::MaybeUninit;
+use core::fmt;
+use core::ptr;
+use core::mem::{forget, MaybeUninit};
 use core::ops::Deref;
+use core::fmt::{Debug, Formatter};
+use crate::device::Device;
 use core::sync::atomic::{AtomicUsize, Ordering};
+use crate::bindings::{device_t, u_int};
+use crate::prelude::*;
 
+#[repr(C)]
+pub struct LoanLayout<T> {
+    t: MaybeUninit<T>,
+    dev: device_t,
+    count: UnsafeCell<u_int>,
+}
+
+/// A unique pointer to an uninitialized, externally-managed object.
+pub struct Uninit<'a, T>(&'a mut LoanLayout<T>, Option<&'a mut bool>);
+
+impl<'a, T> Uninit<'a, T> {
+    pub unsafe fn from_raw(ptr: &'a mut LoanLayout<T>, dev: device_t) -> Self {
+        ptr.dev = dev;
+        Self(ptr, None)
+    }
+
+    pub fn set_init_flag(&mut self, flag: &'a mut bool) {
+        self.1 = Some(flag);
+    }
+
+    pub fn device(&self) -> Device {
+        Device::new(self.0.dev)
+    }
+
+    /// Initialize the externally-managed object to `t` and return a pinned reference to the pointee
+    pub fn init(self, t: T) -> Loan<'a, T> {
+        self.0.t.write(t);
+        self.1.map(|init| *init = true);
+        let inner_ptr = ptr::from_ref(self.0).cast_mut();
+        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
+        unsafe { bindings::refcount_init(count_ptr, 1) };
+        Loan(unsafe { inner_ptr.as_ref().unwrap() })
+    }
+}
+
+/// A pointer that may be opted into refcounting if requested.
+#[repr(C)]
+pub struct Loan<'a, T: 'static>(pub(crate) &'a LoanLayout<T>);
+
+impl<'a, T> Loan<'a, T> {
+    pub unsafe fn from_raw(ptr: &'a LoanLayout<T>) -> Self {
+        Self(ptr)
+    }
+
+    pub fn into_raw(self) -> (*mut T, *mut u_int) {
+        let inner_ptr = ptr::from_ref(self.0).cast_mut();
+        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
+        let t_ptr = self.0.t.as_ptr().cast_mut();
+        (t_ptr, count_ptr)
+    }
+
+    pub fn device(&self) -> Device {
+        Device::new(self.0.dev)
+    }
+
+    pub fn lease(&self) -> Lease<T> {
+        let inner_ptr = ptr::from_ref(self.0).cast_mut();
+        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
+        unsafe { bindings::refcount_acquire(count_ptr) };
+        Lease(unsafe { inner_ptr.as_ref().unwrap() })
+    }
+}
+
+impl<'a, T: 'static + Debug> Debug for Loan<'a, T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Debug::fmt(&self.0.t, f)
+    }
+}
+
+impl<'a, T> Copy for Loan<'a, T> {}
+
+impl<'a, T> Clone for Loan<'a, T> {
+    fn clone(&self) -> Self {
+        Self(self.0)
+    }
+}
+
+impl<'a, T> Deref for Loan<'a, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe {
+            self.0.t.assume_init_ref()
+        }
+    }
+}
+
+/// A pointer to a refcounted object.
+#[repr(C)]
+pub struct Lease<T: 'static>(pub(crate) &'static LoanLayout<T>);
+
+impl<T> Lease<T> {
+    pub fn device(&self) -> Device {
+        Device::new(self.0.dev)
+    }
+
+    pub fn lease(&self) -> Self {
+        Loan(self.0).lease()
+    }
+
+    pub fn into_raw(self) -> (*mut T, *mut u_int) {
+        let inner_ptr = ptr::from_ref(self.0).cast_mut();
+        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
+        let t_ptr = self.0.t.as_ptr().cast_mut();
+        forget(self);
+        (t_ptr, count_ptr)
+    }
+}
+
+impl<T> Drop for Lease<T> {
+    fn drop(&mut self) {
+        let inner_ptr = ptr::from_ref(self.0).cast_mut();
+        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
+        let last = unsafe { bindings::refcount_release(count_ptr) };
+        assert!(!last);
+    }
+}
+
+impl<T> Deref for Lease<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe {
+            self.0.t.assume_init_ref()
+        }
+    }
+}
 const UNINIT: usize = usize::MAX;
 const REVOKED: usize = usize::MAX - 1;
 
@@ -42,17 +174,23 @@ const REVOKED: usize = usize::MAX - 1;
 /// concurrently via [`get`][Self::get], and released at most once via [`revoke`][Self::revoke].
 /// `revoke` does not block waiting for readers to finish — it panics if called while any
 /// [`LeaseGuard`] is still outstanding.
-pub struct RevocableLease<T: 'static> {
+pub struct LeaseSlot<T: 'static> {
     lease: UnsafeCell<MaybeUninit<Lease<T>>>,
     // UNINIT = never initialized, REVOKED = permanently emptied, otherwise the number of
     // outstanding `LeaseGuard`s (0 meaning initialized with no active readers).
     state: AtomicUsize,
 }
 
-unsafe impl<T: Sync> Sync for RevocableLease<T> {}
-unsafe impl<T: Sync + Send> Send for RevocableLease<T> {}
+unsafe impl<T: Sync> Sync for LeaseSlot<T> {}
+unsafe impl<T: Sync + Send> Send for LeaseSlot<T> {}
 
-impl<T> RevocableLease<T> {
+impl<T> Default for LeaseSlot<T> {
+    fn default() -> Self {
+        LeaseSlot::uninit()
+    }
+}
+
+impl<T> LeaseSlot<T> {
     pub const fn uninit() -> Self {
         Self {
             lease: UnsafeCell::new(MaybeUninit::uninit()),
@@ -69,7 +207,7 @@ impl<T> RevocableLease<T> {
             .compare_exchange(UNINIT, 0, Ordering::AcqRel, Ordering::Acquire)
             .is_err()
         {
-            panic!("RevocableLease already initialized");
+            panic!("LeaseSlot already initialized");
         }
         unsafe { (*self.lease.get()).write(lease) };
     }
@@ -81,7 +219,7 @@ impl<T> RevocableLease<T> {
         loop {
             let cur = self.state.load(Ordering::Acquire);
             if cur == UNINIT || cur == REVOKED {
-                panic!("RevocableLease not initialized or already revoked");
+                panic!("LeaseSlot not initialized or already revoked");
             }
             if self
                 .state
@@ -101,14 +239,14 @@ impl<T> RevocableLease<T> {
     ///
     /// Panics if it isn't currently initialized with zero outstanding readers (i.e. if called
     /// before `init`, more than once, or while a [`LeaseGuard`] is still alive).
-    pub fn revoke(&self) {
+    pub fn clear(&self) {
         if self
             .state
             .compare_exchange(0, REVOKED, Ordering::AcqRel, Ordering::Acquire)
             .is_err()
         {
             panic!(
-                "RevocableLease: cannot revoke -- not initialized, already revoked, or readers active"
+                "LeaseSlot: cannot revoke -- not initialized, already revoked, or readers active"
             );
         }
         // `MaybeUninit` never runs `T`'s destructor on its own -- unlike a plain field, writing

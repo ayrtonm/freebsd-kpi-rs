@@ -37,8 +37,6 @@ use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 
 /// Rust-style atomic reference counting with memory backed malloc(9)
 pub mod arc;
-/// A `Lease<T>` that can be revoked
-pub mod lease;
 /// Mutex and SpinLock backed by mtx(9)
 pub mod mtx;
 /// Shared/Exclusive lock backed by sx(9)
