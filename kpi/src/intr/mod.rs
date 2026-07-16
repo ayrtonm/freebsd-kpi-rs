@@ -297,7 +297,6 @@ mod tests {
 
     #[repr(C)]
     pub struct HookSoftc {
-        dev: Device,
         hook: ConfigHook,
         loud: LoudDrop,
     }
@@ -312,7 +311,7 @@ mod tests {
         fn device_attach(uninit_sc: Uninit<Self::Softc>, dev: Device) -> Result<()> {
             let hook = ConfigHook::new();
             let loud = LoudDrop;
-            let sc = uninit_sc.init(HookSoftc { dev, hook, loud });
+            let sc = uninit_sc.init(HookSoftc { hook, loud });
             proj!(&sc.hook).init(hook_driver_deferred_attach, sc);
             config_intrhook_establish(proj!(&sc.hook)).unwrap();
             Ok(())

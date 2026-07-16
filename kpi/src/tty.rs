@@ -36,7 +36,7 @@ pub trait DebugDevice {
     fn as_device_t(&self) -> device_t;
 }
 
-impl DebugDevice for Device {
+impl<'a> DebugDevice for Device<'a> {
     fn as_device_t(&self) -> device_t {
         self.as_ptr()
     }

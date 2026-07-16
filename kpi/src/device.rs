@@ -39,18 +39,19 @@ use crate::{ErrCode, define_interface};
 use core::ffi::{CStr, c_int};
 use core::ptr::{null_mut};
 use crate::ffi::{Loan, LoanLayout};
+use core::marker::PhantomData;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
-pub struct Device(Ptr<_device>);
+pub struct Device<'a>(device_t, PhantomData<&'a ()>);
 
-impl Device {
-    pub fn new(ptr: *mut _device) -> Self {
-        Self(Ptr::new(ptr))
+impl<'a> Device<'a> {
+    pub fn new(ptr: device_t) -> Self {
+        Self(ptr, PhantomData)
     }
 
-    pub fn as_ptr(&self) -> *mut _device {
-        self.0.as_ptr()
+    pub fn as_ptr(&self) -> device_t {
+        self.0
     }
 }
 
@@ -69,9 +70,9 @@ impl AsCType<c_int> for BusProbe {
 }
 
 // Used in device_attach
-impl AsRustType<'_, Device> for device_t {
-    fn as_rust_type(&self) -> Device {
-        Device(Ptr::new(*self))
+impl<'a> AsRustType<'a, Device<'a>> for device_t {
+    fn as_rust_type(&'a self) -> Device<'a> {
+        Device::new(*self)
     }
 }
 
@@ -325,11 +326,11 @@ pub mod wrappers {
         unsafe { bindings::device_get_driver(dev.as_ptr()) }
     }
 
-    pub fn device_add_child(
-        dev: Device,
+    pub fn device_add_child<'a>(
+        dev: Device<'a>,
         name: &'static CStr,
         unit: Option<u32>,
-    ) -> Result<Device> {
+    ) -> Result<Device<'a>> {
         let unit = unit.unwrap_or(bindings::DEVICE_UNIT_ANY as u32);
         let child = unsafe { bindings::device_add_child(dev.as_ptr(), name.as_ptr(), unit as i32) };
         if child.is_null() {

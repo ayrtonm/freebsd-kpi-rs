@@ -215,7 +215,7 @@ pub mod wrappers {
         }
     }
 
-    pub fn OF_device_from_xref(xref: XRef) -> Result<Device> {
+    pub fn OF_device_from_xref<'a>(xref: XRef) -> Result<Device<'a>> {
         let res = unsafe { bindings::OF_device_from_xref(xref.0) };
         if res.is_null() {
             Err(ENULLPTR)
