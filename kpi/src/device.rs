@@ -128,7 +128,8 @@ define_interface! {
             let (sc_ptr, count_ptr) = Loan::into_raw(dev);
             let last = unsafe { $crate::bindings::refcount_release(count_ptr) };
             if !last {
-                panic!("tried to detach device with outstanding softc leases");
+                let num_refs = unsafe { $crate::bindings::refcount_load(count_ptr) };
+                panic!("tried to detach device with {} outstanding softc leases", num_refs);
             }
             unsafe { core::ptr::drop_in_place(sc_ptr) }
         };
