@@ -90,9 +90,8 @@ macro_rules! base {
 macro_rules! proj {
     (& $struct:ident . $field_name:ident) => {
         {
-            use core::pin::Pin;
             $crate::ffi::assert_is_pinning(&$struct);
-            unsafe { Pin::new_unchecked(&$struct.$field_name) }
+            unsafe { $struct.map_unchecked(|s| &s.$field_name) }
         }
     };
     (& $indexable:ident [ $idx:expr ]) => {

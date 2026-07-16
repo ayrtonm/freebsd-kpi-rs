@@ -34,6 +34,7 @@ use core::fmt::{Debug, Formatter};
 use core::mem::{MaybeUninit, forget};
 use core::ops::Deref;
 use core::sync::atomic::{AtomicUsize, Ordering};
+use core::pin::Pin;
 use core::{fmt, ptr};
 
 #[repr(C)]
@@ -76,6 +77,11 @@ impl<'a, T> Uninit<'a, T> {
 pub struct Loan<'a, T: 'static>(pub(crate) &'a LoanLayout<T>);
 
 impl<'a, T> Loan<'a, T> {
+    pub unsafe fn map_unchecked<U: ?Sized, F>(self, f: F) -> Pin<&'a U>
+    where F: FnOnce(&T) -> &U {
+        unsafe { Pin::new_unchecked(f(self.0.t.assume_init_ref())) }
+    }
+
     pub unsafe fn from_raw(ptr: &'a LoanLayout<T>) -> Self {
         Self(ptr)
     }
