@@ -38,8 +38,7 @@ use crate::vec::Vec;
 use crate::{ErrCode, define_interface};
 use core::ffi::{CStr, c_int};
 use core::ptr::{null_mut};
-use crate::sync::arc::InnerArc;
-use crate::ffi::Loan;
+use crate::ffi::{Loan, LoanLayout};
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
@@ -82,7 +81,7 @@ impl AsRustType<'_, Device> for device_t {
 impl<'a, T> AsRustType<'a, Loan<'a, T>> for device_t {
     fn as_rust_type(&'a self) -> Loan<'a, T> {
         let void_ptr = unsafe { bindings::device_get_softc(*self) };
-        let sc_ptr = void_ptr.cast::<InnerArc<T>>();
+        let sc_ptr = void_ptr.cast::<LoanLayout<T>>();
         let sc_ref = unsafe { sc_ptr.as_ref().unwrap() };
         Loan(sc_ref)
     }
@@ -108,11 +107,11 @@ define_interface! {
 
             let void_ptr = unsafe { bindings::device_get_softc(dev.as_ptr()) };
             type Softc = <SelfType as KobjLayout>::Layout;
-            let sc_ptr = void_ptr.cast::<MaybeUninit<Softc>>();
+            let sc_ptr = void_ptr.cast::<Softc>();
             let sc_ref = unsafe { sc_ptr.as_mut().unwrap() };
             let mut sc_init = false;
 
-            let uninit_sc = unsafe { Uninit::from_raw(sc_ref, &mut sc_init) };
+            let uninit_sc = unsafe { Uninit::from_raw(sc_ref, dev.as_ptr(), &mut sc_init) };
         },
         with drop glue {
             // drop glue is only called if device_attach succeeded

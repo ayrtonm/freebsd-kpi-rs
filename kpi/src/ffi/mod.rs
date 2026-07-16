@@ -29,12 +29,13 @@
 //! Utilities related to FFI with C.
 
 use core::fmt;
-use crate::bindings::u_int;
+use crate::bindings::{device_t, u_int};
 use core::fmt::{Debug, Formatter};
 use core::pin::Pin;
 use core::mem::{forget, MaybeUninit};
-use crate::sync::arc::{Arc, InnerArc};
+use crate::sync::arc::{Arc};
 use crate::boxed::Box;
+use crate::device::Device;
 use crate::malloc::Malloc;
 use core::ptr;
 use core::ptr::null_mut;
@@ -115,31 +116,42 @@ impl<T> Ptr<T> {
 unsafe impl<T> Sync for Ptr<T> {}
 unsafe impl<T> Send for Ptr<T> {}
 
+#[repr(C)]
+pub struct LoanLayout<T> {
+    t: MaybeUninit<T>,
+    dev: device_t,
+    count: UnsafeCell<u_int>,
+}
+
 /// A unique pointer to an uninitialized, externally-managed object.
-#[derive(Debug)]
-pub struct Uninit<'a, T>(&'a mut MaybeUninit<InnerArc<T>>, &'a mut bool);
+pub struct Uninit<'a, T>(&'a mut LoanLayout<T>, &'a mut bool);
 
 impl<'a, T> Uninit<'a, T> {
-    pub unsafe fn from_raw(ptr: &'a mut MaybeUninit<InnerArc<T>>, init: &'a mut bool) -> Self {
+    pub unsafe fn from_raw(ptr: &'a mut LoanLayout<T>, dev: device_t, init: &'a mut bool) -> Self {
+        ptr.dev = dev;
         Self(ptr, init)
     }
 
     /// Initialize the externally-managed object to `t` and return a pinned reference to the pointee
     pub fn init(self, t: T) -> Loan<'a, T> {
-        let res = self.0.write(InnerArc::new(t));
+        self.0.t.write(t);
         *self.1 = true;
-        let inner_ptr = (res as *const InnerArc<T>).cast_mut();
+        let inner_ptr = ptr::from_ref(self.0).cast_mut();
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
         unsafe { bindings::refcount_init(count_ptr, 1) };
-        Loan(res)
+        Loan(unsafe { inner_ptr.as_ref().unwrap() })
     }
 }
 
 /// A pointer that may be opted into refcounting if requested.
 #[repr(C)]
-pub struct Loan<'a, T: 'static>(pub(crate) &'a InnerArc<T>);
+pub struct Loan<'a, T: 'static>(pub(crate) &'a LoanLayout<T>);
 
 impl<'a, T> Loan<'a, T> {
+    pub fn device(&self) -> Device {
+        Device::new(self.0.dev)
+    }
+
     pub fn lease(&self) -> Lease<T> {
         let inner_ptr = ptr::from_ref(self.0).cast_mut();
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
@@ -166,19 +178,25 @@ impl<'a, T> Deref for Loan<'a, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        &self.0.t
+        unsafe {
+            self.0.t.assume_init_ref()
+        }
     }
 }
 
 /// A pointer to a refcounted object.
 #[repr(C)]
-pub struct Lease<T: 'static>(pub(crate) &'static InnerArc<T>);
+pub struct Lease<T: 'static>(pub(crate) &'static LoanLayout<T>);
 
 impl<T> Lease<T> {
+    pub fn device(&self) -> Device {
+        Device::new(self.0.dev)
+    }
+
     pub fn into_raw(self) -> (*mut T, *mut u_int) {
-        let inner_ptr = (self.0 as *const InnerArc<T>).cast_mut();
+        let inner_ptr = ptr::from_ref(self.0).cast_mut();
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
-        let t_ptr = unsafe { &raw mut (*inner_ptr).t };
+        let t_ptr = self.0.t.as_ptr().cast_mut();
         forget(self);
         (t_ptr, count_ptr)
     }
@@ -186,7 +204,7 @@ impl<T> Lease<T> {
 
 impl<T> Drop for Lease<T> {
     fn drop(&mut self) {
-        let inner_ptr = (self.0 as *const InnerArc<T>).cast_mut();
+        let inner_ptr = ptr::from_ref(self.0).cast_mut();
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
         let last = unsafe { bindings::refcount_release(count_ptr) };
         assert!(!last);
@@ -203,7 +221,9 @@ impl<T> Deref for Lease<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        &self.0.t
+        unsafe {
+            self.0.t.assume_init_ref()
+        }
     }
 }
 
