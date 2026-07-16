@@ -27,12 +27,13 @@
  */
 
 use crate::ErrCode;
-use crate::bindings::{bus_size_t, resource, resource_spec};
+use crate::bindings::{bus_size_t, resource, resource_spec, u_int};
 use crate::device::{Device};
 use crate::kobj::{AsCType, AsRustType};
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::ffi::{c_int, c_void};
+use core::sync::atomic::{AtomicPtr, Ordering};
 use crate::ffi::{Loan, Lease};
 use core::mem::transmute;
 use core::ops::BitOr;
@@ -147,7 +148,7 @@ impl Register {
 pub struct Irq {
     pub res: *mut resource,
     pub cookie: UnsafeCell<*mut c_void>,
-    //metadata_ptr: AtomicPtr<RefCountData>,
+    count_ptr: AtomicPtr<u_int>,
 }
 
 impl Default for Irq {
@@ -155,6 +156,7 @@ impl Default for Irq {
         Self {
             res: null_mut(),
             cookie: UnsafeCell::new(null_mut()),
+            count_ptr: AtomicPtr::new(null_mut()),
         }
     }
 }
@@ -192,7 +194,7 @@ impl Resource {
         Ok(Irq {
             res: self.res,
             cookie: UnsafeCell::new(null_mut()),
-            //metadata_ptr: AtomicPtr::new(null_mut()),
+            count_ptr: AtomicPtr::new(null_mut()),
         })
     }
 
@@ -300,6 +302,9 @@ pub mod wrappers {
         if filter.is_none() && handler.is_none() {
             return Err(EDOOFUS);
         }
+        if !irq.count_ptr.load(Ordering::Relaxed).is_null() {
+            return Err(EDOOFUS);
+        }
         // SAFETY: These types are ABI-compatible
         let filter = unsafe { transmute::<FilterFn<T>, RawFilterFn>(filter) };
         // SAFETY: These types are ABI-compatible
@@ -307,8 +312,8 @@ pub mod wrappers {
 
         let cookiep = irq.cookie.get();
 
-        // FIXME: What is bus_setup_intr fails?
-        let (arg_ptr, _count_ptr) = Lease::into_raw(arg);
+        let (arg_ptr, count_ptr) = Lease::into_raw(arg);
+        irq.count_ptr.store(count_ptr, Ordering::Relaxed);
 
         let res = unsafe {
             bindings::bus_setup_intr(dev_ptr, irq.res, flags, filter, handler, arg_ptr.cast::<c_void>(), cookiep)
@@ -323,6 +328,10 @@ pub mod wrappers {
         let dev_ptr = dev.as_ptr();
         let cookiep = irq.cookie.get();
         let cookie = unsafe { *cookiep };
+        let count_ptr = irq.count_ptr.load(Ordering::Relaxed);
+        irq.count_ptr.store(null_mut(), Ordering::Relaxed);
+        let last = unsafe { bindings::refcount_release(count_ptr) };
+        assert!(!last);
         let res = unsafe { bindings::bus_teardown_intr(dev_ptr, irq.res, cookie) };
         if res != 0 {
             Err(ErrCode::from(res))
@@ -484,7 +493,7 @@ mod tests {
     }
 
     impl IrqDriver {
-        fn setup(&self, dev: Device, sc: Loan<IrqSoftc>, filter: bool, handler: bool) {
+        fn setup(&self, dev: Device, sc: Loan<IrqSoftc>, filter: bool, handler: bool) -> Result<()> {
             let filter = if filter {
                 Some(IrqDriver::filter as _)
             } else {
@@ -496,7 +505,7 @@ mod tests {
                 None
             };
             let irq = proj!(&sc.irq);
-            bus_setup_intr(dev, irq, 0, filter, handler, sc.lease()).unwrap();
+            bus_setup_intr(dev, irq, 0, filter, handler, sc.lease())
         }
     }
 
@@ -517,13 +526,16 @@ mod tests {
             let dev = sc.device();
             assert_eq!(bus_setup_intr(dev, proj!(&sc.irq), 0, None, None, sc.lease()), Err(EDOOFUS));
             if ofw_bus_is_compatible(dev, c"irq_driver,set_both") {
-                irq_driver.setup(dev, sc, true, true);
+                irq_driver.setup(dev, sc, true, true).unwrap();
             }
             if ofw_bus_is_compatible(dev, c"irq_driver,set_filter") {
-                irq_driver.setup(dev, sc, true, false);
+                irq_driver.setup(dev, sc, true, false).unwrap();
             }
             if ofw_bus_is_compatible(dev, c"irq_driver,set_handler") {
-                irq_driver.setup(dev, sc, false, true);
+                irq_driver.setup(dev, sc, false, true).unwrap();
+            }
+            if ofw_bus_is_compatible(dev, c"irq_driver,set_handler_expect_failure") {
+                irq_driver.setup(dev, sc, false, true).unwrap_err();
             }
             Ok(())
         }
@@ -565,6 +577,7 @@ mod tests {
         let mut m = DriverManager::new();
         let dev = m.add_test_device(c"bus,irq_driver");
         dev.compat_strs.push(c"irq_driver,set_filter");
+        dev.compat_strs.push(c"irq_driver,teardown_intr");
         let dev = dev.dev;
         m.add_test_driver::<IrqDriver>();
         m.probe_all();
@@ -578,6 +591,7 @@ mod tests {
         let mut m = DriverManager::new();
         let dev = m.add_test_device(c"bus,irq_driver");
         dev.compat_strs.push(c"irq_driver,set_handler");
+        dev.compat_strs.push(c"irq_driver,teardown_intr");
         let dev = dev.dev;
         m.add_test_driver::<IrqDriver>();
         m.probe_all();
@@ -667,7 +681,8 @@ mod tests {
         let mut m = DriverManager::new();
         let dev = m.add_test_device(c"bus,irq_driver");
         dev.compat_strs.push(c"irq_driver,set_filter");
-        dev.compat_strs.push(c"irq_driver,set_handler");
+        dev.compat_strs.push(c"irq_driver,set_handler_expect_failure");
+        dev.compat_strs.push(c"irq_driver,teardown_intr");
         let dev = dev.dev;
         m.add_test_driver::<IrqDriver>();
         m.probe_all();
