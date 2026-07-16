@@ -38,6 +38,7 @@ use core::mem::transmute;
 use core::ptr;
 use core::ptr::null_mut;
 use core::pin::Pin;
+use core::ops::Deref;
 
 #[cfg(feature = "intrng")]
 mod intrng;
@@ -72,9 +73,9 @@ impl ConfigHook {
         }
     }
 
-    pub fn init<T>(self: Pin<&Self>, func: ConfigHookFn<T>, arg: Pin<&T>) {
+    pub fn init<T>(self: Pin<&Self>, func: ConfigHookFn<T>, arg: Ref<T>) {
         let c_hook = self.inner.get();
-        let arg_ptr = arg.get_ref() as *const T;
+        let arg_ptr = arg.deref() as *const T;
         unsafe {
             (*c_hook).ich_arg = arg_ptr.cast::<c_void>().cast_mut();
             (*c_hook).ich_func = transmute::<Option<ConfigHookFn<T>>, ich_func_t>(Some(func));

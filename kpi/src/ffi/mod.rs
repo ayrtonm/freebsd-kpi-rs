@@ -134,9 +134,17 @@ impl<'a, T> UninitRef<'a, T> {
     }
 }
 
+/// A pointer that may be opted into refcounting if requested.
 #[repr(C)]
 pub struct Ref<'a, T: 'static>(pub(crate) &'a InnerArc<T>);
 
+impl<'a, T: 'static + Debug> Debug for Ref<'a, T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Debug::fmt(&self.0.t, f)
+    }
+}
+
+/// A pointer to a refcounted object.
 #[repr(C)]
 pub struct RefCounted<T: 'static>(pub(crate) &'static InnerArc<T>);
 
@@ -210,4 +218,5 @@ pub fn assert_pin_has_fixed_index<T: FixedIndex>(_p: Pin<&T>) {}
 pub unsafe trait IsPinning {}
 unsafe impl<T> IsPinning for Pin<T> {}
 unsafe impl<'a, T> IsPinning for Ref<'a, T> {}
+unsafe impl<T> IsPinning for RefCounted<T> {}
 pub fn assert_is_pinning<P: IsPinning>(_p: &P) {}

@@ -185,11 +185,12 @@ pub mod wrappers {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::boxed::Box;
 
     #[test]
     fn basic_sx_exclusive() {
-        let lock = SxLock::new(4u32);
-        sx_init(&lock, c"test");
+        let lock = Box::pin(SxLock::new(4u32));
+        sx_init(lock.as_ref(), c"test");
         let mut x = sx_xlock(&lock);
         *x += 1;
         sx_xunlock(x);
@@ -197,21 +198,21 @@ mod tests {
 
     #[test]
     fn basic_sx_shared() {
-        let lock = SxLock::new(4u32);
-        sx_init(&lock, c"test");
+        let lock = Box::pin(SxLock::new(4u32));
+        sx_init(lock.as_ref(), c"test");
         let x = sx_slock(&lock);
         assert_eq!(*x, 4);
         sx_sunlock(x);
     }
 
     #[unsafe(no_mangle)]
-    extern "C" fn sx_init_flags() {}
+    extern "C" fn fn_sx_init() {}
     #[unsafe(no_mangle)]
-    extern "C" fn _sx_slock() {}
+    extern "C" fn fn_sx_slock() {}
     #[unsafe(no_mangle)]
-    extern "C" fn _sx_xlock() {}
+    extern "C" fn fn_sx_xlock() {}
     #[unsafe(no_mangle)]
-    extern "C" fn _sx_sunlock() {}
+    extern "C" fn fn_sx_sunlock() {}
     #[unsafe(no_mangle)]
-    extern "C" fn _sx_xunlock() {}
+    extern "C" fn fn_sx_xunlock() {}
 }

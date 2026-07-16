@@ -31,7 +31,7 @@ use crate::bindings::{
 };
 use crate::bus::{Filter, Resource};
 use crate::device::{Device, DeviceIf};
-use crate::ffi::{ArrayCString, SubClass};
+use crate::ffi::{ArrayCString, SubClass, Ref, RefCounted};
 use crate::kobj::AsRustType;
 use crate::ofw::XRef;
 use crate::prelude::*;
@@ -197,7 +197,7 @@ impl PicIf for {Self} {{
 pub trait PicIf: DeviceIf {
     type IrqSrcFields;
     fn pic_setup_intr(
-        sc: Pin<&Self::Softc>,
+        sc: Ref<Self::Softc>,
         isrc: &IrqSrc<Self::IrqSrcFields>,
         res: Resource,
         data: MapData,
@@ -341,14 +341,16 @@ pub mod wrappers {
         dev: Device,
         xref: XRef,
         filter: IrqFilter<T>,
-        arg: Pin<&T>,
+        arg: RefCounted<T>,
         root: IntrRoot,
     ) -> Result<()> {
         let xref = xref.0 as isize;
         let filter = unsafe { transmute::<Option<IrqFilter<T>>, intr_irq_filter_t>(Some(filter)) };
-        let arg_ptr = (arg.get_ref() as *const T).cast::<c_void>().cast_mut();
+        // FIXME: What is bus_setup_intr fails?
+        let (arg_ptr, _count_ptr) = RefCounted::into_raw(arg);
+
         let res = unsafe {
-            bindings::intr_pic_claim_root(dev.as_ptr(), xref, filter, arg_ptr, root.0 as u32)
+            bindings::intr_pic_claim_root(dev.as_ptr(), xref, filter, arg_ptr.cast::<c_void>(), root.0 as u32)
         };
         if res != 0 {
             return Err(ErrCode::from(res));
@@ -397,6 +399,7 @@ mod tests {
         }
         fn device_attach(uninit_sc: UninitRef<Self::Softc>, dev: Device) -> Result<()> {
             let sc = uninit_sc.init(IntcSoftc { dev });
+            let sc = RefCounted::new_from_ref(sc);
             intr_pic_claim_root(sc.dev, XRef(0), IntcDriver::handle_irq, sc, INTR_ROOT_IRQ)
         }
         fn device_detach(_sc: Ref<Self::Softc>) -> Result<()> {
@@ -414,7 +417,7 @@ mod tests {
         type IrqSrcFields = IntcIrqSrc;
 
         fn pic_setup_intr(
-            _sc: Pin<&Self::Softc>,
+            _sc: Ref<Self::Softc>,
             isrc: &IrqSrc<Self::IrqSrcFields>,
             _res: Resource,
             _data: MapData,

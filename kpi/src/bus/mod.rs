@@ -33,6 +33,7 @@ use crate::kobj::{AsCType, AsRustType};
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::ffi::{c_int, c_void};
+use crate::ffi::{Ref, RefCounted};
 use core::mem::transmute;
 use core::ops::BitOr;
 use core::ptr::{addr_of_mut, null_mut};
@@ -293,7 +294,7 @@ pub mod wrappers {
         flags: c_int,
         filter: FilterFn<T>,
         handler: Handler<T>,
-        arg: Pin<&T>,
+        arg: RefCounted<T>,
     ) -> Result<()> {
         let dev_ptr = dev.as_ptr();
         if filter.is_none() && handler.is_none() {
@@ -306,9 +307,11 @@ pub mod wrappers {
 
         let cookiep = irq.cookie.get();
 
-        let arg_ptr = (arg.get_ref() as *const T).cast::<c_void>().cast_mut();
+        // FIXME: What is bus_setup_intr fails?
+        let (arg_ptr, _count_ptr) = RefCounted::into_raw(arg);
+
         let res = unsafe {
-            bindings::bus_setup_intr(dev_ptr, irq.res, flags, filter, handler, arg_ptr, cookiep)
+            bindings::bus_setup_intr(dev_ptr, irq.res, flags, filter, handler, arg_ptr.cast::<c_void>(), cookiep)
         };
         if res != 0 {
             return Err(ErrCode::from(res));
@@ -482,7 +485,7 @@ mod tests {
     }
 
     impl IrqDriver {
-        fn setup(&self, dev: Device, sc: Pin<&IrqSoftc>, filter: bool, handler: bool) {
+        fn setup(&self, dev: Device, sc: Ref<IrqSoftc>, filter: bool, handler: bool) {
             let filter = if filter {
                 Some(IrqDriver::filter as _)
             } else {
@@ -493,7 +496,9 @@ mod tests {
             } else {
                 None
             };
-            bus_setup_intr(dev, proj!(&sc.irq), 0, filter, handler, sc).unwrap();
+            let irq = proj!(&sc.irq);
+            let sc = RefCounted::new_from_ref(sc);
+            bus_setup_intr(dev, irq, 0, filter, handler, sc).unwrap();
         }
     }
 
@@ -513,7 +518,7 @@ mod tests {
                 loud: LoudDrop,
             });
             let dev = sc.dev;
-            assert_eq!(bus_setup_intr(dev, proj!(&sc.irq), 0, None, None, sc), Err(EDOOFUS));
+            assert_eq!(bus_setup_intr(dev, proj!(&sc.irq), 0, None, None, RefCounted::new_from_ref(sc)), Err(EDOOFUS));
             if ofw_bus_is_compatible(dev, c"irq_driver,set_both") {
                 irq_driver.setup(dev, sc, true, true);
             }
