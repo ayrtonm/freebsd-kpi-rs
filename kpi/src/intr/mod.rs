@@ -28,7 +28,7 @@
 
 use crate::ErrCode;
 use crate::bindings::{
-    C_HARDCLOCK, callout, callout_func_t, ich_func_t, intr_config_hook, sbintime_t, tick_sbt, u_int,
+    callout, callout_func_t, ich_func_t, intr_config_hook, u_int,
 };
 use crate::prelude::*;
 use core::cell::UnsafeCell;

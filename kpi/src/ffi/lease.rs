@@ -57,7 +57,7 @@ impl<'a, T> Uninit<'a, T> {
         self.1 = Some(flag);
     }
 
-    pub fn device(&self) -> Device {
+    pub fn device(&self) -> Device<'_> {
         Device::new(self.0.dev)
     }
 
@@ -88,7 +88,7 @@ impl<'a, T> Loan<'a, T> {
         (t_ptr, count_ptr)
     }
 
-    pub fn device(&self) -> Device {
+    pub fn device(&self) -> Device<'_> {
         Device::new(self.0.dev)
     }
 
@@ -129,7 +129,7 @@ impl<'a, T> Deref for Loan<'a, T> {
 pub struct Lease<T: 'static>(pub(crate) &'static LoanLayout<T>);
 
 impl<T> Lease<T> {
-    pub fn device(&self) -> Device {
+    pub fn device(&self) -> Device<'_> {
         Device::new(self.0.dev)
     }
 

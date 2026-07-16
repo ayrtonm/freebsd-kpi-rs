@@ -200,6 +200,7 @@ impl<'a, P> AsRustType<'a, Socket<'a, P>> for *mut bindings::socket {
 }
 
 #[doc(hidden)]
+#[allow(non_snake_case)]
 pub mod wrappers {
     use super::*;
 

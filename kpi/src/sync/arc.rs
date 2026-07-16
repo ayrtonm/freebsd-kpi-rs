@@ -42,15 +42,6 @@ pub struct InnerArc<T> {
     pub(crate) count: UnsafeCell<u_int>,
 }
 
-impl<T> InnerArc<T> {
-    pub(crate) fn new(t: T) -> Self {
-        Self {
-            t,
-            count: UnsafeCell::new(0),
-        }
-    }
-}
-
 /// A pointer to an object on the heap which owns a refcount to its pointee.
 ///
 /// `Arc` stands for 'Atomically Reference Counted' so this is thread-safe.

@@ -29,7 +29,6 @@
 use core::pin::Pin;
 use crate::bindings::{device_state_t, device_t, driver_t, _device};
 use crate::boxed::Box;
-use crate::ffi::Ptr;
 use crate::driver::Driver;
 use crate::ffi::{ArrayCString, Uninit};
 use crate::kobj::{AsCType, AsRustType};

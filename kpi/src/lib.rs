@@ -126,8 +126,6 @@ pub type Result<T> = core::result::Result<T, ErrCode>;
 #[allow(non_snake_case)]
 pub mod misc {
     #[cfg(target_arch = "aarch64")]
-    use crate::bindings::device_t;
-    #[cfg(target_arch = "aarch64")]
     use crate::prelude::*;
     #[cfg(target_arch = "aarch64")]
     use core::sync::atomic::AtomicU32;

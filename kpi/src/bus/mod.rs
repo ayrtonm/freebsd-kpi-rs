@@ -504,8 +504,7 @@ mod tests {
             } else {
                 None
             };
-            let irq = proj!(&sc.irq);
-            bus_setup_intr(dev, irq, 0, filter, handler, sc.lease())
+            bus_setup_intr(dev, proj!(&sc.irq), 0, filter, handler, sc.lease())
         }
     }
 

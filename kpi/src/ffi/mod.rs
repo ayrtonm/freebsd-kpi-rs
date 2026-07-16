@@ -35,9 +35,6 @@ use crate::sync::arc::{Arc};
 use crate::boxed::Box;
 use crate::malloc::Malloc;
 use core::ptr::null_mut;
-use core::ops::Deref;
-use core::cell::UnsafeCell;
-use crate::prelude::*;
 
 mod cstring;
 mod lease;

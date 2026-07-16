@@ -73,7 +73,7 @@ impl Task {
         let arg_ptr = arg.get_ref() as *const T;
         unsafe {
             (*c_task).ta_context = arg_ptr.cast_mut().cast::<c_void>();
-            (*c_task).ta_func = unsafe { transmute::<Option<TaskFn<T>>, task_fn_t>(Some(func)) };
+            (*c_task).ta_func = transmute::<Option<TaskFn<T>>, task_fn_t>(Some(func));
         }
     }
 }
@@ -87,8 +87,6 @@ pub use wrappers::*;
 #[doc(hidden)]
 pub mod wrappers {
     use super::*;
-    use crate::device::{Device, DeviceIf};
-    use crate::driver::Driver;
 
     // Max queue name is 32 chars which is over the ArrayCString limit
     pub fn taskqueue_create(
