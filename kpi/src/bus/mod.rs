@@ -509,7 +509,7 @@ mod tests {
             }
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: Uninit<Self::Softc>, dev: Device) -> Result<()> {
+        fn device_attach(uninit_sc: Uninit<Self::Softc>) -> Result<()> {
             let sc = uninit_sc.init(IrqSoftc {
                 irq: Irq::default(),
                 loud: LoudDrop,

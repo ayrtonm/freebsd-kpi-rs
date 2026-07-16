@@ -69,10 +69,21 @@ impl AsCType<c_int> for BusProbe {
     }
 }
 
-// Used in device_attach
+// Used in device_probe
 impl<'a> AsRustType<'a, Device<'a>> for device_t {
     fn as_rust_type(&'a self) -> Device<'a> {
         Device::new(*self)
+    }
+}
+
+// Used in device_attach
+impl<'a, T> AsRustType<'a, Uninit<'a, T>> for device_t {
+    fn as_rust_type(&'a self) -> Uninit<'a, T> {
+        let void_ptr = unsafe { bindings::device_get_softc(*self) };
+        let sc_ptr = void_ptr.cast::<LoanLayout<T>>();
+        let sc_ref = unsafe { sc_ptr.as_mut().unwrap() };
+        sc_ref.assert_is_uninit();
+        unsafe { Uninit::from_raw(sc_ref, *self) }
     }
 }
 
@@ -97,31 +108,17 @@ define_interface! {
         with desc device_attach_desc
         and typedef device_attach_t,
         with init glue {
-            use $crate::bindings;
-            use $crate::device::Device;
-            use $crate::ffi::Uninit;
-            use $crate::kobj::KobjLayout;
-            use core::mem::MaybeUninit;
-
-            // Used to constrain type inference
-            let dev: Device = dev;
-
-            let void_ptr = unsafe { bindings::device_get_softc(dev.as_ptr()) };
-            type Softc = <SelfType as KobjLayout>::Layout;
-            let sc_ptr = void_ptr.cast::<Softc>();
-            let sc_ref = unsafe { sc_ptr.as_mut().unwrap() };
-            let mut sc_init = false;
-
-            let uninit_sc = unsafe { Uninit::from_raw(sc_ref, dev.as_ptr(), &mut sc_init) };
+            let _: $crate::ffi::Uninit<_> = dev;
+            let dev_ptr = dev.device().as_ptr();
+            let init_ptr = dev.is_init_ptr();
         },
         with drop glue {
             // drop glue is only called if device_attach succeeded
-            if !sc_init {
-                device_println!(dev, "Must call .init() on Uninit<Softc> in device_attach");
+            if !unsafe { *init_ptr } {
+                device_println!(dev_ptr, "Must call .init() on Uninit<Softc> in device_attach");
                 return bindings::ENXIO;
             }
-        },
-        with prefix args { uninit_sc };
+        };
     fn device_detach(dev: device_t) -> int,
         with desc device_detach_desc
         and typedef device_detach_t,
@@ -190,7 +187,7 @@ pub trait DeviceIf: Driver {
     ///
     /// All implementations must call [`init`][crate::ffi::Uninit::init] on the `uninit_sc`
     /// argument before this function returns to avoid a panic at runtime.
-    fn device_attach(uninit_sc: Uninit<Self::Softc>, dev: Device) -> Result<()> {
+    fn device_attach(uninit_sc: Uninit<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
 
@@ -386,11 +383,11 @@ mod tests {
             println!("test_driver: accepted {dev:x?}");
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: Uninit<Self::Softc>, dev: Device) -> Result<()> {
+        fn device_attach(uninit_sc: Uninit<Self::Softc>) -> Result<()> {
             let sc = uninit_sc.init(TestDriverSoftc {
                 const_data: 0xdeadbeef,
             });
-            if ofw_bus_is_compatible(dev, c"another_driver,get_softc") {
+            if ofw_bus_is_compatible(sc.device(), c"another_driver,get_softc") {
                 STASHED_DEVICE.store(sc.device().as_ptr(), Ordering::Relaxed);
             }
             println!("{:x?}", sc);
@@ -433,7 +430,7 @@ mod tests {
             println!("another_driver: accepted {dev:x?}");
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: Uninit<Self::Softc>, dev: Device) -> Result<()> {
+        fn device_attach(uninit_sc: Uninit<Self::Softc>) -> Result<()> {
             let sc = uninit_sc.init(AnotherDriverSoftc {
                 loud: LoudDrop,
             });

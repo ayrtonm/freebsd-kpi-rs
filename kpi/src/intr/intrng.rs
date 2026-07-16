@@ -395,7 +395,7 @@ mod tests {
             }
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: Uninit<Self::Softc>, dev: Device) -> Result<()> {
+        fn device_attach(uninit_sc: Uninit<Self::Softc>) -> Result<()> {
             let sc = uninit_sc.init(IntcSoftc);
             intr_pic_claim_root(sc.device(), XRef(0), IntcDriver::handle_irq, sc.lease(), INTR_ROOT_IRQ)
         }
