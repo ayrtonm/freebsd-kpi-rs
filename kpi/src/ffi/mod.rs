@@ -164,7 +164,6 @@ impl<'a, T> Loan<'a, T> {
         let inner_ptr = ptr::from_ref(self.0).cast_mut();
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
         let t_ptr = self.0.t.as_ptr().cast_mut();
-        forget(self);
         (t_ptr, count_ptr)
     }
 
