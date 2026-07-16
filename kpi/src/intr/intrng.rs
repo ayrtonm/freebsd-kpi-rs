@@ -452,7 +452,6 @@ mod tests {
         m.probe_all();
         m.attach_all();
         m.trigger_pic_root(dev);
-        m.detach_all();
     }
 
     #[test]
