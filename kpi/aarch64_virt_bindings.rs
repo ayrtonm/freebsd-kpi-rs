@@ -75,10 +75,10 @@ impl<T> ::core::cmp::PartialEq for __BindgenUnionField<T> {
 impl<T> ::core::cmp::Eq for __BindgenUnionField<T> {}
 pub const __llvm__: i32 = 1;
 pub const __clang__: i32 = 1;
-pub const __clang_major__: i32 = 22;
-pub const __clang_minor__: i32 = 1;
-pub const __clang_patchlevel__: i32 = 6;
-pub const __clang_version__: &[u8; 8] = b"22.1.6 \0";
+pub const __clang_major__: i32 = 21;
+pub const __clang_minor__: i32 = 0;
+pub const __clang_patchlevel__: i32 = 0;
+pub const __clang_version__: &[u8; 28] = b"21.0.0 (clang-2100.1.1.101)\0";
 pub const __GNUC__: i32 = 4;
 pub const __GNUC_MINOR__: i32 = 2;
 pub const __GNUC_PATCHLEVEL__: i32 = 1;
@@ -94,7 +94,6 @@ pub const __MEMORY_SCOPE_DEVICE: i32 = 1;
 pub const __MEMORY_SCOPE_WRKGRP: i32 = 2;
 pub const __MEMORY_SCOPE_WVFRNT: i32 = 3;
 pub const __MEMORY_SCOPE_SINGLE: i32 = 4;
-pub const __MEMORY_SCOPE_CLUSTR: i32 = 5;
 pub const __OPENCL_MEMORY_SCOPE_WORK_ITEM: i32 = 0;
 pub const __OPENCL_MEMORY_SCOPE_WORK_GROUP: i32 = 1;
 pub const __OPENCL_MEMORY_SCOPE_DEVICE: i32 = 2;
@@ -111,7 +110,7 @@ pub const __FPCLASS_POSSUBNORMAL: i32 = 128;
 pub const __FPCLASS_POSNORMAL: i32 = 256;
 pub const __FPCLASS_POSINF: i32 = 512;
 pub const __PRAGMA_REDEFINE_EXTNAME: i32 = 1;
-pub const __VERSION__: &[u8; 13] = b"Clang 22.1.6\0";
+pub const __VERSION__: &[u8; 39] = b"Apple LLVM 21.0.0 (clang-2100.1.1.101)\0";
 pub const __OBJC_BOOL_IS_BOOL: i32 = 0;
 pub const __CONSTANT_CFSTRINGS__: i32 = 1;
 pub const __clang_literal_encoding__: &[u8; 6] = b"UTF-8\0";
@@ -362,7 +361,6 @@ pub const __FLT_RADIX__: i32 = 2;
 pub const __DECIMAL_DIG__: i32 = 36;
 pub const __SSP_STRONG__: i32 = 2;
 pub const __ELF__: i32 = 1;
-pub const __GCC_HAVE_DWARF2_CFI_ASM: i32 = 1;
 pub const __AARCH64EL__: i32 = 1;
 pub const __aarch64__: i32 = 1;
 pub const __GCC_ASM_FLAG_OUTPUTS__: i32 = 1;
@@ -389,7 +387,6 @@ pub const __ARM_FP16_ARGS: i32 = 1;
 pub const __ARM_NEON_SVE_BRIDGE: i32 = 1;
 pub const __ARM_SIZEOF_WCHAR_T: i32 = 4;
 pub const __ARM_SIZEOF_MINIMAL_ENUM: i32 = 4;
-pub const __ARM_PREFETCH_RANGE: i32 = 1;
 pub const __ARM_FEATURE_UNALIGNED: i32 = 1;
 pub const __ARM_FEATURE_PAC_DEFAULT: i32 = 1;
 pub const __ARM_FEATURE_BTI_DEFAULT: i32 = 1;
@@ -401,6 +398,7 @@ pub const __GCC_HAVE_SYNC_COMPARE_AND_SWAP_8: i32 = 1;
 pub const __GCC_HAVE_SYNC_COMPARE_AND_SWAP_16: i32 = 1;
 pub const __FP_FAST_FMA: i32 = 1;
 pub const __FP_FAST_FMAF: i32 = 1;
+pub const __GCC_HAVE_DWARF2_CFI_ASM: i32 = 1;
 pub const __STDC__: i32 = 1;
 pub const __STDC_HOSTED__: i32 = 0;
 pub const __STDC_VERSION__: i32 = 201710;
@@ -2735,6 +2733,48 @@ pub const DPCPU_SETNAME: &[u8; 9] = b"set_pcpu\0";
 pub const DPCPU_SYMPREFIX: &[u8; 12] = b"pcpu_entry_\0";
 pub const DPCPU_MODMIN: i32 = 2048;
 pub const UMA_PCPU_ALLOC_SIZE: i32 = 4096;
+pub const CHAR_BIT: i32 = 8;
+pub const SCHAR_MAX: i32 = 127;
+pub const SCHAR_MIN: i32 = -128;
+pub const UCHAR_MAX: i32 = 255;
+pub const CHAR_MAX: i32 = 255;
+pub const CHAR_MIN: i32 = 0;
+pub const USHRT_MAX: i32 = 65535;
+pub const SHRT_MAX: i32 = 32767;
+pub const SHRT_MIN: i32 = -32768;
+pub const UINT_MAX: i64 = 4294967295;
+pub const INT_MAX: i32 = 2147483647;
+pub const INT_MIN: i32 = -2147483648;
+pub const ULONG_MAX: i32 = -1;
+pub const LONG_MAX: i64 = 9223372036854775807;
+pub const LONG_MIN: i64 = -9223372036854775808;
+pub const ULLONG_MAX: i32 = -1;
+pub const LLONG_MAX: i64 = 9223372036854775807;
+pub const LLONG_MIN: i64 = -9223372036854775808;
+pub const BOOL_WIDTH: i32 = 1;
+pub const CHAR_WIDTH: i32 = 8;
+pub const SCHAR_WIDTH: i32 = 8;
+pub const UCHAR_WIDTH: i32 = 8;
+pub const SHRT_WIDTH: i32 = 16;
+pub const USHRT_WIDTH: i32 = 16;
+pub const INT_WIDTH: i32 = 32;
+pub const UINT_WIDTH: i32 = 32;
+pub const LONG_WIDTH: i32 = 64;
+pub const ULONG_WIDTH: i32 = 64;
+pub const LLONG_WIDTH: i32 = 64;
+pub const ULLONG_WIDTH: i32 = 64;
+pub const SSIZE_MAX: i64 = 9223372036854775807;
+pub const SIZE_T_MAX: i32 = -1;
+pub const OFF_MAX: i64 = 9223372036854775807;
+pub const OFF_MIN: i64 = -9223372036854775808;
+pub const GID_MAX: i64 = 4294967295;
+pub const UID_MAX: i64 = 4294967295;
+pub const UQUAD_MAX: i32 = -1;
+pub const QUAD_MAX: i64 = 9223372036854775807;
+pub const QUAD_MIN: i64 = -9223372036854775808;
+pub const LONG_BIT: i32 = 64;
+pub const WORD_BIT: i32 = 32;
+pub const MQ_PRIO_MAX: i32 = 64;
 pub const HASH_NOWAIT: i32 = 1;
 pub const HASH_WAITOK: i32 = 2;
 pub const HD_COLUMN_MASK: i32 = 255;
@@ -2872,7 +2912,9 @@ pub const AT_REMOVEDIR: i32 = 2048;
 pub const AT_RESOLVE_BENEATH: i32 = 8192;
 pub const AT_EMPTY_PATH: i32 = 16384;
 pub const AT_RENAME_NOREPLACE: i32 = 1;
+pub const AT_RENAME_EXCHANGE: i32 = 2;
 pub const RENAME_NOREPLACE: i32 = 1;
+pub const RENAME_EXCHANGE: i32 = 2;
 pub const F_DUPFD: i32 = 0;
 pub const F_GETFD: i32 = 1;
 pub const F_SETFD: i32 = 2;
@@ -3138,6 +3180,7 @@ pub const NOTE_READ: i32 = 1024;
 pub const NOTE_EXIT: i64 = 2147483648;
 pub const NOTE_FORK: i32 = 1073741824;
 pub const NOTE_EXEC: i32 = 536870912;
+pub const NOTE_PDSIGCHLD: i32 = 268435456;
 pub const NOTE_PCTRLMASK: i64 = 4026531840;
 pub const NOTE_PDATAMASK: i32 = 1048575;
 pub const NOTE_TRACK: i32 = 1;
@@ -3913,48 +3956,6 @@ pub const LOG_ODELAY: i32 = 4;
 pub const LOG_NDELAY: i32 = 8;
 pub const LOG_NOWAIT: i32 = 16;
 pub const LOG_PERROR: i32 = 32;
-pub const CHAR_BIT: i32 = 8;
-pub const SCHAR_MAX: i32 = 127;
-pub const SCHAR_MIN: i32 = -128;
-pub const UCHAR_MAX: i32 = 255;
-pub const CHAR_MAX: i32 = 255;
-pub const CHAR_MIN: i32 = 0;
-pub const USHRT_MAX: i32 = 65535;
-pub const SHRT_MAX: i32 = 32767;
-pub const SHRT_MIN: i32 = -32768;
-pub const UINT_MAX: i64 = 4294967295;
-pub const INT_MAX: i32 = 2147483647;
-pub const INT_MIN: i32 = -2147483648;
-pub const ULONG_MAX: i32 = -1;
-pub const LONG_MAX: i64 = 9223372036854775807;
-pub const LONG_MIN: i64 = -9223372036854775808;
-pub const ULLONG_MAX: i32 = -1;
-pub const LLONG_MAX: i64 = 9223372036854775807;
-pub const LLONG_MIN: i64 = -9223372036854775808;
-pub const BOOL_WIDTH: i32 = 1;
-pub const CHAR_WIDTH: i32 = 8;
-pub const SCHAR_WIDTH: i32 = 8;
-pub const UCHAR_WIDTH: i32 = 8;
-pub const SHRT_WIDTH: i32 = 16;
-pub const USHRT_WIDTH: i32 = 16;
-pub const INT_WIDTH: i32 = 32;
-pub const UINT_WIDTH: i32 = 32;
-pub const LONG_WIDTH: i32 = 64;
-pub const ULONG_WIDTH: i32 = 64;
-pub const LLONG_WIDTH: i32 = 64;
-pub const ULLONG_WIDTH: i32 = 64;
-pub const SSIZE_MAX: i64 = 9223372036854775807;
-pub const SIZE_T_MAX: i32 = -1;
-pub const OFF_MAX: i64 = 9223372036854775807;
-pub const OFF_MIN: i64 = -9223372036854775808;
-pub const GID_MAX: i64 = 4294967295;
-pub const UID_MAX: i64 = 4294967295;
-pub const UQUAD_MAX: i32 = -1;
-pub const QUAD_MAX: i64 = 9223372036854775807;
-pub const QUAD_MIN: i64 = -9223372036854775808;
-pub const LONG_BIT: i32 = 64;
-pub const WORD_BIT: i32 = 32;
-pub const MQ_PRIO_MAX: i32 = 64;
 pub const INHERIT_SHARE: i32 = 0;
 pub const INHERIT_COPY: i32 = 1;
 pub const INHERIT_NONE: i32 = 2;
@@ -13555,6 +13556,7 @@ pub struct file {
 pub struct file__bindgen_ty_1 {
     pub f_seqcount: __BindgenUnionField<[i16; 2usize]>,
     pub f_pipegen: __BindgenUnionField<::core::ffi::c_int>,
+    pub f_pdflags: __BindgenUnionField<::core::ffi::c_int>,
     pub bindgen_union_field: u32,
 }
 impl Default for file__bindgen_ty_1 {
@@ -21226,7 +21228,6 @@ unsafe extern "C" {
     pub static mut stopped_cpus: cpuset_t;
     pub static mut suspended_cpus: cpuset_t;
     pub static mut toresume_cpus: cpuset_t;
-    pub static mut hlt_cpus_mask: cpuset_t;
     pub static mut logical_cpus_mask: cpuset_t;
     pub fn smp_topo() -> *mut cpu_group;
     pub fn smp_topo_alloc(count: u_int) -> *mut cpu_group;
@@ -21476,6 +21477,7 @@ unsafe extern "C" {
         context: *mut ::core::ffi::c_void,
     ) -> *mut taskqueue;
     pub static mut taskqueue_bus: *mut taskqueue;
+    pub static mut net_epoch_task_limit: ::core::ffi::c_uint;
     pub fn allocuio(iovcnt: u_int) -> *mut uio;
     pub fn freeuio(uio: *mut uio);
     pub fn cloneuio(uiop: *mut uio) -> *mut uio;
@@ -22109,6 +22111,8 @@ unsafe extern "C" {
         td: *mut thread,
         p: *mut proc_,
         fd: ::core::ffi::c_int,
+        fcaps: *mut filecaps,
+        fd_flags: *mut u8,
         fpp: *mut *mut file,
     ) -> ::core::ffi::c_int;
     pub fn fget_remote_foreach(
@@ -22948,6 +22952,8 @@ unsafe extern "C" {
     pub fn pmap_zero_page_area(arg1: vm_page_t, off: ::core::ffi::c_int, size: ::core::ffi::c_int);
     pub fn sndbuf_create(
         channel: *mut pcm_channel,
+        fmt: u_int32_t,
+        spd: u_int32_t,
         desc: *const ::core::ffi::c_char,
     ) -> *mut snd_dbuf;
     pub fn sndbuf_destroy(b: *mut snd_dbuf);
@@ -23139,7 +23145,7 @@ unsafe extern "C" {
     pub fn chn_start(c: *mut pcm_channel, force: ::core::ffi::c_int) -> u_int32_t;
     pub fn chn_sync(c: *mut pcm_channel, threshold: ::core::ffi::c_int) -> ::core::ffi::c_int;
     pub fn chn_flush(c: *mut pcm_channel) -> ::core::ffi::c_int;
-    pub fn chn_polltrigger(c: *mut pcm_channel) -> ::core::ffi::c_int;
+    pub fn chn_polltrigger(c: *mut pcm_channel, ref_total: u_int64_t) -> ::core::ffi::c_int;
     pub fn chn_poll(
         c: *mut pcm_channel,
         ev: ::core::ffi::c_int,
@@ -23690,6 +23696,7 @@ unsafe extern "C" {
     pub static cap_mknodat_rights: cap_rights_t;
     pub static cap_mmap_rights: cap_rights_t;
     pub static cap_no_rights: cap_rights_t;
+    pub static cap_pddupfd_rights: cap_rights_t;
     pub static cap_pdgetpid_rights: cap_rights_t;
     pub static cap_pdkill_rights: cap_rights_t;
     pub static cap_pdwait_rights: cap_rights_t;
@@ -24200,67 +24207,67 @@ unsafe extern "C" {
     pub fn rust_bindings_CPU_AFFINITY(cpu: u_int) -> u64;
     pub fn rust_bindings_CPU_AFF0(mpidr: u64) -> u64;
     pub fn rust_bindings_CPU_AFF1(mpidr: u64) -> u64;
-    pub fn rust_bindings_bus_space_barrier(
-        s: bus_space_tag_t,
-        h: bus_space_handle_t,
-        o: bus_size_t,
-        len: bus_size_t,
-        flags: ::core::ffi::c_int,
+    pub fn fn_bus_space_barrier(
+        a: bus_space_tag_t,
+        b: bus_space_handle_t,
+        c: bus_size_t,
+        d: bus_size_t,
+        e: ::core::ffi::c_int,
     );
-    pub fn rust_bindings_bus_barrier(
-        r: *mut resource,
-        o: bus_size_t,
-        len: bus_size_t,
-        flags: ::core::ffi::c_int,
-    );
-    pub fn rust_bindings_bus_space_map(
-        s: bus_space_tag_t,
-        a: bus_addr_t,
-        sz: bus_size_t,
-        f: ::core::ffi::c_int,
-        hp: *mut bus_space_handle_t,
+    pub fn fn_bus_barrier(a: *mut resource, b: bus_size_t, c: bus_size_t, d: ::core::ffi::c_int);
+    pub fn fn_bus_space_map(
+        a: bus_space_tag_t,
+        b: bus_addr_t,
+        c: bus_size_t,
+        d: ::core::ffi::c_int,
+        e: *mut bus_space_handle_t,
     ) -> ::core::ffi::c_int;
-    pub fn rust_bindings_mtx_initialized(mutex: *const mtx) -> usize;
-    pub fn rust_bindings_bus_read_1(res: *mut resource, offset: bus_size_t) -> u8;
-    pub fn rust_bindings_bus_write_region_1(
-        res: *mut resource,
-        o: bus_size_t,
-        p: *mut u8,
-        count: bus_size_t,
-    );
-    pub fn rust_bindings_bus_write_1(res: *mut resource, offset: bus_size_t, value: u8);
-    pub fn rust_bindings_bus_read_2(res: *mut resource, offset: bus_size_t) -> u16;
-    pub fn rust_bindings_bus_write_region_2(
-        res: *mut resource,
-        o: bus_size_t,
-        p: *mut u16,
-        count: bus_size_t,
-    );
-    pub fn rust_bindings_bus_write_2(res: *mut resource, offset: bus_size_t, value: u16);
-    pub fn rust_bindings_bus_read_4(res: *mut resource, offset: bus_size_t) -> u32;
-    pub fn rust_bindings_bus_write_region_4(
-        res: *mut resource,
-        o: bus_size_t,
-        p: *mut u32,
-        count: bus_size_t,
-    );
-    pub fn rust_bindings_bus_write_4(res: *mut resource, offset: bus_size_t, value: u32);
-    pub fn rust_bindings_bus_read_8(res: *mut resource, offset: bus_size_t) -> u64;
-    pub fn rust_bindings_bus_write_region_8(
-        res: *mut resource,
-        o: bus_size_t,
-        p: *mut u64,
-        count: bus_size_t,
-    );
-    pub fn rust_bindings_bus_write_8(res: *mut resource, offset: bus_size_t, value: u64);
     pub fn fn_mtx_init(
         a: *mut mtx,
         b: *const ::core::ffi::c_char,
         c: *const ::core::ffi::c_char,
         d: ::core::ffi::c_int,
     );
+    pub fn fn_mtx_initialized(a: *const mtx) -> usize;
     pub fn fn_mtx_lock(a: *mut mtx);
     pub fn fn_mtx_lock_spin(a: *mut mtx);
     pub fn fn_mtx_unlock(a: *mut mtx);
     pub fn fn_mtx_unlock_spin(a: *mut mtx);
+    pub fn fn_sx_init(a: *mut sx, b: *const ::core::ffi::c_char);
+    pub fn fn_sx_slock(a: *mut sx);
+    pub fn fn_sx_sunlock(a: *mut sx);
+    pub fn fn_sx_xlock(a: *mut sx);
+    pub fn fn_sx_xunlock(a: *mut sx);
+    pub fn fn_sx_sleep(
+        a: *mut ::core::ffi::c_void,
+        b: *mut sx,
+        c: ::core::ffi::c_int,
+        d: *const ::core::ffi::c_char,
+        e: ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int;
+    pub fn fn_callout_drain(a: *mut callout) -> ::core::ffi::c_int;
+    pub fn fn_callout_reset(
+        a: *mut callout,
+        b: ::core::ffi::c_int,
+        c: callout_func_t,
+        d: *mut ::core::ffi::c_void,
+    ) -> ::core::ffi::c_int;
+    pub fn fn_tsleep(
+        a: *const ::core::ffi::c_void,
+        b: ::core::ffi::c_int,
+        c: *const ::core::ffi::c_char,
+        d: ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int;
+    pub fn fn_bus_read_1(res: *mut resource, offset: bus_size_t) -> u8;
+    pub fn fn_bus_write_region_1(res: *mut resource, o: bus_size_t, p: *mut u8, count: bus_size_t);
+    pub fn fn_bus_write_1(res: *mut resource, offset: bus_size_t, value: u8);
+    pub fn fn_bus_read_2(res: *mut resource, offset: bus_size_t) -> u16;
+    pub fn fn_bus_write_region_2(res: *mut resource, o: bus_size_t, p: *mut u16, count: bus_size_t);
+    pub fn fn_bus_write_2(res: *mut resource, offset: bus_size_t, value: u16);
+    pub fn fn_bus_read_4(res: *mut resource, offset: bus_size_t) -> u32;
+    pub fn fn_bus_write_region_4(res: *mut resource, o: bus_size_t, p: *mut u32, count: bus_size_t);
+    pub fn fn_bus_write_4(res: *mut resource, offset: bus_size_t, value: u32);
+    pub fn fn_bus_read_8(res: *mut resource, offset: bus_size_t) -> u64;
+    pub fn fn_bus_write_region_8(res: *mut resource, o: bus_size_t, p: *mut u64, count: bus_size_t);
+    pub fn fn_bus_write_8(res: *mut resource, offset: bus_size_t, value: u64);
 }
