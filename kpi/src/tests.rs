@@ -332,6 +332,8 @@ mod unmangled_fns {
         _ty: *mut malloc_type,
         _flags: c_int,
     ) -> *mut c_void {
+        let align = align.max(size_of::<usize>());
+        let size = size.next_multiple_of(align).max(align);
         unsafe { aligned_alloc(align, size) }
     }
     #[unsafe(no_mangle)]
