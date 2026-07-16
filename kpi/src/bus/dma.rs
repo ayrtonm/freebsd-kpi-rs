@@ -34,9 +34,9 @@ use crate::device::Device;
 use crate::ffi::Ptr;
 use crate::prelude::*;
 use core::ffi::{c_int, c_void};
-use core::pin::Pin;
 use core::mem::transmute;
 use core::ops::{BitOr, Range};
+use core::pin::Pin;
 use core::ptr::null_mut;
 
 pub type BusDmaMapFn<T> = extern "C" fn(Pin<&T>, &bus_dma_segment_t, i32, i32);

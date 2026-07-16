@@ -1,13 +1,12 @@
-use core::ffi::c_void;
+use crate::kobj::AsRustType;
+use crate::malloc::Malloc;
 use crate::misc::Thread;
 use crate::prelude::*;
-use crate::define_interface;
-use crate::kobj::AsRustType;
 use crate::sync::arc::Arc;
+use crate::{ErrCode, define_interface};
+use core::ffi::c_void;
 use core::marker::PhantomData;
 use core::ptr::NonNull;
-use crate::malloc::Malloc;
-use crate::ErrCode;
 use core::sync::atomic::{AtomicU16, Ordering};
 
 pub type SockAddr = bindings::sockaddr;
@@ -100,9 +99,7 @@ impl<'a, P> Socket<'a, P> {
         if !pcb_ptr.is_null() {
             return Err(EISCONN);
         }
-        unsafe {
-            (*so_ptr).so_pcb = Arc::into_raw(pcb).cast::<c_void>()
-        };
+        unsafe { (*so_ptr).so_pcb = Arc::into_raw(pcb).cast::<c_void>() };
         Ok(())
     }
 
@@ -168,13 +165,13 @@ impl<'a, P> Socket<'a, P> {
         let so_label_ptr = unsafe { &raw mut (*so_ptr).so_label };
         let so_label = unsafe { so_label_ptr.as_mut().unwrap() };
 
-        let so_dtor_ptr =  unsafe { &raw mut (*so_ptr).so_dtor };
+        let so_dtor_ptr = unsafe { &raw mut (*so_ptr).so_dtor };
         let so_dtor = unsafe { so_dtor_ptr.as_mut().unwrap() };
 
-        let so_splice_ptr =  unsafe { &raw mut (*so_ptr).so_splice };
+        let so_splice_ptr = unsafe { &raw mut (*so_ptr).so_splice };
         let so_splice = unsafe { so_splice_ptr.as_mut().unwrap() };
 
-        let so_splice_back_ptr =  unsafe { &raw mut (*so_ptr).so_splice_back };
+        let so_splice_back_ptr = unsafe { &raw mut (*so_ptr).so_splice_back };
         let so_splice_back = unsafe { so_splice_back_ptr.as_mut().unwrap() };
 
         SockLockGuard {

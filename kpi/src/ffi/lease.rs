@@ -26,16 +26,15 @@
  * SUCH DAMAGE.
  */
 
-use core::cell::UnsafeCell;
-use core::fmt;
-use core::ptr;
-use core::mem::{forget, MaybeUninit};
-use core::ops::Deref;
-use core::fmt::{Debug, Formatter};
-use crate::device::Device;
-use core::sync::atomic::{AtomicUsize, Ordering};
 use crate::bindings::{device_t, u_int};
+use crate::device::Device;
 use crate::prelude::*;
+use core::cell::UnsafeCell;
+use core::fmt::{Debug, Formatter};
+use core::mem::{MaybeUninit, forget};
+use core::ops::Deref;
+use core::sync::atomic::{AtomicUsize, Ordering};
+use core::{fmt, ptr};
 
 #[repr(C)]
 pub struct LoanLayout<T> {
@@ -118,9 +117,7 @@ impl<'a, T> Deref for Loan<'a, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        unsafe {
-            self.0.t.assume_init_ref()
-        }
+        unsafe { self.0.t.assume_init_ref() }
     }
 }
 
@@ -159,9 +156,7 @@ impl<T> Deref for Lease<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        unsafe {
-            self.0.t.assume_init_ref()
-        }
+        unsafe { self.0.t.assume_init_ref() }
     }
 }
 const UNINIT: usize = usize::MAX;

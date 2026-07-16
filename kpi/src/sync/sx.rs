@@ -49,9 +49,7 @@ impl<T> Deref for SxSharedGuard<'_, T> {
 impl<T> Drop for SxSharedGuard<'_, T> {
     fn drop(&mut self) {
         let sx_ptr = self.lock.inner.get();
-        unsafe {
-            bindings::fn_sx_sunlock(sx_ptr)
-        }
+        unsafe { bindings::fn_sx_sunlock(sx_ptr) }
     }
 }
 
@@ -76,9 +74,7 @@ impl<T> DerefMut for SxExclusiveGuard<'_, T> {
 impl<T> Drop for SxExclusiveGuard<'_, T> {
     fn drop(&mut self) {
         let sx_ptr = self.lock.inner.get();
-        unsafe {
-            bindings::fn_sx_xunlock(sx_ptr)
-        }
+        unsafe { bindings::fn_sx_xunlock(sx_ptr) }
     }
 }
 
@@ -119,24 +115,18 @@ pub mod wrappers {
     pub fn sx_init<T>(lock: Pin<&SxLock<T>>, name: &'static CStr) {
         let name_ptr = name.as_ptr();
         let sx_ptr = lock.inner.get();
-        unsafe {
-            bindings::fn_sx_init(sx_ptr, name_ptr)
-        }
+        unsafe { bindings::fn_sx_init(sx_ptr, name_ptr) }
     }
 
     pub fn sx_slock<T>(lock: &SxLock<T>) -> SxSharedGuard<'_, T> {
         let sx_ptr = lock.inner.get();
-        unsafe {
-            bindings::fn_sx_slock(sx_ptr)
-        };
+        unsafe { bindings::fn_sx_slock(sx_ptr) };
         SxSharedGuard { lock }
     }
 
     pub fn sx_xlock<T>(lock: &SxLock<T>) -> SxExclusiveGuard<'_, T> {
         let sx_ptr = lock.inner.get();
-        unsafe {
-            bindings::fn_sx_xlock(sx_ptr)
-        };
+        unsafe { bindings::fn_sx_xlock(sx_ptr) };
         SxExclusiveGuard { lock }
     }
 

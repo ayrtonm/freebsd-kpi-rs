@@ -28,12 +28,11 @@
 
 use core::any::type_name;
 use core::cell::UnsafeCell;
-use core::fmt;
 use core::fmt::{Debug, Formatter};
 use core::mem::MaybeUninit;
 use core::ops::{Deref, DerefMut};
-use core::ptr;
 use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
+use core::{fmt, ptr};
 
 /// Rust-style atomic reference counting with memory backed malloc(9)
 pub mod arc;

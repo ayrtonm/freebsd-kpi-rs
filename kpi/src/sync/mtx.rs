@@ -27,14 +27,14 @@
  */
 
 use crate::ErrCode;
-use core::pin::Pin;
 use crate::bindings::{MTX_DEF, MTX_SPIN, mtx};
 use crate::prelude::*;
 use crate::sync::Mutable;
 use core::cell::UnsafeCell;
 use core::ffi::{CStr, c_int, c_void};
-use core::mem::{drop, MaybeUninit};
+use core::mem::{MaybeUninit, drop};
 use core::ops::{Deref, DerefMut};
+use core::pin::Pin;
 use core::ptr::null_mut;
 
 pub struct MutexGuard<'a, T> {
@@ -227,12 +227,7 @@ pub mod wrappers {
         let mtx_impl = lock.get_impl_mut();
         let mtx_ptr = mtx_impl.inner.get();
         unsafe {
-            bindings::fn_mtx_init(
-                mtx_ptr,
-                name_ptr,
-                kind_ptr,
-                variant | flags,
-            );
+            bindings::fn_mtx_init(mtx_ptr, name_ptr, kind_ptr, variant | flags);
         }
     }
 

@@ -27,7 +27,6 @@
  */
 
 use crate::ErrCode;
-use core::pin::Pin;
 use crate::bindings::{task, task_fn_t, taskqueue};
 use crate::ffi::ArrayCString;
 use crate::intr::Priority;
@@ -36,6 +35,7 @@ use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::ffi::c_void;
 use core::mem::transmute;
+use core::pin::Pin;
 use core::ptr::null_mut;
 
 #[derive(Debug)]

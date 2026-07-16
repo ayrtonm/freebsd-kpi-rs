@@ -28,12 +28,12 @@
 
 //! Utilities related to FFI with C.
 
+use crate::boxed::Box;
+use crate::malloc::Malloc;
+use crate::sync::arc::Arc;
 use core::fmt;
 use core::fmt::{Debug, Formatter};
 use core::pin::Pin;
-use crate::sync::arc::{Arc};
-use crate::boxed::Box;
-use crate::malloc::Malloc;
 use core::ptr::null_mut;
 
 mod cstring;
@@ -41,7 +41,7 @@ mod lease;
 mod subclass;
 
 pub use cstring::{ArrayCString, CString, ToArrayCString};
-pub use lease::{Loan, Lease, LeaseSlot, Uninit, LoanLayout};
+pub use lease::{Lease, LeaseSlot, Loan, LoanLayout, Uninit};
 pub use subclass::{SubClass, SubClassOf};
 
 /// A pointer type implementing `Sync`.
@@ -110,7 +110,6 @@ impl<T> Ptr<T> {
 // SAFETY: `Ptr` is intended for cases where `Sync` is intentionally desired on the pointer
 unsafe impl<T> Sync for Ptr<T> {}
 unsafe impl<T> Send for Ptr<T> {}
-
 
 pub unsafe trait FixedIndex {}
 unsafe impl<T, const N: usize> FixedIndex for [T; N] {}

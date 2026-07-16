@@ -27,18 +27,16 @@
  */
 
 use crate::ErrCode;
-use crate::bindings::{
-    callout, callout_func_t, ich_func_t, intr_config_hook, u_int,
-};
+use crate::bindings::{callout, callout_func_t, ich_func_t, intr_config_hook, u_int};
+use crate::ffi::{Lease, Loan};
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::ffi::{c_int, c_void};
-use crate::ffi::{Loan, Lease};
 use core::mem::transmute;
+use core::ops::Deref;
+use core::pin::Pin;
 use core::ptr;
 use core::ptr::null_mut;
-use core::pin::Pin;
-use core::ops::Deref;
 
 #[cfg(feature = "intrng")]
 mod intrng;
@@ -103,7 +101,10 @@ unsafe impl Send for Callout {}
 impl Callout {
     pub fn new() -> Self {
         let inner = UnsafeCell::new(callout::default());
-        Self { inner, count_ptr: null_mut() }
+        Self {
+            inner,
+            count_ptr: null_mut(),
+        }
     }
 }
 
@@ -240,9 +241,8 @@ pub mod wrappers {
         let ticks = ticks.try_into().unwrap();
         let func = unsafe { transmute::<Option<CalloutFn<T>>, callout_func_t>(Some(func)) };
 
-        let res = unsafe {
-            bindings::fn_callout_reset(c_callout, ticks, func, arg_ptr.cast::<c_void>())
-        };
+        let res =
+            unsafe { bindings::fn_callout_reset(c_callout, ticks, func, arg_ptr.cast::<c_void>()) };
         if res != 0 {
             return Err(ErrCode::from(res));
         }
@@ -269,12 +269,8 @@ pub mod wrappers {
             Some(Priority(p)) => p,
             None => 0,
         };
-        let res = unsafe {
-            bindings::fn_tsleep(chan_ptr.cast::<c_void>(),
-                priority,
-                wmesg_ptr,
-                timo)
-        };
+        let res =
+            unsafe { bindings::fn_tsleep(chan_ptr.cast::<c_void>(), priority, wmesg_ptr, timo) };
         if res != 0 {
             return Err(ErrCode::from(res));
         }
@@ -290,9 +286,9 @@ pub mod wrappers {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::device::{BusProbe, Device, DeviceIf};
     use crate::define_driver;
-    use crate::ffi::{Uninit, Loan};
+    use crate::device::{BusProbe, Device, DeviceIf};
+    use crate::ffi::{Loan, Uninit};
     use crate::tests::{DriverManager, LoudDrop};
 
     #[repr(C)]

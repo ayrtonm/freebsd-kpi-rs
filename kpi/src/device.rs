@@ -26,19 +26,18 @@
  * SUCH DAMAGE.
  */
 
-use core::pin::Pin;
-use crate::bindings::{device_state_t, device_t, driver_t, _device};
+use crate::bindings::{_device, device_state_t, device_t, driver_t};
 use crate::boxed::Box;
 use crate::driver::Driver;
-use crate::ffi::{ArrayCString, Uninit};
+use crate::ffi::{ArrayCString, Loan, LoanLayout, Uninit};
 use crate::kobj::{AsCType, AsRustType};
 use crate::prelude::*;
 use crate::vec::Vec;
 use crate::{ErrCode, define_interface};
 use core::ffi::{CStr, c_int};
-use core::ptr::{null_mut};
-use crate::ffi::{Loan, LoanLayout};
 use core::marker::PhantomData;
+use core::pin::Pin;
+use core::ptr::null_mut;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
@@ -282,8 +281,10 @@ pub mod wrappers {
         if res != 0 {
             return Err(ErrCode::from(res));
         }
-        let children =
-            unsafe { Vec::from_raw(devlistp.cast::<Device>(), devcountp.try_into().unwrap()).into_boxed_slice() };
+        let children = unsafe {
+            Vec::from_raw(devlistp.cast::<Device>(), devcountp.try_into().unwrap())
+                .into_boxed_slice()
+        };
         Ok(children)
     }
 
@@ -349,11 +350,11 @@ pub mod wrappers {
 mod tests {
     use super::*;
     use crate::define_driver;
-    use crate::ffi::{Uninit, Loan};
+    use crate::ffi::{Loan, Uninit};
     use crate::tests::{DriverManager, LoudDrop};
     use core::ptr::null_mut;
     use core::sync::atomic::{AtomicPtr, Ordering};
-    use std::ffi::{CStr};
+    use std::ffi::CStr;
     use std::vec::Vec;
 
     /* These are the drivers that will be used in tests */
@@ -437,9 +438,7 @@ mod tests {
             Ok(BUS_PROBE_DEFAULT)
         }
         fn device_attach(uninit_sc: Uninit<Self::Softc>) -> Result<()> {
-            let sc = uninit_sc.init(AnotherDriverSoftc {
-                loud: LoudDrop,
-            });
+            let sc = uninit_sc.init(AnotherDriverSoftc { loud: LoudDrop });
             println!("attaching another driver");
             // Store a pointer owning a refcount to AnotherDriver's Softc in a TestDriverSoftc for
             // some appropriate device_t. This means that AnotherDriver::device_detach will drop a

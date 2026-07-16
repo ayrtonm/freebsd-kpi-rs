@@ -27,11 +27,11 @@
  */
 
 use crate::bindings::{
-    intr_irq_filter_t, intr_irqsrc, intr_map_data, intr_map_data_fdt, pcell_t, trapframe, cpuset_t
+    cpuset_t, intr_irq_filter_t, intr_irqsrc, intr_map_data, intr_map_data_fdt, pcell_t, trapframe,
 };
 use crate::bus::{Filter, Resource};
 use crate::device::{Device, DeviceIf};
-use crate::ffi::{ArrayCString, SubClass, Loan, Lease};
+use crate::ffi::{ArrayCString, Lease, Loan, SubClass};
 use crate::kobj::AsRustType;
 use crate::ofw::XRef;
 use crate::prelude::*;
@@ -114,9 +114,9 @@ macro_rules! pic_map_intr {
             //let typedef_id = typedef_val.type_id();
             //let this_fn_id = TypeId::of::<Option<
             //assert!(typedef_id == this_fn_id);
-            use $crate::bindings;
             use core::pin::Pin;
-            use $crate::kobj::{KobjLayout, AsRustType, AsCType};
+            use $crate::bindings;
+            use $crate::kobj::{AsCType, AsRustType, KobjLayout};
 
             let void_ptr = unsafe { bindings::device_get_softc(dev) };
             let sc_ptr = void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
@@ -155,9 +155,9 @@ macro_rules! pic_ipi_setup {
             //let typedef_id = typedef_val.type_id();
             //let this_fn_id = TypeId::of::<Option<
             //assert!(typedef_id == this_fn_id);
-            use $crate::bindings;
             use core::pin::Pin;
-            use $crate::kobj::{KobjLayout, AsRustType, AsCType};
+            use $crate::bindings;
+            use $crate::kobj::{AsCType, AsRustType, KobjLayout};
 
             let void_ptr = unsafe { bindings::device_get_softc(dev) };
             let sc_ptr = void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
@@ -212,7 +212,10 @@ pub trait PicIf: DeviceIf {
     ) -> Result<()> {
         unimplemented!()
     }
-    fn pic_map_intr(sc: Pin<&Self::Softc>, data: MapData) -> Result<Pin<&IrqSrc<Self::IrqSrcFields>>> {
+    fn pic_map_intr(
+        sc: Pin<&Self::Softc>,
+        data: MapData,
+    ) -> Result<Pin<&IrqSrc<Self::IrqSrcFields>>> {
         unimplemented!()
     }
     fn pic_enable_intr(sc: Pin<&Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
@@ -350,7 +353,13 @@ pub mod wrappers {
         let (arg_ptr, _count_ptr) = Lease::into_raw(arg);
 
         let res = unsafe {
-            bindings::intr_pic_claim_root(dev.as_ptr(), xref, filter, arg_ptr.cast::<c_void>(), root.0 as u32)
+            bindings::intr_pic_claim_root(
+                dev.as_ptr(),
+                xref,
+                filter,
+                arg_ptr.cast::<c_void>(),
+                root.0 as u32,
+            )
         };
         if res != 0 {
             return Err(ErrCode::from(res));
@@ -379,9 +388,9 @@ pub mod wrappers {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::device::{BusProbe, Device, DeviceIf};
     use crate::define_driver;
-    use crate::ffi::{Uninit, Loan};
+    use crate::device::{BusProbe, Device, DeviceIf};
+    use crate::ffi::{Loan, Uninit};
     use crate::tests::DriverManager;
 
     #[repr(C)]
@@ -397,7 +406,13 @@ mod tests {
         }
         fn device_attach(uninit_sc: Uninit<Self::Softc>) -> Result<()> {
             let sc = uninit_sc.init(IntcSoftc);
-            intr_pic_claim_root(sc.device(), XRef(0), IntcDriver::handle_irq, sc.lease(), INTR_ROOT_IRQ)
+            intr_pic_claim_root(
+                sc.device(),
+                XRef(0),
+                IntcDriver::handle_irq,
+                sc.lease(),
+                INTR_ROOT_IRQ,
+            )
         }
         fn device_detach(_sc: Loan<Self::Softc>) -> Result<()> {
             Ok(())

@@ -28,7 +28,7 @@
 
 //! The `Vec<T>` type for contiguous growable arrays allocated in the heap.
 
-use crate::boxed::{Box};
+use crate::boxed::Box;
 use crate::malloc::{Malloc, MallocFlags};
 use crate::prelude::*;
 use core::alloc::Layout;

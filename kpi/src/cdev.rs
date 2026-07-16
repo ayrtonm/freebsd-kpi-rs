@@ -27,18 +27,18 @@
  */
 
 use crate::boxed::Box;
+use crate::define_interface;
 use crate::ffi::Ptr;
+use crate::kobj::AsRustType;
 use crate::malloc::Malloc;
+use crate::misc::Thread;
 use crate::prelude::*;
 use core::any::TypeId;
 use core::ffi::{CStr, c_int, c_void};
 use core::marker::PhantomData;
 use core::mem::size_of;
-use crate::define_interface;
-use crate::kobj::AsRustType;
-use core::ptr::NonNull;
-use crate::misc::Thread;
 use core::pin::Pin;
+use core::ptr::NonNull;
 
 #[allow(non_camel_case_types)]
 pub struct cdev_t(Ptr<bindings::cdev>, Option<TypeId>);

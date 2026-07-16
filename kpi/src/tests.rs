@@ -31,9 +31,10 @@
 use crate::bindings;
 #[cfg(feature = "intrng")]
 use crate::bindings::intr_irq_filter_t;
-use crate::bindings::{_device,
-    device_attach_t, device_detach_t, device_probe_t, device_state_t, device_t, driver_filter_t,
-    driver_intr_t, driver_t, intr_config_hook, kobjop_desc, pic_setup_intr_t, resource, u_int,
+use crate::bindings::{
+    _device, device_attach_t, device_detach_t, device_probe_t, device_state_t, device_t,
+    driver_filter_t, driver_intr_t, driver_t, intr_config_hook, kobjop_desc, pic_setup_intr_t,
+    resource, u_int,
 };
 use crate::driver::Driver;
 use crate::ffi::SubClass;

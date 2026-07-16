@@ -29,8 +29,8 @@
 use crate::ffi::SubClass;
 use crate::kobj::{AsCType, AsRustType};
 use core::ffi::c_void;
-use core::ptr::null_mut;
 use core::pin::Pin;
+use core::ptr::null_mut;
 
 // Allow passing through C types that impl Copy into rust by value
 impl<T: Copy> AsRustType<'_, T> for T {

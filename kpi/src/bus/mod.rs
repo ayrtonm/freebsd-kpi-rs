@@ -28,17 +28,17 @@
 
 use crate::ErrCode;
 use crate::bindings::{bus_size_t, resource, resource_spec, u_int};
-use crate::device::{Device};
+use crate::device::Device;
+use crate::ffi::{Lease, Loan};
 use crate::kobj::{AsCType, AsRustType};
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::ffi::{c_int, c_void};
-use core::sync::atomic::{AtomicPtr, Ordering};
-use crate::ffi::{Loan, Lease};
 use core::mem::transmute;
 use core::ops::BitOr;
-use core::ptr::{addr_of_mut, null_mut};
 use core::pin::Pin;
+use core::ptr::{addr_of_mut, null_mut};
+use core::sync::atomic::{AtomicPtr, Ordering};
 
 pub mod dma;
 
@@ -316,7 +316,15 @@ pub mod wrappers {
         irq.count_ptr.store(count_ptr, Ordering::Relaxed);
 
         let res = unsafe {
-            bindings::bus_setup_intr(dev_ptr, irq.res, flags, filter, handler, arg_ptr.cast::<c_void>(), cookiep)
+            bindings::bus_setup_intr(
+                dev_ptr,
+                irq.res,
+                flags,
+                filter,
+                handler,
+                arg_ptr.cast::<c_void>(),
+                cookiep,
+            )
         };
         if res != 0 {
             return Err(ErrCode::from(res));
@@ -447,42 +455,18 @@ pub mod wrappers {
             pub use $write_fn;
         };
     }
-    bus_n!(
-        bus_read_1,
-        fn_bus_read_1,
-        bus_write_1,
-        fn_bus_write_1,
-        u8
-    );
-    bus_n!(
-        bus_read_2,
-        fn_bus_read_2,
-        bus_write_2,
-        fn_bus_write_2,
-        u16
-    );
-    bus_n!(
-        bus_read_4,
-        fn_bus_read_4,
-        bus_write_4,
-        fn_bus_write_4,
-        u32
-    );
-    bus_n!(
-        bus_read_8,
-        fn_bus_read_8,
-        bus_write_8,
-        fn_bus_write_8,
-        u64
-    );
+    bus_n!(bus_read_1, fn_bus_read_1, bus_write_1, fn_bus_write_1, u8);
+    bus_n!(bus_read_2, fn_bus_read_2, bus_write_2, fn_bus_write_2, u16);
+    bus_n!(bus_read_4, fn_bus_read_4, bus_write_4, fn_bus_write_4, u32);
+    bus_n!(bus_read_8, fn_bus_read_8, bus_write_8, fn_bus_write_8, u64);
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::device::{BusProbe, Device, DeviceIf};
     use crate::define_driver;
-    use crate::ffi::{Uninit, Loan};
+    use crate::device::{BusProbe, Device, DeviceIf};
+    use crate::ffi::{Loan, Uninit};
     use crate::tests::{DriverManager, LoudDrop};
 
     #[repr(C)]
@@ -493,7 +477,13 @@ mod tests {
     }
 
     impl IrqDriver {
-        fn setup(&self, dev: Device, sc: Loan<IrqSoftc>, filter: bool, handler: bool) -> Result<()> {
+        fn setup(
+            &self,
+            dev: Device,
+            sc: Loan<IrqSoftc>,
+            filter: bool,
+            handler: bool,
+        ) -> Result<()> {
             let filter = if filter {
                 Some(IrqDriver::filter as _)
             } else {
@@ -523,7 +513,10 @@ mod tests {
                 loud: LoudDrop,
             });
             let dev = sc.device();
-            assert_eq!(bus_setup_intr(dev, proj!(&sc.irq), 0, None, None, sc.lease()), Err(EDOOFUS));
+            assert_eq!(
+                bus_setup_intr(dev, proj!(&sc.irq), 0, None, None, sc.lease()),
+                Err(EDOOFUS)
+            );
             if ofw_bus_is_compatible(dev, c"irq_driver,set_both") {
                 irq_driver.setup(dev, sc, true, true).unwrap();
             }
@@ -680,7 +673,8 @@ mod tests {
         let mut m = DriverManager::new();
         let dev = m.add_test_device(c"bus,irq_driver");
         dev.compat_strs.push(c"irq_driver,set_filter");
-        dev.compat_strs.push(c"irq_driver,set_handler_expect_failure");
+        dev.compat_strs
+            .push(c"irq_driver,set_handler_expect_failure");
         dev.compat_strs.push(c"irq_driver,teardown_intr");
         let dev = dev.dev;
         m.add_test_driver::<IrqDriver>();
