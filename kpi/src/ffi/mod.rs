@@ -120,27 +120,20 @@ unsafe impl<T> Send for Ptr<T> {}
 pub struct LoanLayout<T> {
     t: MaybeUninit<T>,
     dev: device_t,
-    init: bool,
     count: UnsafeCell<u_int>,
 }
 
-impl<T> LoanLayout<T> {
-    pub fn assert_is_uninit(&mut self) {
-        self.init = false;
-    }
-}
-
 /// A unique pointer to an uninitialized, externally-managed object.
-pub struct Uninit<'a, T>(&'a mut LoanLayout<T>);
+pub struct Uninit<'a, T>(&'a mut LoanLayout<T>, Option<&'a mut bool>);
 
 impl<'a, T> Uninit<'a, T> {
     pub unsafe fn from_raw(ptr: &'a mut LoanLayout<T>, dev: device_t) -> Self {
         ptr.dev = dev;
-        Self(ptr)
+        Self(ptr, None)
     }
 
-    pub fn is_init_ptr(&self) -> *const bool {
-        unsafe { &raw const (*ptr::from_ref(self.0)).init }
+    pub fn set_init_flag(&mut self, flag: &'a mut bool) {
+        self.1 = Some(flag);
     }
 
     pub fn device(&self) -> Device {
@@ -150,7 +143,7 @@ impl<'a, T> Uninit<'a, T> {
     /// Initialize the externally-managed object to `t` and return a pinned reference to the pointee
     pub fn init(self, t: T) -> Loan<'a, T> {
         self.0.t.write(t);
-        self.0.init = true;
+        self.1.map(|init| *init = true);
         let inner_ptr = ptr::from_ref(self.0).cast_mut();
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
         unsafe { bindings::refcount_init(count_ptr, 1) };

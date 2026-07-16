@@ -82,7 +82,6 @@ impl<'a, T> AsRustType<'a, Uninit<'a, T>> for device_t {
         let void_ptr = unsafe { bindings::device_get_softc(*self) };
         let sc_ptr = void_ptr.cast::<LoanLayout<T>>();
         let sc_ref = unsafe { sc_ptr.as_mut().unwrap() };
-        sc_ref.assert_is_uninit();
         unsafe { Uninit::from_raw(sc_ref, *self) }
     }
 }
@@ -110,11 +109,12 @@ define_interface! {
         with init glue {
             let _: $crate::ffi::Uninit<_> = dev;
             let dev_ptr = dev.device().as_ptr();
-            let init_ptr = dev.is_init_ptr();
+            let mut init = false;
+            dev.set_init_flag(&mut init);
         },
         with drop glue {
             // drop glue is only called if device_attach succeeded
-            if !unsafe { *init_ptr } {
+            if !init {
                 device_println!(dev_ptr, "Must call .init() on Uninit<Softc> in device_attach");
                 return bindings::ENXIO;
             }
