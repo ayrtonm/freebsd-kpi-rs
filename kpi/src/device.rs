@@ -31,7 +31,7 @@ use crate::bindings::{device_state_t, device_t, driver_t, _device};
 use crate::boxed::Box;
 use crate::ffi::Ptr;
 use crate::driver::Driver;
-use crate::ffi::{ArrayCString, UninitRef};
+use crate::ffi::{ArrayCString, Uninit};
 use crate::kobj::{AsCType, AsRustType};
 use crate::prelude::*;
 use crate::vec::Vec;
@@ -39,7 +39,7 @@ use crate::{ErrCode, define_interface};
 use core::ffi::{CStr, c_int};
 use core::ptr::{null_mut};
 use crate::sync::arc::InnerArc;
-use crate::ffi::Ref;
+use crate::ffi::Loan;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
@@ -77,14 +77,14 @@ impl AsRustType<'_, Device> for device_t {
 }
 
 // Allows turning a device_t argument appearing in kobj interfaces into a Pin<&T> to any type. It's
-// the responsibility of a kobj trait authors to restrict the Ref to the softc's type or to one of
+// the responsibility of a kobj trait authors to restrict the Loan to the softc's type or to one of
 // its base classes.
-impl<'a, T> AsRustType<'a, Ref<'a, T>> for device_t {
-    fn as_rust_type(&'a self) -> Ref<'a, T> {
+impl<'a, T> AsRustType<'a, Loan<'a, T>> for device_t {
+    fn as_rust_type(&'a self) -> Loan<'a, T> {
         let void_ptr = unsafe { bindings::device_get_softc(*self) };
         let sc_ptr = void_ptr.cast::<InnerArc<T>>();
         let sc_ref = unsafe { sc_ptr.as_ref().unwrap() };
-        Ref(sc_ref)
+        Loan(sc_ref)
     }
 }
 
@@ -99,7 +99,7 @@ define_interface! {
         with init glue {
             use $crate::bindings;
             use $crate::device::Device;
-            use $crate::ffi::UninitRef;
+            use $crate::ffi::Uninit;
             use $crate::kobj::KobjLayout;
             use core::mem::MaybeUninit;
 
@@ -112,12 +112,12 @@ define_interface! {
             let sc_ref = unsafe { sc_ptr.as_mut().unwrap() };
             let mut sc_init = false;
 
-            let uninit_sc = unsafe { UninitRef::from_raw(sc_ref, &mut sc_init) };
+            let uninit_sc = unsafe { Uninit::from_raw(sc_ref, &mut sc_init) };
         },
         with drop glue {
             // drop glue is only called if device_attach succeeded
             if !sc_init {
-                device_println!(dev, "Must call .init() on UninitRef<Softc> in device_attach");
+                device_println!(dev, "Must call .init() on Uninit<Softc> in device_attach");
                 return bindings::ENXIO;
             }
         },
@@ -188,9 +188,9 @@ pub trait DeviceIf: Driver {
 
     /// Used to initialize a driver.
     ///
-    /// All implementations must call [`init`][crate::ffi::UninitRef::init] on the `uninit_sc`
+    /// All implementations must call [`init`][crate::ffi::Uninit::init] on the `uninit_sc`
     /// argument before this function returns to avoid a panic at runtime.
-    fn device_attach(uninit_sc: UninitRef<Self::Softc>, dev: Device) -> Result<()> {
+    fn device_attach(uninit_sc: Uninit<Self::Softc>, dev: Device) -> Result<()> {
         unimplemented!()
     }
 
@@ -202,19 +202,19 @@ pub trait DeviceIf: Driver {
     /// example, if a softc struct includes a `Box<T>` field (i.e. a pointer to the heap with
     /// ownership of a `T`) the `T` in the heap will also be freed. This applies recursively through
     /// any number of layers of indirection.
-    fn device_detach(sc: Ref<Self::Softc>) -> Result<()> {
+    fn device_detach(sc: Loan<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
-    fn device_shutdown(sc: Ref<Self::Softc>) -> Result<()> {
+    fn device_shutdown(sc: Loan<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
-    fn device_suspend(sc: Ref<Self::Softc>) -> Result<()> {
+    fn device_suspend(sc: Loan<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
-    fn device_resume(sc: Ref<Self::Softc>) -> Result<()> {
+    fn device_resume(sc: Loan<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
-    fn device_quiesce(sc: Ref<Self::Softc>) -> Result<()> {
+    fn device_quiesce(sc: Loan<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
 }
@@ -346,7 +346,7 @@ pub mod wrappers {
 mod tests {
     use super::*;
     use crate::define_driver;
-    use crate::ffi::{UninitRef, Ref};
+    use crate::ffi::{Uninit, Loan};
     use crate::tests::{DriverManager, LoudDrop};
     use core::ptr::null_mut;
     use core::sync::atomic::{AtomicPtr, Ordering};
@@ -387,7 +387,7 @@ mod tests {
             println!("test_driver: accepted {dev:x?}");
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: UninitRef<Self::Softc>, dev: Device) -> Result<()> {
+        fn device_attach(uninit_sc: Uninit<Self::Softc>, dev: Device) -> Result<()> {
             let sc = uninit_sc.init(TestDriverSoftc {
                 dev,
                 const_data: 0xdeadbeef,
@@ -399,7 +399,7 @@ mod tests {
             println!("{:x?}", sc);
             Ok(())
         }
-        fn device_detach(sc: Ref<Self::Softc>) -> Result<()> {
+        fn device_detach(sc: Loan<Self::Softc>) -> Result<()> {
             assert!(sc.const_data == 0xdeadbeef);
             Ok(())
         }
@@ -437,7 +437,7 @@ mod tests {
             println!("another_driver: accepted {dev:x?}");
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: UninitRef<Self::Softc>, dev: Device) -> Result<()> {
+        fn device_attach(uninit_sc: Uninit<Self::Softc>, dev: Device) -> Result<()> {
             let sc = uninit_sc.init(AnotherDriverSoftc {
                 dev,
                 loud: LoudDrop,
@@ -451,7 +451,7 @@ mod tests {
             }
             Ok(())
         }
-        fn device_detach(sc: Ref<Self::Softc>) -> Result<()> {
+        fn device_detach(sc: Loan<Self::Softc>) -> Result<()> {
             Ok(())
         }
     }

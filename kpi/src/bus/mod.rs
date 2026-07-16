@@ -33,7 +33,7 @@ use crate::kobj::{AsCType, AsRustType};
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::ffi::{c_int, c_void};
-use crate::ffi::{Ref, RefCounted};
+use crate::ffi::{Loan, Lease};
 use core::mem::transmute;
 use core::ops::BitOr;
 use core::ptr::{addr_of_mut, null_mut};
@@ -294,7 +294,7 @@ pub mod wrappers {
         flags: c_int,
         filter: FilterFn<T>,
         handler: Handler<T>,
-        arg: RefCounted<T>,
+        arg: Lease<T>,
     ) -> Result<()> {
         let dev_ptr = dev.as_ptr();
         if filter.is_none() && handler.is_none() {
@@ -308,7 +308,7 @@ pub mod wrappers {
         let cookiep = irq.cookie.get();
 
         // FIXME: What is bus_setup_intr fails?
-        let (arg_ptr, _count_ptr) = RefCounted::into_raw(arg);
+        let (arg_ptr, _count_ptr) = Lease::into_raw(arg);
 
         let res = unsafe {
             bindings::bus_setup_intr(dev_ptr, irq.res, flags, filter, handler, arg_ptr.cast::<c_void>(), cookiep)
@@ -473,7 +473,7 @@ mod tests {
     use super::*;
     use crate::device::{BusProbe, Device, DeviceIf};
     use crate::define_driver;
-    use crate::ffi::{UninitRef, Ref};
+    use crate::ffi::{Uninit, Loan};
     use crate::tests::{DriverManager, LoudDrop};
 
     #[repr(C)]
@@ -485,7 +485,7 @@ mod tests {
     }
 
     impl IrqDriver {
-        fn setup(&self, dev: Device, sc: Ref<IrqSoftc>, filter: bool, handler: bool) {
+        fn setup(&self, dev: Device, sc: Loan<IrqSoftc>, filter: bool, handler: bool) {
             let filter = if filter {
                 Some(IrqDriver::filter as _)
             } else {
@@ -497,8 +497,7 @@ mod tests {
                 None
             };
             let irq = proj!(&sc.irq);
-            let sc = RefCounted::new_from_ref(sc);
-            bus_setup_intr(dev, irq, 0, filter, handler, sc).unwrap();
+            bus_setup_intr(dev, irq, 0, filter, handler, sc.lease()).unwrap();
         }
     }
 
@@ -511,14 +510,14 @@ mod tests {
             }
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: UninitRef<Self::Softc>, dev: Device) -> Result<()> {
+        fn device_attach(uninit_sc: Uninit<Self::Softc>, dev: Device) -> Result<()> {
             let sc = uninit_sc.init(IrqSoftc {
                 dev,
                 irq: Irq::default(),
                 loud: LoudDrop,
             });
             let dev = sc.dev;
-            assert_eq!(bus_setup_intr(dev, proj!(&sc.irq), 0, None, None, RefCounted::new_from_ref(sc)), Err(EDOOFUS));
+            assert_eq!(bus_setup_intr(dev, proj!(&sc.irq), 0, None, None, sc.lease()), Err(EDOOFUS));
             if ofw_bus_is_compatible(dev, c"irq_driver,set_both") {
                 irq_driver.setup(dev, sc, true, true);
             }
@@ -530,7 +529,7 @@ mod tests {
             }
             Ok(())
         }
-        fn device_detach(sc: Ref<Self::Softc>) -> Result<()> {
+        fn device_detach(sc: Loan<Self::Softc>) -> Result<()> {
             if ofw_bus_is_compatible(sc.dev, c"irq_driver,teardown_intr") {
                 bus_teardown_intr(sc.dev, &sc.irq).unwrap();
             }

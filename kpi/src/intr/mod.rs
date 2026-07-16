@@ -33,7 +33,7 @@ use crate::bindings::{
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::ffi::{c_int, c_void};
-use crate::ffi::{Ref, RefCounted};
+use crate::ffi::{Loan, Lease};
 use core::mem::transmute;
 use core::ptr;
 use core::ptr::null_mut;
@@ -73,7 +73,7 @@ impl ConfigHook {
         }
     }
 
-    pub fn init<T>(self: Pin<&Self>, func: ConfigHookFn<T>, arg: Ref<T>) {
+    pub fn init<T>(self: Pin<&Self>, func: ConfigHookFn<T>, arg: Loan<T>) {
         let c_hook = self.inner.get();
         let arg_ptr = arg.deref() as *const T;
         unsafe {
@@ -89,7 +89,7 @@ impl Drop for ConfigHook {
     }
 }
 
-pub type CalloutFn<T> = extern "C" fn(Ref<T>);
+pub type CalloutFn<T> = extern "C" fn(Loan<T>);
 
 #[derive(Debug, Default)]
 pub struct Callout {
@@ -227,13 +227,13 @@ pub mod wrappers {
         c: &mut Callout,
         ticks: u32,
         func: CalloutFn<T>,
-        arg: Ref<T>,
+        arg: Lease<T>,
     ) -> Result<()> {
         if !c.count_ptr.is_null() {
             let last = unsafe { bindings::refcount_release(c.count_ptr) };
             assert!(!last);
         }
-        let (arg_ptr, count_ptr) = RefCounted::into_raw(RefCounted::new_from_ref(arg));
+        let (arg_ptr, count_ptr) = Lease::into_raw(arg);
         c.count_ptr = count_ptr;
 
         let c_callout = c.inner.get();
@@ -292,7 +292,7 @@ mod tests {
     use super::*;
     use crate::device::{BusProbe, Device, DeviceIf};
     use crate::define_driver;
-    use crate::ffi::{UninitRef, Ref};
+    use crate::ffi::{Uninit, Loan};
     use crate::tests::{DriverManager, LoudDrop};
 
     #[repr(C)]
@@ -309,7 +309,7 @@ mod tests {
             }
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: UninitRef<Self::Softc>, dev: Device) -> Result<()> {
+        fn device_attach(uninit_sc: Uninit<Self::Softc>, dev: Device) -> Result<()> {
             let hook = ConfigHook::new();
             let loud = LoudDrop;
             let sc = uninit_sc.init(HookSoftc { dev, hook, loud });
@@ -317,7 +317,7 @@ mod tests {
             config_intrhook_establish(proj!(&sc.hook)).unwrap();
             Ok(())
         }
-        fn device_detach(_sc: Ref<Self::Softc>) -> Result<()> {
+        fn device_detach(_sc: Loan<Self::Softc>) -> Result<()> {
             Ok(())
         }
     }

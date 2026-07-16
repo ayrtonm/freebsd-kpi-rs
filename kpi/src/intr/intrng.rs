@@ -31,7 +31,7 @@ use crate::bindings::{
 };
 use crate::bus::{Filter, Resource};
 use crate::device::{Device, DeviceIf};
-use crate::ffi::{ArrayCString, SubClass, Ref, RefCounted};
+use crate::ffi::{ArrayCString, SubClass, Loan, Lease};
 use crate::kobj::AsRustType;
 use crate::ofw::XRef;
 use crate::prelude::*;
@@ -197,7 +197,7 @@ impl PicIf for {Self} {{
 pub trait PicIf: DeviceIf {
     type IrqSrcFields;
     fn pic_setup_intr(
-        sc: Ref<Self::Softc>,
+        sc: Loan<Self::Softc>,
         isrc: &IrqSrc<Self::IrqSrcFields>,
         res: Resource,
         data: MapData,
@@ -341,13 +341,13 @@ pub mod wrappers {
         dev: Device,
         xref: XRef,
         filter: IrqFilter<T>,
-        arg: RefCounted<T>,
+        arg: Lease<T>,
         root: IntrRoot,
     ) -> Result<()> {
         let xref = xref.0 as isize;
         let filter = unsafe { transmute::<Option<IrqFilter<T>>, intr_irq_filter_t>(Some(filter)) };
         // FIXME: What is bus_setup_intr fails?
-        let (arg_ptr, _count_ptr) = RefCounted::into_raw(arg);
+        let (arg_ptr, _count_ptr) = Lease::into_raw(arg);
 
         let res = unsafe {
             bindings::intr_pic_claim_root(dev.as_ptr(), xref, filter, arg_ptr.cast::<c_void>(), root.0 as u32)
@@ -381,7 +381,7 @@ mod tests {
     use super::*;
     use crate::device::{BusProbe, Device, DeviceIf};
     use crate::define_driver;
-    use crate::ffi::{UninitRef, Ref};
+    use crate::ffi::{Uninit, Loan};
     use crate::tests::DriverManager;
 
     #[repr(C)]
@@ -397,12 +397,11 @@ mod tests {
             }
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: UninitRef<Self::Softc>, dev: Device) -> Result<()> {
+        fn device_attach(uninit_sc: Uninit<Self::Softc>, dev: Device) -> Result<()> {
             let sc = uninit_sc.init(IntcSoftc { dev });
-            let sc = RefCounted::new_from_ref(sc);
-            intr_pic_claim_root(sc.dev, XRef(0), IntcDriver::handle_irq, sc, INTR_ROOT_IRQ)
+            intr_pic_claim_root(sc.dev, XRef(0), IntcDriver::handle_irq, sc.lease(), INTR_ROOT_IRQ)
         }
-        fn device_detach(_sc: Ref<Self::Softc>) -> Result<()> {
+        fn device_detach(_sc: Loan<Self::Softc>) -> Result<()> {
             Ok(())
         }
     }
@@ -417,7 +416,7 @@ mod tests {
         type IrqSrcFields = IntcIrqSrc;
 
         fn pic_setup_intr(
-            _sc: Ref<Self::Softc>,
+            _sc: Loan<Self::Softc>,
             isrc: &IrqSrc<Self::IrqSrcFields>,
             _res: Resource,
             _data: MapData,

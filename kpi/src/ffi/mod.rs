@@ -36,6 +36,7 @@ use core::mem::{forget, MaybeUninit};
 use crate::sync::arc::{Arc, InnerArc};
 use crate::boxed::Box;
 use crate::malloc::Malloc;
+use core::ptr;
 use core::ptr::null_mut;
 use core::ops::Deref;
 use core::cell::UnsafeCell;
@@ -116,46 +117,64 @@ unsafe impl<T> Send for Ptr<T> {}
 
 /// A unique pointer to an uninitialized, externally-managed object.
 #[derive(Debug)]
-pub struct UninitRef<'a, T>(&'a mut MaybeUninit<InnerArc<T>>, &'a mut bool);
+pub struct Uninit<'a, T>(&'a mut MaybeUninit<InnerArc<T>>, &'a mut bool);
 
-impl<'a, T> UninitRef<'a, T> {
+impl<'a, T> Uninit<'a, T> {
     pub unsafe fn from_raw(ptr: &'a mut MaybeUninit<InnerArc<T>>, init: &'a mut bool) -> Self {
         Self(ptr, init)
     }
 
     /// Initialize the externally-managed object to `t` and return a pinned reference to the pointee
-    pub fn init(self, t: T) -> Ref<'a, T> {
+    pub fn init(self, t: T) -> Loan<'a, T> {
         let res = self.0.write(InnerArc::new(t));
         *self.1 = true;
         let inner_ptr = (res as *const InnerArc<T>).cast_mut();
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
         unsafe { bindings::refcount_init(count_ptr, 1) };
-        Ref(res)
+        Loan(res)
     }
 }
 
 /// A pointer that may be opted into refcounting if requested.
 #[repr(C)]
-pub struct Ref<'a, T: 'static>(pub(crate) &'a InnerArc<T>);
+pub struct Loan<'a, T: 'static>(pub(crate) &'a InnerArc<T>);
 
-impl<'a, T: 'static + Debug> Debug for Ref<'a, T> {
+impl<'a, T> Loan<'a, T> {
+    pub fn lease(&self) -> Lease<T> {
+        let inner_ptr = ptr::from_ref(self.0).cast_mut();
+        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
+        unsafe { bindings::refcount_acquire(count_ptr) };
+        Lease(unsafe { inner_ptr.as_ref().unwrap() })
+    }
+}
+
+impl<'a, T: 'static + Debug> Debug for Loan<'a, T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         Debug::fmt(&self.0.t, f)
     }
 }
 
+impl<'a, T> Copy for Loan<'a, T> {}
+
+impl<'a, T> Clone for Loan<'a, T> {
+    fn clone(&self) -> Self {
+        Self(self.0)
+    }
+}
+
+impl<'a, T> Deref for Loan<'a, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0.t
+    }
+}
+
 /// A pointer to a refcounted object.
 #[repr(C)]
-pub struct RefCounted<T: 'static>(pub(crate) &'static InnerArc<T>);
+pub struct Lease<T: 'static>(pub(crate) &'static InnerArc<T>);
 
-impl<T> RefCounted<T> {
-    pub fn new_from_ref<'a>(r: Ref<'a, T>) -> RefCounted<T> {
-        let inner_ptr = (r.0 as *const InnerArc<T>).cast_mut();
-        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
-        unsafe { bindings::refcount_acquire(count_ptr) };
-        RefCounted(unsafe { inner_ptr.as_ref().unwrap() })
-    }
-
+impl<T> Lease<T> {
     pub fn into_raw(self) -> (*mut T, *mut u_int) {
         let inner_ptr = (self.0 as *const InnerArc<T>).cast_mut();
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
@@ -165,7 +184,7 @@ impl<T> RefCounted<T> {
     }
 }
 
-impl<T> Drop for RefCounted<T> {
+impl<T> Drop for Lease<T> {
     fn drop(&mut self) {
         let inner_ptr = (self.0 as *const InnerArc<T>).cast_mut();
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
@@ -174,29 +193,13 @@ impl<T> Drop for RefCounted<T> {
     }
 }
 
-impl<T> Clone for RefCounted<T> {
+impl<T> Clone for Lease<T> {
     fn clone(&self) -> Self {
-        RefCounted::new_from_ref(Ref(self.0))
+        Loan(self.0).lease()
     }
 }
 
-impl<T> Deref for RefCounted<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0.t
-    }
-}
-
-impl<'a, T> Copy for Ref<'a, T> {}
-
-impl<'a, T> Clone for Ref<'a, T> {
-    fn clone(&self) -> Self {
-        Self(self.0)
-    }
-}
-
-impl<'a, T> Deref for Ref<'a, T> {
+impl<T> Deref for Lease<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -217,6 +220,6 @@ pub fn assert_pin_has_fixed_index<T: FixedIndex>(_p: Pin<&T>) {}
 
 pub unsafe trait IsPinning {}
 unsafe impl<T> IsPinning for Pin<T> {}
-unsafe impl<'a, T> IsPinning for Ref<'a, T> {}
-unsafe impl<T> IsPinning for RefCounted<T> {}
+unsafe impl<'a, T> IsPinning for Loan<'a, T> {}
+unsafe impl<T> IsPinning for Lease<T> {}
 pub fn assert_is_pinning<P: IsPinning>(_p: &P) {}
