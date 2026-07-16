@@ -290,8 +290,8 @@ pub mod wrappers {
 mod tests {
     use super::*;
     use crate::device::{BusProbe, Device, DeviceIf};
-    use crate::driver;
-    use crate::ffi::UninitRef;
+    use crate::define_driver;
+    use crate::ffi::{UninitRef, Ref};
     use crate::tests::{DriverManager, LoudDrop};
 
     #[repr(C)]
@@ -316,7 +316,7 @@ mod tests {
             config_intrhook_establish(proj!(&sc.hook)).unwrap();
             Ok(())
         }
-        fn device_detach(_sc: Pin<&Self::Softc>) -> Result<()> {
+        fn device_detach(_sc: Ref<Self::Softc>) -> Result<()> {
             Ok(())
         }
     }
@@ -337,11 +337,14 @@ mod tests {
         m.detach_all();
     }
 
-    driver!(hook_driver, c"hook_driver", HookDriver,
-            hook_driver_methods = {
-                device_probe hook_driver_probe,
-                device_attach hook_driver_attach,
-                device_detach hook_driver_detach,
-            }
+    define_driver!(
+        static hook_driver: HookDriver = {
+            name: c"hook_driver",
+        }
+        static hook_driver_methods = {
+            device_probe: hook_driver_probe,
+            device_attach: hook_driver_attach,
+            device_detach: hook_driver_detach,
+        }
     );
 }

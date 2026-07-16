@@ -345,8 +345,8 @@ pub mod wrappers {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::driver;
-    use crate::ffi::UninitRef;
+    use crate::define_driver;
+    use crate::ffi::{UninitRef, Ref};
     use crate::tests::{DriverManager, LoudDrop};
     use core::ptr::null_mut;
     use core::sync::atomic::{AtomicPtr, Ordering};
@@ -399,18 +399,21 @@ mod tests {
             println!("{:x?}", sc);
             Ok(())
         }
-        fn device_detach(sc: Pin<&Self::Softc>) -> Result<()> {
+        fn device_detach(sc: Ref<Self::Softc>) -> Result<()> {
             assert!(sc.const_data == 0xdeadbeef);
             Ok(())
         }
     }
-    driver!(test_driver, c"test_driver", TestDriver,
-            test_driver_methods = {
-                device_probe test_driver_probe,
-                device_attach test_driver_attach,
-                device_detach test_driver_detach,
-            },
-            inherit from simplebus_driver,
+    define_driver!(
+        static test_driver: TestDriver = {
+            name: c"test_driver",
+        }
+        static test_driver_methods = {
+            device_probe: test_driver_probe,
+            device_attach: test_driver_attach,
+            device_detach: test_driver_detach,
+        }
+        inherit from simplebus_driver,
     );
 
     #[repr(C)]
@@ -448,16 +451,19 @@ mod tests {
             }
             Ok(())
         }
-        fn device_detach(sc: Pin<&Self::Softc>) -> Result<()> {
+        fn device_detach(sc: Ref<Self::Softc>) -> Result<()> {
             Ok(())
         }
     }
-    driver!(another_driver, c"another_driver", AnotherDriver,
-            another_driver_methods = {
-                device_probe another_driver_probe,
-                device_attach another_driver_attach,
-                device_detach another_driver_detach,
-            }
+    define_driver!(
+        static another_driver: AnotherDriver = {
+            name: c"another_driver",
+        }
+        static another_driver_methods = {
+            device_probe: another_driver_probe,
+            device_attach: another_driver_attach,
+            device_detach: another_driver_detach,
+        }
     );
 
     #[test]

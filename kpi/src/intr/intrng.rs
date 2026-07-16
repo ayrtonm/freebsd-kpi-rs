@@ -378,8 +378,8 @@ pub mod wrappers {
 mod tests {
     use super::*;
     use crate::device::{BusProbe, Device, DeviceIf};
-    use crate::driver;
-    use crate::ffi::UninitRef;
+    use crate::define_driver;
+    use crate::ffi::{UninitRef, Ref};
     use crate::tests::DriverManager;
 
     #[repr(C)]
@@ -399,7 +399,7 @@ mod tests {
             let sc = uninit_sc.init(IntcSoftc { dev });
             intr_pic_claim_root(sc.dev, XRef(0), IntcDriver::handle_irq, sc, INTR_ROOT_IRQ)
         }
-        fn device_detach(_sc: Pin<&Self::Softc>) -> Result<()> {
+        fn device_detach(_sc: Ref<Self::Softc>) -> Result<()> {
             Ok(())
         }
     }
@@ -432,13 +432,16 @@ mod tests {
         }
     }
 
-    driver!(intc_driver, c"intc_driver", IntcDriver,
-            intc_driver_methods = {
-                device_probe intc_driver_probe,
-                device_attach intc_driver_attach,
-                device_detach intc_driver_detach,
-                pic_setup_intr intc_setup_intr,
-            }
+    define_driver!(
+        static intc_driver: IntcDriver = {
+            name: c"intc_driver",
+        }
+        static intc_driver_methods = {
+            device_probe: intc_driver_probe,
+            device_attach: intc_driver_attach,
+            device_detach: intc_driver_detach,
+            pic_setup_intr: intc_setup_intr,
+        }
     );
 
     #[test]

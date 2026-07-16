@@ -469,8 +469,8 @@ pub mod wrappers {
 mod tests {
     use super::*;
     use crate::device::{BusProbe, Device, DeviceIf};
-    use crate::{driver};
-    use crate::ffi::UninitRef;
+    use crate::define_driver;
+    use crate::ffi::{UninitRef, Ref};
     use crate::tests::{DriverManager, LoudDrop};
 
     #[repr(C)]
@@ -525,7 +525,7 @@ mod tests {
             }
             Ok(())
         }
-        fn device_detach(sc: Pin<&Self::Softc>) -> Result<()> {
+        fn device_detach(sc: Ref<Self::Softc>) -> Result<()> {
             if ofw_bus_is_compatible(sc.dev, c"irq_driver,teardown_intr") {
                 bus_teardown_intr(sc.dev, &sc.irq).unwrap();
             }
@@ -547,12 +547,15 @@ mod tests {
         }
     }
 
-    driver!(irq_driver, c"irq_driver", IrqDriver,
-            irq_driver_methods = {
-                device_probe irq_driver_probe,
-                device_attach irq_driver_attach,
-                device_detach irq_driver_detach,
-            }
+    define_driver!(
+        static irq_driver: IrqDriver = {
+            name: c"irq_driver",
+        }
+        static irq_driver_methods = {
+            device_probe: irq_driver_probe,
+            device_attach: irq_driver_attach,
+            device_detach: irq_driver_detach,
+        }
     );
 
     #[test]
