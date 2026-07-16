@@ -213,6 +213,10 @@ impl<T> Lease<T> {
         Device::new(self.0.dev)
     }
 
+    pub fn lease(&self) -> Self {
+        Loan(self.0).lease()
+    }
+
     pub fn into_raw(self) -> (*mut T, *mut u_int) {
         let inner_ptr = ptr::from_ref(self.0).cast_mut();
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
@@ -228,12 +232,6 @@ impl<T> Drop for Lease<T> {
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
         let last = unsafe { bindings::refcount_release(count_ptr) };
         assert!(!last);
-    }
-}
-
-impl<T> Clone for Lease<T> {
-    fn clone(&self) -> Self {
-        Loan(self.0).lease()
     }
 }
 
