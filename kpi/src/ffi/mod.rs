@@ -159,6 +159,15 @@ impl<'a, T> Loan<'a, T> {
     pub unsafe fn from_raw(ptr: &'a LoanLayout<T>) -> Self {
         Self(ptr)
     }
+
+    pub fn into_raw(self) -> (*mut T, *mut u_int) {
+        let inner_ptr = ptr::from_ref(self.0).cast_mut();
+        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
+        let t_ptr = self.0.t.as_ptr().cast_mut();
+        forget(self);
+        (t_ptr, count_ptr)
+    }
+
     pub fn device(&self) -> Device {
         Device::new(self.0.dev)
     }

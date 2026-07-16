@@ -123,8 +123,14 @@ define_interface! {
         with desc device_detach_desc
         and typedef device_detach_t,
         with drop glue {
-            let sc_ptr = &raw const (*dev);
-            unsafe { core::ptr::drop_in_place(sc_ptr.cast_mut()) }
+            use $crate::ffi::Loan;
+
+            let (sc_ptr, count_ptr) = Loan::into_raw(dev);
+            let last = unsafe { $crate::bindings::refcount_release(count_ptr) };
+            if !last {
+                panic!("tried to detach device with outstanding softc leases");
+            }
+            unsafe { core::ptr::drop_in_place(sc_ptr) }
         };
     fn device_shutdown(dev: device_t) -> int,
         with desc device_shutdown_desc
