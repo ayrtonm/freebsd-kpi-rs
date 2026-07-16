@@ -356,7 +356,6 @@ mod tests {
     #[repr(C)]
     #[derive(Debug)]
     pub struct TestDriverSoftc {
-        dev: Device,
         const_data: u32,
     }
     // This is only used to pipe a Device managed by one driver to another to ensure
@@ -388,12 +387,10 @@ mod tests {
         }
         fn device_attach(uninit_sc: Uninit<Self::Softc>, dev: Device) -> Result<()> {
             let sc = uninit_sc.init(TestDriverSoftc {
-                dev,
                 const_data: 0xdeadbeef,
             });
-            let dev_ptr = sc.dev.as_ptr();
             if ofw_bus_is_compatible(dev, c"another_driver,get_softc") {
-                STASHED_DEVICE.store(sc.dev.as_ptr(), Ordering::Relaxed);
+                STASHED_DEVICE.store(sc.device().as_ptr(), Ordering::Relaxed);
             }
             println!("{:x?}", sc);
             Ok(())
@@ -418,7 +415,6 @@ mod tests {
     #[repr(C)]
     #[derive(Debug)]
     pub struct AnotherDriverSoftc {
-        dev: Device,
         loud: LoudDrop,
     }
     impl DeviceIf for AnotherDriver {
@@ -438,15 +434,14 @@ mod tests {
         }
         fn device_attach(uninit_sc: Uninit<Self::Softc>, dev: Device) -> Result<()> {
             let sc = uninit_sc.init(AnotherDriverSoftc {
-                dev,
                 loud: LoudDrop,
             });
             println!("attaching another driver");
             // Store a pointer owning a refcount to AnotherDriver's Softc in a TestDriverSoftc for
             // some appropriate device_t. This means that AnotherDriver::device_detach will drop a
             // refcount but will not be able to free the softc (as shown by the LoudDrop Drop impl).
-            if ofw_bus_is_compatible(sc.dev, c"another_driver,get_softc") {
-                Self::get_stashed_softc(sc.dev);
+            if ofw_bus_is_compatible(sc.device(), c"another_driver,get_softc") {
+                Self::get_stashed_softc(sc.device());
             }
             Ok(())
         }

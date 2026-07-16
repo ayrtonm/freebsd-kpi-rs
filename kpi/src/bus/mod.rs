@@ -64,8 +64,8 @@ impl BitOr<ResFlags> for ResFlags {
 pub type RawFilterFn = Option<unsafe extern "C" fn(*mut c_void) -> i32>;
 type RawHandler = Option<unsafe extern "C" fn(*mut c_void)>;
 
-pub type FilterFn<T> = Option<extern "C" fn(Pin<&T>) -> Filter>;
-pub type Handler<T> = Option<extern "C" fn(Pin<&T>)>;
+pub type FilterFn<T> = Option<extern "C" fn(Loan<T>) -> Filter>;
+pub type Handler<T> = Option<extern "C" fn(Loan<T>)>;
 
 impl AsRustType<'_, Resource> for *mut resource {
     fn as_rust_type(&self) -> Resource {
@@ -479,7 +479,6 @@ mod tests {
     #[repr(C)]
     #[derive(Debug)]
     pub struct IrqSoftc {
-        dev: Device,
         irq: Irq,
         loud: LoudDrop,
     }
@@ -512,11 +511,10 @@ mod tests {
         }
         fn device_attach(uninit_sc: Uninit<Self::Softc>, dev: Device) -> Result<()> {
             let sc = uninit_sc.init(IrqSoftc {
-                dev,
                 irq: Irq::default(),
                 loud: LoudDrop,
             });
-            let dev = sc.dev;
+            let dev = sc.device();
             assert_eq!(bus_setup_intr(dev, proj!(&sc.irq), 0, None, None, sc.lease()), Err(EDOOFUS));
             if ofw_bus_is_compatible(dev, c"irq_driver,set_both") {
                 irq_driver.setup(dev, sc, true, true);
@@ -530,23 +528,23 @@ mod tests {
             Ok(())
         }
         fn device_detach(sc: Loan<Self::Softc>) -> Result<()> {
-            if ofw_bus_is_compatible(sc.dev, c"irq_driver,teardown_intr") {
-                bus_teardown_intr(sc.dev, &sc.irq).unwrap();
+            if ofw_bus_is_compatible(sc.device(), c"irq_driver,teardown_intr") {
+                bus_teardown_intr(sc.device(), &sc.irq).unwrap();
             }
             Ok(())
         }
     }
 
     impl IrqDriver {
-        extern "C" fn filter(sc: Pin<&IrqSoftc>) -> Filter {
+        extern "C" fn filter(sc: Loan<IrqSoftc>) -> Filter {
             println!("called filter");
-            if ofw_bus_is_compatible(sc.dev, c"irq_driver,filter_handled") {
+            if ofw_bus_is_compatible(sc.device(), c"irq_driver,filter_handled") {
                 FILTER_HANDLED
             } else {
                 FILTER_SCHEDULE_THREAD
             }
         }
-        extern "C" fn handler(sc: Pin<&IrqSoftc>) {
+        extern "C" fn handler(sc: Loan<IrqSoftc>) {
             println!("called handler {sc:x?}");
         }
     }

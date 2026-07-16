@@ -386,9 +386,7 @@ mod tests {
 
     #[repr(C)]
     #[derive(Debug)]
-    pub struct IntcSoftc {
-        dev: Device,
-    }
+    pub struct IntcSoftc;
     impl DeviceIf for IntcDriver {
         type Softc = IntcSoftc;
         fn device_probe(dev: Device) -> Result<BusProbe> {
@@ -398,8 +396,8 @@ mod tests {
             Ok(BUS_PROBE_DEFAULT)
         }
         fn device_attach(uninit_sc: Uninit<Self::Softc>, dev: Device) -> Result<()> {
-            let sc = uninit_sc.init(IntcSoftc { dev });
-            intr_pic_claim_root(sc.dev, XRef(0), IntcDriver::handle_irq, sc.lease(), INTR_ROOT_IRQ)
+            let sc = uninit_sc.init(IntcSoftc);
+            intr_pic_claim_root(sc.device(), XRef(0), IntcDriver::handle_irq, sc.lease(), INTR_ROOT_IRQ)
         }
         fn device_detach(_sc: Loan<Self::Softc>) -> Result<()> {
             Ok(())
