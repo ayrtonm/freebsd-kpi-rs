@@ -49,7 +49,7 @@ enum Owner {
 
 #[repr(C)]
 pub struct LoanLayout<T> {
-    pub t: T,
+    pub inner: T,
     owner: Owner,
     count: UnsafeCell<u_int>,
 }
@@ -57,7 +57,7 @@ pub struct LoanLayout<T> {
 impl<T> LoanLayout<T> {
     pub fn new(t: T) -> Self {
         let mut res = Self {
-            t,
+            inner: t,
             owner: Owner::Unknown,
             count: UnsafeCell::new(0),
         };
@@ -90,7 +90,7 @@ impl<T> LoanLayout<T> {
 
 /// A unique pointer to an uninitialized, externally-managed object.
 ///
-/// The `owner` field of the pointed-to `LoanLayout` is always initialized while the `t` and
+/// The `owner` field of the pointed-to `LoanLayout` is always initialized while the `inner` and
 /// `count` fields remain uninitialized until [`init`][Self::init].
 pub struct Uninit<'a, T>(&'a mut MaybeUninit<LoanLayout<T>>, Option<&'a mut bool>);
 
@@ -116,12 +116,12 @@ impl<'a, T> Uninit<'a, T> {
     /// Initialize the externally-managed object to `t` and return a pinned reference to the pointee
     pub fn init(self, t: T) -> Loan<'a, T> {
         let base = self.0.as_mut_ptr();
-        unsafe { (&raw mut (*base).t).write(t) };
+        unsafe { (&raw mut (*base).inner).write(t) };
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*base).count });
         // This is just an address-insensitive atomic write
         unsafe { bindings::refcount_init(count_ptr, 1) };
         self.1.map(|init| *init = true);
-        // All fields are now initialized since `owner` was written in `from_raw` and `t` and
+        // All fields are now initialized since `owner` was written in `from_raw` and `inner` and
         // `count` were written above.
         Loan(unsafe { self.0.assume_init_ref() })
     }
@@ -134,7 +134,7 @@ pub struct Loan<'a, T: 'static>(pub(crate) &'a LoanLayout<T>);
 impl<'a, T> Loan<'a, T> {
     pub unsafe fn map_unchecked<U: ?Sized, F>(self, f: F) -> Pin<&'a U>
     where F: FnOnce(&T) -> &U {
-        unsafe { Pin::new_unchecked(f(&self.0.t)) }
+        unsafe { Pin::new_unchecked(f(&self.0.inner)) }
     }
 
     pub unsafe fn from_raw(ptr: &'a LoanLayout<T>) -> Self {
@@ -144,7 +144,7 @@ impl<'a, T> Loan<'a, T> {
     pub fn into_raw(self) -> (*mut T, *mut u_int) {
         let inner_ptr = ptr::from_ref(self.0).cast_mut();
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
-        let t_ptr = ptr::from_ref(&self.0.t).cast_mut();
+        let t_ptr = ptr::from_ref(&self.0.inner).cast_mut();
         (t_ptr, count_ptr)
     }
 
@@ -166,7 +166,7 @@ impl<'a, T> Loan<'a, T> {
 
 impl<'a, T: 'static + Debug> Debug for Loan<'a, T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Debug::fmt(&self.0.t, f)
+        Debug::fmt(&self.0.inner, f)
     }
 }
 
@@ -182,7 +182,7 @@ impl<'a, T> Deref for Loan<'a, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        &self.0.t
+        &self.0.inner
     }
 }
 
@@ -193,7 +193,7 @@ pub struct Lease<T: 'static>(pub(crate) &'static LoanLayout<T>);
 impl<T> Lease<T> {
     pub unsafe fn map_unchecked<U: ?Sized, F>(&self, f: F) -> Pin<&U>
     where F: FnOnce(&T) -> &U {
-        unsafe { Pin::new_unchecked(f(&self.0.t)) }
+        unsafe { Pin::new_unchecked(f(&self.0.inner)) }
     }
 
     pub fn device(&self) -> Device<'_> {
@@ -211,7 +211,7 @@ impl<T> Lease<T> {
     pub fn into_raw(self) -> (*mut T, *mut u_int) {
         let inner_ptr = ptr::from_ref(self.0).cast_mut();
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
-        let t_ptr = ptr::from_ref(&self.0.t).cast_mut();
+        let t_ptr = ptr::from_ref(&self.0.inner).cast_mut();
         forget(self);
         (t_ptr, count_ptr)
     }
@@ -237,7 +237,7 @@ impl<T> Lease<T> {
         assert!(last, "LoanLayout still leased in release_and_free");
         // Drop `T` in place before freeing the allocation. The other LoanLayout fields are
         // trivially droppable.
-        unsafe { ptr::drop_in_place(&raw mut (*inner_ptr).t) };
+        unsafe { ptr::drop_in_place(&raw mut (*inner_ptr).inner) };
         unsafe { free(inner_ptr.cast::<core::ffi::c_void>(), mtype) };
     }
 }
@@ -255,7 +255,7 @@ impl<T> Deref for Lease<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        &self.0.t
+        &self.0.inner
     }
 }
 const UNINIT: usize = usize::MAX;

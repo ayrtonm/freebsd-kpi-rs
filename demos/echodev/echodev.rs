@@ -143,7 +143,7 @@ impl Module for EchoDev {
         // Allocates the softc on the heap. Box is a uniquely-owned pointer to the heap. The
         // M_DEVBUF annotation picks the allocator; destroy_dev must name the same one.
         let mut sc: Box<_, M_DEVBUF> = Box::new(LoanLayout::new(EchoDevSoftc::default()), M_WAITOK);
-        sc.t.state.get_mut().buf = Vec::fill_with_capacity(0u8, 64, M_WAITOK);
+        sc.inner.state.get_mut().buf = Vec::fill_with_capacity(0u8, 64, M_WAITOK);
         // make_dev_args_init takes ownership of the boxed (heap-allocated) softc that's passed in
         // so we can't use it after this. This returns a MakeDevArgs which has the only pointer to
         // the softc at this point. MakeDevArgs knows the softc type, but does not provide access to
