@@ -41,7 +41,7 @@ use core::{fmt, ptr};
 use crate::boxed::Box;
 use crate::malloc::{Malloc, MallocFlags};
 
-/// The kernel object a `Loanable` is attached to.
+/// The kernel object a `LoanLayout` is attached to.
 ///
 /// `repr(C)` guarantees the `Uninit` discriminant is zero so that zero-initialized memory (e.g. a
 /// newbus-allocated softc) is a valid `Owner`.
@@ -53,13 +53,13 @@ enum Owner {
 }
 
 #[repr(C)]
-pub struct Loanable<T> {
+pub struct LoanLayout<T> {
     t: MaybeUninit<T>,
     owner: Owner,
     count: UnsafeCell<u_int>,
 }
 
-impl<T> Loanable<T> {
+impl<T> LoanLayout<T> {
     pub fn new(t: T) -> Self {
         let mut res = Self {
             t: MaybeUninit::new(t),
@@ -76,28 +76,28 @@ impl<T> Loanable<T> {
         self.owner = Owner::CDev(dev);
     }
 
-    /// Panics if this `Loanable` is not attached to a cdev.
+    /// Panics if this `LoanLayout` is not attached to a cdev.
     pub(crate) fn cdev(&self) -> *mut cdev {
         match self.owner {
             Owner::CDev(dev) => dev,
-            _ => panic!("Loanable is not attached to a cdev"),
+            _ => panic!("LoanLayout is not attached to a cdev"),
         }
     }
 
-    /// Panics if this `Loanable` is not attached to a device_t.
+    /// Panics if this `LoanLayout` is not attached to a device_t.
     pub(crate) fn device(&self) -> device_t {
         match self.owner {
             Owner::Device(dev) => dev,
-            _ => panic!("Loanable is not attached to a device"),
+            _ => panic!("LoanLayout is not attached to a device"),
         }
     }
 }
 
 /// A unique pointer to an uninitialized, externally-managed object.
-pub struct Uninit<'a, T>(&'a mut Loanable<T>, Option<&'a mut bool>);
+pub struct Uninit<'a, T>(&'a mut LoanLayout<T>, Option<&'a mut bool>);
 
 impl<'a, T> Uninit<'a, T> {
-    pub unsafe fn from_raw(ptr: &'a mut Loanable<T>, dev: device_t) -> Self {
+    pub unsafe fn from_raw(ptr: &'a mut LoanLayout<T>, dev: device_t) -> Self {
         ptr.owner = Owner::Device(dev);
         Self(ptr, None)
     }
@@ -123,12 +123,12 @@ impl<'a, T> Uninit<'a, T> {
 
 /// A pointer that may be opted into refcounting if requested.
 ///
-/// `M` records the allocator the backing `Loanable<T>` was allocated with, so that a
+/// `M` records the allocator the backing `LoanLayout<T>` was allocated with, so that a
 /// [`Lease`] created from this loan knows how to free it. It defaults to `()` for loans whose
 /// leases never free their pointee.
 #[repr(C)]
 pub struct Loan<'a, T: 'static, M = ()>(
-    pub(crate) &'a Loanable<T>,
+    pub(crate) &'a LoanLayout<T>,
     pub(crate) PhantomData<M>,
 );
 
@@ -138,7 +138,7 @@ impl<'a, T, M> Loan<'a, T, M> {
         unsafe { Pin::new_unchecked(f(self.0.t.assume_init_ref())) }
     }
 
-    pub unsafe fn from_raw(ptr: &'a Loanable<T>) -> Self {
+    pub unsafe fn from_raw(ptr: &'a LoanLayout<T>) -> Self {
         Self(ptr, PhantomData)
     }
 
@@ -189,12 +189,12 @@ impl<'a, T, M> Deref for Loan<'a, T, M> {
 
 /// A pointer to a refcounted object.
 ///
-/// `M` records the allocator the backing `Loanable<T>` was allocated with, so
+/// `M` records the allocator the backing `LoanLayout<T>` was allocated with, so
 /// [`release_and_free`][Self::release_and_free] can free it without naming the allocator again.
 /// It defaults to `()` for leases that never free their pointee.
 #[repr(C)]
 pub struct Lease<T: 'static, M = ()>(
-    pub(crate) &'static Loanable<T>,
+    pub(crate) &'static LoanLayout<T>,
     pub(crate) PhantomData<M>,
 );
 
@@ -224,14 +224,14 @@ impl<T, M> Lease<T, M> {
         (t_ptr, count_ptr)
     }
 
-    /// Releases this lease along with the original reference created by [`Loanable::new`], then
+    /// Releases this lease along with the original reference created by [`LoanLayout::new`], then
     /// frees the allocation, dropping `T`.
     ///
     /// Panics if any other lease is still outstanding.
     ///
     /// # Safety
     ///
-    /// The `Loanable<T>` must have been allocated via `Box::<Loanable<T>, M>::into_raw` and no
+    /// The `LoanLayout<T>` must have been allocated via `Box::<LoanLayout<T>, M>::into_raw` and no
     /// other reference to it may be created after this call.
     pub(crate) unsafe fn release_and_free(self)
     where
@@ -240,15 +240,15 @@ impl<T, M> Lease<T, M> {
         let inner_ptr = ptr::from_ref(self.0).cast_mut();
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
         forget(self);
-        // Release this lease, then the original reference from `Loanable::new`, which must be
+        // Release this lease, then the original reference from `LoanLayout::new`, which must be
         // the last one.
         unsafe { bindings::refcount_release(count_ptr) };
         let last = unsafe { bindings::refcount_release(count_ptr) };
-        assert!(last, "Loanable still leased in release_and_free");
+        assert!(last, "LoanLayout still leased in release_and_free");
         // `MaybeUninit` never runs `T`'s destructor on its own, so drop it explicitly before
         // freeing the allocation.
         unsafe { (*inner_ptr).t.assume_init_drop() };
-        drop(unsafe { Box::<Loanable<T>, M>::from_raw(inner_ptr) });
+        drop(unsafe { Box::<LoanLayout<T>, M>::from_raw(inner_ptr) });
     }
 }
 

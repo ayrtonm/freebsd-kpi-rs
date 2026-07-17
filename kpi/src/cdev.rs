@@ -37,7 +37,7 @@ use core::any::TypeId;
 use core::ffi::{CStr, c_int, c_void};
 use core::marker::PhantomData;
 use core::ptr::NonNull;
-use crate::ffi::{Loan, Loanable, Lease};
+use crate::ffi::{Loan, LoanLayout, Lease};
 use crate::bindings::cdev;
 
 #[repr(C)]
@@ -86,7 +86,7 @@ pub struct MakeDevArgs<T, M: Malloc> {
     pub gid: i32,
     pub mode: i32,
     pub name: &'static CStr,
-    sc: Box<Loanable<T>, M>,
+    sc: Box<LoanLayout<T>, M>,
     size: usize,
     cdevsw_ptr: *mut bindings::cdevsw,
 }
@@ -140,7 +140,7 @@ impl<'a, T> AsRustType<'a, Loan<'a, T>, T> for *mut cdev {
     fn as_rust_type(&'a self) -> Loan<'a, T> {
         let dev = *self;
         let sc_ptr = unsafe { (*dev).si_drv1 };
-        let res = unsafe { sc_ptr.cast::<Loanable<T>>().as_ref().unwrap() };
+        let res = unsafe { sc_ptr.cast::<LoanLayout<T>>().as_ref().unwrap() };
         Loan(res, PhantomData)
     }
 }
@@ -189,7 +189,7 @@ pub mod wrappers {
     /// [`define_cdev!`][crate::define_cdev]), taking ownership of the boxed softc.
     pub fn make_dev_args_init<D: CDevSw, M: Malloc>(
         dev: &'static D,
-        sc: Box<Loanable<D::Softc>, M>,
+        sc: Box<LoanLayout<D::Softc>, M>,
     ) -> MakeDevArgs<D::Softc, M> {
         MakeDevArgs {
             sc,
@@ -210,7 +210,7 @@ pub mod wrappers {
     {
         let mut outp = null_mut();
         let (mut args_raw, name) = args.into_raw();
-        let sc_ptr = args_raw.mda_si_drv1.cast::<Loanable<T>>();
+        let sc_ptr = args_raw.mda_si_drv1.cast::<LoanLayout<T>>();
         let res = unsafe { bindings::make_dev_s(&raw mut args_raw, &raw mut outp, name.as_ptr()) };
         if res != 0 {
             // FIXME: This leaks the softc
