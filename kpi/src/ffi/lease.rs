@@ -41,11 +41,11 @@ use crate::malloc::MallocType;
 
 /// The kernel object a `LoanLayout` is attached to.
 ///
-/// `repr(C)` guarantees the `Uninit` discriminant is zero so that zero-initialized memory (e.g. a
+/// `repr(C)` guarantees the `Unknown` discriminant is zero so that zero-initialized memory (e.g. a
 /// newbus-allocated softc) is a valid `Owner`.
 #[repr(C)]
 enum Owner {
-    Uninit,
+    Unknown,
     Device(device_t),
     CDev(*mut cdev),
 }
@@ -61,7 +61,7 @@ impl<T> LoanLayout<T> {
     pub fn new(t: T) -> Self {
         let mut res = Self {
             t: MaybeUninit::new(t),
-            owner: Owner::Uninit,
+            owner: Owner::Unknown,
             count: UnsafeCell::new(0),
         };
         let count_ptr = UnsafeCell::raw_get(&raw mut res.count );
