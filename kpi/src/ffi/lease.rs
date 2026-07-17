@@ -27,6 +27,7 @@
  */
 
 use crate::bindings::{device_t, u_int};
+use core::ptr::null_mut;
 use crate::device::Device;
 use crate::prelude::*;
 use core::cell::UnsafeCell;
@@ -36,12 +37,43 @@ use core::ops::Deref;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use core::pin::Pin;
 use core::{fmt, ptr};
+use crate::boxed::Box;
+use crate::malloc::{Malloc, MallocFlags};
+
+#[repr(C)]
+pub struct Loanable<T, M: Malloc>(pub(crate) Box<LoanLayout<T>, M>);
+
+impl<T, M: Malloc> Loanable<T, M> {
+    pub fn new(t: T, flags: MallocFlags) -> Self {
+        let mut res = Box::new(LoanLayout::new(t), flags);
+        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*res).count });
+        unsafe { bindings::refcount_init(count_ptr, 1) };
+        Self(res)
+    }
+
+    pub fn try_new(t: T, flags: MallocFlags) -> Result<Self> {
+        let mut res = Box::try_new(LoanLayout::new(t), flags)?;
+        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*res).count });
+        unsafe { bindings::refcount_init(count_ptr, 1) };
+        Ok(Self(res))
+    }
+}
 
 #[repr(C)]
 pub struct LoanLayout<T> {
     t: MaybeUninit<T>,
     dev: device_t,
     count: UnsafeCell<u_int>,
+}
+
+impl<T> LoanLayout<T> {
+    fn new(t: T) -> Self {
+        Self {
+            t: MaybeUninit::new(t),
+            dev: null_mut(),
+            count: UnsafeCell::new(0),
+        }
+    }
 }
 
 /// A unique pointer to an uninitialized, externally-managed object.
