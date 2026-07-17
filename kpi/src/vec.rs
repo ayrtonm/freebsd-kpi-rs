@@ -169,6 +169,44 @@ impl<T, M: Malloc> Vec<T, M> {
         }
     }
 
+    /// Shrinks the capacity of the vector to match its length.
+    pub fn shrink_to_fit(&mut self, flags: MallocFlags) {
+        assert!(flags.contains(M_WAITOK));
+        assert!(!flags.contains(M_NOWAIT));
+        self.try_shrink_to_fit(flags).unwrap()
+    }
+
+    pub fn try_shrink_to_fit(&mut self, flags: MallocFlags) -> Result<()> {
+        if self.capacity == self.len {
+            return Ok(());
+        }
+        if self.len == 0 {
+            unsafe { free(self.as_mut_ptr().cast::<c_void>(), M::malloc_type()) };
+            self.ptr = NonNull::dangling();
+            self.capacity = 0;
+            return Ok(());
+        }
+
+        let layout = Layout::array::<T>(self.len).unwrap();
+
+        let void_ptr = unsafe {
+            realloc(
+                self.ptr.as_ptr().cast::<c_void>(),
+                layout.size(),
+                M::malloc_type(),
+                flags,
+            )
+        };
+        match NonNull::new(void_ptr) {
+            Some(nonnull_void_ptr) => {
+                self.ptr = nonnull_void_ptr.cast::<T>();
+                self.capacity = self.len;
+                Ok(())
+            }
+            None => Err(ENOMEM),
+        }
+    }
+
     /// Appends `value` returning `Some(value)` if there is not enough space to do so without resizing.
     pub fn push(&mut self, value: T) -> Option<T> {
         if self.len < self.capacity {
