@@ -74,6 +74,15 @@ impl<T> LoanLayout<T> {
         self.owner = Owner::CDev(dev);
     }
 
+    /// Drops the wrapped `T` in place without freeing the `LoanLayout` allocation.
+    ///
+    /// # Safety
+    ///
+    /// The `T` must be initialized and must not be used or dropped again afterwards.
+    pub(crate) unsafe fn assume_init_drop_t(&mut self) {
+        unsafe { self.t.assume_init_drop() }
+    }
+
     /// Panics if this `LoanLayout` is not attached to a cdev.
     pub(crate) fn cdev(&self) -> *mut cdev {
         match self.owner {
