@@ -176,11 +176,13 @@ impl Module for EchoDev {
 }
 
 define_cdev! {
-    EchoDev, c"echo", echo_cdevsw,
-    d_read: echodev_read,
-    d_write: echodev_write,
-    d_open: echodev_open,
-    d_close: echodev_close,
+    static echo_cdevsw: EchoDev = {
+        d_name: c"echo",
+        d_read: echodev_read,
+        d_write: echodev_write,
+        d_open: echodev_open,
+        d_close: echodev_close,
+    }
 }
 
 define_module!(EchoDev, echodev_modevent);

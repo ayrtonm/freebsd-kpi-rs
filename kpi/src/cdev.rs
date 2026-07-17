@@ -139,8 +139,10 @@ impl<T, M: Malloc> MakeDevArgs<T, M> {
 #[macro_export]
 macro_rules! define_cdev {
     (
-        $cdev_ty:ident, $driver_name:expr, $cdevsw_name:ident,
-        $($trait_fn:ident: $unmangled_name:ident,)*
+        static $cdevsw_name:ident: $cdev_ty:ident = {
+            d_name: $driver_name:expr,
+            $($trait_fn:ident: $unmangled_name:ident,)*
+        }
     ) => {
         #[repr(C)]
         pub struct $cdev_ty(core::cell::UnsafeCell<$crate::bindings::cdevsw>);
