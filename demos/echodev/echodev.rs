@@ -15,7 +15,6 @@ use core::ptr::{NonNull, null_mut};
 use kpi::ErrCode;
 use kpi::prelude::*;
 use kpi::misc::Thread;
-use core::pin::Pin;
 use kpi::{define_module, define_cdev};
 use kpi::cdev::{CDev, UioRef, CDevSw, cdev_t};
 use kpi::vec::Vec;
@@ -23,8 +22,9 @@ use kpi::sync::Checked;
 use core::sync::atomic::{AtomicPtr, Ordering};
 use core::cmp::min;
 use kpi::sync::sx::SxLock;
+use kpi::ffi::Loan;
 
-type Box<T> = kpi::boxed::Box<T, M_DEVBUF>;
+type Loanable<T> = kpi::ffi::Loanable<T, M_DEVBUF>;
 
 #[derive(Default)]
 pub struct EchoDevSoftc {
@@ -42,15 +42,14 @@ struct EchoDevState {
 
 impl CDevSw for EchoDev {
     type Softc = EchoDevSoftc;
-    type MallocType = M_DEVBUF;
 
-    fn d_open(sc: Pin<&EchoDevSoftc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
+    fn d_open(sc: Loan<EchoDevSoftc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
         Ok(())
     }
-    fn d_close(sc: Pin<&EchoDevSoftc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
+    fn d_close(sc: Loan<EchoDevSoftc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
         Ok(())
     }
-    fn d_read(sc: Pin<&EchoDevSoftc>, uio: UioRef, ioflag: c_int) -> Result<()> {
+    fn d_read(sc: Loan<EchoDevSoftc>, uio: UioRef, ioflag: c_int) -> Result<()> {
         if uio.resid() == 0 {
             return Ok(());
         }
@@ -101,7 +100,7 @@ impl CDevSw for EchoDev {
         res
     }
 
-    fn d_write(sc: Pin<&EchoDevSoftc>, uio: UioRef, ioflag: c_int) -> Result<()> {
+    fn d_write(sc: Loan<EchoDevSoftc>, uio: UioRef, ioflag: c_int) -> Result<()> {
         if uio.resid() == 0 {
             return Ok(());
         }
@@ -144,7 +143,7 @@ static ECHODEV: Checked<Option<cdev_t>> = Checked::new(None);
 impl Module for EchoDev {
     fn on_load(data: *mut c_void) -> Result<()> {
         // Allocates the softc on the heap. Box is a uniquely-owned pointer to the heap.
-        let sc = Box::new(EchoDevSoftc::default(), M_WAITOK);
+        let sc = Loanable::new(EchoDevSoftc::default(), M_WAITOK);
         // make_dev_args_init takes ownership of the boxed (heap-allocated) softc that's passed in
         // so we can't use it after this. This returns a MakeDevArgs which has the only pointer to
         // the softc at this point. MakeDevArgs knows the softc type, but does not provide access to
@@ -173,7 +172,7 @@ impl Module for EchoDev {
     fn on_unload(data: *mut c_void) -> Result<()> {
         let echodev = ECHODEV.get_mut().take().unwrap();
         // This retuns a Box<EchoDevSoftc> which gets dropped when it goes out of scope
-        let sc = Self::destroy_dev(echodev);
+        //let sc = Self::destroy_dev(echodev);
         Ok(())
     }
 }

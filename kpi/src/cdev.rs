@@ -37,8 +37,9 @@ use core::any::TypeId;
 use core::ffi::{CStr, c_int, c_void};
 use core::marker::PhantomData;
 use core::mem::size_of;
-use core::pin::Pin;
 use core::ptr::NonNull;
+use crate::ffi::{Loan, Loanable, LoanLayout};
+use crate::bindings::cdev;
 
 #[allow(non_camel_case_types)]
 pub struct cdev_t(Ptr<bindings::cdev>, Option<TypeId>);
@@ -73,23 +74,22 @@ pub trait CDevSwInternal {
 #[allow(unused_variables)]
 pub trait CDevSw: CDevSwInternal {
     type Softc: 'static + Sync;
-    type MallocType: Malloc;
 
-    fn d_open(sc: Pin<&Self::Softc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
+    fn d_open(sc: Loan<Self::Softc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
         unimplemented!()
     }
-    fn d_close(sc: Pin<&Self::Softc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
+    fn d_close(sc: Loan<Self::Softc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
         unimplemented!()
     }
-    fn d_read(sc: Pin<&Self::Softc>, uio: UioRef, ioflag: c_int) -> Result<()> {
+    fn d_read(sc: Loan<Self::Softc>, uio: UioRef, ioflag: c_int) -> Result<()> {
         unimplemented!()
     }
-    fn d_write(sc: Pin<&Self::Softc>, uio: UioRef, ioflag: c_int) -> Result<()> {
+    fn d_write(sc: Loan<Self::Softc>, uio: UioRef, ioflag: c_int) -> Result<()> {
         unimplemented!()
     }
-    fn make_dev_args_init(
-        sc: Box<Self::Softc, Self::MallocType>,
-    ) -> MakeDevArgs<Self::Softc, Self::MallocType> {
+    fn make_dev_args_init<M: Malloc>(
+        sc: Loanable<Self::Softc, M>,
+    ) -> MakeDevArgs<Self::Softc, M> {
         MakeDevArgs {
             sc,
             // Follows make_dev_args_init's behavior
@@ -103,14 +103,14 @@ pub trait CDevSw: CDevSwInternal {
         }
     }
 
-    fn destroy_dev(dev: cdev_t) {
-        assert!(dev.1.unwrap() == TypeId::of::<Self::Softc>());
-        let sc_ptr = unsafe { (*dev.0.as_ptr()).si_drv1 };
-        unsafe { bindings::destroy_dev(dev.0.as_ptr()) };
-        let sc: Box<Self::Softc, Self::MallocType> =
-            unsafe { Box::from_raw(sc_ptr.cast::<Self::Softc>()) };
-        drop(sc);
-    }
+    //fn destroy_dev(dev: cdev_t) {
+    //    assert!(dev.1.unwrap() == TypeId::of::<Self::Softc>());
+    //    let sc_ptr = unsafe { (*dev.0.as_ptr()).si_drv1 };
+    //    unsafe { bindings::destroy_dev(dev.0.as_ptr()) };
+    //    let sc: Box<Self::Softc, Self::MallocType> =
+    //        unsafe { Box::from_raw(sc_ptr.cast::<Self::Softc>()) };
+    //    drop(sc);
+    //}
 }
 
 define_interface! {
@@ -127,7 +127,7 @@ pub struct MakeDevArgs<T, M: Malloc> {
     pub gid: i32,
     pub mode: i32,
     pub name: &'static CStr,
-    sc: Box<T, M>,
+    sc: Loanable<T, M>,
     size: usize,
     cdevsw_ptr: *mut bindings::cdevsw,
 }
@@ -140,7 +140,7 @@ impl<T, M: Malloc> MakeDevArgs<T, M> {
         args.mda_uid = self.uid.try_into().unwrap();
         args.mda_gid = self.gid.try_into().unwrap();
         args.mda_mode = self.mode;
-        args.mda_si_drv1 = Box::into_raw(self.sc).cast::<c_void>();
+        args.mda_si_drv1 = Box::into_raw(self.sc.0).cast::<c_void>();
         args.mda_devsw = self.cdevsw_ptr;
         (args, self.name)
     }
@@ -175,12 +175,12 @@ macro_rules! define_cdev {
     };
 }
 
-impl<'a, T> AsRustType<'a, Pin<&'a T>, T> for *mut bindings::cdev {
-    fn as_rust_type(&'a self) -> Pin<&'a T> {
+impl<'a, T> AsRustType<'a, Loan<'a, T>, T> for *mut cdev {
+    fn as_rust_type(&'a self) -> Loan<'a, T> {
         let dev = *self;
         let sc_ptr = unsafe { (*dev).si_drv1 };
-        let res = unsafe { sc_ptr.cast::<T>().as_ref().unwrap() };
-        unsafe { Pin::new_unchecked(res) }
+        let res = unsafe { sc_ptr.cast::<LoanLayout<T>>().as_ref().unwrap() };
+        Loan(res)
     }
 }
 
