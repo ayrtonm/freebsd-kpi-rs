@@ -40,7 +40,6 @@ struct EchoDevState {
 
 impl CDevSw for EchoDev {
     type Softc = EchoDevSoftc;
-    type MallocType = M_DEVBUF;
 
     fn d_open(sc: Loan<EchoDevSoftc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
         Ok(())
@@ -137,7 +136,9 @@ impl CDevSw for EchoDev {
     }
 }
 
-static ECHODEV: LeaseSlot<EchoDevSoftc> = LeaseSlot::uninit();
+// The second parameter records the allocator the softc is boxed with, so that destroy_dev knows
+// how to free it.
+static ECHODEV: LeaseSlot<EchoDevSoftc, M_DEVBUF> = LeaseSlot::uninit();
 
 impl Module for EchoDev {
     fn on_load(data: *mut c_void) -> Result<()> {
@@ -149,7 +150,7 @@ impl Module for EchoDev {
         // so we can't use it after this. This returns a MakeDevArgs which has the only pointer to
         // the softc at this point. MakeDevArgs knows the softc type, but does not provide access to
         // it yet.
-        let mut args = Self::make_dev_args_init(sc);
+        let mut args = make_dev_args_init(&echo_cdevsw, sc);
         args.name = c"echo";
         args.flags = bindings::MAKEDEV_CHECKNAME | bindings::MAKEDEV_WAITOK;
         args.uid = bindings::UID_ROOT;
@@ -170,7 +171,7 @@ impl Module for EchoDev {
 
     fn on_unload(data: *mut c_void) -> Result<()> {
         let sc = ECHODEV.take();
-        Self::destroy_dev(sc);
+        destroy_dev(sc);
         Ok(())
     }
 }

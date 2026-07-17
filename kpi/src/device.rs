@@ -92,7 +92,7 @@ impl<'a, T> AsRustType<'a, Loan<'a, T>> for device_t {
         let void_ptr = unsafe { bindings::device_get_softc(*self) };
         let sc_ptr = void_ptr.cast::<Loanable<T>>();
         let sc_ref = unsafe { sc_ptr.as_ref().unwrap() };
-        Loan(sc_ref)
+        Loan(sc_ref, core::marker::PhantomData)
     }
 }
 

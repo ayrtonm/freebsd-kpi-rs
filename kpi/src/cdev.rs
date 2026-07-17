@@ -36,7 +36,6 @@ use crate::prelude::*;
 use core::any::TypeId;
 use core::ffi::{CStr, c_int, c_void};
 use core::marker::PhantomData;
-use core::mem::size_of;
 use core::ptr::NonNull;
 use crate::ffi::{Loan, Loanable, Lease};
 use crate::bindings::cdev;
@@ -52,13 +51,12 @@ impl<'a> CDev<'a> {
 }
 
 pub trait CDevSwInternal {
-    fn get_cdevsw_ptr() -> *mut bindings::cdevsw;
+    fn get_cdevsw_ptr(&self) -> *mut bindings::cdevsw;
 }
 
 #[allow(unused_variables)]
 pub trait CDevSw: CDevSwInternal {
     type Softc: 'static + Sync;
-    type MallocType: Malloc;
 
     fn d_open(sc: Loan<Self::Softc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
         unimplemented!()
@@ -71,35 +69,6 @@ pub trait CDevSw: CDevSwInternal {
     }
     fn d_write(sc: Loan<Self::Softc>, uio: UioRef, ioflag: c_int) -> Result<()> {
         unimplemented!()
-    }
-    fn make_dev_args_init(
-        sc: Box<Loanable<Self::Softc>, Self::MallocType>,
-    ) -> MakeDevArgs<Self::Softc, Self::MallocType> {
-        MakeDevArgs {
-            sc,
-            // Follows make_dev_args_init's behavior
-            size: size_of::<bindings::make_dev_args>(),
-            flags: 0,
-            uid: 0,
-            gid: 0,
-            mode: 0,
-            name: c"",
-            cdevsw_ptr: Self::get_cdevsw_ptr(),
-        }
-    }
-
-    /// Destroys the character device created by [`make_dev_s`][wrappers::make_dev_s] and frees
-    /// its softc.
-    ///
-    /// `M` must be the same allocator the softc was allocated with in
-    /// [`make_dev_args_init`][Self::make_dev_args_init]. Panics if any other `Lease` to the
-    /// softc is still outstanding.
-    fn destroy_dev(sc: Lease<Self::Softc>) {
-        // Blocks until all threads have left this driver's cdevsw callbacks, so no new Loans
-        // can be created from the cdev afterwards.
-        unsafe { bindings::destroy_dev(sc.0.cdev()) };
-        // Release our lease and the device's original reference, then free the softc.
-        unsafe { sc.release_and_free::<Self::MallocType>() };
     }
 }
 
@@ -148,8 +117,8 @@ macro_rules! define_cdev {
         pub struct $cdev_ty(core::cell::UnsafeCell<$crate::bindings::cdevsw>);
         unsafe impl Sync for $cdev_ty {}
         impl $crate::cdev::CDevSwInternal for $cdev_ty {
-            fn get_cdevsw_ptr() -> *mut bindings::cdevsw {
-                $cdevsw_name.0.get()
+            fn get_cdevsw_ptr(&self) -> *mut bindings::cdevsw {
+                self.0.get()
             }
         }
 
@@ -172,7 +141,7 @@ impl<'a, T> AsRustType<'a, Loan<'a, T>, T> for *mut cdev {
         let dev = *self;
         let sc_ptr = unsafe { (*dev).si_drv1 };
         let res = unsafe { sc_ptr.cast::<Loanable<T>>().as_ref().unwrap() };
-        Loan(res)
+        Loan(res, PhantomData)
     }
 }
 
@@ -216,9 +185,28 @@ pub mod wrappers {
     use core::ffi::c_void;
     use core::ptr::null_mut;
 
+    /// Initializes a [`MakeDevArgs`] for the given cdevsw (as declared by
+    /// [`define_cdev!`][crate::define_cdev]), taking ownership of the boxed softc.
+    pub fn make_dev_args_init<D: CDevSw, M: Malloc>(
+        dev: &'static D,
+        sc: Box<Loanable<D::Softc>, M>,
+    ) -> MakeDevArgs<D::Softc, M> {
+        MakeDevArgs {
+            sc,
+            // Follows make_dev_args_init's behavior
+            size: core::mem::size_of::<bindings::make_dev_args>(),
+            flags: 0,
+            uid: 0,
+            gid: 0,
+            mode: 0,
+            name: c"",
+            cdevsw_ptr: dev.get_cdevsw_ptr(),
+        }
+    }
+
     pub fn make_dev_s<T: 'static, M: Malloc>(
         args: MakeDevArgs<T, M>,
-    ) -> Result<Lease<T>>
+    ) -> Result<Lease<T, M>>
     {
         let mut outp = null_mut();
         let (mut args_raw, name) = args.into_raw();
@@ -230,8 +218,20 @@ pub mod wrappers {
         }
         // Record the cdev so destroy_dev can find it later.
         unsafe { (*sc_ptr).set_cdev(outp) };
-        let sc_loan = Loan(unsafe { sc_ptr.as_ref().unwrap() });
+        let sc_loan: Loan<T, M> = Loan(unsafe { sc_ptr.as_ref().unwrap() }, PhantomData);
         Ok(sc_loan.lease())
+    }
+
+    /// Destroys the character device created by [`make_dev_s`] and frees its softc.
+    ///
+    /// The lease's `M` parameter records the allocator the softc was allocated with in
+    /// [`make_dev_args_init`]. Panics if any other `Lease` to the softc is still outstanding.
+    pub fn destroy_dev<T: 'static, M: Malloc>(sc: Lease<T, M>) {
+        // Blocks until all threads have left this driver's cdevsw callbacks, so no new Loans
+        // can be created from the cdev afterwards.
+        unsafe { bindings::destroy_dev(sc.0.cdev()) };
+        // Release our lease and the device's original reference, then free the softc.
+        unsafe { sc.release_and_free() };
     }
 
     pub fn uiomove_read(buf: &mut [u8], uio_ref: UioRef) -> Result<()> {
