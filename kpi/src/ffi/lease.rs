@@ -40,9 +40,6 @@ use core::{fmt, ptr};
 use crate::malloc::MallocType;
 
 /// The kernel object a `LoanLayout` is attached to.
-///
-/// `repr(C)` guarantees the `Unknown` discriminant is zero so that zero-initialized memory (e.g. a
-/// newbus-allocated softc) is a valid `Owner`.
 #[repr(C)]
 enum Owner {
     Unknown,
@@ -52,7 +49,7 @@ enum Owner {
 
 #[repr(C)]
 pub struct LoanLayout<T> {
-    t: MaybeUninit<T>,
+    t: T,
     owner: Owner,
     count: UnsafeCell<u_int>,
 }
@@ -60,7 +57,7 @@ pub struct LoanLayout<T> {
 impl<T> LoanLayout<T> {
     pub fn new(t: T) -> Self {
         let mut res = Self {
-            t: MaybeUninit::new(t),
+            t,
             owner: Owner::Unknown,
             count: UnsafeCell::new(0),
         };
@@ -72,15 +69,6 @@ impl<T> LoanLayout<T> {
 
     pub(crate) fn set_cdev(&mut self, dev: *mut cdev) {
         self.owner = Owner::CDev(dev);
-    }
-
-    /// Drops the wrapped `T` in place without freeing the `LoanLayout` allocation.
-    ///
-    /// # Safety
-    ///
-    /// The `T` must be initialized and must not be used or dropped again afterwards.
-    pub(crate) unsafe fn assume_init_drop_t(&mut self) {
-        unsafe { self.t.assume_init_drop() }
     }
 
     /// Panics if this `LoanLayout` is not attached to a cdev.
@@ -101,11 +89,15 @@ impl<T> LoanLayout<T> {
 }
 
 /// A unique pointer to an uninitialized, externally-managed object.
-pub struct Uninit<'a, T>(&'a mut LoanLayout<T>, Option<&'a mut bool>);
+///
+/// The `owner` field of the pointed-to `LoanLayout` is always initialized while the `t` and
+/// `count` fields remain uninitialized until [`init`][Self::init].
+pub struct Uninit<'a, T>(&'a mut MaybeUninit<LoanLayout<T>>, Option<&'a mut bool>);
 
 impl<'a, T> Uninit<'a, T> {
-    pub unsafe fn from_raw(ptr: &'a mut LoanLayout<T>, dev: device_t) -> Self {
-        ptr.owner = Owner::Device(dev);
+    pub unsafe fn from_raw(ptr: &'a mut MaybeUninit<LoanLayout<T>>, dev: device_t) -> Self {
+        let base = ptr.as_mut_ptr();
+        unsafe { (&raw mut (*base).owner).write(Owner::Device(dev)) };
         Self(ptr, None)
     }
 
@@ -114,17 +106,24 @@ impl<'a, T> Uninit<'a, T> {
     }
 
     pub fn device(&self) -> Device<'_> {
-        Device::new(self.0.device())
+        // `owner` was initialized in `from_raw`.
+        match unsafe { &(*self.0.as_ptr()).owner } {
+            Owner::Device(dev) => Device::new(*dev),
+            _ => unreachable!(),
+        }
     }
 
     /// Initialize the externally-managed object to `t` and return a pinned reference to the pointee
     pub fn init(self, t: T) -> Loan<'a, T> {
-        self.0.t.write(t);
-        self.1.map(|init| *init = true);
-        let inner_ptr = ptr::from_ref(self.0).cast_mut();
-        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
+        let base = self.0.as_mut_ptr();
+        unsafe { (&raw mut (*base).t).write(t) };
+        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*base).count });
+        // This is just an address-insensitive atomic write
         unsafe { bindings::refcount_init(count_ptr, 1) };
-        Loan(unsafe { inner_ptr.as_ref().unwrap() })
+        self.1.map(|init| *init = true);
+        // All fields are now initialized since `owner` was written in `from_raw` and `t` and
+        // `count` were written above.
+        Loan(unsafe { self.0.assume_init_ref() })
     }
 }
 
@@ -135,7 +134,7 @@ pub struct Loan<'a, T: 'static>(pub(crate) &'a LoanLayout<T>);
 impl<'a, T> Loan<'a, T> {
     pub unsafe fn map_unchecked<U: ?Sized, F>(self, f: F) -> Pin<&'a U>
     where F: FnOnce(&T) -> &U {
-        unsafe { Pin::new_unchecked(f(self.0.t.assume_init_ref())) }
+        unsafe { Pin::new_unchecked(f(&self.0.t)) }
     }
 
     pub unsafe fn from_raw(ptr: &'a LoanLayout<T>) -> Self {
@@ -145,7 +144,7 @@ impl<'a, T> Loan<'a, T> {
     pub fn into_raw(self) -> (*mut T, *mut u_int) {
         let inner_ptr = ptr::from_ref(self.0).cast_mut();
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
-        let t_ptr = self.0.t.as_ptr().cast_mut();
+        let t_ptr = ptr::from_ref(&self.0.t).cast_mut();
         (t_ptr, count_ptr)
     }
 
@@ -183,7 +182,7 @@ impl<'a, T> Deref for Loan<'a, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        unsafe { self.0.t.assume_init_ref() }
+        &self.0.t
     }
 }
 
@@ -194,7 +193,7 @@ pub struct Lease<T: 'static>(pub(crate) &'static LoanLayout<T>);
 impl<T> Lease<T> {
     pub unsafe fn map_unchecked<U: ?Sized, F>(&self, f: F) -> Pin<&U>
     where F: FnOnce(&T) -> &U {
-        unsafe { Pin::new_unchecked(f(self.0.t.assume_init_ref())) }
+        unsafe { Pin::new_unchecked(f(&self.0.t)) }
     }
 
     pub fn device(&self) -> Device<'_> {
@@ -212,7 +211,7 @@ impl<T> Lease<T> {
     pub fn into_raw(self) -> (*mut T, *mut u_int) {
         let inner_ptr = ptr::from_ref(self.0).cast_mut();
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
-        let t_ptr = self.0.t.as_ptr().cast_mut();
+        let t_ptr = ptr::from_ref(&self.0.t).cast_mut();
         forget(self);
         (t_ptr, count_ptr)
     }
@@ -236,9 +235,9 @@ impl<T> Lease<T> {
         unsafe { bindings::refcount_release(count_ptr) };
         let last = unsafe { bindings::refcount_release(count_ptr) };
         assert!(last, "LoanLayout still leased in release_and_free");
-        // `MaybeUninit` never runs `T`'s destructor on its own, so drop it explicitly before
-        // freeing the allocation. The other LoanLayout fields are trivially droppable.
-        unsafe { (*inner_ptr).t.assume_init_drop() };
+        // Drop `T` in place before freeing the allocation. The other LoanLayout fields are
+        // trivially droppable.
+        unsafe { ptr::drop_in_place(&raw mut (*inner_ptr).t) };
         unsafe { free(inner_ptr.cast::<core::ffi::c_void>(), mtype) };
     }
 }
@@ -256,7 +255,7 @@ impl<T> Deref for Lease<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        unsafe { self.0.t.assume_init_ref() }
+        &self.0.t
     }
 }
 const UNINIT: usize = usize::MAX;

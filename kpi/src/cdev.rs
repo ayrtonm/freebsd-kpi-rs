@@ -86,36 +86,24 @@ pub struct MakeDevArgs<T, M: Malloc> {
     pub gid: i32,
     pub mode: i32,
     pub name: &'static CStr,
-    // Always Some until into_raw takes it; Option only exists so into_raw can move the Box out
-    // despite the Drop impl.
-    sc: Option<Box<LoanLayout<T>, M>>,
+    sc: Box<LoanLayout<T>, M>,
     size: usize,
     cdevsw_ptr: *mut bindings::cdevsw,
 }
 
 impl<T, M: Malloc> MakeDevArgs<T, M> {
-    pub fn into_raw(mut self) -> (bindings::make_dev_args, &'static CStr) {
+    pub fn into_raw(self) -> (bindings::make_dev_args, &'static CStr) {
         let mut args = bindings::make_dev_args::default();
         args.mda_size = self.size;
         args.mda_flags = self.flags;
         args.mda_uid = self.uid.try_into().unwrap();
         args.mda_gid = self.gid.try_into().unwrap();
         args.mda_mode = self.mode;
-        args.mda_si_drv1 = Box::into_raw(self.sc.take().unwrap()).cast::<c_void>();
+        args.mda_si_drv1 = Box::into_raw(self.sc).cast::<c_void>();
         // Record the softc's allocator so destroy_dev can free it later.
         args.mda_si_drv2 = M::malloc_type().as_raw().cast::<c_void>();
         args.mda_devsw = self.cdevsw_ptr;
         (args, self.name)
-    }
-}
-
-impl<T, M: Malloc> Drop for MakeDevArgs<T, M> {
-    fn drop(&mut self) {
-        if let Some(mut sc) = self.sc.take() {
-            // The args were dropped without reaching make_dev_s, so the softc is still
-            // initialized: drop its contents before the Box frees the allocation.
-            unsafe { sc.assume_init_drop_t() };
-        }
     }
 }
 
@@ -206,7 +194,7 @@ pub mod wrappers {
         sc: Box<LoanLayout<D::Softc>, M>,
     ) -> MakeDevArgs<D::Softc, M> {
         MakeDevArgs {
-            sc: Some(sc),
+            sc,
             // Follows make_dev_args_init's behavior
             size: core::mem::size_of::<bindings::make_dev_args>(),
             flags: 0,
@@ -227,10 +215,9 @@ pub mod wrappers {
         let sc_ptr = args_raw.mda_si_drv1.cast::<LoanLayout<T>>();
         let res = unsafe { bindings::make_dev_s(&raw mut args_raw, &raw mut outp, name.as_ptr()) };
         if res != 0 {
-            // Reclaim the boxed softc that into_raw moved into mda_si_drv1: drop the softc's
-            // contents, then let the Box free the allocation.
-            let mut sc = unsafe { Box::<LoanLayout<T>, M>::from_raw(sc_ptr) };
-            unsafe { sc.assume_init_drop_t() };
+            // Reclaim the boxed softc that into_raw moved into mda_si_drv1 so it is dropped
+            // and freed.
+            drop(unsafe { Box::<LoanLayout<T>, M>::from_raw(sc_ptr) });
             return Err(ErrCode::from(res));
         }
         // Record the cdev so destroy_dev can find it later.

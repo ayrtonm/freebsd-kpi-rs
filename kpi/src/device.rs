@@ -78,7 +78,7 @@ impl<'a> AsRustType<'a, Device<'a>> for device_t {
 impl<'a, T> AsRustType<'a, Uninit<'a, T>> for device_t {
     fn as_rust_type(&'a self) -> Uninit<'a, T> {
         let void_ptr = unsafe { bindings::device_get_softc(*self) };
-        let sc_ptr = void_ptr.cast::<LoanLayout<T>>();
+        let sc_ptr = void_ptr.cast::<core::mem::MaybeUninit<LoanLayout<T>>>();
         let sc_ref = unsafe { sc_ptr.as_mut().unwrap() };
         unsafe { Uninit::from_raw(sc_ref, *self) }
     }
