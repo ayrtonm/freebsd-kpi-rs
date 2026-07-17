@@ -124,6 +124,6 @@ pub fn assert_pin_has_fixed_index<T: FixedIndex>(_p: Pin<&T>) {}
 
 pub unsafe trait IsPinning {}
 unsafe impl<T> IsPinning for Pin<T> {}
-unsafe impl<'a, T, M> IsPinning for Loan<'a, T, M> {}
-unsafe impl<T, M> IsPinning for Lease<T, M> {}
+unsafe impl<'a, T> IsPinning for Loan<'a, T> {}
+unsafe impl<T> IsPinning for Lease<T> {}
 pub fn assert_is_pinning<P: IsPinning>(_p: &P) {}

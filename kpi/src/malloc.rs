@@ -40,6 +40,16 @@ pub struct MallocFlags(pub(crate) c_int);
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct MallocType(*mut malloc_type);
 
+impl MallocType {
+    pub(crate) fn from_raw(ptr: *mut malloc_type) -> Self {
+        Self(ptr)
+    }
+
+    pub(crate) fn as_raw(self) -> *mut malloc_type {
+        self.0
+    }
+}
+
 impl BitOr<MallocFlags> for MallocFlags {
     type Output = MallocFlags;
 

@@ -32,14 +32,12 @@ use crate::cdev::CDev;
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::fmt::{Debug, Formatter};
-use core::marker::PhantomData;
 use core::mem::{MaybeUninit, forget};
 use core::ops::Deref;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use core::pin::Pin;
 use core::{fmt, ptr};
-use crate::boxed::Box;
-use crate::malloc::{Malloc, MallocFlags};
+use crate::malloc::MallocType;
 
 /// The kernel object a `LoanLayout` is attached to.
 ///
@@ -117,29 +115,22 @@ impl<'a, T> Uninit<'a, T> {
         let inner_ptr = ptr::from_ref(self.0).cast_mut();
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
         unsafe { bindings::refcount_init(count_ptr, 1) };
-        Loan(unsafe { inner_ptr.as_ref().unwrap() }, PhantomData)
+        Loan(unsafe { inner_ptr.as_ref().unwrap() })
     }
 }
 
 /// A pointer that may be opted into refcounting if requested.
-///
-/// `M` records the allocator the backing `LoanLayout<T>` was allocated with, so that a
-/// [`Lease`] created from this loan knows how to free it. It defaults to `()` for loans whose
-/// leases never free their pointee.
 #[repr(C)]
-pub struct Loan<'a, T: 'static, M = ()>(
-    pub(crate) &'a LoanLayout<T>,
-    pub(crate) PhantomData<M>,
-);
+pub struct Loan<'a, T: 'static>(pub(crate) &'a LoanLayout<T>);
 
-impl<'a, T, M> Loan<'a, T, M> {
+impl<'a, T> Loan<'a, T> {
     pub unsafe fn map_unchecked<U: ?Sized, F>(self, f: F) -> Pin<&'a U>
     where F: FnOnce(&T) -> &U {
         unsafe { Pin::new_unchecked(f(self.0.t.assume_init_ref())) }
     }
 
     pub unsafe fn from_raw(ptr: &'a LoanLayout<T>) -> Self {
-        Self(ptr, PhantomData)
+        Self(ptr)
     }
 
     pub fn into_raw(self) -> (*mut T, *mut u_int) {
@@ -157,29 +148,29 @@ impl<'a, T, M> Loan<'a, T, M> {
         CDev::new(self.0.cdev())
     }
 
-    pub fn lease(&self) -> Lease<T, M> {
+    pub fn lease(&self) -> Lease<T> {
         let inner_ptr = ptr::from_ref(self.0).cast_mut();
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
         unsafe { bindings::refcount_acquire(count_ptr) };
-        Lease(unsafe { inner_ptr.as_ref().unwrap() }, PhantomData)
+        Lease(unsafe { inner_ptr.as_ref().unwrap() })
     }
 }
 
-impl<'a, T: 'static + Debug, M> Debug for Loan<'a, T, M> {
+impl<'a, T: 'static + Debug> Debug for Loan<'a, T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         Debug::fmt(&self.0.t, f)
     }
 }
 
-impl<'a, T, M> Copy for Loan<'a, T, M> {}
+impl<'a, T> Copy for Loan<'a, T> {}
 
-impl<'a, T, M> Clone for Loan<'a, T, M> {
+impl<'a, T> Clone for Loan<'a, T> {
     fn clone(&self) -> Self {
-        Self(self.0, PhantomData)
+        Self(self.0)
     }
 }
 
-impl<'a, T, M> Deref for Loan<'a, T, M> {
+impl<'a, T> Deref for Loan<'a, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -188,17 +179,10 @@ impl<'a, T, M> Deref for Loan<'a, T, M> {
 }
 
 /// A pointer to a refcounted object.
-///
-/// `M` records the allocator the backing `LoanLayout<T>` was allocated with, so
-/// [`release_and_free`][Self::release_and_free] can free it without naming the allocator again.
-/// It defaults to `()` for leases that never free their pointee.
 #[repr(C)]
-pub struct Lease<T: 'static, M = ()>(
-    pub(crate) &'static LoanLayout<T>,
-    pub(crate) PhantomData<M>,
-);
+pub struct Lease<T: 'static>(pub(crate) &'static LoanLayout<T>);
 
-impl<T, M> Lease<T, M> {
+impl<T> Lease<T> {
     pub unsafe fn map_unchecked<U: ?Sized, F>(&self, f: F) -> Pin<&U>
     where F: FnOnce(&T) -> &U {
         unsafe { Pin::new_unchecked(f(self.0.t.assume_init_ref())) }
@@ -213,7 +197,7 @@ impl<T, M> Lease<T, M> {
     }
 
     pub fn lease(&self) -> Self {
-        Loan::<T, M>(self.0, PhantomData).lease()
+        Loan(self.0).lease()
     }
 
     pub fn into_raw(self) -> (*mut T, *mut u_int) {
@@ -231,12 +215,10 @@ impl<T, M> Lease<T, M> {
     ///
     /// # Safety
     ///
-    /// The `LoanLayout<T>` must have been allocated via `Box::<LoanLayout<T>, M>::into_raw` and no
-    /// other reference to it may be created after this call.
-    pub(crate) unsafe fn release_and_free(self)
-    where
-        M: Malloc,
-    {
+    /// The `LoanLayout<T>` must have been allocated via `Box::<LoanLayout<T>, M>::into_raw`,
+    /// `mtype` must be `M`'s malloc type, and no other reference to it may be created after this
+    /// call.
+    pub(crate) unsafe fn release_and_free(self, mtype: MallocType) {
         let inner_ptr = ptr::from_ref(self.0).cast_mut();
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
         forget(self);
@@ -246,13 +228,13 @@ impl<T, M> Lease<T, M> {
         let last = unsafe { bindings::refcount_release(count_ptr) };
         assert!(last, "LoanLayout still leased in release_and_free");
         // `MaybeUninit` never runs `T`'s destructor on its own, so drop it explicitly before
-        // freeing the allocation.
+        // freeing the allocation. The other LoanLayout fields are trivially droppable.
         unsafe { (*inner_ptr).t.assume_init_drop() };
-        drop(unsafe { Box::<LoanLayout<T>, M>::from_raw(inner_ptr) });
+        unsafe { free(inner_ptr.cast::<core::ffi::c_void>(), mtype) };
     }
 }
 
-impl<T, M> Drop for Lease<T, M> {
+impl<T> Drop for Lease<T> {
     fn drop(&mut self) {
         let inner_ptr = ptr::from_ref(self.0).cast_mut();
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
@@ -261,7 +243,7 @@ impl<T, M> Drop for Lease<T, M> {
     }
 }
 
-impl<T, M> Deref for Lease<T, M> {
+impl<T> Deref for Lease<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -278,23 +260,23 @@ const REVOKED: usize = usize::MAX - 1;
 /// concurrently via [`get`][Self::get], and released at most once via [`revoke`][Self::revoke].
 /// `revoke` does not block waiting for readers to finish — it panics if called while any
 /// [`LeaseGuard`] is still outstanding.
-pub struct LeaseSlot<T: 'static, M = ()> {
-    lease: UnsafeCell<MaybeUninit<Lease<T, M>>>,
+pub struct LeaseSlot<T: 'static> {
+    lease: UnsafeCell<MaybeUninit<Lease<T>>>,
     // UNINIT = never initialized, REVOKED = permanently emptied, otherwise the number of
     // outstanding `LeaseGuard`s (0 meaning initialized with no active readers).
     state: AtomicUsize,
 }
 
-unsafe impl<T: Sync, M> Sync for LeaseSlot<T, M> {}
-unsafe impl<T: Sync + Send, M> Send for LeaseSlot<T, M> {}
+unsafe impl<T: Sync> Sync for LeaseSlot<T> {}
+unsafe impl<T: Sync + Send> Send for LeaseSlot<T> {}
 
-impl<T, M> Default for LeaseSlot<T, M> {
+impl<T> Default for LeaseSlot<T> {
     fn default() -> Self {
         LeaseSlot::uninit()
     }
 }
 
-impl<T, M> LeaseSlot<T, M> {
+impl<T> LeaseSlot<T> {
     pub const fn uninit() -> Self {
         Self {
             lease: UnsafeCell::new(MaybeUninit::uninit()),
@@ -305,7 +287,7 @@ impl<T, M> LeaseSlot<T, M> {
     /// Sets the leased value.
     ///
     /// Panics if called more than once.
-    pub fn init(&self, lease: Lease<T, M>) {
+    pub fn init(&self, lease: Lease<T>) {
         if self
             .state
             .compare_exchange(UNINIT, 0, Ordering::AcqRel, Ordering::Acquire)
@@ -319,7 +301,7 @@ impl<T, M> LeaseSlot<T, M> {
     /// Borrows the leased value.
     ///
     /// Panics if it hasn't been initialized yet or has already been revoked.
-    pub fn get(&self) -> LeaseGuard<'_, T, M> {
+    pub fn get(&self) -> LeaseGuard<'_, T> {
         loop {
             let cur = self.state.load(Ordering::Acquire);
             if cur == UNINIT || cur == REVOKED {
@@ -351,7 +333,7 @@ impl<T, M> LeaseSlot<T, M> {
     ///
     /// Panics if it isn't currently initialized with zero outstanding readers (i.e. if called
     /// before `init`, more than once, or while a [`LeaseGuard`] is still alive).
-    pub fn take(&self) -> Lease<T, M> {
+    pub fn take(&self) -> Lease<T> {
         if self
             .state
             .compare_exchange(0, REVOKED, Ordering::AcqRel, Ordering::Acquire)
@@ -367,13 +349,13 @@ impl<T, M> LeaseSlot<T, M> {
     }
 }
 
-pub struct LeaseGuard<'a, T: 'static, M = ()> {
-    lease: &'a Lease<T, M>,
+pub struct LeaseGuard<'a, T: 'static> {
+    lease: &'a Lease<T>,
     state: &'a AtomicUsize,
 }
 
-impl<'a, T: 'static, M> LeaseGuard<'a, T, M> {
-    pub fn lease(&self) -> Lease<T, M> {
+impl<'a, T: 'static> LeaseGuard<'a, T> {
+    pub fn lease(&self) -> Lease<T> {
         self.lease.lease()
     }
 
@@ -386,7 +368,7 @@ impl<'a, T: 'static, M> LeaseGuard<'a, T, M> {
     }
 }
 
-impl<'a, T: 'static, M> Deref for LeaseGuard<'a, T, M> {
+impl<'a, T: 'static> Deref for LeaseGuard<'a, T> {
     type Target = T;
 
     fn deref(&self) -> &T {
@@ -394,7 +376,7 @@ impl<'a, T: 'static, M> Deref for LeaseGuard<'a, T, M> {
     }
 }
 
-impl<'a, T, M> Drop for LeaseGuard<'a, T, M> {
+impl<'a, T> Drop for LeaseGuard<'a, T> {
     fn drop(&mut self) {
         self.state.fetch_sub(1, Ordering::Release);
     }
