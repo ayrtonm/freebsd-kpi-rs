@@ -295,6 +295,12 @@ pub struct LeaseGuard<'a, T: 'static> {
     state: &'a AtomicUsize,
 }
 
+impl<'a, T: 'static> LeaseGuard<'a, T> {
+    pub fn lease(&self) -> Lease<T> {
+        self.lease.lease()
+    }
+}
+
 impl<'a, T: 'static> Deref for LeaseGuard<'a, T> {
     type Target = T;
 
