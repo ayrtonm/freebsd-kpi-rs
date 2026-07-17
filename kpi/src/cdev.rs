@@ -41,6 +41,16 @@ use core::ptr::NonNull;
 use crate::ffi::{Loan, Loanable, Lease};
 use crate::bindings::cdev;
 
+#[repr(C)]
+#[derive(Copy, Clone, Debug)]
+pub struct CDev<'a>(*mut cdev, PhantomData<&'a ()>);
+
+impl<'a> CDev<'a> {
+    pub fn new(ptr: *mut cdev) -> Self {
+        Self(ptr, PhantomData)
+    }
+}
+
 pub trait CDevSwInternal {
     fn get_cdevsw_ptr() -> *mut bindings::cdevsw;
 }

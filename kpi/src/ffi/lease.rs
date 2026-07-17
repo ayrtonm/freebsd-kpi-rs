@@ -28,6 +28,7 @@
 
 use crate::bindings::{device_t, u_int, cdev};
 use crate::device::Device;
+use crate::cdev::CDev;
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::fmt::{Debug, Formatter};
@@ -144,6 +145,10 @@ impl<'a, T> Loan<'a, T> {
         Device::new(self.0.device())
     }
 
+    pub fn cdev(&self) -> CDev<'_> {
+        CDev::new(self.0.cdev())
+    }
+
     pub fn lease(&self) -> Lease<T> {
         let inner_ptr = ptr::from_ref(self.0).cast_mut();
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
@@ -179,8 +184,17 @@ impl<'a, T> Deref for Loan<'a, T> {
 pub struct Lease<T: 'static>(pub(crate) &'static Loanable<T>);
 
 impl<T> Lease<T> {
+    pub unsafe fn map_unchecked<U: ?Sized, F>(&self, f: F) -> Pin<&U>
+    where F: FnOnce(&T) -> &U {
+        unsafe { Pin::new_unchecked(f(self.0.t.assume_init_ref())) }
+    }
+
     pub fn device(&self) -> Device<'_> {
         Device::new(self.0.device())
+    }
+
+    pub fn cdev(&self) -> CDev<'_> {
+        CDev::new(self.0.cdev())
     }
 
     pub fn lease(&self) -> Self {
@@ -343,6 +357,14 @@ pub struct LeaseGuard<'a, T: 'static> {
 impl<'a, T: 'static> LeaseGuard<'a, T> {
     pub fn lease(&self) -> Lease<T> {
         self.lease.lease()
+    }
+
+    pub fn device(&self) -> Device<'_> {
+        self.lease.device()
+    }
+
+    pub fn cdev(&self) -> CDev<'_> {
+        self.lease.cdev()
     }
 }
 

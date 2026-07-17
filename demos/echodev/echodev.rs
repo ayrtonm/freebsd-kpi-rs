@@ -15,7 +15,7 @@ use core::ptr::{NonNull, null_mut};
 use kpi::ErrCode;
 use kpi::prelude::*;
 use kpi::misc::Thread;
-use kpi::{define_module, define_cdev};
+use kpi::{define_module, define_cdev, proj};
 use kpi::cdev::{UioRef, CDevSw};
 use kpi::vec::Vec;
 use kpi::sync::Checked;
@@ -141,8 +141,10 @@ static ECHODEV: LeaseSlot<EchoDevSoftc> = LeaseSlot::uninit();
 
 impl Module for EchoDev {
     fn on_load(data: *mut c_void) -> Result<()> {
+        let mut sc = EchoDevSoftc::default();
+        sc.state.get_mut().buf = Vec::fill_with_capacity(0u8, 64, M_WAITOK);
         // Allocates the softc on the heap. Box is a uniquely-owned pointer to the heap.
-        let sc = Box::new(Loanable::new(EchoDevSoftc::default()), M_WAITOK);
+        let sc = Box::new(Loanable::new(sc), M_WAITOK);
         // make_dev_args_init takes ownership of the boxed (heap-allocated) softc that's passed in
         // so we can't use it after this. This returns a MakeDevArgs which has the only pointer to
         // the softc at this point. MakeDevArgs knows the softc type, but does not provide access to
@@ -160,12 +162,9 @@ impl Module for EchoDev {
         // reference (or "borrow") is a pointer that provides exclusive access for the duration of
         // the borrow, but leaves the responsibility of freeing the pointee to the owner.
         let sc = make_dev_s(args)?;
+        sx_init(proj!(&sc.state), c"echo");
+        //sx_xlock(&sc.state).buf = Vec::fill_with_capacity(0u8, 64, M_WAITOK);
         ECHODEV.init(sc);
-        //let echodev = make_dev_s(args, |sc| {
-        //    //sx_init(&sc.state, c"echo");
-        //    sc.state.get_mut().buf = Vec::fill_with_capacity(0u8, 64, M_WAITOK);
-        //})?;
-        //*ECHODEV.get_mut() = Some(echodev);
         Ok(())
     }
 
