@@ -283,7 +283,7 @@ pub mod wrappers {
         }
         let children = unsafe {
             Vec::from_raw(devlistp.cast::<Device>(), devcountp.try_into().unwrap())
-                .into_boxed_slice()
+                .try_into_boxed_slice(M_NOWAIT)?
         };
         Ok(children)
     }

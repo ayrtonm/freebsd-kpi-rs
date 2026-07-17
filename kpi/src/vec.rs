@@ -229,14 +229,13 @@ impl<T, M: Malloc> Vec<T, M> {
         Some(unsafe { read(self.as_mut_ptr().add(self.len)) })
     }
 
-    pub fn into_boxed_slice(self) -> Box<[T], M> {
-        self.try_into_boxed_slice().unwrap()
+    pub fn into_boxed_slice(mut self, flags: MallocFlags) -> Box<[T], M> {
+        self.shrink_to_fit(flags);
+        self.try_into_boxed_slice(flags).unwrap()
     }
 
-    pub fn try_into_boxed_slice(mut self) -> Result<Box<[T], M>> {
-        if self.len != self.capacity {
-            return Err(EDOOFUS);
-        }
+    pub fn try_into_boxed_slice(mut self, flags: MallocFlags) -> Result<Box<[T], M>> {
+        self.try_shrink_to_fit(flags)?;
         let fat_ptr = ptr::from_mut(self.deref_mut());
         forget(self);
         Ok(unsafe { Box::from_raw(fat_ptr) })

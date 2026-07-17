@@ -46,14 +46,14 @@ pub struct Loanable<T, M: Malloc>(pub(crate) Box<LoanLayout<T>, M>);
 impl<T, M: Malloc> Loanable<T, M> {
     pub fn new(t: T, flags: MallocFlags) -> Self {
         let mut res = Box::new(LoanLayout::new(t), flags);
-        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*res).count });
+        let count_ptr = UnsafeCell::raw_get(&raw mut (*res).count);
         unsafe { bindings::refcount_init(count_ptr, 1) };
         Self(res)
     }
 
     pub fn try_new(t: T, flags: MallocFlags) -> Result<Self> {
         let mut res = Box::try_new(LoanLayout::new(t), flags)?;
-        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*res).count });
+        let count_ptr = UnsafeCell::raw_get(&raw mut (*res).count);
         unsafe { bindings::refcount_init(count_ptr, 1) };
         Ok(Self(res))
     }
