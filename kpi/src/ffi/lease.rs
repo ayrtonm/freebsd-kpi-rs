@@ -49,7 +49,7 @@ enum Owner {
 
 #[repr(C)]
 pub struct LoanLayout<T> {
-    t: T,
+    pub t: T,
     owner: Owner,
     count: UnsafeCell<u_int>,
 }
