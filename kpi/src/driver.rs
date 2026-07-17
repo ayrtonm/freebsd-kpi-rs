@@ -94,7 +94,7 @@ macro_rules! define_driver {
         }
 
         impl $crate::kobj::KobjLayout for $driver_ty {
-            type Layout = $crate::ffi::LoanLayout<<$driver_ty as $crate::device::DeviceIf>::Softc>;
+            type Layout = $crate::ffi::Loanable<<$driver_ty as $crate::device::DeviceIf>::Softc>;
         }
 
         impl $crate::driver::Driver for $driver_ty {

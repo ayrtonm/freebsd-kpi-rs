@@ -41,7 +41,7 @@ mod lease;
 mod subclass;
 
 pub use cstring::{ArrayCString, CString, ToArrayCString};
-pub use lease::{Lease, LeaseSlot, Loan, Loanable, LoanLayout, Uninit};
+pub use lease::{Lease, LeaseSlot, Loan, Loanable, Uninit};
 pub use subclass::{SubClass, SubClassOf};
 
 /// A pointer type implementing `Sync`.

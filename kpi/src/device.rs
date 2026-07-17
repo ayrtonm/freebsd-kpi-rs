@@ -29,7 +29,7 @@
 use crate::bindings::{_device, device_state_t, device_t, driver_t};
 use crate::boxed::Box;
 use crate::driver::Driver;
-use crate::ffi::{ArrayCString, Loan, LoanLayout, Uninit};
+use crate::ffi::{ArrayCString, Loan, Loanable, Uninit};
 use crate::kobj::{AsCType, AsRustType};
 use crate::prelude::*;
 use crate::vec::Vec;
@@ -78,7 +78,7 @@ impl<'a> AsRustType<'a, Device<'a>> for device_t {
 impl<'a, T> AsRustType<'a, Uninit<'a, T>> for device_t {
     fn as_rust_type(&'a self) -> Uninit<'a, T> {
         let void_ptr = unsafe { bindings::device_get_softc(*self) };
-        let sc_ptr = void_ptr.cast::<LoanLayout<T>>();
+        let sc_ptr = void_ptr.cast::<Loanable<T>>();
         let sc_ref = unsafe { sc_ptr.as_mut().unwrap() };
         unsafe { Uninit::from_raw(sc_ref, *self) }
     }
@@ -90,7 +90,7 @@ impl<'a, T> AsRustType<'a, Uninit<'a, T>> for device_t {
 impl<'a, T> AsRustType<'a, Loan<'a, T>> for device_t {
     fn as_rust_type(&'a self) -> Loan<'a, T> {
         let void_ptr = unsafe { bindings::device_get_softc(*self) };
-        let sc_ptr = void_ptr.cast::<LoanLayout<T>>();
+        let sc_ptr = void_ptr.cast::<Loanable<T>>();
         let sc_ref = unsafe { sc_ptr.as_ref().unwrap() };
         Loan(sc_ref)
     }

@@ -16,19 +16,17 @@ use kpi::ErrCode;
 use kpi::prelude::*;
 use kpi::misc::Thread;
 use kpi::{define_module, define_cdev};
-use kpi::cdev::{CDev, UioRef, CDevSw, cdev_t};
+use kpi::cdev::{UioRef, CDevSw};
 use kpi::vec::Vec;
 use kpi::sync::Checked;
 use core::sync::atomic::{AtomicPtr, Ordering};
 use core::cmp::min;
 use kpi::sync::sx::SxLock;
-use kpi::ffi::Loan;
-
-type Loanable<T> = kpi::ffi::Loanable<T, M_DEVBUF>;
+use kpi::ffi::{Loan, Loanable, LeaseSlot};
+use kpi::boxed::Box;
 
 #[derive(Default)]
 pub struct EchoDevSoftc {
-    dev: CDev,
     state: SxLock<EchoDevState>,
 }
 
@@ -42,6 +40,7 @@ struct EchoDevState {
 
 impl CDevSw for EchoDev {
     type Softc = EchoDevSoftc;
+    type MallocType = M_DEVBUF;
 
     fn d_open(sc: Loan<EchoDevSoftc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
         Ok(())
@@ -138,12 +137,12 @@ impl CDevSw for EchoDev {
     }
 }
 
-static ECHODEV: Checked<Option<cdev_t>> = Checked::new(None);
+static ECHODEV: LeaseSlot<EchoDevSoftc> = LeaseSlot::uninit();
 
 impl Module for EchoDev {
     fn on_load(data: *mut c_void) -> Result<()> {
         // Allocates the softc on the heap. Box is a uniquely-owned pointer to the heap.
-        let sc = Loanable::new(EchoDevSoftc::default(), M_WAITOK);
+        let sc = Box::new(Loanable::new(EchoDevSoftc::default()), M_WAITOK);
         // make_dev_args_init takes ownership of the boxed (heap-allocated) softc that's passed in
         // so we can't use it after this. This returns a MakeDevArgs which has the only pointer to
         // the softc at this point. MakeDevArgs knows the softc type, but does not provide access to
@@ -160,19 +159,19 @@ impl Module for EchoDev {
         // Box owns its pointer (and therefore frees it when the Box goes out of scope). A mutable
         // reference (or "borrow") is a pointer that provides exclusive access for the duration of
         // the borrow, but leaves the responsibility of freeing the pointee to the owner.
-        let echodev = make_dev_s(args, |sc, dev| {
-            sc.dev = dev;
-            //sx_init(&sc.state, c"echo");
-            sc.state.get_mut().buf = Vec::fill_with_capacity(0u8, 64, M_WAITOK);
-        })?;
-        *ECHODEV.get_mut() = Some(echodev);
+        let sc = make_dev_s(args)?;
+        ECHODEV.init(sc);
+        //let echodev = make_dev_s(args, |sc| {
+        //    //sx_init(&sc.state, c"echo");
+        //    sc.state.get_mut().buf = Vec::fill_with_capacity(0u8, 64, M_WAITOK);
+        //})?;
+        //*ECHODEV.get_mut() = Some(echodev);
         Ok(())
     }
 
     fn on_unload(data: *mut c_void) -> Result<()> {
-        let echodev = ECHODEV.get_mut().take().unwrap();
-        // This retuns a Box<EchoDevSoftc> which gets dropped when it goes out of scope
-        //let sc = Self::destroy_dev(echodev);
+        let sc = ECHODEV.take();
+        Self::destroy_dev(sc);
         Ok(())
     }
 }
