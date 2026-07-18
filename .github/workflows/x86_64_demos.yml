@@ -54,10 +54,11 @@ jobs:
       run: ./tools/build/make.py -j$NPROC $EXTRA_BUILD_ARGS kernel-toolchain \
           KERNCONF=GENERIC TARGET=amd64 TARGET_ARCH=amd64
 
-    - name: Build virtio_snd driver for x86-64
+    - name: Build virtio_snd driver and echodev module for x86-64
       run: |
         RUSTC=`which rustc` \
         RUSTFMT=`which rustfmt` \
         BINDGEN=`which bindgen` \
         ./tools/build/make.py --debug -j$NPROC $EXTRA_BUILD_ARGS buildkernel \
-          KERNCONF=GENERIC NO_MODULES=yes TARGET=amd64 TARGET_ARCH=amd64
+          KERNCONF=GENERIC MODULES_OVERRIDE="" TARGET=amd64 TARGET_ARCH=amd64 \
+          LOCAL_MODULES_DIR=sys/rust/demos LOCAL_MODULES="echodev"
