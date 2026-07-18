@@ -190,8 +190,8 @@ pub mod wrappers {
     /// Initializes a [`MakeDevArgs`] for the given cdevsw (as declared by
     /// [`define_cdev!`][crate::define_cdev]), taking ownership of the boxed softc.
     pub fn make_dev_args_init<D: CDevSw, M: Malloc>(
-        dev: &'static D,
         sc: Box<LoanLayout<D::Softc>, M>,
+        dev: &'static D,
     ) -> MakeDevArgs<D::Softc, M> {
         MakeDevArgs {
             sc,
