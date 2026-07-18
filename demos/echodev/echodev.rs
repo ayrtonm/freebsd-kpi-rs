@@ -203,16 +203,11 @@ impl Module for EchoDev {
         // `malloc(64, M_DEVBUF, M_WAITOK | M_ZERO)`
         sc.inner.state.get_mut().buf = Vec::fill_with_capacity(0, 64, M_WAITOK);
 
-        // make_dev_args_init takes ownership of the boxed (heap-allocated) softc that's passed in
-        // so we can't use it after this. This returns a MakeDevArgs which has the only pointer to
-        // the softc at this point. MakeDevArgs knows the softc type, but does not provide access to
-        // it yet.
-
-        // This function takes a reference to the cdevsw variable we defined with `define_cdev!` and
-        // a pointer to the softc. It takes ownership of the boxed softc so we can't access it via
-        // the Box after this. The type name on the LHS can be inferred but it's spelled out here to
-        // make it easier to follow how the functions map the types. The `MakeDevArgs` now owns the
-        // `Box` but doesn't provide us direct access to it.
+        // make_dev_args_init takes a reference to the cdevsw variable we defined with define_cdev!
+        // and a pointer to the softc. It takes ownership of the boxed softc so we can't access it
+        // via the Box after this. The type name on the LHS can be inferred but it's spelled out
+        // here to make it easier to follow how the functions map the types. The `MakeDevArgs` now
+        // owns the `Box` but doesn't provide us direct access to it.
         let mut args: MakeDevArgs<EchoDevSoftc, M_DEVBUF> = make_dev_args_init(sc, &echo_cdevsw);
 
         // Like the C version we need to set some fields in the make_dev_args struct.
@@ -226,13 +221,6 @@ impl Module for EchoDev {
         // unfortunately C and rust differ in how they represent octal numbers so 0600 gets
         // interpreted as decimal
         args.mode = 0o600;
-
-        // Call make_dev_s then call a closure to initialize the softc. Since MakeDevArgs owned the
-        // only pointer to the softc we can give the closure exclusive access to it (i.e. a
-        // &mut EchoDevSoftc). The sc arg below is a mutable reference rather than a Box, because
-        // Box owns its pointer (and therefore frees it when the Box goes out of scope). A mutable
-        // reference (or "borrow") is a pointer that provides exclusive access for the duration of
-        // the borrow, but leaves the responsibility of freeing the pointee to the owner.
 
         // Call make_dev_s to create the character device with the softc. This takes ownership of
         // MakeDevArgs above so it can't be used after this. TODO: consider letting users re-use a
@@ -259,7 +247,7 @@ impl Module for EchoDev {
         // TODO: explain Pin/field projection
         sx_init(proj!(&sc.state), c"echo");
 
-        // If we want to eventually destroy the character device we need to pass a
+        // If we want to eventually destroy the character device we need to pass some
         // Lease<EchoDevSoftc> to destroy_dev. To make sure we can do that let's stash this pointer
         // in the static ECHODEV which is a slot that can hold a Lease.
         ECHODEV.init(sc);
@@ -269,9 +257,9 @@ impl Module for EchoDev {
     fn on_unload(data: *mut c_void) -> Result<()> {
         // Take the lease we previously stored in ECHODEV out of the slot.
         let sc = ECHODEV.take();
-        // Give ownership of the softc to destroy_dev. This will wait for all cdevsw operations to
-        // stop, check that there are no other outstanding leases to the softc and finally drop
-        // (read: clean up) the softc memory. If any cdevsw operation created a new lease (e.g. to
+        // Give ownership of the Lease to destroy_dev. This will wait for all cdevsw operations to
+        // stop, check that there are no other remaining leases to the softc and finally drop
+        // (read: deallocate) the softc memory. If any cdevsw operation created a new lease (e.g. to
         // pass as some callback arg because it needed to be asynchronous) you are responsible for
         // making sure that lease gets dropped by this point. Failure to do that causes this to
         // panic because otherwise there is a potential for UAF.
