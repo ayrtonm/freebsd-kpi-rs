@@ -61,4 +61,4 @@ jobs:
         BINDGEN=`which bindgen` \
         ./tools/build/make.py --debug -j$NPROC $EXTRA_BUILD_ARGS buildkernel \
           KERNCONF=GENERIC MODULES_OVERRIDE="" TARGET=amd64 TARGET_ARCH=amd64 \
-          LOCAL_MODULES_DIR=sys/rust/demos LOCAL_MODULES="echodev"
+          LOCAL_MODULES_DIR=$GITHUB_ENV/freebsd-kpi-rs/sys/rust/demos LOCAL_MODULES="echodev"

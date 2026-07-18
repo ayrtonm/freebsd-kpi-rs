@@ -2,7 +2,7 @@ name: Build aarch64 rust demo
 
 on:
   push:
-    branches: [ "main", "demos" ]
+    branches: [ "demos" ]
 
 jobs:
   build:
