@@ -186,6 +186,7 @@ impl<'a, T> Deref for Loan<'a, T> {
     }
 }
 
+// FIXME: &'static was used to make it easier to work with but NonNull is the correct type here
 /// A pointer to a refcounted object.
 #[repr(C)]
 pub struct Lease<T: 'static>(pub(crate) &'static LoanLayout<T>);
