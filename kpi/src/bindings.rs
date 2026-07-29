@@ -35,6 +35,7 @@
     dead_code,
     unsafe_op_in_unsafe_fn
 )]
+#![cfg_attr(test, allow(invalid_runtime_symbol_definitions))]
 
 use crate::ffi::Ptr;
 
