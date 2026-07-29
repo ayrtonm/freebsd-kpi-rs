@@ -230,12 +230,13 @@ impl<T, M: Malloc> Vec<T, M> {
     }
 
     pub fn into_boxed_slice(mut self, flags: MallocFlags) -> Box<[T], M> {
-        self.shrink_to_fit(flags);
         self.try_into_boxed_slice(flags).unwrap()
     }
 
     pub fn try_into_boxed_slice(mut self, flags: MallocFlags) -> Result<Box<[T], M>> {
-        self.try_shrink_to_fit(flags)?;
+        if self.len != self.capacity {
+            return Err(EDOOFUS);
+        }
         let fat_ptr = ptr::from_mut(self.deref_mut());
         forget(self);
         Ok(unsafe { Box::from_raw(fat_ptr) })
