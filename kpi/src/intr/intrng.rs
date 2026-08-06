@@ -60,7 +60,7 @@ impl AsRustType<'_, IntrRoot> for u32 {
     }
 }
 
-pub type IrqFilter<T> = extern "C" fn(Pin<&T>) -> Filter;
+pub type IrqFilter<T> = extern "C" fn(Loan<T>) -> Filter;
 
 define_interface! {
     in PicIf
@@ -205,7 +205,7 @@ pub trait PicIf: DeviceIf {
         unimplemented!()
     }
     fn pic_teardown_intr(
-        sc: Pin<&Self::Softc>,
+        sc: Loan<Self::Softc>,
         isrc: &IrqSrc<Self::IrqSrcFields>,
         res: Resource,
         data: MapData,
@@ -213,37 +213,37 @@ pub trait PicIf: DeviceIf {
         unimplemented!()
     }
     fn pic_map_intr(
-        sc: Pin<&Self::Softc>,
+        sc: Loan<Self::Softc>,
         data: MapData,
     ) -> Result<Pin<&IrqSrc<Self::IrqSrcFields>>> {
         unimplemented!()
     }
-    fn pic_enable_intr(sc: Pin<&Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
+    fn pic_enable_intr(sc: Loan<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
-    fn pic_disable_intr(sc: Pin<&Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
+    fn pic_disable_intr(sc: Loan<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
-    fn pic_post_filter(sc: Pin<&Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
+    fn pic_post_filter(sc: Loan<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
-    fn pic_post_ithread(sc: Pin<&Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
+    fn pic_post_ithread(sc: Loan<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
-    fn pic_pre_ithread(sc: Pin<&Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
+    fn pic_pre_ithread(sc: Loan<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
-    fn pic_bind_intr(sc: Pin<&Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) -> Result<()> {
+    fn pic_bind_intr(sc: Loan<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) -> Result<()> {
         unimplemented!()
     }
-    fn pic_init_secondary(sc: Pin<&Self::Softc>, root: IntrRoot) {
+    fn pic_init_secondary(sc: Loan<Self::Softc>, root: IntrRoot) {
         unimplemented!()
     }
-    fn pic_ipi_setup(sc: Pin<&Self::Softc>, ipi: u32) -> Result<Pin<&IrqSrc<Self::IrqSrcFields>>> {
+    fn pic_ipi_setup(sc: Loan<Self::Softc>, ipi: u32) -> Result<Pin<&IrqSrc<Self::IrqSrcFields>>> {
         unimplemented!()
     }
     fn pic_ipi_send(
-        sc: Pin<&Self::Softc>,
+        sc: Loan<Self::Softc>,
         isrc: &IrqSrc<Self::IrqSrcFields>,
         cpus: &cpuset_t,
         ipi: u32,
