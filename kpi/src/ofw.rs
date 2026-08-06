@@ -215,7 +215,11 @@ pub mod wrappers {
         }
     }
 
-    pub fn OF_device_from_xref<'a>(xref: XRef) -> Result<Device<'a>> {
+    /// # Safety
+    ///
+    /// The caller is responsible for ensuring the lifetime of the returned Device does not extend
+    /// past device_detach for the device.
+    pub unsafe fn OF_device_from_xref<'a>(xref: XRef) -> Result<Device<'a>> {
         let res = unsafe { bindings::OF_device_from_xref(xref.0) };
         if res.is_null() {
             Err(ENULLPTR)
