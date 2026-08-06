@@ -53,6 +53,31 @@ impl<'a> Device<'a> {
     }
 }
 
+// Cannot be Copy/Clone
+#[repr(C)]
+#[derive(Debug)]
+pub struct BusyDevice(device_t);
+
+unsafe impl Sync for BusyDevice {}
+unsafe impl Send for BusyDevice {}
+
+impl BusyDevice {
+    pub fn new(dev: Device) -> Self {
+        let ptr = dev.0;
+        unsafe {
+            bindings::device_busy(ptr)
+        };
+        Self(ptr)
+    }
+}
+impl Drop for BusyDevice {
+    fn drop(&mut self) {
+        unsafe {
+            bindings::device_unbusy(self.0)
+        }
+    }
+}
+
 /// The result of probing a device with a driver.
 ///
 /// This intentionally has no constructors and instead can be created by using the `BUS_PROBE_*`
@@ -252,6 +277,10 @@ pub mod wrappers {
         let sc_ptr = void_ptr.cast::<D::Softc>();
         let sc_ref = unsafe { sc_ptr.as_ref().unwrap() };
         unsafe { Pin::new_unchecked(sc_ref) }
+    }
+
+    pub fn device_busy(dev: Device) -> BusyDevice {
+        BusyDevice::new(dev)
     }
 
     pub fn device_claim_softc(dev: Device) {
