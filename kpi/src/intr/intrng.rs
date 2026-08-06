@@ -441,7 +441,7 @@ mod tests {
     }
 
     impl IntcDriver {
-        extern "C" fn handle_irq(sc: Pin<&IntcSoftc>) -> Filter {
+        extern "C" fn handle_irq(sc: Loan<IntcSoftc>) -> Filter {
             println!("invoked irq handler {sc:x?}");
             FILTER_HANDLED
         }
