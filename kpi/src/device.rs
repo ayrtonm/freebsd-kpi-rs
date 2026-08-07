@@ -30,7 +30,7 @@ use crate::bindings::{_device, device_state_t, device_t, driver_t, kobjop_desc};
 use crate::boxed::Box;
 use crate::driver::Driver;
 use crate::ffi::{ArrayCString, Loan, LoanLayout, Uninit};
-use crate::kobj::{AsCType, AsRustType};
+use crate::kobj::{AsCType, AsRustType, rust_driver_marker_desc};
 use crate::prelude::*;
 use crate::vec::Vec;
 use crate::{ErrCode, define_interface};
@@ -40,6 +40,15 @@ use core::pin::Pin;
 use core::ptr;
 use core::ptr::null_mut;
 
+/// A device which is being managed by a rust driver.
+///
+/// Device has a lifetime `'a` attached representing the scope for which the device is known to be
+/// attached. Functions that require the device is attached for longer than the Device instance may
+/// be unsafe and require the caller to justify their usage by explaining how they know the device
+/// won't get detached while it's in use.
+///
+/// Note that rust drivers may have some (or even all) methods written in C so the only thing that
+/// that allows you to assume is that the memory layout of the softc matches LoanLayout<TheSoftc>.
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct Device<'a>(device_t, PhantomData<&'a ()>);
@@ -57,14 +66,14 @@ impl<'a> Device<'a> {
     }
 
     pub fn as_static(&self) -> Result<Device<'static>> {
-        if !self.undetachable() {
+        if !self.is_undetachable() {
             return Err(EDOOFUS);
         }
         let ptr = self.0;
         Ok(Device(ptr, PhantomData))
     }
 
-    pub fn undetachable(&self) -> bool {
+    pub fn is_undetachable(&self) -> bool {
         let driver = device_get_driver(*self);
         let mut method_ptr = unsafe { (*driver).methods };
         while unsafe { !(*method_ptr).desc.is_null() } {
@@ -290,13 +299,38 @@ pub mod wrappers {
         BUS_PROBE_NOWILDCARD,
     }
 
+    pub fn device_get_driver(dev: Device) -> *mut driver_t {
+        unsafe { bindings::device_get_driver(dev.as_ptr()) }
+    }
+
+    /// Checks if the device method table has rust_driver_marker_desc
+    pub fn device_has_rust_driver(dev_ptr: device_t) -> bool {
+        let driver = unsafe { bindings::device_get_driver(dev_ptr) };
+        let mut method_ptr = unsafe { (*driver).methods };
+        while unsafe { !(*method_ptr).desc.is_null() } {
+            let desc = unsafe { (*method_ptr).desc };
+            if ptr::eq(desc, rust_driver_marker_desc.0.get()) {
+                return true;
+            }
+            method_ptr = unsafe { method_ptr.add(1) };
+        }
+        false
+    }
+
+    //pub fn device_get_softc<D: DeviceIf>(dev_ptr: device_t) -> Result<Loan<D::Softc>> {
+    //    if !device_has_rust_driver(dev_ptr) {
+    //        return Err(EDOOFUS);
+    //    }
+    //    todo!("")
+    //}
+
     /// Get the softc for a given device
     ///
     /// # Safety
     ///
     /// It is the caller's responsibility to ensure the lifetime of the return value does not extend
     /// past device_detach for the device.
-    pub unsafe fn device_get_softc<'a, D: DeviceIf>(dev: Device) -> Pin<&'a D::Softc> {
+    pub unsafe fn device_get_softc_unchecked<'a, D: DeviceIf>(dev: Device) -> Pin<&'a D::Softc> {
         let dev_ptr = dev.as_ptr();
         assert_eq!(device_get_driver(dev), <D as Driver>::DRIVER);
         let void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
@@ -381,10 +415,6 @@ pub mod wrappers {
         ArrayCString::new(name)
     }
 
-    pub fn device_get_driver(dev: Device) -> *mut driver_t {
-        unsafe { bindings::device_get_driver(dev.as_ptr()) }
-    }
-
     pub fn device_add_child<'a>(
         dev: Device<'a>,
         name: &'static CStr,
@@ -426,8 +456,8 @@ mod tests {
     impl AnotherDriver {
         fn get_stashed_softc(dev: Device) {
             let test_driver_dev = Device::new(STASHED_DEVICE.load(Ordering::Relaxed));
-            let test_driver_sc = unsafe { device_get_softc::<TestDriver>(test_driver_dev) };
-            let another_driver_sc = unsafe { device_get_softc::<Self>(dev) };
+            let test_driver_sc = unsafe { device_get_softc_unchecked::<TestDriver>(test_driver_dev) };
+            let another_driver_sc = unsafe { device_get_softc_unchecked::<Self>(dev) };
         }
     }
     impl DeviceIf for TestDriver {
@@ -453,7 +483,7 @@ mod tests {
                 STASHED_DEVICE.store(sc.device().as_ptr(), Ordering::Relaxed);
             }
             if ofw_bus_is_compatible(sc.device(), c"test_driver,check_undetachable") {
-                assert!(!sc.device().undetachable());
+                assert!(!sc.device().is_undetachable());
             }
             println!("{:x?}", sc);
             Ok(())
@@ -536,7 +566,10 @@ mod tests {
         fn device_attach(uninit_sc: Uninit<UndetachableDriverSoftc>) -> Result<()> {
             let sc = uninit_sc.init(UndetachableDriverSoftc {});
             if ofw_bus_is_compatible(sc.device(), c"undetachable_driver,check_undetachable") {
-                assert!(sc.device().undetachable());
+                assert!(sc.device().is_undetachable());
+                // It isn't easy to test !has_rust_driver() w/o really complicating the
+                // method_table! macro so only this is tested
+                assert!(device_has_rust_driver(sc.device().as_ptr()));
             }
             Ok(())
         }

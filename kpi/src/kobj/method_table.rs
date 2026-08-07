@@ -69,8 +69,14 @@ macro_rules! method_table {
 
             type MethodTableFn = Option<unsafe extern "C" fn()>;
 
+            const RUST_MARKER_ENTRY: kobj_method_t = kobj_method_t {
+                desc: $crate::kobj::rust_driver_marker_desc.0.get(),
+                func: None,
+            };
+            // This macro adds two extra methods. One for the null terminator and another to mark
+            // this as a rust driver.
             #[unsafe(no_mangle)]
-            pub static $method_table: MethodTable<{ NUM_METHODS + 1 }> =
+            pub static $method_table: MethodTable<{ NUM_METHODS + 2 }> =
                 MethodTable(UnsafeCell::new([
                     // Repeat the following for each $if_fn $impl pair
                     $(
@@ -81,6 +87,7 @@ macro_rules! method_table {
                             kobj_method_t { desc, func }
                         },
                     )*
+                    RUST_MARKER_ENTRY,
                     // Add the method table's null-terminator
                     kobj_method_t { desc: null_mut(), func: None }
             ]));

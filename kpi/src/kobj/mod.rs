@@ -26,7 +26,7 @@
  * SUCH DAMAGE.
  */
 
-use crate::bindings::{kobj_class, kobj_class_t, kobj_method_t};
+use crate::bindings::{kobj_class, kobj_class_t, kobj_method_t, kobjop_desc};
 use core::cell::UnsafeCell;
 
 mod casts;
@@ -67,3 +67,16 @@ unsafe impl<const N: usize> Sync for BaseClasses<N> {}
 #[repr(C)]
 pub struct MethodTable<const N: usize>(pub UnsafeCell<[kobj_method_t; N]>);
 unsafe impl<const N: usize> Sync for MethodTable<N> {}
+
+#[repr(C)]
+pub struct KobjOpDesc(pub UnsafeCell<kobjop_desc>);
+unsafe impl Sync for KobjOpDesc {}
+
+#[unsafe(no_mangle)]
+pub static rust_driver_marker_desc: KobjOpDesc = KobjOpDesc(UnsafeCell::new(kobjop_desc {
+    id: 0,
+    deflt: kobj_method_t {
+        desc: rust_driver_marker_desc.0.get(),
+        func: None,
+    },
+}));
