@@ -340,12 +340,25 @@ pub mod wrappers {
         true
     }
 
+    /// Get a Loan to a device softc.
+    ///
+    /// Note the existence of the Device ensures that the device won't be detached for its
+    /// associated lifetime so the returned Loan has a matching lifetime. To use the softc past that
+    /// scope, turn it into a lease using Loan::lease.
+    pub fn device_get_softc<'a, D: DeviceIf>(dev: Device<'a>) -> Result<Loan<'a, D::Softc>> {
+        if !device_matches_driver::<D>(dev) {
+            return Err(EDOOFUS);
+        }
+        let void_ptr = unsafe { bindings::device_get_softc(dev.as_ptr()) };
+        let sc_ptr = unsafe { void_ptr.cast::<LoanLayout<D::Softc>>().as_ref().unwrap() };
+        let sc = unsafe { Loan::from_raw(sc_ptr) };
+        Ok(sc)
+    }
+
     /// Get a Lease to the softc for a device managed by a rust driver.
     ///
     /// Although this function takes the more generic device_t instead of a rust-specific Device,
-    /// the device must be managed by a rust driver. If it's not an error is returned. Note that the
-    /// lifetime associated with a Device is usually tied to its softc Loan so making the argument
-    /// type a Device would've been kind of pointeless.
+    /// the device must be managed by a rust driver. If it's not an error is returned.
     ///
     /// The caller should also ensure the generic parameter `D: DeviceIf` for the driver matches
     /// what the device is actually using. Otherwise an error is returned.
@@ -358,7 +371,7 @@ pub mod wrappers {
     /// no reliable way to ensure the device won't be detached while this function runs. Before
     /// returning this function gets a lease to the softc which may catch cases where the caller is
     /// racing with device_detach, but before that there is no guarantee for detachable devices.
-    pub unsafe fn device_get_softc<D: DeviceIf>(dev_ptr: device_t) -> Result<Lease<D::Softc>> {
+    pub unsafe fn device_get_softc_unchecked<D: DeviceIf>(dev_ptr: device_t) -> Result<Lease<D::Softc>> {
         if dev_ptr.is_null() {
             return Err(EDOOFUS);
         }
@@ -369,15 +382,11 @@ pub mod wrappers {
         }
         // SAFETY: Lifetime safety requirements delegated to caller
         let dev = unsafe { Device::new(dev_ptr) };
-        if !device_matches_driver::<D>(dev) {
-            return Err(EDOOFUS);
-        }
-        let void_ptr = unsafe { bindings::device_get_softc(dev_ptr) };
-        let sc_ptr = unsafe { void_ptr.cast::<LoanLayout<D::Softc>>().as_ref().unwrap() };
-        let sc_loan = unsafe { Loan::from_raw(sc_ptr) };
+
+        let sc = device_get_softc::<D>(dev)?;
 
         // If device_detach runs after this point it will panic if this Lease hasn't been dropped
-        Ok(sc_loan.lease())
+        Ok(sc.lease())
     }
 
     /// Marks the device as busy returning a BusyDevice without an associated lifetime.
@@ -516,8 +525,8 @@ mod tests {
     impl AnotherDriver {
         fn get_stashed_softc(dev: Device) {
             let test_driver_dev = STASHED_DEVICE.load(Ordering::Relaxed);
-            let test_driver_sc = unsafe { device_get_softc::<TestDriver>(test_driver_dev) };
-            let another_driver_sc = unsafe { device_get_softc::<Self>(dev.as_ptr()) };
+            let test_driver_sc = unsafe { device_get_softc_unchecked::<TestDriver>(test_driver_dev) };
+            let another_driver_sc = device_get_softc::<Self>(dev);
         }
     }
     impl DeviceIf for TestDriver {
