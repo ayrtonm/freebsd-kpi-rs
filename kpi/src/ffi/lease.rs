@@ -229,11 +229,11 @@ impl<T> Lease<T> {
         Loan(unsafe { self.0.as_ref() }).lease()
     }
 
-    pub fn into_raw(self) -> (*mut T, *mut u_int) {
-        let inner_ptr = self.0.as_ptr();
+    pub fn into_raw(lease: Self) -> (*mut T, *mut u_int) {
+        let inner_ptr = lease.0.as_ptr();
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
-        let t_ptr = unsafe { &raw mut (*self.0.as_ptr()).inner };
-        forget(self);
+        let t_ptr = unsafe { &raw mut (*lease.0.as_ptr()).inner };
+        forget(lease);
         (t_ptr, count_ptr)
     }
 
