@@ -53,6 +53,14 @@ impl<'a> Device<'a> {
         self.0
     }
 
+    pub fn as_static(&self) -> Result<Device<'static>> {
+        if !self.undetachable() {
+            return Err(EDOOFUS);
+        }
+        let ptr = self.0;
+        Ok(Device(ptr, PhantomData))
+    }
+
     pub fn undetachable(&self) -> bool {
         let driver = device_get_driver(*self);
         let mut method_ptr = unsafe { (*driver).methods };

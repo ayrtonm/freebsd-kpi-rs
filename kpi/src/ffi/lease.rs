@@ -113,6 +113,11 @@ impl<'a, T> Uninit<'a, T> {
         }
     }
 
+    pub fn device_as_static(&self) -> Result<Device<'static>> {
+        self.device().as_static()
+    }
+
+
     /// Initialize the externally-managed object to `t` and return a pinned reference to the pointee
     pub fn init(self, t: T) -> Loan<'a, T> {
         let base = self.0.as_mut_ptr();
@@ -152,6 +157,10 @@ impl<'a, T> Loan<'a, T> {
 
     pub fn device(&self) -> Device<'_> {
         Device::new(self.0.device())
+    }
+
+    pub fn device_as_static(&self) -> Result<Device<'static>> {
+        self.device().as_static()
     }
 
     pub fn cdev(&self) -> CDev<'_> {
