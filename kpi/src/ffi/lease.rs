@@ -36,6 +36,7 @@ use core::fmt::{Debug, Formatter};
 use core::mem::{MaybeUninit, forget};
 use core::ops::Deref;
 use core::pin::Pin;
+use core::ptr::NonNull;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use core::{fmt, ptr};
 
@@ -171,7 +172,7 @@ impl<'a, T> Loan<'a, T> {
         let inner_ptr = ptr::from_ref(self.0).cast_mut();
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
         unsafe { bindings::refcount_acquire(count_ptr) };
-        Lease(unsafe { inner_ptr.as_ref().unwrap() })
+        Lease(NonNull::from_ref(self.0))
     }
 }
 
@@ -197,35 +198,41 @@ impl<'a, T> Deref for Loan<'a, T> {
     }
 }
 
-// FIXME: &'static was used to make it easier to work with but NonNull is the correct type here
-/// A pointer to a refcounted object.
 #[repr(C)]
-pub struct Lease<T: 'static>(pub(crate) &'static LoanLayout<T>);
+pub struct Lease<T: 'static>(pub(crate) NonNull<LoanLayout<T>>);
 
 impl<T> Lease<T> {
     pub unsafe fn map_unchecked<U: ?Sized, F>(&self, f: F) -> Pin<&U>
     where
         F: FnOnce(&T) -> &U,
     {
-        unsafe { Pin::new_unchecked(f(&self.0.inner)) }
+        unsafe { Pin::new_unchecked(f(self.deref())) }
     }
 
     pub fn device(&self) -> Device<'_> {
-        Device::new(self.0.device())
+        // SAFETY: The pointee is freed in device_detach, but the KPI glue for it panics if there is
+        // an outstanding softc Lease when it's ready to free it. The return value lifetime is tied
+        // to the Lease borrow.
+        Device::new(unsafe { self.0.as_ref().device() })
     }
 
     pub fn cdev(&self) -> CDev<'_> {
-        CDev::new(self.0.cdev())
+        // SAFETY: The pointee is freed in device_detach, but the KPI glue for it panics if there is
+        // an outstanding softc Lease when it's ready to free it. The return value lifetime is tied
+        // to the Lease borrow.
+        CDev::new(unsafe { self.0.as_ref().cdev() })
     }
 
     pub fn lease(&self) -> Self {
-        Loan(self.0).lease()
+        // SAFETY: The pointee is freed in device_detach, but the KPI glue for it panics if there is
+        // an outstanding softc Lease when it's ready to free it.
+        Loan(unsafe { self.0.as_ref() }).lease()
     }
 
     pub fn into_raw(self) -> (*mut T, *mut u_int) {
-        let inner_ptr = ptr::from_ref(self.0).cast_mut();
+        let inner_ptr = self.0.as_ptr();
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
-        let t_ptr = ptr::from_ref(&self.0.inner).cast_mut();
+        let t_ptr = unsafe { &raw mut (*self.0.as_ptr()).inner };
         forget(self);
         (t_ptr, count_ptr)
     }
@@ -241,7 +248,7 @@ impl<T> Lease<T> {
     /// `mtype` must be `M`'s malloc type, and no other reference to it may be created after this
     /// call.
     pub(crate) unsafe fn release_and_free(self, mtype: MallocType) {
-        let inner_ptr = ptr::from_ref(self.0).cast_mut();
+        let inner_ptr = self.0.as_ptr();
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
         forget(self);
         // Release this lease, then the original reference from `LoanLayout::new`, which must be
@@ -258,7 +265,7 @@ impl<T> Lease<T> {
 
 impl<T> Drop for Lease<T> {
     fn drop(&mut self) {
-        let inner_ptr = ptr::from_ref(self.0).cast_mut();
+        let inner_ptr = self.0.as_ptr();
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
         let last = unsafe { bindings::refcount_release(count_ptr) };
         assert!(!last);
@@ -269,7 +276,10 @@ impl<T> Deref for Lease<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        &self.0.inner
+        // SAFETY: The pointee is freed in device_detach, but the KPI glue for it panics if there is
+        // an outstanding softc Lease when it's ready to free it. The return value lifetime is tied
+        // to the Lease borrow.
+        unsafe { &self.0.as_ref().inner }
     }
 }
 const UNINIT: usize = usize::MAX;

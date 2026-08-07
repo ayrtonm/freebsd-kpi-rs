@@ -226,7 +226,7 @@ pub mod wrappers {
     /// The softc is freed with the allocator recorded in the cdev by `make_dev_s`. Panics if any
     /// other `Lease` to the softc is still outstanding.
     pub fn destroy_dev<T: 'static>(sc: Lease<T>) {
-        let dev = sc.0.cdev();
+        let dev = sc.cdev().0;
         // The allocator the softc was boxed with, recorded in si_drv2 by make_dev_s.
         let mtype = MallocType::from_raw(unsafe { (*dev).si_drv2.cast() });
         // Blocks until all threads have left this driver's cdevsw callbacks, so no new Loans
