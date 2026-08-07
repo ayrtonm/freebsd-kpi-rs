@@ -28,12 +28,10 @@
 
 use crate::boxed::Box;
 use crate::define_interface;
-use crate::ffi::Ptr;
 use crate::kobj::AsRustType;
 use crate::malloc::{Malloc, MallocType};
 use crate::misc::Thread;
 use crate::prelude::*;
-use core::any::TypeId;
 use core::ffi::{CStr, c_int, c_void};
 use core::marker::PhantomData;
 use core::ptr::NonNull;

@@ -213,7 +213,7 @@ pub trait PicIf: DeviceIf {
         unimplemented!()
     }
     fn pic_map_intr(
-        sc: Loan<Self::Softc>,
+        sc: Loan<'_, Self::Softc>,
         data: MapData,
     ) -> Result<Pin<&IrqSrc<Self::IrqSrcFields>>> {
         unimplemented!()
@@ -239,7 +239,7 @@ pub trait PicIf: DeviceIf {
     fn pic_init_secondary(sc: Loan<Self::Softc>, root: IntrRoot) {
         unimplemented!()
     }
-    fn pic_ipi_setup(sc: Loan<Self::Softc>, ipi: u32) -> Result<Pin<&IrqSrc<Self::IrqSrcFields>>> {
+    fn pic_ipi_setup(sc: Loan<'_, Self::Softc>, ipi: u32) -> Result<Pin<&IrqSrc<Self::IrqSrcFields>>> {
         unimplemented!()
     }
     fn pic_ipi_send(
