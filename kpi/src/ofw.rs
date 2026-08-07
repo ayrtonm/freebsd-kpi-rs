@@ -90,9 +90,21 @@ impl<T, const N: usize> OfwCompatData<T, N> {
 #[derive(Copy, Clone, Debug)]
 pub struct Node(pub(crate) phandle_t);
 
+impl Node {
+    pub fn as_phandle(&self) -> phandle_t {
+        self.0
+    }
+}
+
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct XRef(pub(crate) phandle_t);
+
+impl XRef {
+    pub fn as_phandle(&self) -> phandle_t {
+        self.0
+    }
+}
 
 impl AsRustType<'_, XRef> for phandle_t {
     fn as_rust_type(&self) -> XRef {
