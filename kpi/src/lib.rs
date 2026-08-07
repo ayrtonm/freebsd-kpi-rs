@@ -211,7 +211,7 @@ pub mod misc {
             Err(ENULLPTR)
         } else {
             // TODO: The output lifetime is wrong just like device_add_child
-            Ok(unsafe { Device::new(res) })
+            Ok(unsafe { Device::new_unchecked(res) })
         }
     }
 }

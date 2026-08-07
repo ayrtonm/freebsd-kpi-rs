@@ -110,7 +110,7 @@ impl<'a, T> Uninit<'a, T> {
         // `owner` was initialized in `from_raw`.
         match unsafe { &(*self.0.as_ptr()).owner } {
             // SAFETY: The lifetime of the return value is tied to the Uninit borrow (&self)
-            Owner::Device(dev) => unsafe { Device::new(*dev) },
+            Owner::Device(dev) => unsafe { Device::new_unchecked(*dev) },
             _ => unreachable!(),
         }
     }
@@ -159,7 +159,7 @@ impl<'a, T> Loan<'a, T> {
 
     pub fn device(&self) -> Device<'_> {
         // SAFETY: The lifetime of the return value is tied to the Loan borrow (&self)
-        unsafe { Device::new(self.0.device()) }
+        unsafe { Device::new_unchecked(self.0.device()) }
     }
 
     pub fn device_as_static(&self) -> Result<Device<'static>> {
@@ -217,7 +217,7 @@ impl<T> Lease<T> {
         // to the Lease borrow.
         let dev_ptr = unsafe { self.0.as_ref().device() };
         // SAFETY: The lifetime of the return value is tied to the Lease borrow (&self)
-        unsafe { Device::new(dev_ptr) }
+        unsafe { Device::new_unchecked(dev_ptr) }
     }
 
     pub fn cdev(&self) -> CDev<'_> {

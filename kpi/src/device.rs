@@ -61,7 +61,7 @@ impl<'a> Device<'a> {
     /// The caller must ensure that the device is managed by a rust driver and will be valid (i.e.
     /// not detached) for the lifetime of the returned value. If the caller does not explicitly
     /// annotate the lifetime and tie it to another reference the lifetime is inferred from context.
-    pub unsafe fn new(ptr: device_t) -> Self {
+    pub unsafe fn new_unchecked(ptr: device_t) -> Self {
         Self(ptr, PhantomData)
     }
 
@@ -118,7 +118,7 @@ impl<'a> AsRustType<'a, Device<'a>> for device_t {
     fn as_rust_type(&'a self) -> Device<'a> {
         // TODO: Make AsRustType unsafe
         // SAFETY: Safety requirements delegated to caller
-        unsafe { Device::new(*self) }
+        unsafe { Device::new_unchecked(*self) }
     }
 }
 
@@ -374,7 +374,7 @@ pub mod wrappers {
         // SAFETY: Safety requirements delegated to caller
         assert!(unsafe { device_has_rust_driver(dev_ptr) });
         // SAFETY: Lifetime safety requirements delegated to caller
-        let dev = unsafe { Device::new(dev_ptr) };
+        let dev = unsafe { Device::new_unchecked(dev_ptr) };
 
         let sc = device_get_softc::<D>(dev);
 
@@ -418,7 +418,7 @@ pub mod wrappers {
             // which is fine since the parent must live at least as long as the child. The function
             // signature annotates lifetimes explicitly for clarity, but omitting them gives the
             // same result due to rust's lifetime elision rules.
-            Ok(unsafe { Device::new(res) })
+            Ok(unsafe { Device::new_unchecked(res) })
         }
     }
 
@@ -487,7 +487,7 @@ pub mod wrappers {
             Err(ENULLPTR)
         } else {
             // TODO: Double check the output lifetime is valid
-            Ok(unsafe { Device::new(child) })
+            Ok(unsafe { Device::new_unchecked(child) })
         }
     }
 }
