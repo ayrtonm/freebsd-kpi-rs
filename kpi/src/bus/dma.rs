@@ -31,16 +31,17 @@ use crate::bindings::{
     bus_addr_t, bus_dma_lock_t, bus_dma_segment_t, bus_dma_tag_t, bus_dmamap, bus_size_t,
 };
 use crate::device::Device;
-use crate::ffi::Ptr;
+use crate::ffi::{Ptr, Lease};
 use crate::prelude::*;
 use core::ffi::{c_int, c_void};
 use core::mem::transmute;
 use core::ops::{BitOr, Range};
-use core::pin::Pin;
 use core::ptr::null_mut;
+use core::any::TypeId;
 
-pub type BusDmaMapFn<T> = extern "C" fn(Pin<&T>, &bus_dma_segment_t, i32, i32);
-type _RawBusDmaMapFn = extern "C" fn(*mut c_void, *mut bus_dma_segment_t, i32, i32);
+// This callback is invoked once per registration so just recreate the Lease and let the callback drop it.
+pub type BusDmaMapFn<T> = extern "C" fn(Lease<T>, &bus_dma_segment_t, i32, i32);
+type RawBusDmaMapFn = extern "C" fn(*mut c_void, *mut bus_dma_segment_t, i32, i32);
 
 #[must_use]
 #[derive(Debug)]
@@ -152,11 +153,19 @@ impl BitOr<BusDmaSyncFlags> for BusDmaSyncFlags {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
 pub struct BusDmaMap(Ptr<bus_dmamap>);
 
 #[derive(Debug)]
 pub struct BusDmaMem<T = c_void>(Ptr<T>);
+
+impl<T> PartialEq for BusDmaMem<T> {
+    fn eq(&self, other: &Self) -> bool {
+        PartialEq::eq(&self.0, &other.0)
+    }
+}
+
+impl<T> Eq for BusDmaMem<T> {}
 
 impl<T> Copy for BusDmaMem<T> {}
 impl<T> Clone for BusDmaMem<T> {
@@ -241,7 +250,7 @@ pub mod wrappers {
         kva: BusDmaMem,
         len: bus_size_t,
         callback: Option<BusDmaMapFn<T>>,
-        arg: Pin<&T>,
+        arg: Lease<T>,
         flags: Option<BusDmaFlags>,
     ) -> Result<()> {
         // TODO: Add bounds check
@@ -252,7 +261,8 @@ pub mod wrappers {
         };
         let callback =
             unsafe { transmute::<Option<BusDmaMapFn<T>>, bus_dmamap_callback_t>(callback) };
-        let arg = (arg.get_ref() as *const T).cast::<c_void>().cast_mut();
+        assert!(TypeId::of::<bus_dmamap_callback_t>() == TypeId::of::<RawBusDmaMapFn>());
+        let (arg_ptr, _count_ptr) = Lease::into_raw(arg);
         let res = unsafe {
             bindings::bus_dmamap_load(
                 dmat.0,
@@ -263,7 +273,7 @@ pub mod wrappers {
                 kva.0.as_ptr(),
                 len,
                 callback,
-                arg,
+                arg_ptr.cast::<c_void>(),
                 flags,
             )
         };

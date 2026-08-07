@@ -28,7 +28,7 @@
 
 use crate::ErrCode;
 use crate::bindings::{task, task_fn_t, taskqueue};
-use crate::ffi::ArrayCString;
+use crate::ffi::{Lease, Loan, ArrayCString};
 use crate::intr::Priority;
 use crate::malloc::MallocFlags;
 use crate::prelude::*;
@@ -54,7 +54,7 @@ impl Taskqueue {
 unsafe impl Sync for Taskqueue {}
 unsafe impl Send for Taskqueue {}
 
-pub type TaskFn<T> = extern "C" fn(Pin<&T>, u32);
+pub type TaskFn<T> = extern "C" fn(Loan<T>, u32);
 
 #[derive(Debug)]
 pub struct Task {
@@ -68,11 +68,12 @@ impl Task {
             inner: UnsafeCell::new(c_task),
         }
     }
-    pub fn init<T>(self: Pin<&Self>, func: TaskFn<T>, arg: Pin<&T>) {
+
+    pub fn init<T>(&self, func: TaskFn<T>, arg: Lease<T>) {
         let c_task = self.inner.get();
-        let arg_ptr = arg.get_ref() as *const T;
+        let (arg_ptr, _count_ptr) = Lease::into_raw(arg);
         unsafe {
-            (*c_task).ta_context = arg_ptr.cast_mut().cast::<c_void>();
+            (*c_task).ta_context = arg_ptr.cast::<c_void>();
             (*c_task).ta_func = transmute::<Option<TaskFn<T>>, task_fn_t>(Some(func));
         }
     }

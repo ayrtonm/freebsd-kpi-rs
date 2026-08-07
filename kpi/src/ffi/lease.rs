@@ -233,6 +233,10 @@ impl<T> Lease<T> {
         Loan(unsafe { self.0.as_ref() }).lease()
     }
 
+    pub fn as_loan(&self) -> Loan<'_, T> {
+        Loan(unsafe { self.0.as_ref() })
+    }
+
     pub fn into_raw(lease: Self) -> (*mut T, *mut u_int) {
         let inner_ptr = lease.0.as_ptr();
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
