@@ -26,8 +26,10 @@
  * SUCH DAMAGE.
  */
 
+use crate::bindings::cdev;
 use crate::boxed::Box;
 use crate::define_interface;
+use crate::ffi::{Lease, Loan, LoanLayout};
 use crate::kobj::AsRustType;
 use crate::malloc::{Malloc, MallocType};
 use crate::misc::Thread;
@@ -35,8 +37,6 @@ use crate::prelude::*;
 use core::ffi::{CStr, c_int, c_void};
 use core::marker::PhantomData;
 use core::ptr::NonNull;
-use crate::ffi::{Loan, LoanLayout, Lease};
-use crate::bindings::cdev;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
@@ -204,10 +204,7 @@ pub mod wrappers {
         }
     }
 
-    pub fn make_dev_s<T: 'static, M: Malloc>(
-        args: MakeDevArgs<T, M>,
-    ) -> Result<Lease<T>>
-    {
+    pub fn make_dev_s<T: 'static, M: Malloc>(args: MakeDevArgs<T, M>) -> Result<Lease<T>> {
         let mut outp = null_mut();
         let (mut args_raw, name) = args.into_raw();
         let sc_ptr = args_raw.mda_si_drv1.cast::<LoanLayout<T>>();

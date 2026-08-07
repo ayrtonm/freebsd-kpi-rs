@@ -83,17 +83,13 @@ unsafe impl Send for BusyDevice {}
 impl BusyDevice {
     pub fn new(dev: Device) -> Self {
         let ptr = dev.0;
-        unsafe {
-            bindings::device_busy(ptr)
-        };
+        unsafe { bindings::device_busy(ptr) };
         Self(ptr)
     }
 }
 impl Drop for BusyDevice {
     fn drop(&mut self) {
-        unsafe {
-            bindings::device_unbusy(self.0)
-        }
+        unsafe { bindings::device_unbusy(self.0) }
     }
 }
 
@@ -513,8 +509,7 @@ mod tests {
             device_detach: another_driver_detach,
         }
     );
-    pub struct UndetachableDriverSoftc {
-    }
+    pub struct UndetachableDriverSoftc {}
     impl DeviceIf for UndetachableDriver {
         type Softc = UndetachableDriverSoftc;
         fn device_probe(dev: Device) -> Result<BusProbe> {
@@ -587,9 +582,11 @@ mod tests {
     fn no_detach() {
         let mut m = DriverManager::new();
         m.add_test_device(c"device,undetachable_driver")
-            .compat_strs.push(c"undetachable_driver,check_undetachable");
+            .compat_strs
+            .push(c"undetachable_driver,check_undetachable");
         m.add_test_device(c"device,test_driver")
-            .compat_strs.push(c"test_driver,check_undetachable");
+            .compat_strs
+            .push(c"test_driver,check_undetachable");
         m.add_test_driver::<UndetachableDriver>();
         m.add_test_driver::<TestDriver>();
         m.probe_all();

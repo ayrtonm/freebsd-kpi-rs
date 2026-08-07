@@ -26,18 +26,18 @@
  * SUCH DAMAGE.
  */
 
-use crate::bindings::{device_t, u_int, cdev};
-use crate::device::Device;
+use crate::bindings::{cdev, device_t, u_int};
 use crate::cdev::CDev;
+use crate::device::Device;
+use crate::malloc::MallocType;
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::fmt::{Debug, Formatter};
 use core::mem::{MaybeUninit, forget};
 use core::ops::Deref;
-use core::sync::atomic::{AtomicUsize, Ordering};
 use core::pin::Pin;
+use core::sync::atomic::{AtomicUsize, Ordering};
 use core::{fmt, ptr};
-use crate::malloc::MallocType;
 
 /// The kernel object a `LoanLayout` is attached to.
 #[repr(C)]
@@ -61,7 +61,7 @@ impl<T> LoanLayout<T> {
             owner: Owner::Unknown,
             count: UnsafeCell::new(0),
         };
-        let count_ptr = UnsafeCell::raw_get(&raw mut res.count );
+        let count_ptr = UnsafeCell::raw_get(&raw mut res.count);
         // This is just an address-insensitive atomic write
         unsafe { bindings::refcount_init(count_ptr, 1) };
         res
@@ -133,7 +133,9 @@ pub struct Loan<'a, T: 'static>(pub(crate) &'a LoanLayout<T>);
 
 impl<'a, T> Loan<'a, T> {
     pub unsafe fn map_unchecked<U: ?Sized, F>(self, f: F) -> Pin<&'a U>
-    where F: FnOnce(&T) -> &U {
+    where
+        F: FnOnce(&T) -> &U,
+    {
         unsafe { Pin::new_unchecked(f(&self.0.inner)) }
     }
 
@@ -193,7 +195,9 @@ pub struct Lease<T: 'static>(pub(crate) &'static LoanLayout<T>);
 
 impl<T> Lease<T> {
     pub unsafe fn map_unchecked<U: ?Sized, F>(&self, f: F) -> Pin<&U>
-    where F: FnOnce(&T) -> &U {
+    where
+        F: FnOnce(&T) -> &U,
+    {
         unsafe { Pin::new_unchecked(f(&self.0.inner)) }
     }
 

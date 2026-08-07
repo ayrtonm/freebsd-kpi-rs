@@ -181,7 +181,10 @@ impl DriverManager {
                 }
             }
             if dev.assigned_driver == None {
-                panic!("could not find driver for device {} with compat strs {:?}", dev.id, dev.compat_strs)
+                panic!(
+                    "could not find driver for device {} with compat strs {:?}",
+                    dev.id, dev.compat_strs
+                )
             }
         }
     }
