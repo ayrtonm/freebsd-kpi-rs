@@ -34,6 +34,7 @@ use crate::sync::arc::Arc;
 use core::fmt;
 use core::fmt::{Debug, Formatter};
 use core::pin::Pin;
+use core::ptr;
 use core::ptr::null_mut;
 
 mod cstring;
@@ -50,6 +51,14 @@ pub use subclass::{SubClass, SubClassOf};
 /// synchronization.
 #[repr(C)]
 pub struct Ptr<T>(pub(crate) *mut T);
+
+impl<T> PartialEq for Ptr<T> {
+    fn eq(&self, other: &Self) -> bool {
+        ptr::eq(self, other)
+    }
+}
+
+impl<T> Eq for Ptr<T> {}
 
 impl<T> Debug for Ptr<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
