@@ -44,6 +44,9 @@ use core::ptr::null_mut;
 #[derive(Copy, Clone, Debug)]
 pub struct Device<'a>(device_t, PhantomData<&'a ()>);
 
+unsafe impl<'a> Sync for Device<'a> {}
+unsafe impl<'a> Send for Device<'a> {}
+
 impl<'a> Device<'a> {
     pub fn new(ptr: device_t) -> Self {
         Self(ptr, PhantomData)
