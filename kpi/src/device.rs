@@ -345,14 +345,11 @@ pub mod wrappers {
     /// Note the existence of the Device ensures that the device won't be detached for its
     /// associated lifetime so the returned Loan has a matching lifetime. To use the softc past that
     /// scope, turn it into a lease using Loan::lease.
-    pub fn device_get_softc<'a, D: DeviceIf>(dev: Device<'a>) -> Result<Loan<'a, D::Softc>> {
-        if !device_matches_driver::<D>(dev) {
-            return Err(EDOOFUS);
-        }
+    pub fn device_get_softc<'a, D: DeviceIf>(dev: Device<'a>) -> Loan<'a, D::Softc> {
+        assert!(device_matches_driver::<D>(dev));
         let void_ptr = unsafe { bindings::device_get_softc(dev.as_ptr()) };
         let sc_ptr = unsafe { void_ptr.cast::<LoanLayout<D::Softc>>().as_ref().unwrap() };
-        let sc = unsafe { Loan::from_raw(sc_ptr) };
-        Ok(sc)
+        unsafe { Loan::from_raw(sc_ptr) }
     }
 
     /// Get a Lease to the softc for a device managed by a rust driver.
@@ -371,22 +368,18 @@ pub mod wrappers {
     /// no reliable way to ensure the device won't be detached while this function runs. Before
     /// returning this function gets a lease to the softc which may catch cases where the caller is
     /// racing with device_detach, but before that there is no guarantee for detachable devices.
-    pub unsafe fn device_get_softc_unchecked<D: DeviceIf>(dev_ptr: device_t) -> Result<Lease<D::Softc>> {
-        if dev_ptr.is_null() {
-            return Err(EDOOFUS);
-        }
+    pub unsafe fn device_get_softc_unchecked<D: DeviceIf>(dev_ptr: device_t) -> Lease<D::Softc> {
+        assert!(!dev_ptr.is_null());
         // Required to let this function return a Loan
         // SAFETY: Safety requirements delegated to caller
-        if unsafe { !device_has_rust_driver(dev_ptr) } {
-            return Err(EDOOFUS);
-        }
+        assert!(unsafe { device_has_rust_driver(dev_ptr) });
         // SAFETY: Lifetime safety requirements delegated to caller
         let dev = unsafe { Device::new(dev_ptr) };
 
-        let sc = device_get_softc::<D>(dev)?;
+        let sc = device_get_softc::<D>(dev);
 
         // If device_detach runs after this point it will panic if this Lease hasn't been dropped
-        Ok(sc.lease())
+        sc.lease()
     }
 
     /// Marks the device as busy returning a BusyDevice without an associated lifetime.
