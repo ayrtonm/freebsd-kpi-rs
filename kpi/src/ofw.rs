@@ -160,6 +160,11 @@ pub mod wrappers {
         Node(node)
     }
 
+    /// Registers a device with the given devicetree xref
+    ///
+    /// Note that this function doesn't care if the device is detached later. This means that the
+    /// opposite operation (OF_device_from_xref) is unsafe with the requirement that the caller must
+    /// ensure that the returned Device won't be used after its detached.
     pub fn OF_device_register_xref(xref: XRef, dev: Device) {
         unsafe {
             bindings::OF_device_register_xref(xref.0, dev.as_ptr());
@@ -215,6 +220,11 @@ pub mod wrappers {
         }
     }
 
+    /// Get a Device from a devicetree XRef.
+    ///
+    /// The caller determines the lifetime of the returned Device and it's usually inferred from
+    /// the context it's used in.
+    ///
     /// # Safety
     ///
     /// The caller is responsible for ensuring the lifetime of the returned Device does not extend
