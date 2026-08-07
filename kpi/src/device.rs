@@ -56,7 +56,12 @@ unsafe impl<'a> Sync for Device<'a> {}
 unsafe impl<'a> Send for Device<'a> {}
 
 impl<'a> Device<'a> {
-    pub fn new(ptr: device_t) -> Self {
+    /// # Safety
+    ///
+    /// The caller must ensure that the device is managed by a rust driver and will be valid (i.e.
+    /// not detached) for the lifetime of the returned value. If the caller does not explicitly
+    /// annotate the lifetime and tie it to another reference the lifetime is inferred from context.
+    pub unsafe fn new(ptr: device_t) -> Self {
         Self(ptr, PhantomData)
     }
 
@@ -111,7 +116,9 @@ impl AsCType<c_int> for BusProbe {
 // Used in device_probe
 impl<'a> AsRustType<'a, Device<'a>> for device_t {
     fn as_rust_type(&'a self) -> Device<'a> {
-        Device::new(*self)
+        // TODO: Make AsRustType unsafe
+        // SAFETY: Safety requirements delegated to caller
+        unsafe { Device::new(*self) }
     }
 }
 
@@ -360,7 +367,8 @@ pub mod wrappers {
         if unsafe { !device_has_rust_driver(dev_ptr) } {
             return Err(EDOOFUS);
         }
-        let dev = Device::new(dev_ptr);
+        // SAFETY: Lifetime safety requirements delegated to caller
+        let dev = unsafe { Device::new(dev_ptr) };
         if !device_matches_driver::<D>(dev) {
             return Err(EDOOFUS);
         }
@@ -394,13 +402,21 @@ pub mod wrappers {
         unsafe { bindings::device_get_state(dev.as_ptr()) }
     }
 
-    pub fn device_get_parent(dev: Device) -> Result<Device> {
+    /// Returns a Device for the parent
+    ///
+    /// Note that the parent may actually have a longer lifetime since the return value's lifetime
+    /// is tied to the argument.
+    pub fn device_get_parent<'a>(dev: Device<'a>) -> Result<Device<'a>> {
         let dev_ptr = dev.as_ptr();
         let res = unsafe { bindings::device_get_parent(dev_ptr) };
         if res.is_null() {
             Err(ENULLPTR)
         } else {
-            Ok(Device::new(res))
+            // SAFETY: This returns a Device for the parent with a lifetime tied to the child Device
+            // which is fine since the parent must live at least as long as the child. The function
+            // signature annotates lifetimes explicitly for clarity, but omitting them gives the
+            // same result due to rust's lifetime elision rules.
+            Ok(unsafe { Device::new(res) })
         }
     }
 
@@ -468,7 +484,8 @@ pub mod wrappers {
         if child.is_null() {
             Err(ENULLPTR)
         } else {
-            Ok(Device::new(child))
+            // TODO: Double check the output lifetime is valid
+            Ok(unsafe { Device::new(child) })
         }
     }
 }
@@ -498,8 +515,8 @@ mod tests {
 
     impl AnotherDriver {
         fn get_stashed_softc(dev: Device) {
-            let test_driver_dev = Device::new(STASHED_DEVICE.load(Ordering::Relaxed));
-            let test_driver_sc = unsafe { device_get_softc::<TestDriver>(test_driver_dev.as_ptr()) };
+            let test_driver_dev = STASHED_DEVICE.load(Ordering::Relaxed);
+            let test_driver_sc = unsafe { device_get_softc::<TestDriver>(test_driver_dev) };
             let another_driver_sc = unsafe { device_get_softc::<Self>(dev.as_ptr()) };
         }
     }

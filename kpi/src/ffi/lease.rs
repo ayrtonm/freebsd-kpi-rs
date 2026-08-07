@@ -109,7 +109,8 @@ impl<'a, T> Uninit<'a, T> {
     pub fn device(&self) -> Device<'_> {
         // `owner` was initialized in `from_raw`.
         match unsafe { &(*self.0.as_ptr()).owner } {
-            Owner::Device(dev) => Device::new(*dev),
+            // SAFETY: The lifetime of the return value is tied to the Uninit borrow (&self)
+            Owner::Device(dev) => unsafe { Device::new(*dev) },
             _ => unreachable!(),
         }
     }
@@ -157,7 +158,8 @@ impl<'a, T> Loan<'a, T> {
     }
 
     pub fn device(&self) -> Device<'_> {
-        Device::new(self.0.device())
+        // SAFETY: The lifetime of the return value is tied to the Loan borrow (&self)
+        unsafe { Device::new(self.0.device()) }
     }
 
     pub fn device_as_static(&self) -> Result<Device<'static>> {
@@ -213,7 +215,9 @@ impl<T> Lease<T> {
         // SAFETY: The pointee is freed in device_detach, but the KPI glue for it panics if there is
         // an outstanding softc Lease when it's ready to free it. The return value lifetime is tied
         // to the Lease borrow.
-        Device::new(unsafe { self.0.as_ref().device() })
+        let dev_ptr = unsafe { self.0.as_ref().device() };
+        // SAFETY: The lifetime of the return value is tied to the Lease borrow (&self)
+        unsafe { Device::new(dev_ptr) }
     }
 
     pub fn cdev(&self) -> CDev<'_> {
