@@ -78,6 +78,7 @@ macro_rules! method_table {
             #[unsafe(no_mangle)]
             pub static $method_table: MethodTable<{ NUM_METHODS + 2 }> =
                 MethodTable(UnsafeCell::new([
+                    RUST_MARKER_ENTRY,
                     // Repeat the following for each $if_fn $impl pair
                     $(
                         {
@@ -87,7 +88,6 @@ macro_rules! method_table {
                             kobj_method_t { desc, func }
                         },
                     )*
-                    RUST_MARKER_ENTRY,
                     // Add the method table's null-terminator
                     kobj_method_t { desc: null_mut(), func: None }
             ]));

@@ -82,7 +82,7 @@ impl driver_t {
         let class = unsafe { &*driver };
         let mut method_ptr = class.methods;
 
-        while unsafe { (*method_ptr).func.is_some() } {
+        while unsafe { !(*method_ptr).desc.is_null() } {
             let desc = unsafe { (*method_ptr).desc };
             if desc == interface_fn_desc {
                 res = unsafe { (*method_ptr).func };
