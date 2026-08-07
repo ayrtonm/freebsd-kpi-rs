@@ -88,11 +88,11 @@ impl<T, const N: usize> OfwCompatData<T, N> {
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
-pub struct Node(pub phandle_t);
+pub struct Node(pub(crate) phandle_t);
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
-pub struct XRef(pub phandle_t);
+pub struct XRef(pub(crate) phandle_t);
 
 impl AsRustType<'_, XRef> for phandle_t {
     fn as_rust_type(&self) -> XRef {
