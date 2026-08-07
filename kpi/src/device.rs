@@ -26,7 +26,7 @@
  * SUCH DAMAGE.
  */
 
-use crate::bindings::{_device, device_state_t, device_t, driver_t};
+use crate::bindings::{_device, device_state_t, device_t, driver_t, kobjop_desc};
 use crate::boxed::Box;
 use crate::driver::Driver;
 use crate::ffi::{ArrayCString, Loan, LoanLayout, Uninit};
@@ -37,6 +37,7 @@ use crate::{ErrCode, define_interface};
 use core::ffi::{CStr, c_int};
 use core::marker::PhantomData;
 use core::pin::Pin;
+use core::ptr;
 use core::ptr::null_mut;
 
 #[repr(C)]
@@ -50,6 +51,24 @@ impl<'a> Device<'a> {
 
     pub fn as_ptr(&self) -> device_t {
         self.0
+    }
+
+    pub fn undetachable(&self) -> bool {
+        let driver = device_get_driver(*self);
+        let mut method_ptr = unsafe { (*driver).methods };
+        while unsafe { !(*method_ptr).desc.is_null() } {
+            let desc = unsafe { (*method_ptr).desc };
+            // crate::tests is not part of kernel builds so if cfg!(test) won't work
+            #[cfg(test)]
+            let detach_addr = crate::tests::device_detach_desc as *mut kobjop_desc;
+            #[cfg(not(test))]
+            let detach_addr = &raw const bindings::device_detach_desc;
+            if ptr::eq(desc, detach_addr) {
+                return false;
+            }
+            method_ptr = unsafe { method_ptr.add(1) };
+        }
+        true
     }
 }
 
@@ -426,6 +445,9 @@ mod tests {
             if ofw_bus_is_compatible(sc.device(), c"another_driver,get_softc") {
                 STASHED_DEVICE.store(sc.device().as_ptr(), Ordering::Relaxed);
             }
+            if ofw_bus_is_compatible(sc.device(), c"test_driver,check_undetachable") {
+                assert!(!sc.device().undetachable());
+            }
             println!("{:x?}", sc);
             Ok(())
         }
@@ -491,6 +513,38 @@ mod tests {
             device_detach: another_driver_detach,
         }
     );
+    pub struct UndetachableDriverSoftc {
+    }
+    impl DeviceIf for UndetachableDriver {
+        type Softc = UndetachableDriverSoftc;
+        fn device_probe(dev: Device) -> Result<BusProbe> {
+            if !ofw_bus_status_okay(dev) {
+                return Err(ENXIO);
+            }
+            if !ofw_bus_is_compatible(dev, c"device,undetachable_driver") {
+                return Err(ENXIO);
+            }
+            device_set_desc(dev, c"undetachable driver");
+            Ok(BUS_PROBE_DEFAULT)
+        }
+        fn device_attach(uninit_sc: Uninit<UndetachableDriverSoftc>) -> Result<()> {
+            let sc = uninit_sc.init(UndetachableDriverSoftc {});
+            if ofw_bus_is_compatible(sc.device(), c"undetachable_driver,check_undetachable") {
+                assert!(sc.device().undetachable());
+            }
+            Ok(())
+        }
+    }
+    define_driver! {
+        static undetachable_driver: UndetachableDriver = {
+            name: c"undetachable_driver",
+        }
+        static undetachable_driver_methods = {
+            device_probe: undetachable_driver_probe,
+            device_attach: undetachable_driver_attach,
+            // device_detach intentionally omitted
+        }
+    }
 
     #[test]
     fn normal_flow() {
@@ -527,5 +581,18 @@ mod tests {
         m.probe_all();
         m.attach_all();
         DriverManager::detach_devices(&mut m.devices.iter_mut().rev());
+    }
+
+    #[test]
+    fn no_detach() {
+        let mut m = DriverManager::new();
+        m.add_test_device(c"device,undetachable_driver")
+            .compat_strs.push(c"undetachable_driver,check_undetachable");
+        m.add_test_device(c"device,test_driver")
+            .compat_strs.push(c"test_driver,check_undetachable");
+        m.add_test_driver::<UndetachableDriver>();
+        m.add_test_driver::<TestDriver>();
+        m.probe_all();
+        m.attach_all();
     }
 }
