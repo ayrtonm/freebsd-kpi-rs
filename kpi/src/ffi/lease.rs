@@ -403,10 +403,16 @@ impl<T> LeaseSlot<T> {
     ///
     /// Panics if it hasn't been initialized yet or has already been revoked.
     pub fn get(&self) -> LeaseGuard<'_, T> {
+        self.try_get()
+            .expect("LeaseSlot not initialized or already revoked")
+    }
+
+    /// Borrows the leased value, returning `None` if uninit or revoked.
+    pub fn try_get(&self) -> Option<LeaseGuard<'_, T>> {
         loop {
             let cur = self.state.load(Ordering::Acquire);
             if cur == UNINIT || cur == REVOKED {
-                panic!("LeaseSlot not initialized or already revoked");
+                return None;
             }
             if self
                 .state
@@ -414,10 +420,10 @@ impl<T> LeaseSlot<T> {
                 .is_ok()
             {
                 let lease = unsafe { (*self.lease.get()).assume_init_ref() };
-                return LeaseGuard {
+                return Some(LeaseGuard {
                     lease,
                     state: &self.state,
-                };
+                });
             }
         }
     }

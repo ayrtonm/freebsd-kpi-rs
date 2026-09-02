@@ -27,60 +27,87 @@
  */
 
 use crate::ErrCode;
-use crate::bindings::{task, task_fn_t, taskqueue};
-use crate::ffi::{Lease, Loan, ArrayCString};
+use crate::bindings::{task, taskqueue};
+use crate::ffi::{ArrayCString, Lease, Loan, LeaseSlot};
 use crate::intr::Priority;
 use crate::malloc::MallocFlags;
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::ffi::c_void;
-use core::mem::transmute;
+use core::marker::PhantomPinned;
 use core::pin::Pin;
 use core::ptr::null_mut;
+use core::sync::atomic::{AtomicPtr, Ordering};
 
-#[derive(Debug)]
+/// A pointer to a taskqueue struct.
+///
+/// taskqueue_* functions rely on **the pointer's** address (read &sc->sc_taskq, not the address
+/// that sc->sc_taskq points to) being stable so they take a Pin<&Taskqueue> argument. To get a
+/// Pin<&Taskqueue> from a Taskqueue softc field use `proj!(&sc.sc_taskq)`.
 pub struct Taskqueue {
-    inner: UnsafeCell<*mut taskqueue>,
+    inner: AtomicPtr<taskqueue>,
+    _pin: PhantomPinned,
 }
 
 impl Taskqueue {
     pub fn new() -> Self {
         Self {
-            inner: UnsafeCell::new(null_mut()),
+            inner: AtomicPtr::new(null_mut()),
+            _pin: PhantomPinned,
+        }
+    }
+
+    fn ptr(&self) -> *mut taskqueue {
+        self.inner.load(Ordering::Relaxed)
+    }
+}
+
+impl Drop for Taskqueue {
+    fn drop(&mut self) {
+        let ptr = self.ptr();
+        // Only call taskqueue_free if a taskqueue was actually created
+        if !ptr.is_null() {
+            unsafe { bindings::taskqueue_free(ptr) };
         }
     }
 }
 
-unsafe impl Sync for Taskqueue {}
-unsafe impl Send for Taskqueue {}
+pub type TaskFn<T> = extern "C" fn(Loan<'_, T>, u32);
 
-pub type TaskFn<T> = extern "C" fn(Loan<T>, u32);
-
-#[derive(Debug)]
-pub struct Task {
+pub struct Task<T: 'static> {
     inner: UnsafeCell<task>,
+    arg: LeaseSlot<T>,
+    _pin: PhantomPinned,
 }
 
-impl Task {
+unsafe impl<T: Sync + Send> Sync for Task<T> {}
+unsafe impl<T: Sync + Send> Send for Task<T> {}
+
+impl<T> Task<T> {
     pub fn new() -> Self {
-        let c_task = task::default();
         Self {
-            inner: UnsafeCell::new(c_task),
+            inner: UnsafeCell::new(task::default()),
+            arg: LeaseSlot::uninit(),
+            _pin: PhantomPinned,
         }
     }
 
-    pub fn init<T>(&self, func: TaskFn<T>, arg: Lease<T>) {
-        let c_task = self.inner.get();
-        let (arg_ptr, _count_ptr) = Lease::into_raw(arg);
+    pub fn init(&self, func: TaskFn<T>, lease: Lease<T>) {
+        let ctx = lease.0.as_ptr().cast::<c_void>();
+        self.arg.init(lease);
         unsafe {
-            (*c_task).ta_context = arg_ptr.cast::<c_void>();
-            (*c_task).ta_func = transmute::<Option<TaskFn<T>>, task_fn_t>(Some(func));
+            let c_task = self.inner.get();
+            (*c_task).ta_context = ctx;
+            (*c_task).ta_func = Some(core::mem::transmute(func));
         }
     }
 }
 
-unsafe impl Sync for Task {}
-unsafe impl Send for Task {}
+impl<T> Drop for Task<T> {
+    fn drop(&mut self) {
+        // TODO: release the LeaseSlot and NULL out ta_context
+    }
+}
 
 #[doc(inline)]
 pub use wrappers::*;
@@ -89,13 +116,14 @@ pub use wrappers::*;
 pub mod wrappers {
     use super::*;
 
-    // Max queue name is 32 chars which is over the ArrayCString limit
     pub fn taskqueue_create(
         name: ArrayCString,
         flags: MallocFlags,
-        queue: &Taskqueue,
+        queue: Pin<&Taskqueue>,
     ) -> Result<()> {
-        let ctx: *mut *mut bindings::taskqueue = queue.inner.get();
+        // This gets cast to a *mut c_void so annotate the src pointer type out of an abundance of
+        // caution in case the context were to change.
+        let ctx: *mut *mut taskqueue = queue.inner.as_ptr();
 
         let enqueue = Some(bindings::taskqueue_thread_enqueue as _);
         let res = unsafe {
@@ -109,19 +137,18 @@ pub mod wrappers {
         if res.is_null() {
             return Err(ENULLPTR);
         };
-        unsafe {
-            *queue.inner.get() = res;
-        }
+        queue.inner.store(res, Ordering::Relaxed);
         Ok(())
     }
 
-    // Max queue name is 32 chars which is over the ArrayCString limit
     pub fn taskqueue_create_fast(
         name: ArrayCString,
         flags: MallocFlags,
-        queue: &Taskqueue,
+        queue: Pin<&Taskqueue>,
     ) -> Result<()> {
-        let ctx: *mut *mut bindings::taskqueue = queue.inner.get();
+        // This gets cast to a *mut c_void so annotate the src pointer type out of an abundance of
+        // caution in case the context were to change.
+        let ctx: *mut *mut taskqueue = queue.inner.as_ptr();
 
         let enqueue = Some(bindings::taskqueue_thread_enqueue as _);
         let res = unsafe {
@@ -135,9 +162,7 @@ pub mod wrappers {
         if res.is_null() {
             return Err(ENULLPTR);
         };
-        unsafe {
-            *queue.inner.get() = res;
-        }
+        queue.inner.store(res, Ordering::Relaxed);
         Ok(())
     }
 
@@ -147,7 +172,10 @@ pub mod wrappers {
         prio: Priority,
         name: ArrayCString,
     ) -> Result<()> {
-        let queuep = queue.inner.get();
+        if queue.ptr().is_null() {
+            return Err(EDOOFUS);
+        }
+        let queuep = queue.inner.as_ptr();
         let res = unsafe {
             bindings::taskqueue_start_threads(
                 queuep,
@@ -162,13 +190,23 @@ pub mod wrappers {
         Ok(())
     }
 
-    pub fn taskqueue_enqueue(queue: &Taskqueue, ta: &Task) -> Result<()> {
-        let queuep = unsafe { *queue.inner.get() };
+    pub fn taskqueue_enqueue<T>(queue: &Taskqueue, ta: Pin<&Task<T>>) -> Result<()> {
+        let queuep = queue.ptr();
         let c_task = ta.inner.get();
+        let callback = unsafe { (*c_task).ta_func };
+        if callback.is_none() {
+            return Err(EDOOFUS);
+        }
         let res = unsafe { bindings::taskqueue_enqueue(queuep, c_task) };
         if res != 0 {
             return Err(ErrCode::from(res));
         }
         Ok(())
+    }
+
+    pub fn taskqueue_drain<T>(queue: &Taskqueue, ta: Pin<&Task<T>>) {
+        let queuep = queue.ptr();
+        let c_task = ta.inner.get();
+        unsafe { bindings::taskqueue_drain(queuep, c_task) };
     }
 }
