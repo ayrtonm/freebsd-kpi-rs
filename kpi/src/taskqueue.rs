@@ -27,8 +27,8 @@
  */
 
 use crate::ErrCode;
-use crate::bindings::{task, taskqueue};
-use crate::ffi::{ArrayCString, Lease, Loan, LeaseSlot};
+use crate::bindings::{task, taskqueue, u_int};
+use crate::ffi::{ArrayCString, Lease, Loan};
 use crate::intr::Priority;
 use crate::malloc::MallocFlags;
 use crate::prelude::*;
@@ -44,6 +44,7 @@ use core::sync::atomic::{AtomicPtr, Ordering};
 /// taskqueue_* functions rely on **the pointer's** address (read &sc->sc_taskq, not the address
 /// that sc->sc_taskq points to) being stable so they take a Pin<&Taskqueue> argument. To get a
 /// Pin<&Taskqueue> from a Taskqueue softc field use `proj!(&sc.sc_taskq)`.
+#[derive(Debug)]
 pub struct Taskqueue {
     inner: AtomicPtr<taskqueue>,
     _pin: PhantomPinned,
@@ -65,47 +66,80 @@ impl Taskqueue {
 impl Drop for Taskqueue {
     fn drop(&mut self) {
         let ptr = self.ptr();
-        // Only call taskqueue_free if a taskqueue was actually created
         if !ptr.is_null() {
-            unsafe { bindings::taskqueue_free(ptr) };
+            // taskqueue_free may block which I'd like to avoid in Drop impls. Requiring the user
+            // call it manually and panicking if they did not is the only reasonable thing to do.
+            panic!("Taskqueue dropped without being freed");
         }
     }
 }
 
 pub type TaskFn<T> = extern "C" fn(Loan<'_, T>, u32);
 
-pub struct Task<T: 'static> {
+#[derive(Debug)]
+pub struct Task {
     inner: UnsafeCell<task>,
-    arg: LeaseSlot<T>,
+    count_ptr: AtomicPtr<u_int>,
     _pin: PhantomPinned,
 }
 
-unsafe impl<T: Sync + Send> Sync for Task<T> {}
-unsafe impl<T: Sync + Send> Send for Task<T> {}
+unsafe impl Sync for Task {}
+unsafe impl Send for Task {}
 
-impl<T> Task<T> {
+impl Task {
+    const UNINIT: *mut u_int = null_mut();
+    const BUSY: *mut u_int = 1 as *mut u_int;
+
     pub fn new() -> Self {
         Self {
             inner: UnsafeCell::new(task::default()),
-            arg: LeaseSlot::uninit(),
+            count_ptr: AtomicPtr::new(null_mut()),
             _pin: PhantomPinned,
         }
     }
 
-    pub fn init(&self, func: TaskFn<T>, lease: Lease<T>) {
-        let ctx = lease.0.as_ptr().cast::<c_void>();
-        self.arg.init(lease);
+    pub fn init<T: 'static + Sync>(&self, func: TaskFn<T>, lease: Lease<T>) -> Result<()> {
+        if self
+            .count_ptr
+            .compare_exchange(
+                Self::UNINIT,
+                Self::BUSY,
+                Ordering::Relaxed,
+                Ordering::Relaxed,
+            )
+            .is_err()
+        {
+            return Err(EDOOFUS);
+        }
+        let (ctx, count_ptr) = Lease::into_raw(lease);
+
         unsafe {
             let c_task = self.inner.get();
-            (*c_task).ta_context = ctx;
+            (*c_task).ta_context = ctx.cast::<c_void>();
             (*c_task).ta_func = Some(core::mem::transmute(func));
-        }
+        };
+
+        self.count_ptr.store(count_ptr, Ordering::Release);
+        Ok(())
     }
 }
 
-impl<T> Drop for Task<T> {
+impl Drop for Task {
     fn drop(&mut self) {
-        // TODO: release the LeaseSlot and NULL out ta_context
+        unsafe {
+            let c_task = self.inner.get();
+            // TODO: According to _task.h this must be accessed while holding the queue lock.
+            // That will probably some slight changes on the C side
+            if (*c_task).ta_pending != 0 {
+                panic!("tried to drop enqueued task")
+            }
+            (*c_task).ta_context = null_mut();
+        }
+        let count_ptr = self.count_ptr.load(Ordering::Relaxed);
+        if !count_ptr.is_null() {
+            let last = unsafe { bindings::refcount_release(count_ptr) };
+            assert!(!last);
+        }
     }
 }
 
@@ -190,13 +224,13 @@ pub mod wrappers {
         Ok(())
     }
 
-    pub fn taskqueue_enqueue<T>(queue: &Taskqueue, ta: Pin<&Task<T>>) -> Result<()> {
-        let queuep = queue.ptr();
-        let c_task = ta.inner.get();
-        let callback = unsafe { (*c_task).ta_func };
-        if callback.is_none() {
+    pub fn taskqueue_enqueue(queue: &Taskqueue, ta: Pin<&Task>) -> Result<()> {
+        let count_ptr = ta.count_ptr.load(Ordering::Acquire);
+        if count_ptr.is_null() || count_ptr == Task::BUSY {
             return Err(EDOOFUS);
         }
+        let queuep = queue.ptr();
+        let c_task = ta.inner.get();
         let res = unsafe { bindings::taskqueue_enqueue(queuep, c_task) };
         if res != 0 {
             return Err(ErrCode::from(res));
@@ -204,9 +238,19 @@ pub mod wrappers {
         Ok(())
     }
 
-    pub fn taskqueue_drain<T>(queue: &Taskqueue, ta: Pin<&Task<T>>) {
+    pub fn taskqueue_drain(queue: &Taskqueue, ta: Pin<&Task>) {
         let queuep = queue.ptr();
         let c_task = ta.inner.get();
         unsafe { bindings::taskqueue_drain(queuep, c_task) };
+    }
+
+    pub fn taskqueue_free(queue: &Taskqueue) -> Result<()> {
+        let ptr = queue.ptr();
+        if ptr.is_null() {
+            return Err(EDOOFUS);
+        }
+        unsafe { bindings::taskqueue_free(ptr) };
+        queue.inner.store(null_mut(), Ordering::Relaxed);
+        Ok(())
     }
 }
