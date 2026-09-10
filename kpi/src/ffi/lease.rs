@@ -41,6 +41,9 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 use core::{fmt, ptr};
 
 /// The kernel object a `LoanLayout` is attached to.
+///
+/// Currently this has the layout of a struct with a u32 tag, followed by u32 padding that field
+/// then a pointer-sized untagged union.
 #[repr(C)]
 enum Owner {
     Unknown,
@@ -48,10 +51,19 @@ enum Owner {
     CDev(*mut cdev),
 }
 
+/// Defines the layout that Loan and Lease point to.
+///
+/// This determines the memory layout of all driver and char device softc managed by rust drivers.
+/// It uses repr(C) and the driver-defined T is intentionally placed first to allow using rust
+/// drivers as subclasses of existing C drivers. The layout of the other fields don't matter and may
+/// be reordered in the future to remove the padding u32 in the Owner field.
 #[repr(C)]
 pub struct LoanLayout<T> {
+    // This is the softc type specified by a driver or char device. It must be first
     pub inner: T,
     owner: Owner,
+    // The u_int must be behind an UnsafeCell since it's modified while behind a shared reference.
+    // It avoids data races by using the atomic C KPI refcount_* functions.
     count: UnsafeCell<u_int>,
 }
 
