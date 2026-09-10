@@ -36,7 +36,7 @@ use crate::misc::Thread;
 use crate::prelude::*;
 use core::ffi::{CStr, c_int, c_void};
 use core::marker::PhantomData;
-use core::ptr::NonNull;
+use core::ptr::{drop_in_place, NonNull};
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
@@ -233,7 +233,16 @@ pub mod wrappers {
         // can be created from the cdev afterwards.
         unsafe { bindings::destroy_dev(dev) };
         // Release our lease and the device's original reference, then free the softc.
-        unsafe { sc.release_and_free(mtype) };
+        let (sc_ptr, count_ptr) = Lease::into_raw(sc);
+
+        unsafe { bindings::refcount_release(count_ptr) };
+        let last = unsafe { bindings::refcount_release(count_ptr) };
+        if !last {
+            let num_refs = unsafe { bindings::refcount_load(count_ptr) };
+            panic!("tried to destroy cdev with {} outstanding softc leases", num_refs);
+        }
+        unsafe { drop_in_place(sc_ptr) };
+        unsafe { free(sc_ptr.cast::<c_void>(), mtype) };
     }
 
     pub fn uiomove_read(buf: &mut [u8], uio_ref: UioRef) -> Result<()> {

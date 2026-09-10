@@ -244,31 +244,6 @@ impl<T> Lease<T> {
         forget(lease);
         (t_ptr, count_ptr)
     }
-
-    /// Releases this lease along with the original reference created by [`LoanLayout::new`], then
-    /// frees the allocation, dropping `T`.
-    ///
-    /// Panics if any other lease is still outstanding.
-    ///
-    /// # Safety
-    ///
-    /// The `LoanLayout<T>` must have been allocated via `Box::<LoanLayout<T>, M>::into_raw`,
-    /// `mtype` must be `M`'s malloc type, and no other reference to it may be created after this
-    /// call.
-    pub(crate) unsafe fn release_and_free(self, mtype: MallocType) {
-        let inner_ptr = self.0.as_ptr();
-        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
-        forget(self);
-        // Release this lease, then the original reference from `LoanLayout::new`, which must be
-        // the last one.
-        unsafe { bindings::refcount_release(count_ptr) };
-        let last = unsafe { bindings::refcount_release(count_ptr) };
-        assert!(last, "LoanLayout still leased in release_and_free");
-        // Drop `T` in place before freeing the allocation. The other LoanLayout fields are
-        // trivially droppable.
-        unsafe { ptr::drop_in_place(&raw mut (*inner_ptr).inner) };
-        unsafe { free(inner_ptr.cast::<core::ffi::c_void>(), mtype) };
-    }
 }
 
 impl<T> Drop for Lease<T> {
