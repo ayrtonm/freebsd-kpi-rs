@@ -26,10 +26,9 @@
  * SUCH DAMAGE.
  */
 
-use crate::bindings::{cdev, device_t, u_int};
+use crate::bindings::{cdev, device_t, _device, u_int};
 use crate::cdev::CDev;
 use crate::device::Device;
-use crate::malloc::MallocType;
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::fmt::{Debug, Formatter};
@@ -40,30 +39,28 @@ use core::ptr::NonNull;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use core::{fmt, ptr};
 
-/// The kernel object a `LoanLayout` is attached to.
-///
-/// Currently this has the layout of a struct with a u32 tag, followed by u32 padding that field
-/// then a pointer-sized untagged union.
-#[repr(C)]
-enum Owner {
-    Unknown,
-    Device(device_t),
-    CDev(*mut cdev),
-}
-
 /// Defines the layout that Loan and Lease point to.
 ///
 /// This determines the memory layout of all driver and char device softc managed by rust drivers.
 /// It uses repr(C) and the driver-defined T is intentionally placed first to allow using rust
-/// drivers as subclasses of existing C drivers. The layout of the other fields don't matter and may
-/// be reordered in the future to remove the padding u32 in the Owner field.
+/// drivers as subclasses of existing C drivers.
+///
+/// This must be pub since define_driver! uses it for the KobjLayout trait impl, but it's not useful
+/// to users so it's marked as doc(hidden).
+#[doc(hidden)]
 #[repr(C)]
 pub struct LoanLayout<T> {
-    // This is the softc type specified by a driver or char device. It must be first
-    pub inner: T,
-    owner: Owner,
+    // This is the softc type specified by a driver or char device. It must be first to support
+    // subclass drivers. Note there may be padding between the end of the softc to ensure the next
+    // field is aligned to 8 bytes.
+    inner: T,
+    // The type in these Option<T>s must be non-null so NULL is used as a niche value to represent
+    // None. That means the following two fields are each the size of void*.
+    dev: Option<NonNull<_device>>,
+    cdev: Option<NonNull<cdev>>,
     // The u_int must be behind an UnsafeCell since it's modified while behind a shared reference.
-    // It avoids data races by using the atomic C KPI refcount_* functions.
+    // It avoids data races by using the atomic C KPI refcount_* functions. This is a u32 so there
+    // should be at least a u32 of padding after it.
     count: UnsafeCell<u_int>,
 }
 
@@ -73,7 +70,8 @@ impl<T> LoanLayout<T> {
     pub fn new(t: T) -> Self {
         let mut res = Self {
             inner: t,
-            owner: Owner::Unknown,
+            dev: None,
+            cdev: None,
             count: UnsafeCell::new(0),
         };
         let count_ptr = UnsafeCell::raw_get(&raw mut res.count);
@@ -82,67 +80,112 @@ impl<T> LoanLayout<T> {
         res
     }
 
-    pub(crate) fn set_cdev(&mut self, dev: *mut cdev) {
-        self.owner = Owner::CDev(dev);
+    pub fn set_cdev(&mut self, dev: *mut cdev) {
+        assert!(self.cdev.is_none());
+        self.cdev = Some(NonNull::new(dev).unwrap());
     }
 
     /// Panics if this `LoanLayout` is not attached to a cdev.
-    pub(crate) fn cdev(&self) -> *mut cdev {
-        match self.owner {
-            Owner::CDev(dev) => dev,
-            _ => panic!("LoanLayout is not attached to a cdev"),
+    pub fn cdev(&self) -> *mut cdev {
+        match self.cdev {
+            Some(nonnull_cdev) => nonnull_cdev.as_ptr(),
+            None => panic!("softc does not have an associated *mut cdev"),
         }
     }
 
     /// Panics if this `LoanLayout` is not attached to a device_t.
-    pub(crate) fn device(&self) -> device_t {
-        match self.owner {
-            Owner::Device(dev) => dev,
-            _ => panic!("LoanLayout is not attached to a device"),
+    pub fn device(&self) -> device_t {
+        match self.dev {
+            Some(nonnull_dev) => nonnull_dev.as_ptr(),
+            None => panic!("softc does not have an associated device_t"),
         }
     }
 }
 
-/// A unique pointer to an uninitialized, externally-managed object.
+/// A pointer to an uninitialized softc with no aliases.
 ///
-/// The `owner` field of the pointed-to `LoanLayout` is always initialized while the `inner` and
-/// `count` fields remain uninitialized until [`init`][Self::init].
+/// This struct also carries a mutable reference to a bool so the glue code creating the Uninit can
+/// later see whether the init method was called or not.
+///
+/// The second field is wrapped in Option rather than just &mut bool because Uninit is created from
+/// an AsRustType impl which cannot grab references to locals on the stack frame of device_attach.
+/// This kludge means that the glue code must call set_init_flag before handing it off to a driver.
 pub struct Uninit<'a, T>(&'a mut MaybeUninit<LoanLayout<T>>, Option<&'a mut bool>);
 
 impl<'a, T> Uninit<'a, T> {
-    pub unsafe fn from_raw(ptr: &'a mut MaybeUninit<LoanLayout<T>>, dev: device_t) -> Self {
-        let base = ptr.as_mut_ptr();
-        unsafe { (&raw mut (*base).owner).write(Owner::Device(dev)) };
-        Self(ptr, None)
+    pub(crate) unsafe fn from_raw(sc_ref: &'a mut MaybeUninit<LoanLayout<T>>, dev: device_t) -> Self {
+        // Get a pointer to the LoanLayout on the heap from the MaybeUninit<LoanLayout<T>> reference
+        let sc_ptr: *mut LoanLayout<T> = sc_ref.as_mut_ptr();
+        // SAFETY: Since the softc has not been initialized we can't create a mutable reference to
+        // the entire thing. Instead we'll just write directly to the fields that need to be set
+        // here. An unsynchronized write is safe here since there are it has no aliases (the ptr arg
+        // was a mutable reference).
+        unsafe {
+            (*sc_ptr).dev = Some(NonNull::new(dev).unwrap());
+            // If a softc has both a device_t and a cdev pointer, the device_t is always initialized
+            // first since newbus allocates the device softc. That means there should be no case
+            // where this was already initialized to Some. We have to initialize it to soundly
+            // create references to the entire LoanLayout so None is the correct value here.
+            (*sc_ptr).cdev = None;
+        }
+        Self(sc_ref, None)
     }
 
+    // Used for the second field kludge described in Uninit's doc comment.
+    // Must be public since it's called by KPI glue code in the driver .rlib's. Marked doc(hidden)
+    // because it should not be called explicitly by the driver.
+    #[doc(hidden)]
     pub fn set_init_flag(&mut self, flag: &'a mut bool) {
+        *flag = false;
         self.1 = Some(flag);
     }
 
     pub fn device(&self) -> Device<'_> {
-        // `owner` was initialized in `from_raw`.
-        match unsafe { &(*self.0.as_ptr()).owner } {
-            // SAFETY: The lifetime of the return value is tied to the Uninit borrow (&self)
-            Owner::Device(dev) => unsafe { Device::new_unchecked(*dev) },
-            _ => unreachable!(),
+        // We still can't make a reference to the entire LoanLayout<T> so calling LoanLayout::device
+        // is not an option to get a device_t.
+        let sc_ptr: *const LoanLayout<T> = self.0.as_ptr();
+        // SAFETY: `dev` was initialized in `from_raw`.
+        let dev = unsafe { (*sc_ptr).dev };
+        match dev {
+            Some(nonnull_dev) => {
+                // SAFETY: The lifetime of the Device matches the Uninit borrow
+                unsafe { Device::new_unchecked(nonnull_dev.as_ptr()) }
+            },
+            None => unreachable!(),
         }
     }
 
+    // TODO: Consider removing this. It may have been needed for apple aic since there is no
+    // function to undo pic_claim_root
     pub fn device_as_static(&self) -> Result<Device<'static>> {
         self.device().as_static()
     }
 
 
-    /// Initialize the externally-managed object to `t` and return a pinned reference to the pointee
+    /// Initialize the softc to `t` and return a Loan<T> pointer.
+    ///
+    /// The returned pointer may only be used for the lifetime of the Uninit it was created from.
+    /// The KPI glue sets the Uninit lifetime parameter using a local on the device_attach stack
+    /// frame so in practical terms this means that trying to stash the Loan in a global or
+    /// equivalent (e.g. another softc) is a compile-time error.
     pub fn init(self, t: T) -> Loan<'a, T> {
-        let base = self.0.as_mut_ptr();
-        unsafe { (&raw mut (*base).inner).write(t) };
-        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*base).count });
-        // This is just an address-insensitive atomic write
+        // Get a pointer to the LoanLayout on the heap from the MaybeUninit<LoanLayout<T>> reference
+        let sc_ptr = self.0.as_mut_ptr();
+
+        unsafe {
+            (*sc_ptr).inner = t;
+        }
+        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*sc_ptr).count });
+
+        // This points to the heap, but this is just an address-insensitive atomic write anyway
         unsafe { bindings::refcount_init(count_ptr, 1) };
-        self.1.map(|init| *init = true);
-        // All fields are now initialized since `owner` was written in `from_raw` and `inner` and
+
+        match self.1 {
+            Some(init_flag) => *init_flag = true,
+            // This means there was a bug in the KPI glue
+            None => unreachable!(),
+        }
+        // All fields are now initialized since `dev` was written in `from_raw` and `inner` and
         // `count` were written above.
         Loan(unsafe { self.0.assume_init_ref() })
     }
@@ -225,6 +268,11 @@ impl<T> Lease<T> {
         unsafe { Pin::new_unchecked(f(self.deref())) }
     }
 
+    /// Get a Device that owns the softc.
+    ///
+    /// The Device may only be used for the lifetime of the Lease. Attempting to use it after
+    /// passing on ownership of the Lease somewhere else is a compile-time error. Calling this on a
+    /// softc owned by a char device will panic.
     pub fn device(&self) -> Device<'_> {
         // SAFETY: The pointee is freed in device_detach, but the KPI glue for it panics if there is
         // an outstanding softc Lease when it's ready to free it. The return value lifetime is tied
@@ -234,6 +282,11 @@ impl<T> Lease<T> {
         unsafe { Device::new_unchecked(dev_ptr) }
     }
 
+    /// Get a CDev that owns the softc.
+    ///
+    /// The CDev may only be used for the lifetime of the Lease. Attempting to use it after
+    /// passing on ownership of the Lease somewhere else is a compile-time error. Calling this on a
+    /// softc owned by a device driver will panic.
     pub fn cdev(&self) -> CDev<'_> {
         // SAFETY: The pointee is freed in device_detach, but the KPI glue for it panics if there is
         // an outstanding softc Lease when it's ready to free it. The return value lifetime is tied
