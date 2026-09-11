@@ -140,7 +140,7 @@ impl<'a, T> AsRustType<'a, Loan<'a, T>> for device_t {
         let void_ptr = unsafe { bindings::device_get_softc(*self) };
         let sc_ptr = void_ptr.cast::<LoanLayout<T>>();
         let sc_ref = unsafe { sc_ptr.as_ref().unwrap() };
-        Loan(sc_ref)
+        unsafe { Loan::from_raw(sc_ref) }
     }
 }
 

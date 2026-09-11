@@ -43,7 +43,7 @@ use core::ptr::{drop_in_place, NonNull};
 pub struct CDev<'a>(*mut cdev, PhantomData<&'a ()>);
 
 impl<'a> CDev<'a> {
-    pub fn new(ptr: *mut cdev) -> Self {
+    pub unsafe fn new_unchecked(ptr: *mut cdev) -> Self {
         Self(ptr, PhantomData)
     }
 }
@@ -141,7 +141,7 @@ impl<'a, T> AsRustType<'a, Loan<'a, T>, T> for *mut cdev {
         let dev = *self;
         let sc_ptr = unsafe { (*dev).si_drv1 };
         let res = unsafe { sc_ptr.cast::<LoanLayout<T>>().as_ref().unwrap() };
-        Loan(res)
+        unsafe { Loan::from_raw(res) }
     }
 }
 
@@ -225,7 +225,7 @@ pub mod wrappers {
         // need a dual-owner variant.
         // Record the cdev so destroy_dev can find it later.
         unsafe { (*sc_ptr).set_cdev(outp) };
-        let sc_loan = Loan(unsafe { sc_ptr.as_ref().unwrap() });
+        let sc_loan = unsafe { Loan::from_raw(sc_ptr.as_ref().unwrap()) };
         Ok(sc_loan.lease())
     }
 

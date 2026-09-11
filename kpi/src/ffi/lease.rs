@@ -191,11 +191,29 @@ impl<'a, T> Uninit<'a, T> {
     }
 }
 
-/// A pointer that may be opted into refcounting if requested.
+// TODO: document the part about Loan<T> being explicitly pinning and how proj!(&sc.field) can give a Pin<&Field>
+/// A pointer to a softc passed in to kobj methods.
+///
+/// This is the equivalent of calling `device_get_softc` from a kobj method in C. In rust the
+/// Loan<Softc> is created by the KPI glue and passed in to the trait method representing a kobj
+/// method as an argument. Functionally it behaves like a `&Softc` argument.
+///
+/// Softc pointers passed to kobj methods do not need to be refcounted since the caller in C ensures
+/// that the pointee will not be freed for the duration of the function being called. However, if a
+/// softc is passed as a callback argument to a safe rust function there must be some way to ensure
+/// the callback won't access the softc after it's freed. To do this the `sc.lease()` can be used to
+/// create a Lease<T> pointer to the same softc. Like Arc<T> in the standard library, this
+/// increments a refcount embedded in the softc and dropping it decrements the refcount. Unlike
+/// Arc<T> the refcount cannot be used to extend the lifetime of the softc past device_detach or
+/// destroy_dev. The caller is responsible for dropping all Lease<T>s created before that point
+/// otherwise the KPI glue will panic when it tries to free the softc. In practical terms this means
+/// if a callback was registered with a Lease, the corresponding unregister function must be called.
 #[repr(C)]
-pub struct Loan<'a, T: 'static>(pub(crate) &'a LoanLayout<T>);
+pub struct Loan<'a, T: 'static>(&'a LoanLayout<T>);
 
 impl<'a, T> Loan<'a, T> {
+    // Only intended to be used by the proj! macro.
+    #[doc(hidden)]
     pub unsafe fn map_unchecked<U: ?Sized, F>(self, f: F) -> Pin<&'a U>
     where
         F: FnOnce(&T) -> &U,
@@ -203,6 +221,7 @@ impl<'a, T> Loan<'a, T> {
         unsafe { Pin::new_unchecked(f(&self.0.inner)) }
     }
 
+    // TODO: document safety reqs (on heap, anything else?)
     pub unsafe fn from_raw(ptr: &'a LoanLayout<T>) -> Self {
         Self(ptr)
     }
@@ -219,14 +238,14 @@ impl<'a, T> Loan<'a, T> {
         unsafe { Device::new_unchecked(self.0.device()) }
     }
 
-    pub fn device_as_static(&self) -> Result<Device<'static>> {
-        self.device().as_static()
-    }
-
     pub fn cdev(&self) -> CDev<'_> {
-        CDev::new(self.0.cdev())
+        // SAFETY: The lifetime of the return value is tied to the Loan borrow (&self)
+        unsafe { CDev::new_unchecked(self.0.cdev()) }
     }
 
+    /// Increments the refcount and returns a new Lease<T> pointing to the softc.
+    ///
+    /// Dropping the Lease<T> decrements the refcount
     pub fn lease(&self) -> Lease<T> {
         let inner_ptr = ptr::from_ref(self.0).cast_mut();
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
@@ -291,7 +310,7 @@ impl<T> Lease<T> {
         // SAFETY: The pointee is freed in device_detach, but the KPI glue for it panics if there is
         // an outstanding softc Lease when it's ready to free it. The return value lifetime is tied
         // to the Lease borrow.
-        CDev::new(unsafe { self.0.as_ref().cdev() })
+        unsafe { CDev::new_unchecked(self.0.as_ref().cdev()) }
     }
 
     pub fn lease(&self) -> Self {
