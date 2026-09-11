@@ -68,6 +68,8 @@ pub struct LoanLayout<T> {
 }
 
 impl<T> LoanLayout<T> {
+    // TODO: This is only pub to suport the echodev demo. Ideally LoanLayout would not be exposed
+    // outside this crate at all.
     pub fn new(t: T) -> Self {
         let mut res = Self {
             inner: t,

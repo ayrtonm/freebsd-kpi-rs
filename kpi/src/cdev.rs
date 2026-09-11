@@ -185,6 +185,12 @@ pub mod wrappers {
     use core::ffi::c_void;
     use core::ptr::null_mut;
 
+    // TODO: This doesn't support the use case where a device driver shares a softc with the char
+    // driver (e.g. see dev/hid/hidraw.c). This should probably take a Lease<T> instead to easily
+    // support both cases. If LoanLayout becomes pub(crate) then I would need to expose some way to
+    // create it for the case seen in echodev. Lease::new(t, M_WAITOK) could work but I need to take
+    // care when piping the optional malloc args from the Lease/softc to the make_dev_args struct
+    // and decide how to store it in the cdev
     /// Initializes a [`MakeDevArgs`] for the given cdevsw (as declared by
     /// [`define_cdev!`][crate::define_cdev]), taking ownership of the boxed softc.
     pub fn make_dev_args_init<D: CDevSw, M: Malloc>(
@@ -215,6 +221,8 @@ pub mod wrappers {
             drop(unsafe { Box::<LoanLayout<T>, M>::from_raw(sc_ptr) });
             return Err(ErrCode::from(res));
         }
+        // TODO: How would this work if the softc that was passed in belonged to a Device? Owner may
+        // need a dual-owner variant.
         // Record the cdev so destroy_dev can find it later.
         unsafe { (*sc_ptr).set_cdev(outp) };
         let sc_loan = Loan(unsafe { sc_ptr.as_ref().unwrap() });
