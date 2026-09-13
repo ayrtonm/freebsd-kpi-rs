@@ -109,9 +109,7 @@ macro_rules! define_stub_syms {
         $(
             #[doc(hidden)]
             #[unsafe(no_mangle)]
-            pub extern "C" fn $sym() {
-                panic!("called panicking stub for {}", stringify!($sym))
-            }
+            pub static mut $sym: u8 = 1;
         )*
     };
 }

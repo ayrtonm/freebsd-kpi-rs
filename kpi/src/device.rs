@@ -329,7 +329,7 @@ pub mod wrappers {
             let desc = unsafe { (*method_ptr).desc };
             // crate::tests is not part of kernel builds so if cfg!(test) won't work
             #[cfg(test)]
-            let detach_addr = crate::tests::device_detach_desc as *mut kobjop_desc;
+            let detach_addr = &raw mut crate::tests::device_detach_desc as *mut kobjop_desc;
             #[cfg(not(test))]
             let detach_addr = &raw const bindings::device_detach_desc;
             if ptr::eq(desc, detach_addr) {

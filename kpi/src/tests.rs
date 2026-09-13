@@ -95,24 +95,24 @@ impl driver_t {
     }
     fn get_probe_fn(driver: *mut Self) -> device_probe_t {
         // The desc is a function in the test binary so `as` is needd to convert it to a pointer
-        let desc_addr = device_probe_desc as *mut kobjop_desc;
+        let desc_addr = &raw mut device_probe_desc as *mut kobjop_desc;
         let func = Self::get_interface_fn(driver, desc_addr);
         unsafe { transmute(func) }
     }
     fn get_attach_fn(driver: *mut Self) -> device_attach_t {
         // The desc is a function in the test binary so `as` is needd to convert it to a pointer
-        let desc_addr = device_attach_desc as *mut kobjop_desc;
+        let desc_addr = &raw mut device_attach_desc as *mut kobjop_desc;
         let func = Self::get_interface_fn(driver, desc_addr);
         unsafe { transmute(func) }
     }
     fn get_detach_fn(driver: *mut Self) -> device_detach_t {
         // The desc is a function in the test binary so `as` is needd to convert it to a pointer
-        let desc_addr = device_detach_desc as *mut kobjop_desc;
+        let desc_addr = &raw mut device_detach_desc as *mut kobjop_desc;
         let func = Self::get_interface_fn(driver, desc_addr);
         unsafe { transmute(func) }
     }
     fn get_setup_intr_fn(driver: *mut Self) -> pic_setup_intr_t {
-        let desc_addr = pic_setup_intr_desc as *mut kobjop_desc;
+        let desc_addr = &raw mut pic_setup_intr_desc as *mut kobjop_desc;
         let func = Self::get_interface_fn(driver, desc_addr);
         unsafe { transmute(func) }
     }
