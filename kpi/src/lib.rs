@@ -120,7 +120,7 @@ macro_rules! define_stub_syms {
 mod tests;
 
 /// A result where the `Err` is always a FreeBSD [`ErrCode`]
-pub type Result<T> = core::result::Result<T, ErrCode>;
+pub type Result<T, P = ()> = core::result::Result<T, ErrCode<P>>;
 
 /// A catch-all module for miscellaneous functions
 #[allow(non_snake_case)]
@@ -294,7 +294,17 @@ macro_rules! err_codes {
         /// rust. Keep in mind that rust code understands the two extra error codes, but not all C
         /// code may treat it as an error.
         #[derive(Copy, Clone, PartialEq, Eq)]
-        pub struct ErrCode(pub(crate) NonZeroI32);
+        pub struct ErrCode<P = ()>(pub(crate) NonZeroI32, pub(crate) Option<P>);
+
+        impl<P> ErrCode<P> {
+            pub fn take_payload(&mut self) -> Option<P> {
+                self.1.take()
+            }
+
+            pub fn with_payload(rc: ErrCode, payload: P) -> Self {
+                Self(rc.0, Some(payload))
+            }
+        }
 
         #[doc(hidden)]
         pub mod err_codes {
@@ -307,10 +317,10 @@ macro_rules! err_codes {
                 $(assert!(bindings::$name != i32::MIN);)*
                 $(assert!(bindings::$name != i32::MIN + 1);)*
             };
-            $(pub const $name: ErrCode = ErrCode(NonZeroI32::new(bindings::$name).unwrap());)*
+            $(pub const $name: ErrCode = ErrCode(NonZeroI32::new(bindings::$name).unwrap(), None);)*
             // TODO: make overlap checking less error-prone before adding more KPI crate errors
-            pub const ENULLPTR: ErrCode = ErrCode(NonZeroI32::new(i32::MIN).unwrap());
-            pub const EBADFFI: ErrCode = ErrCode(NonZeroI32::new(i32::MIN + 1).unwrap());
+            pub const ENULLPTR: ErrCode = ErrCode(NonZeroI32::new(i32::MIN).unwrap(), None);
+            pub const EBADFFI: ErrCode = ErrCode(NonZeroI32::new(i32::MIN + 1).unwrap(), None);
         }
 
         impl AsCType<c_int> for () {
