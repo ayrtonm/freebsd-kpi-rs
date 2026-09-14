@@ -34,6 +34,7 @@ use core::cell::UnsafeCell;
 use core::fmt::{Debug, Formatter};
 use core::mem::{MaybeUninit, forget};
 use core::ops::Deref;
+use crate::ErrCode;
 use core::pin::Pin;
 use core::ptr::NonNull;
 use core::sync::atomic::{AtomicUsize, Ordering};
@@ -383,6 +384,19 @@ impl<T> LeaseSlot<T> {
             lease: UnsafeCell::new(MaybeUninit::uninit()),
             state: AtomicUsize::new(UNINIT),
         }
+    }
+
+    /// Sets the leased value, returning `Err(lease)` if already initialized or revoked.
+    pub fn try_init(&self, lease: Lease<T>) -> Result<(), Lease<T>> {
+        if self
+            .state
+            .compare_exchange(UNINIT, 0, Ordering::AcqRel, Ordering::Acquire)
+            .is_err()
+        {
+            return Err(ErrCode::with_payload(EDOOFUS, lease));
+        }
+        unsafe { (*self.lease.get()).write(lease) };
+        Ok(())
     }
 
     /// Sets the leased value.
