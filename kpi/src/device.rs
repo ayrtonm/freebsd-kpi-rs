@@ -29,7 +29,7 @@
 use crate::bindings::{_device, device_state_t, device_t, driver_t, kobjop_desc};
 use crate::boxed::Box;
 use crate::driver::Driver;
-use crate::ffi::{ArrayCString, Loan, Lease, SoftcLayout, Uninit};
+use crate::ffi::{ArrayCString, Lease, Loan, SoftcLayout, Uninit};
 use crate::kobj::{AsCType, AsRustType, rust_driver_marker_desc};
 use crate::prelude::*;
 use crate::vec::Vec;
@@ -518,7 +518,8 @@ mod tests {
     impl AnotherDriver {
         fn get_stashed_softc(dev: Device) {
             let test_driver_dev = STASHED_DEVICE.load(Ordering::Relaxed);
-            let test_driver_sc = unsafe { device_get_softc_unchecked::<TestDriver>(test_driver_dev) };
+            let test_driver_sc =
+                unsafe { device_get_softc_unchecked::<TestDriver>(test_driver_dev) };
             let another_driver_sc = device_get_softc::<Self>(dev);
         }
     }

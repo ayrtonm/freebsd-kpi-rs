@@ -36,7 +36,7 @@ use crate::misc::Thread;
 use crate::prelude::*;
 use core::ffi::{CStr, c_int, c_void};
 use core::marker::PhantomData;
-use core::ptr::{drop_in_place, NonNull};
+use core::ptr::{NonNull, drop_in_place};
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
@@ -247,7 +247,10 @@ pub mod wrappers {
         let last = unsafe { bindings::refcount_release(count_ptr) };
         if !last {
             let num_refs = unsafe { bindings::refcount_load(count_ptr) };
-            panic!("tried to destroy cdev with {} outstanding softc leases", num_refs);
+            panic!(
+                "tried to destroy cdev with {} outstanding softc leases",
+                num_refs
+            );
         }
         unsafe { drop_in_place(sc_ptr) };
         unsafe { free(sc_ptr.cast::<c_void>(), mtype) };

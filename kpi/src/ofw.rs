@@ -27,7 +27,7 @@
  */
 
 use crate::ErrCode;
-use crate::bindings::{ofw_compat_data, phandle_t, device_t};
+use crate::bindings::{device_t, ofw_compat_data, phandle_t};
 use crate::collections::Pod;
 use crate::device::Device;
 use crate::kobj::AsRustType;
