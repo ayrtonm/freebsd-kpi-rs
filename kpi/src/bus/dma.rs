@@ -31,13 +31,13 @@ use crate::bindings::{
     bus_addr_t, bus_dma_lock_t, bus_dma_segment_t, bus_dma_tag_t, bus_dmamap, bus_size_t,
 };
 use crate::device::Device;
-use crate::ffi::{Ptr, Lease};
+use crate::ffi::{Lease, Ptr};
 use crate::prelude::*;
+use core::any::TypeId;
 use core::ffi::{c_int, c_void};
 use core::mem::transmute;
 use core::ops::{BitOr, Range};
 use core::ptr::null_mut;
-use core::any::TypeId;
 
 // This callback is invoked once per registration so just recreate the Lease and let the callback drop it.
 pub type BusDmaMapFn<T> = extern "C" fn(Lease<T>, &bus_dma_segment_t, i32, i32);

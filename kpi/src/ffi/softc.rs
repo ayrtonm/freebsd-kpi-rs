@@ -26,7 +26,8 @@
  * SUCH DAMAGE.
  */
 
-use crate::bindings::{cdev, device_t, _device, u_int};
+use crate::ErrCode;
+use crate::bindings::{_device, cdev, device_t, u_int};
 use crate::cdev::CDev;
 use crate::device::Device;
 use crate::prelude::*;
@@ -113,7 +114,10 @@ impl<T> SoftcLayout<T> {
 pub struct Uninit<'a, T>(&'a mut MaybeUninit<SoftcLayout<T>>, Option<&'a mut bool>);
 
 impl<'a, T> Uninit<'a, T> {
-    pub(crate) unsafe fn from_raw(sc_ref: &'a mut MaybeUninit<SoftcLayout<T>>, dev: device_t) -> Self {
+    pub(crate) unsafe fn from_raw(
+        sc_ref: &'a mut MaybeUninit<SoftcLayout<T>>,
+        dev: device_t,
+    ) -> Self {
         // Get a pointer to the SoftcLayout on the heap from the MaybeUninit<SoftcLayout<T>> reference
         let sc_ptr: *mut SoftcLayout<T> = sc_ref.as_mut_ptr();
         // SAFETY: Since the softc has not been initialized we can't create a mutable reference to
@@ -150,7 +154,7 @@ impl<'a, T> Uninit<'a, T> {
             Some(nonnull_dev) => {
                 // SAFETY: The lifetime of the Device matches the Uninit borrow
                 unsafe { Device::new_unchecked(nonnull_dev.as_ptr()) }
-            },
+            }
             None => unreachable!(),
         }
     }
@@ -160,7 +164,6 @@ impl<'a, T> Uninit<'a, T> {
     pub fn device_as_static(&self) -> Result<Device<'static>> {
         self.device().as_static()
     }
-
 
     /// Initialize the softc to `t` and return a Loan<T> pointer.
     ///

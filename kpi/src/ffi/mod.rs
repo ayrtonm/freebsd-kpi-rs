@@ -31,11 +31,10 @@
 use crate::boxed::Box;
 use crate::malloc::Malloc;
 use crate::sync::arc::Arc;
-use core::fmt;
 use core::fmt::{Debug, Formatter};
 use core::pin::Pin;
-use core::ptr;
 use core::ptr::null_mut;
+use core::{fmt, ptr};
 
 mod cstring;
 mod softc;
