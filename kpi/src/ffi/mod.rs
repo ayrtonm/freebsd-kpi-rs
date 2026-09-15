@@ -38,11 +38,11 @@ use core::ptr;
 use core::ptr::null_mut;
 
 mod cstring;
-mod lease;
+mod softc;
 mod subclass;
 
 pub use cstring::{ArrayCString, CString, ToArrayCString};
-pub use lease::{Lease, LeaseSlot, Loan, LoanLayout, Uninit};
+pub use softc::{Lease, LeaseSlot, Loan, LoanLayout, Uninit};
 pub use subclass::{SubClass, SubClassOf};
 
 /// A pointer type implementing `Sync`.
