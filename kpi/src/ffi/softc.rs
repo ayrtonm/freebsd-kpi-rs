@@ -330,6 +330,10 @@ impl<T> Lease<T> {
         forget(lease);
         (t_ptr, count_ptr)
     }
+
+    pub unsafe fn from_raw(ptr: *mut T) -> Self {
+        Self(NonNull::new(ptr.cast::<LoanLayout<T>>()).unwrap())
+    }
 }
 
 impl<T> Drop for Lease<T> {
