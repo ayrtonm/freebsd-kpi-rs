@@ -29,7 +29,7 @@
 use crate::bindings::cdev;
 use crate::boxed::Box;
 use crate::define_interface;
-use crate::ffi::{Lease, Loan, LoanLayout};
+use crate::ffi::{Lease, Loan, SoftcLayout};
 use crate::kobj::AsRustType;
 use crate::malloc::{Malloc, MallocType};
 use crate::misc::Thread;
@@ -84,7 +84,7 @@ pub struct MakeDevArgs<T, M: Malloc> {
     pub gid: i32,
     pub mode: i32,
     pub name: &'static CStr,
-    sc: Box<LoanLayout<T>, M>,
+    sc: Box<SoftcLayout<T>, M>,
     size: usize,
     cdevsw_ptr: *mut bindings::cdevsw,
 }
@@ -140,7 +140,7 @@ impl<'a, T> AsRustType<'a, Loan<'a, T>, T> for *mut cdev {
     fn as_rust_type(&'a self) -> Loan<'a, T> {
         let dev = *self;
         let sc_ptr = unsafe { (*dev).si_drv1 };
-        let res = unsafe { sc_ptr.cast::<LoanLayout<T>>().as_ref().unwrap() };
+        let res = unsafe { sc_ptr.cast::<SoftcLayout<T>>().as_ref().unwrap() };
         unsafe { Loan::from_raw(res) }
     }
 }
@@ -187,14 +187,14 @@ pub mod wrappers {
 
     // TODO: This doesn't support the use case where a device driver shares a softc with the char
     // driver (e.g. see dev/hid/hidraw.c). This should probably take a Lease<T> instead to easily
-    // support both cases. If LoanLayout becomes pub(crate) then I would need to expose some way to
+    // support both cases. If SoftcLayout becomes pub(crate) then I would need to expose some way to
     // create it for the case seen in echodev. Lease::new(t, M_WAITOK) could work but I need to take
     // care when piping the optional malloc args from the Lease/softc to the make_dev_args struct
     // and decide how to store it in the cdev
     /// Initializes a [`MakeDevArgs`] for the given cdevsw (as declared by
     /// [`define_cdev!`][crate::define_cdev]), taking ownership of the boxed softc.
     pub fn make_dev_args_init<D: CDevSw, M: Malloc>(
-        sc: Box<LoanLayout<D::Softc>, M>,
+        sc: Box<SoftcLayout<D::Softc>, M>,
         dev: &'static D,
     ) -> MakeDevArgs<D::Softc, M> {
         MakeDevArgs {
@@ -213,12 +213,12 @@ pub mod wrappers {
     pub fn make_dev_s<T: 'static, M: Malloc>(args: MakeDevArgs<T, M>) -> Result<Lease<T>> {
         let mut outp = null_mut();
         let (mut args_raw, name) = args.into_raw();
-        let sc_ptr = args_raw.mda_si_drv1.cast::<LoanLayout<T>>();
+        let sc_ptr = args_raw.mda_si_drv1.cast::<SoftcLayout<T>>();
         let res = unsafe { bindings::make_dev_s(&raw mut args_raw, &raw mut outp, name.as_ptr()) };
         if res != 0 {
             // Reclaim the boxed softc that into_raw moved into mda_si_drv1 so it is dropped
             // and freed.
-            drop(unsafe { Box::<LoanLayout<T>, M>::from_raw(sc_ptr) });
+            drop(unsafe { Box::<SoftcLayout<T>, M>::from_raw(sc_ptr) });
             return Err(ErrCode::from(res));
         }
         // TODO: How would this work if the softc that was passed in belonged to a Device? Owner may

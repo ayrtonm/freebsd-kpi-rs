@@ -40,7 +40,7 @@ use core::ptr::NonNull;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use core::{fmt, ptr};
 
-/// Defines the layout that Loan and Lease point to.
+/// The layout of the softc that Loan and Lease point to.
 ///
 /// This determines the memory layout of all driver and char device softc managed by rust drivers.
 /// It uses repr(C) and the driver-defined T is intentionally placed first to allow using rust
@@ -50,7 +50,7 @@ use core::{fmt, ptr};
 /// to users so it's marked as doc(hidden).
 #[doc(hidden)]
 #[repr(C)]
-pub struct LoanLayout<T> {
+pub struct SoftcLayout<T> {
     // This is the softc type specified by a driver or char device. It must be first to support
     // subclass drivers. Note there may be padding between the end of the softc to ensure the next
     // field is aligned to 8 bytes.
@@ -65,8 +65,8 @@ pub struct LoanLayout<T> {
     count: UnsafeCell<u_int>,
 }
 
-impl<T> LoanLayout<T> {
-    // TODO: This is only pub to suport the echodev demo. Ideally LoanLayout would not be exposed
+impl<T> SoftcLayout<T> {
+    // TODO: This is only pub to suport the echodev demo. Ideally SoftcLayout would not be exposed
     // outside this crate at all.
     pub fn new(t: T) -> Self {
         let mut res = Self {
@@ -86,7 +86,7 @@ impl<T> LoanLayout<T> {
         self.cdev = Some(NonNull::new(dev).unwrap());
     }
 
-    /// Panics if this `LoanLayout` is not attached to a cdev.
+    /// Panics if this `SoftcLayout` is not attached to a cdev.
     pub fn cdev(&self) -> *mut cdev {
         match self.cdev {
             Some(nonnull_cdev) => nonnull_cdev.as_ptr(),
@@ -94,7 +94,7 @@ impl<T> LoanLayout<T> {
         }
     }
 
-    /// Panics if this `LoanLayout` is not attached to a device_t.
+    /// Panics if this `SoftcLayout` is not attached to a device_t.
     pub fn device(&self) -> device_t {
         match self.dev {
             Some(nonnull_dev) => nonnull_dev.as_ptr(),
@@ -111,12 +111,12 @@ impl<T> LoanLayout<T> {
 /// The second field is wrapped in Option rather than just &mut bool because Uninit is created from
 /// an AsRustType impl which cannot grab references to locals on the stack frame of device_attach.
 /// This kludge means that the glue code must call set_init_flag before handing it off to a driver.
-pub struct Uninit<'a, T>(&'a mut MaybeUninit<LoanLayout<T>>, Option<&'a mut bool>);
+pub struct Uninit<'a, T>(&'a mut MaybeUninit<SoftcLayout<T>>, Option<&'a mut bool>);
 
 impl<'a, T> Uninit<'a, T> {
-    pub(crate) unsafe fn from_raw(sc_ref: &'a mut MaybeUninit<LoanLayout<T>>, dev: device_t) -> Self {
-        // Get a pointer to the LoanLayout on the heap from the MaybeUninit<LoanLayout<T>> reference
-        let sc_ptr: *mut LoanLayout<T> = sc_ref.as_mut_ptr();
+    pub(crate) unsafe fn from_raw(sc_ref: &'a mut MaybeUninit<SoftcLayout<T>>, dev: device_t) -> Self {
+        // Get a pointer to the SoftcLayout on the heap from the MaybeUninit<SoftcLayout<T>> reference
+        let sc_ptr: *mut SoftcLayout<T> = sc_ref.as_mut_ptr();
         // SAFETY: Since the softc has not been initialized we can't create a mutable reference to
         // the entire thing. Instead we'll just write directly to the fields that need to be set
         // here. An unsynchronized write is safe here since there are it has no aliases (the ptr arg
@@ -126,7 +126,7 @@ impl<'a, T> Uninit<'a, T> {
             // If a softc has both a device_t and a cdev pointer, the device_t is always initialized
             // first since newbus allocates the device softc. That means there should be no case
             // where this was already initialized to Some. We have to initialize it to soundly
-            // create references to the entire LoanLayout so None is the correct value here.
+            // create references to the entire SoftcLayout so None is the correct value here.
             (*sc_ptr).cdev = None;
         }
         Self(sc_ref, None)
@@ -142,9 +142,9 @@ impl<'a, T> Uninit<'a, T> {
     }
 
     pub fn device(&self) -> Device<'_> {
-        // We still can't make a reference to the entire LoanLayout<T> so calling LoanLayout::device
+        // We still can't make a reference to the entire SoftcLayout<T> so calling SoftcLayout::device
         // is not an option to get a device_t.
-        let sc_ptr: *const LoanLayout<T> = self.0.as_ptr();
+        let sc_ptr: *const SoftcLayout<T> = self.0.as_ptr();
         // SAFETY: `dev` was initialized in `from_raw`.
         let dev = unsafe { (*sc_ptr).dev };
         match dev {
@@ -170,7 +170,7 @@ impl<'a, T> Uninit<'a, T> {
     /// frame so in practical terms this means that trying to stash the Loan in a global or
     /// equivalent (e.g. another softc) is a compile-time error.
     pub fn init(self, t: T) -> Loan<'a, T> {
-        // Get a pointer to the LoanLayout on the heap from the MaybeUninit<LoanLayout<T>> reference
+        // Get a pointer to the SoftcLayout on the heap from the MaybeUninit<SoftcLayout<T>> reference
         let sc_ptr = self.0.as_mut_ptr();
 
         unsafe {
@@ -210,7 +210,7 @@ impl<'a, T> Uninit<'a, T> {
 /// otherwise the KPI glue will panic when it tries to free the softc. In practical terms this means
 /// if a callback was registered with a Lease, the corresponding unregister function must be called.
 #[repr(C)]
-pub struct Loan<'a, T: 'static>(&'a LoanLayout<T>);
+pub struct Loan<'a, T: 'static>(&'a SoftcLayout<T>);
 
 impl<'a, T> Loan<'a, T> {
     // Only intended to be used by the proj! macro.
@@ -223,7 +223,7 @@ impl<'a, T> Loan<'a, T> {
     }
 
     // TODO: document safety reqs (on heap, anything else?)
-    pub unsafe fn from_raw(ptr: &'a LoanLayout<T>) -> Self {
+    pub unsafe fn from_raw(ptr: &'a SoftcLayout<T>) -> Self {
         Self(ptr)
     }
 
@@ -278,7 +278,7 @@ impl<'a, T> Deref for Loan<'a, T> {
 }
 
 #[repr(C)]
-pub struct Lease<T: 'static>(pub(crate) NonNull<LoanLayout<T>>);
+pub struct Lease<T: 'static>(pub(crate) NonNull<SoftcLayout<T>>);
 
 impl<T> Lease<T> {
     pub unsafe fn map_unchecked<U: ?Sized, F>(&self, f: F) -> Pin<&U>
@@ -333,7 +333,7 @@ impl<T> Lease<T> {
     }
 
     pub unsafe fn from_raw(ptr: *mut T) -> Self {
-        Self(NonNull::new(ptr.cast::<LoanLayout<T>>()).unwrap())
+        Self(NonNull::new(ptr.cast::<SoftcLayout<T>>()).unwrap())
     }
 }
 

@@ -42,7 +42,7 @@ mod softc;
 mod subclass;
 
 pub use cstring::{ArrayCString, CString, ToArrayCString};
-pub use softc::{Lease, LeaseSlot, Loan, LoanLayout, Uninit};
+pub use softc::{Lease, LeaseSlot, Loan, SoftcLayout, Uninit};
 pub use subclass::{SubClass, SubClassOf};
 
 /// A pointer type implementing `Sync`.
