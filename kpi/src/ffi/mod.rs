@@ -38,7 +38,7 @@ mod softc;
 mod subclass;
 
 pub use cstring::{ArrayCString, CString, ToArrayCString};
-pub use softc::{Ptr, PtrSlot, Ref, SoftcLayout, UninitPtr};
+pub use softc::{Ptr, Ref, SoftcLayout, UninitPtr};
 pub use subclass::{SubClass, SubClassOf};
 
 pub unsafe trait FixedIndex {}

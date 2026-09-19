@@ -16,7 +16,7 @@ use core::sync::atomic::{AtomicPtr, Ordering};
 use kpi::ErrCode;
 use kpi::boxed::Box;
 use kpi::cdev::{CDevSw, MakeDevArgs, UioRef};
-use kpi::ffi::{Ptr, PtrSlot, Ref, RefLayout};
+use kpi::ffi::{Ptr, Ref, SoftcLayout};
 use kpi::misc::Thread;
 use kpi::module::Module;
 use kpi::sync::Checked;
@@ -175,21 +175,21 @@ impl CDevSw for EchoDev {
 
 // A global variable where we can store a pointer to the cdev softc. This is what make_dev_s returns
 // when loading the module and what we'll use to destroy the cdev when unloading the module.
-static ECHODEV: PtrSlot<EchoDevSoftc> = PtrSlot::uninit();
+static ECHODEV: Checked<Option<Ptr<EchoDevSoftc>>> = Checked::new(None);
 
 impl Module for EchoDev {
     fn on_load(data: *mut c_void) -> Result<()> {
-        // Allocate the softc on the heap. We use RefLayout::new instead of just the softc type
-        // because make_dev_args_init requires a RefLayout<T> where T is the softc in the CDevSw
-        // trait impl. This Box<RefLayout<EchoDevSoftc>> is ABI-compatible with a `void *`
-        let mut sc: Box<_, M_DEVBUF> = Box::new(RefLayout::new(EchoDevSoftc::default()), M_WAITOK);
+        // Allocate the softc on the heap. We use SoftcLayout::new instead of just the softc type
+        // because make_dev_args_init requires a SoftcLayout<T> where T is the softc in the CDevSw
+        // trait impl. This Box<SoftcLayout<EchoDevSoftc>> is ABI-compatible with a `void *`
+        let mut sc: Box<_, M_DEVBUF> = Box::new(SoftcLayout::new(EchoDevSoftc::default()), M_WAITOK);
 
         // We haven't passed the pointer anywhere and Box<T> provides mutable access to T so we can
         // mutate it at this point. Even though rust uses `.` for field accesses via pointers, this
         // mutates the softc on the heap. So it'd be equivalent to something like
         // `sc->inner.state...` in C.
         //
-        // `inner` is the only public field on RefLayout<T> and it gives us access to the T.
+        // `inner` is the only public field on SoftcLayout<T> and it gives us access to the T.
         //
         // `state` is the `SxLock` in `EchoDevSoftc` and its `.get_mut()` gives us mutable access to
         // its data making us grab the lock. It's ok to skip grabbing the lock here because the Box
@@ -235,7 +235,6 @@ impl Module for EchoDev {
         // itself runs its drop implementation.
         //
         // Normally make_dev_s returns an out-pointer for the new cdev, but here it returns a
-        // pointer to the softc. The counter in the RefLayout<EchoDevSoftc> is initialized to 2.
         // One for the FFI glue and another for the pointer returned here. To access the cdev
         // pointer itself we can call the `.cdev()` method on any `Ptr<T>` or `Ref<T>`. This
         // returns a `CDev` type which has a lifetime tied to the `Ref`/`Ptr`.
@@ -250,13 +249,13 @@ impl Module for EchoDev {
         // If we want to eventually destroy the character device we need to pass some
         // Ptr<EchoDevSoftc> to destroy_dev. To make sure we can do that let's stash this pointer
         // in the static ECHODEV which is a slot that can hold a Ptr.
-        ECHODEV.init(sc);
+        *ECHODEV.get_mut() = Some(sc);
         Ok(())
     }
 
     fn on_unload(data: *mut c_void) -> Result<()> {
         // Take the lease we previously stored in ECHODEV out of the slot.
-        let sc = ECHODEV.take();
+        let sc = ECHODEV.get_mut().take().unwrap();
         // Give ownership of the Ptr to destroy_dev. This will wait for all cdevsw operations to
         // stop, check that there are no other remaining leases to the softc and finally drop
         // (read: deallocate) the softc memory. If any cdevsw operation created a new lease (e.g. to

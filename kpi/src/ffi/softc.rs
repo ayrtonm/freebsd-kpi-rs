@@ -36,7 +36,6 @@ use core::mem::{MaybeUninit, forget};
 use core::ops::Deref;
 use core::pin::Pin;
 use core::ptr::NonNull;
-use core::sync::atomic::{AtomicUsize, Ordering};
 use core::{fmt, ptr};
 
 /// The layout of the softc that Ref and Ptr point to.
@@ -53,7 +52,7 @@ pub struct SoftcLayout<T> {
     // This is the softc type specified by a driver or char device. It must be first to support
     // subclass drivers. Note there may be padding between the end of the softc to ensure the next
     // field is aligned to 8 bytes.
-    inner: T,
+    pub inner: T,
     // The type in these Option<T>s must be non-null so NULL is used as a niche value to represent
     // None. That means the following two fields are each the size of void*.
     dev: Option<NonNull<_device>>,
@@ -357,140 +356,6 @@ impl<T> Deref for Ptr<T> {
         unsafe { &self.0.as_ref().inner }
     }
 }
-const UNINIT: usize = usize::MAX;
-const REVOKED: usize = usize::MAX - 1;
 
-/// A `Ptr<T>` that can be revoked
-///
-/// This is narrower than a general reader-writer lock: the only value ever stored is a
-/// `Ptr<T>`, it is set at most once via [`init`][Self::init], read any number of times
-/// concurrently via [`get`][Self::get], and released at most once via [`revoke`][Self::revoke].
-/// `revoke` does not block waiting for readers to finish — it panics if called while any
-/// [`PtrGuard`] is still outstanding.
-pub struct PtrSlot<T: 'static> {
-    lease: UnsafeCell<MaybeUninit<Ptr<T>>>,
-    // UNINIT = never initialized, REVOKED = permanently emptied, otherwise the number of
-    // outstanding `PtrGuard`s (0 meaning initialized with no active readers).
-    state: AtomicUsize,
-}
-
-unsafe impl<T: Sync> Sync for PtrSlot<T> {}
-unsafe impl<T: Sync + Send> Send for PtrSlot<T> {}
-
-impl<T> Default for PtrSlot<T> {
-    fn default() -> Self {
-        PtrSlot::uninit()
-    }
-}
-
-impl<T> PtrSlot<T> {
-    pub const fn uninit() -> Self {
-        Self {
-            lease: UnsafeCell::new(MaybeUninit::uninit()),
-            state: AtomicUsize::new(UNINIT),
-        }
-    }
-
-    /// Sets the leased value.
-    ///
-    /// Panics if called more than once.
-    pub fn init(&self, lease: Ptr<T>) {
-        if self
-            .state
-            .compare_exchange(UNINIT, 0, Ordering::AcqRel, Ordering::Acquire)
-            .is_err()
-        {
-            panic!("PtrSlot already initialized");
-        }
-        unsafe { (*self.lease.get()).write(lease) };
-    }
-
-    /// Borrows the leased value.
-    ///
-    /// Panics if it hasn't been initialized yet or has already been revoked.
-    pub fn get(&self) -> PtrGuard<'_, T> {
-        self.try_get()
-            .expect("PtrSlot not initialized or already revoked")
-    }
-
-    /// Borrows the leased value, returning `None` if uninit or revoked.
-    pub fn try_get(&self) -> Option<PtrGuard<'_, T>> {
-        loop {
-            let cur = self.state.load(Ordering::Acquire);
-            if cur == UNINIT || cur == REVOKED {
-                return None;
-            }
-            if self
-                .state
-                .compare_exchange_weak(cur, cur + 1, Ordering::AcqRel, Ordering::Acquire)
-                .is_ok()
-            {
-                let lease = unsafe { (*self.lease.get()).assume_init_ref() };
-                return Some(PtrGuard {
-                    lease,
-                    state: &self.state,
-                });
-            }
-        }
-    }
-
-    /// Drops the leased value, releasing its refcount.
-    ///
-    /// Panics if it isn't currently initialized with zero outstanding readers (i.e. if called
-    /// before `init`, more than once, or while a [`PtrGuard`] is still alive).
-    pub fn clear(&self) {
-        drop(self.take());
-    }
-
-    /// Takes the leased value out of the slot, transferring ownership to the caller.
-    ///
-    /// Panics if it isn't currently initialized with zero outstanding readers (i.e. if called
-    /// before `init`, more than once, or while a [`PtrGuard`] is still alive).
-    pub fn take(&self) -> Ptr<T> {
-        if self
-            .state
-            .compare_exchange(0, REVOKED, Ordering::AcqRel, Ordering::Acquire)
-            .is_err()
-        {
-            panic!(
-                "PtrSlot: cannot revoke -- not initialized, already revoked, or readers active"
-            );
-        }
-        // The successful CAS above guarantees exclusive access: no guards are outstanding and
-        // `get` can never hand out a new reference once REVOKED is published.
-        unsafe { (*self.lease.get()).assume_init_read() }
-    }
-}
-
-pub struct PtrGuard<'a, T: 'static> {
-    lease: &'a Ptr<T>,
-    state: &'a AtomicUsize,
-}
-
-impl<'a, T: 'static> PtrGuard<'a, T> {
-    pub fn lease(&self) -> Ptr<T> {
-        self.lease.lease()
-    }
-
-    pub fn device(&self) -> Device<'_> {
-        self.lease.device()
-    }
-
-    pub fn cdev(&self) -> CDev<'_> {
-        self.lease.cdev()
-    }
-}
-
-impl<'a, T: 'static> Deref for PtrGuard<'a, T> {
-    type Target = T;
-
-    fn deref(&self) -> &T {
-        self.lease.deref()
-    }
-}
-
-impl<'a, T> Drop for PtrGuard<'a, T> {
-    fn drop(&mut self) {
-        self.state.fetch_sub(1, Ordering::Release);
-    }
-}
+unsafe impl<T: Sync + Send> Sync for Ptr<T> {}
+unsafe impl<T: Sync + Send> Send for Ptr<T> {}
