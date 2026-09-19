@@ -40,7 +40,7 @@ use core::ptr::NonNull;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use core::{fmt, ptr};
 
-/// The layout of the softc that Ref and Lease point to.
+/// The layout of the softc that Ref and Ptr point to.
 ///
 /// This determines the memory layout of all driver and char device softc managed by rust drivers.
 /// It uses repr(C) and the driver-defined T is intentionally placed first to allow using rust
@@ -205,12 +205,12 @@ impl<'a, T> UninitPtr<'a, T> {
 /// that the pointee will not be freed for the duration of the function being called. However, if a
 /// softc is passed as a callback argument to a safe rust function there must be some way to ensure
 /// the callback won't access the softc after it's freed. To do this the `sc.lease()` can be used to
-/// create a Lease<T> pointer to the same softc. Like Arc<T> in the standard library, this
+/// create a Ptr<T> pointer to the same softc. Like Arc<T> in the standard library, this
 /// increments a refcount embedded in the softc and dropping it decrements the refcount. Unlike
 /// Arc<T> the refcount cannot be used to extend the lifetime of the softc past device_detach or
-/// destroy_dev. The caller is responsible for dropping all Lease<T>s created before that point
+/// destroy_dev. The caller is responsible for dropping all Ptr<T>s created before that point
 /// otherwise the KPI glue will panic when it tries to free the softc. In practical terms this means
-/// if a callback was registered with a Lease, the corresponding unregister function must be called.
+/// if a callback was registered with a Ptr, the corresponding unregister function must be called.
 #[repr(C)]
 pub struct Ref<'a, T: 'static>(&'a SoftcLayout<T>);
 
@@ -246,14 +246,14 @@ impl<'a, T> Ref<'a, T> {
         unsafe { CDev::new_unchecked(self.0.cdev()) }
     }
 
-    /// Increments the refcount and returns a new Lease<T> pointing to the softc.
+    /// Increments the refcount and returns a new Ptr<T> pointing to the softc.
     ///
-    /// Dropping the Lease<T> decrements the refcount
-    pub fn lease(&self) -> Lease<T> {
+    /// Dropping the Ptr<T> decrements the refcount
+    pub fn lease(&self) -> Ptr<T> {
         let inner_ptr = ptr::from_ref(self.0).cast_mut();
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
         unsafe { bindings::refcount_acquire(count_ptr) };
-        Lease(NonNull::from_ref(self.0))
+        Ptr(NonNull::from_ref(self.0))
     }
 }
 
@@ -280,9 +280,9 @@ impl<'a, T> Deref for Ref<'a, T> {
 }
 
 #[repr(C)]
-pub struct Lease<T: 'static>(pub(crate) NonNull<SoftcLayout<T>>);
+pub struct Ptr<T: 'static>(pub(crate) NonNull<SoftcLayout<T>>);
 
-impl<T> Lease<T> {
+impl<T> Ptr<T> {
     pub unsafe fn map_unchecked<U: ?Sized, F>(&self, f: F) -> Pin<&U>
     where
         F: FnOnce(&T) -> &U,
@@ -292,33 +292,33 @@ impl<T> Lease<T> {
 
     /// Get a Device that owns the softc.
     ///
-    /// The Device may only be used for the lifetime of the Lease. Attempting to use it after
-    /// passing on ownership of the Lease somewhere else is a compile-time error. Calling this on a
+    /// The Device may only be used for the lifetime of the Ptr. Attempting to use it after
+    /// passing on ownership of the Ptr somewhere else is a compile-time error. Calling this on a
     /// softc owned by a char device will panic.
     pub fn device(&self) -> Device<'_> {
         // SAFETY: The pointee is freed in device_detach, but the KPI glue for it panics if there is
-        // an outstanding softc Lease when it's ready to free it. The return value lifetime is tied
-        // to the Lease borrow.
+        // an outstanding softc Ptr when it's ready to free it. The return value lifetime is tied
+        // to the Ptr borrow.
         let dev_ptr = unsafe { self.0.as_ref().device() };
-        // SAFETY: The lifetime of the return value is tied to the Lease borrow (&self)
+        // SAFETY: The lifetime of the return value is tied to the Ptr borrow (&self)
         unsafe { Device::new_unchecked(dev_ptr) }
     }
 
     /// Get a CDev that owns the softc.
     ///
-    /// The CDev may only be used for the lifetime of the Lease. Attempting to use it after
-    /// passing on ownership of the Lease somewhere else is a compile-time error. Calling this on a
+    /// The CDev may only be used for the lifetime of the Ptr. Attempting to use it after
+    /// passing on ownership of the Ptr somewhere else is a compile-time error. Calling this on a
     /// softc owned by a device driver will panic.
     pub fn cdev(&self) -> CDev<'_> {
         // SAFETY: The pointee is freed in device_detach, but the KPI glue for it panics if there is
-        // an outstanding softc Lease when it's ready to free it. The return value lifetime is tied
-        // to the Lease borrow.
+        // an outstanding softc Ptr when it's ready to free it. The return value lifetime is tied
+        // to the Ptr borrow.
         unsafe { CDev::new_unchecked(self.0.as_ref().cdev()) }
     }
 
     pub fn lease(&self) -> Self {
         // SAFETY: The pointee is freed in device_detach, but the KPI glue for it panics if there is
-        // an outstanding softc Lease when it's ready to free it.
+        // an outstanding softc Ptr when it's ready to free it.
         Ref(unsafe { self.0.as_ref() }).lease()
     }
 
@@ -339,7 +339,7 @@ impl<T> Lease<T> {
     }
 }
 
-impl<T> Drop for Lease<T> {
+impl<T> Drop for Ptr<T> {
     fn drop(&mut self) {
         let inner_ptr = self.0.as_ptr();
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
@@ -348,43 +348,43 @@ impl<T> Drop for Lease<T> {
     }
 }
 
-impl<T> Deref for Lease<T> {
+impl<T> Deref for Ptr<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
         // SAFETY: The pointee is freed in device_detach, but the KPI glue for it panics if there is
-        // an outstanding softc Lease when it's ready to free it. The return value lifetime is tied
-        // to the Lease borrow.
+        // an outstanding softc Ptr when it's ready to free it. The return value lifetime is tied
+        // to the Ptr borrow.
         unsafe { &self.0.as_ref().inner }
     }
 }
 const UNINIT: usize = usize::MAX;
 const REVOKED: usize = usize::MAX - 1;
 
-/// A `Lease<T>` that can be revoked
+/// A `Ptr<T>` that can be revoked
 ///
 /// This is narrower than a general reader-writer lock: the only value ever stored is a
-/// `Lease<T>`, it is set at most once via [`init`][Self::init], read any number of times
+/// `Ptr<T>`, it is set at most once via [`init`][Self::init], read any number of times
 /// concurrently via [`get`][Self::get], and released at most once via [`revoke`][Self::revoke].
 /// `revoke` does not block waiting for readers to finish — it panics if called while any
-/// [`LeaseGuard`] is still outstanding.
-pub struct LeaseSlot<T: 'static> {
-    lease: UnsafeCell<MaybeUninit<Lease<T>>>,
+/// [`PtrGuard`] is still outstanding.
+pub struct PtrSlot<T: 'static> {
+    lease: UnsafeCell<MaybeUninit<Ptr<T>>>,
     // UNINIT = never initialized, REVOKED = permanently emptied, otherwise the number of
-    // outstanding `LeaseGuard`s (0 meaning initialized with no active readers).
+    // outstanding `PtrGuard`s (0 meaning initialized with no active readers).
     state: AtomicUsize,
 }
 
-unsafe impl<T: Sync> Sync for LeaseSlot<T> {}
-unsafe impl<T: Sync + Send> Send for LeaseSlot<T> {}
+unsafe impl<T: Sync> Sync for PtrSlot<T> {}
+unsafe impl<T: Sync + Send> Send for PtrSlot<T> {}
 
-impl<T> Default for LeaseSlot<T> {
+impl<T> Default for PtrSlot<T> {
     fn default() -> Self {
-        LeaseSlot::uninit()
+        PtrSlot::uninit()
     }
 }
 
-impl<T> LeaseSlot<T> {
+impl<T> PtrSlot<T> {
     pub const fn uninit() -> Self {
         Self {
             lease: UnsafeCell::new(MaybeUninit::uninit()),
@@ -395,13 +395,13 @@ impl<T> LeaseSlot<T> {
     /// Sets the leased value.
     ///
     /// Panics if called more than once.
-    pub fn init(&self, lease: Lease<T>) {
+    pub fn init(&self, lease: Ptr<T>) {
         if self
             .state
             .compare_exchange(UNINIT, 0, Ordering::AcqRel, Ordering::Acquire)
             .is_err()
         {
-            panic!("LeaseSlot already initialized");
+            panic!("PtrSlot already initialized");
         }
         unsafe { (*self.lease.get()).write(lease) };
     }
@@ -409,13 +409,13 @@ impl<T> LeaseSlot<T> {
     /// Borrows the leased value.
     ///
     /// Panics if it hasn't been initialized yet or has already been revoked.
-    pub fn get(&self) -> LeaseGuard<'_, T> {
+    pub fn get(&self) -> PtrGuard<'_, T> {
         self.try_get()
-            .expect("LeaseSlot not initialized or already revoked")
+            .expect("PtrSlot not initialized or already revoked")
     }
 
     /// Borrows the leased value, returning `None` if uninit or revoked.
-    pub fn try_get(&self) -> Option<LeaseGuard<'_, T>> {
+    pub fn try_get(&self) -> Option<PtrGuard<'_, T>> {
         loop {
             let cur = self.state.load(Ordering::Acquire);
             if cur == UNINIT || cur == REVOKED {
@@ -427,7 +427,7 @@ impl<T> LeaseSlot<T> {
                 .is_ok()
             {
                 let lease = unsafe { (*self.lease.get()).assume_init_ref() };
-                return Some(LeaseGuard {
+                return Some(PtrGuard {
                     lease,
                     state: &self.state,
                 });
@@ -438,7 +438,7 @@ impl<T> LeaseSlot<T> {
     /// Drops the leased value, releasing its refcount.
     ///
     /// Panics if it isn't currently initialized with zero outstanding readers (i.e. if called
-    /// before `init`, more than once, or while a [`LeaseGuard`] is still alive).
+    /// before `init`, more than once, or while a [`PtrGuard`] is still alive).
     pub fn clear(&self) {
         drop(self.take());
     }
@@ -446,15 +446,15 @@ impl<T> LeaseSlot<T> {
     /// Takes the leased value out of the slot, transferring ownership to the caller.
     ///
     /// Panics if it isn't currently initialized with zero outstanding readers (i.e. if called
-    /// before `init`, more than once, or while a [`LeaseGuard`] is still alive).
-    pub fn take(&self) -> Lease<T> {
+    /// before `init`, more than once, or while a [`PtrGuard`] is still alive).
+    pub fn take(&self) -> Ptr<T> {
         if self
             .state
             .compare_exchange(0, REVOKED, Ordering::AcqRel, Ordering::Acquire)
             .is_err()
         {
             panic!(
-                "LeaseSlot: cannot revoke -- not initialized, already revoked, or readers active"
+                "PtrSlot: cannot revoke -- not initialized, already revoked, or readers active"
             );
         }
         // The successful CAS above guarantees exclusive access: no guards are outstanding and
@@ -463,13 +463,13 @@ impl<T> LeaseSlot<T> {
     }
 }
 
-pub struct LeaseGuard<'a, T: 'static> {
-    lease: &'a Lease<T>,
+pub struct PtrGuard<'a, T: 'static> {
+    lease: &'a Ptr<T>,
     state: &'a AtomicUsize,
 }
 
-impl<'a, T: 'static> LeaseGuard<'a, T> {
-    pub fn lease(&self) -> Lease<T> {
+impl<'a, T: 'static> PtrGuard<'a, T> {
+    pub fn lease(&self) -> Ptr<T> {
         self.lease.lease()
     }
 
@@ -482,7 +482,7 @@ impl<'a, T: 'static> LeaseGuard<'a, T> {
     }
 }
 
-impl<'a, T: 'static> Deref for LeaseGuard<'a, T> {
+impl<'a, T: 'static> Deref for PtrGuard<'a, T> {
     type Target = T;
 
     fn deref(&self) -> &T {
@@ -490,7 +490,7 @@ impl<'a, T: 'static> Deref for LeaseGuard<'a, T> {
     }
 }
 
-impl<'a, T> Drop for LeaseGuard<'a, T> {
+impl<'a, T> Drop for PtrGuard<'a, T> {
     fn drop(&mut self) {
         self.state.fetch_sub(1, Ordering::Release);
     }

@@ -29,7 +29,7 @@
 use crate::bindings::{_device, device_state_t, device_t, driver_t, kobjop_desc};
 use crate::boxed::Box;
 use crate::driver::Driver;
-use crate::ffi::{ArrayCString, Lease, Ref, SoftcLayout, UninitPtr};
+use crate::ffi::{ArrayCString, Ptr, Ref, SoftcLayout, UninitPtr};
 use crate::kobj::{AsCType, AsRustType, rust_driver_marker_desc};
 use crate::prelude::*;
 use crate::vec::Vec;
@@ -352,7 +352,7 @@ pub mod wrappers {
         unsafe { Ref::from_raw(sc_ptr) }
     }
 
-    /// Get a Lease to the softc for a device managed by a rust driver.
+    /// Get a Ptr to the softc for a device managed by a rust driver.
     ///
     /// Although this function takes the more generic device_t instead of a rust-specific Device,
     /// the device must be managed by a rust driver. If it's not an error is returned.
@@ -368,7 +368,7 @@ pub mod wrappers {
     /// no reliable way to ensure the device won't be detached while this function runs. Before
     /// returning this function gets a lease to the softc which may catch cases where the caller is
     /// racing with device_detach, but before that there is no guarantee for detachable devices.
-    pub unsafe fn device_get_softc_unchecked<D: DeviceIf>(dev_ptr: device_t) -> Lease<D::Softc> {
+    pub unsafe fn device_get_softc_unchecked<D: DeviceIf>(dev_ptr: device_t) -> Ptr<D::Softc> {
         assert!(!dev_ptr.is_null());
         // Required to let this function return a Ref
         // SAFETY: Safety requirements delegated to caller
@@ -378,7 +378,7 @@ pub mod wrappers {
 
         let sc = device_get_softc::<D>(dev);
 
-        // If device_detach runs after this point it will panic if this Lease hasn't been dropped
+        // If device_detach runs after this point it will panic if this Ptr hasn't been dropped
         sc.lease()
     }
 

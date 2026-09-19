@@ -31,7 +31,7 @@ use crate::bindings::{
     bus_addr_t, bus_dma_lock_t, bus_dma_segment_t, bus_dma_tag_t, bus_dmamap, bus_size_t,
 };
 use crate::device::Device;
-use crate::ffi::{Lease, Ptr2};
+use crate::ffi::{Ptr, Ptr2};
 use crate::prelude::*;
 use core::any::TypeId;
 use core::ffi::{c_int, c_void};
@@ -39,8 +39,8 @@ use core::mem::transmute;
 use core::ops::{BitOr, Range};
 use core::ptr::null_mut;
 
-// This callback is invoked once per registration so just recreate the Lease and let the callback drop it.
-pub type BusDmaMapFn<T> = extern "C" fn(Lease<T>, &bus_dma_segment_t, i32, i32);
+// This callback is invoked once per registration so just recreate the Ptr and let the callback drop it.
+pub type BusDmaMapFn<T> = extern "C" fn(Ptr<T>, &bus_dma_segment_t, i32, i32);
 type RawBusDmaMapFn = extern "C" fn(*mut c_void, *mut bus_dma_segment_t, i32, i32);
 
 #[must_use]
@@ -250,7 +250,7 @@ pub mod wrappers {
         kva: BusDmaMem,
         len: bus_size_t,
         callback: Option<BusDmaMapFn<T>>,
-        arg: Lease<T>,
+        arg: Ptr<T>,
         flags: Option<BusDmaFlags>,
     ) -> Result<()> {
         // TODO: Add bounds check
@@ -262,7 +262,7 @@ pub mod wrappers {
         let callback =
             unsafe { transmute::<Option<BusDmaMapFn<T>>, bus_dmamap_callback_t>(callback) };
         assert!(TypeId::of::<bus_dmamap_callback_t>() == TypeId::of::<RawBusDmaMapFn>());
-        let (arg_ptr, _count_ptr) = Lease::into_raw(arg);
+        let (arg_ptr, _count_ptr) = Ptr::into_raw(arg);
         let res = unsafe {
             bindings::bus_dmamap_load(
                 dmat.0,

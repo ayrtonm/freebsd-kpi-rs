@@ -28,7 +28,7 @@
 
 use crate::ErrCode;
 use crate::bindings::{callout, callout_func_t, ich_func_t, intr_config_hook, u_int};
-use crate::ffi::{Lease, Ref};
+use crate::ffi::{Ptr, Ref};
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::ffi::{c_int, c_void};
@@ -228,13 +228,13 @@ pub mod wrappers {
         c: &mut Callout,
         ticks: u32,
         func: CalloutFn<T>,
-        arg: Lease<T>,
+        arg: Ptr<T>,
     ) -> Result<()> {
         if !c.count_ptr.is_null() {
             let last = unsafe { bindings::refcount_release(c.count_ptr) };
             assert!(!last);
         }
-        let (arg_ptr, count_ptr) = Lease::into_raw(arg);
+        let (arg_ptr, count_ptr) = Ptr::into_raw(arg);
         c.count_ptr = count_ptr;
 
         let c_callout = c.inner.get();

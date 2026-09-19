@@ -31,7 +31,7 @@ use crate::bindings::{
 };
 use crate::bus::{Filter, Resource};
 use crate::device::{Device, DeviceIf};
-use crate::ffi::{ArrayCString, Lease, Ref, SubClass};
+use crate::ffi::{ArrayCString, Ptr, Ref, SubClass};
 use crate::kobj::AsRustType;
 use crate::ofw::XRef;
 use crate::prelude::*;
@@ -347,13 +347,13 @@ pub mod wrappers {
         dev: Device,
         xref: XRef,
         filter: IrqFilter<T>,
-        arg: Lease<T>,
+        arg: Ptr<T>,
         root: IntrRoot,
     ) -> Result<()> {
         let xref = xref.0 as isize;
         let filter = unsafe { transmute::<Option<IrqFilter<T>>, intr_irq_filter_t>(Some(filter)) };
         // FIXME: What is bus_setup_intr fails?
-        let (arg_ptr, _count_ptr) = Lease::into_raw(arg);
+        let (arg_ptr, _count_ptr) = Ptr::into_raw(arg);
 
         let res = unsafe {
             bindings::intr_pic_claim_root(

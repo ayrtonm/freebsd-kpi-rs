@@ -16,7 +16,7 @@ use core::sync::atomic::{AtomicPtr, Ordering};
 use kpi::ErrCode;
 use kpi::boxed::Box;
 use kpi::cdev::{CDevSw, MakeDevArgs, UioRef};
-use kpi::ffi::{Lease, LeaseSlot, Ref, RefLayout};
+use kpi::ffi::{Ptr, PtrSlot, Ref, RefLayout};
 use kpi::misc::Thread;
 use kpi::module::Module;
 use kpi::sync::Checked;
@@ -66,17 +66,17 @@ impl CDevSw for EchoDev {
     // a counter. It can only be used for the duration of the function (otherwise you'll get a
     // compiler-error). If you need to use it beyond that point (e.g. the cdevsw method needs to be
     // asynchronous so it passes the softc to a callback) you can call `sc.lease()` to create a
-    // `Lease<EchoDevSoftc>`. This increments the counter and when you ensure the callbacks are done
+    // `Ptr<EchoDevSoftc>`. This increments the counter and when you ensure the callbacks are done
     // with the pointer the counter is decremented. When the cdev is destroyed by `destroy_dev` it
     // will assert there are no remaining leases.
     //
-    // TODO: the transition to `Lease` is still underway so some callback KPIs (e.g. taskqueue)
+    // TODO: the transition to `Ptr` is still underway so some callback KPIs (e.g. taskqueue)
     // don't use it yet but will eventually. Also for some callbacks (like config_intrhook in device
     // drivers) its useless since we know the callback always gets invoked before the softc is
     // destroyed. These will allow passing in a Ref<T>.
     //
-    // To access the cdev pointer itself we can use `sc.cdev()` on any `Ref` or `Lease` to a cdev
-    // softc. That returns a cdev that has a lifetime tied to the `Ref`/`Lease` so there's no way
+    // To access the cdev pointer itself we can use `sc.cdev()` on any `Ref` or `Ptr` to a cdev
+    // softc. That returns a cdev that has a lifetime tied to the `Ref`/`Ptr` so there's no way
     // to stash away a copy of the cdev and use it after the device is destroyed.
     fn d_open(sc: Ref<EchoDevSoftc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
         Ok(())
@@ -175,7 +175,7 @@ impl CDevSw for EchoDev {
 
 // A global variable where we can store a pointer to the cdev softc. This is what make_dev_s returns
 // when loading the module and what we'll use to destroy the cdev when unloading the module.
-static ECHODEV: LeaseSlot<EchoDevSoftc> = LeaseSlot::uninit();
+static ECHODEV: PtrSlot<EchoDevSoftc> = PtrSlot::uninit();
 
 impl Module for EchoDev {
     fn on_load(data: *mut c_void) -> Result<()> {
@@ -237,19 +237,19 @@ impl Module for EchoDev {
         // Normally make_dev_s returns an out-pointer for the new cdev, but here it returns a
         // pointer to the softc. The counter in the RefLayout<EchoDevSoftc> is initialized to 2.
         // One for the FFI glue and another for the pointer returned here. To access the cdev
-        // pointer itself we can call the `.cdev()` method on any `Lease<T>` or `Ref<T>`. This
-        // returns a `CDev` type which has a lifetime tied to the `Ref`/`Lease`.
-        let sc: Lease<EchoDevSoftc> = make_dev_s(args)?;
+        // pointer itself we can call the `.cdev()` method on any `Ptr<T>` or `Ref<T>`. This
+        // returns a `CDev` type which has a lifetime tied to the `Ref`/`Ptr`.
+        let sc: Ptr<EchoDevSoftc> = make_dev_s(args)?;
 
         // proj! takes an argument of the form `&struct.field` and where struct is a
-        // Ref<TheStructType>/Lease<TheStructType>/Pin<TheStructType> and returns a
+        // Ref<TheStructType>/Ptr<TheStructType>/Pin<TheStructType> and returns a
         // Pin<TheFieldType>. It's required to initialize the SxLock
         // TODO: explain Pin/field projection
         sx_init(proj!(&sc.state), c"echo");
 
         // If we want to eventually destroy the character device we need to pass some
-        // Lease<EchoDevSoftc> to destroy_dev. To make sure we can do that let's stash this pointer
-        // in the static ECHODEV which is a slot that can hold a Lease.
+        // Ptr<EchoDevSoftc> to destroy_dev. To make sure we can do that let's stash this pointer
+        // in the static ECHODEV which is a slot that can hold a Ptr.
         ECHODEV.init(sc);
         Ok(())
     }
@@ -257,7 +257,7 @@ impl Module for EchoDev {
     fn on_unload(data: *mut c_void) -> Result<()> {
         // Take the lease we previously stored in ECHODEV out of the slot.
         let sc = ECHODEV.take();
-        // Give ownership of the Lease to destroy_dev. This will wait for all cdevsw operations to
+        // Give ownership of the Ptr to destroy_dev. This will wait for all cdevsw operations to
         // stop, check that there are no other remaining leases to the softc and finally drop
         // (read: deallocate) the softc memory. If any cdevsw operation created a new lease (e.g. to
         // pass as some callback arg because it needed to be asynchronous) you are responsible for

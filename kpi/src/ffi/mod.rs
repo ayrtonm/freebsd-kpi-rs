@@ -41,7 +41,7 @@ mod softc;
 mod subclass;
 
 pub use cstring::{ArrayCString, CString, ToArrayCString};
-pub use softc::{Lease, LeaseSlot, Ref, SoftcLayout, UninitPtr};
+pub use softc::{Ptr, PtrSlot, Ref, SoftcLayout, UninitPtr};
 pub use subclass::{SubClass, SubClassOf};
 
 /// A pointer type implementing `Sync`.
@@ -133,5 +133,5 @@ pub fn assert_pin_has_fixed_index<T: FixedIndex>(_p: Pin<&T>) {}
 pub unsafe trait IsPinning {}
 unsafe impl<T> IsPinning for Pin<T> {}
 unsafe impl<'a, T> IsPinning for Ref<'a, T> {}
-unsafe impl<T> IsPinning for Lease<T> {}
+unsafe impl<T> IsPinning for Ptr<T> {}
 pub fn assert_is_pinning<P: IsPinning>(_p: &P) {}

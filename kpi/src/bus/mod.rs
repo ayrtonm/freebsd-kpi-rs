@@ -29,7 +29,7 @@
 use crate::ErrCode;
 use crate::bindings::{bus_size_t, resource, resource_spec, u_int};
 use crate::device::Device;
-use crate::ffi::{Lease, Ref};
+use crate::ffi::{Ptr, Ref};
 use crate::kobj::{AsCType, AsRustType};
 use crate::prelude::*;
 use core::cell::UnsafeCell;
@@ -296,7 +296,7 @@ pub mod wrappers {
         flags: c_int,
         filter: FilterFn<T>,
         handler: Handler<T>,
-        arg: Lease<T>,
+        arg: Ptr<T>,
     ) -> Result<()> {
         let dev_ptr = dev.as_ptr();
         if filter.is_none() && handler.is_none() {
@@ -312,7 +312,7 @@ pub mod wrappers {
 
         let cookiep = irq.cookie.get();
 
-        let (arg_ptr, count_ptr) = Lease::into_raw(arg);
+        let (arg_ptr, count_ptr) = Ptr::into_raw(arg);
         irq.count_ptr.store(count_ptr, Ordering::Relaxed);
 
         let res = unsafe {

@@ -28,7 +28,7 @@
 
 use crate::ErrCode;
 use crate::bindings::{task, taskqueue, u_int};
-use crate::ffi::{ArrayCString, Lease, Ref};
+use crate::ffi::{ArrayCString, Ptr, Ref};
 use crate::intr::Priority;
 use crate::malloc::MallocFlags;
 use crate::prelude::*;
@@ -98,7 +98,7 @@ impl Task {
         }
     }
 
-    pub fn init<T: 'static + Sync>(&self, func: TaskFn<T>, lease: Lease<T>) -> Result<()> {
+    pub fn init<T: 'static + Sync>(&self, func: TaskFn<T>, lease: Ptr<T>) -> Result<()> {
         if self
             .count_ptr
             .compare_exchange(
@@ -111,7 +111,7 @@ impl Task {
         {
             return Err(EDOOFUS);
         }
-        let (ctx, count_ptr) = Lease::into_raw(lease);
+        let (ctx, count_ptr) = Ptr::into_raw(lease);
 
         unsafe {
             let c_task = self.inner.get();

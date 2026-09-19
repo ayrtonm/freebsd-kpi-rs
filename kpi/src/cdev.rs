@@ -29,7 +29,7 @@
 use crate::bindings::cdev;
 use crate::boxed::Box;
 use crate::define_interface;
-use crate::ffi::{Lease, Ref, SoftcLayout};
+use crate::ffi::{Ptr, Ref, SoftcLayout};
 use crate::kobj::AsRustType;
 use crate::malloc::{Malloc, MallocType};
 use crate::misc::Thread;
@@ -186,10 +186,10 @@ pub mod wrappers {
     use core::ptr::null_mut;
 
     // TODO: This doesn't support the use case where a device driver shares a softc with the char
-    // driver (e.g. see dev/hid/hidraw.c). This should probably take a Lease<T> instead to easily
+    // driver (e.g. see dev/hid/hidraw.c). This should probably take a Ptr<T> instead to easily
     // support both cases. If SoftcLayout becomes pub(crate) then I would need to expose some way to
-    // create it for the case seen in echodev. Lease::new(t, M_WAITOK) could work but I need to take
-    // care when piping the optional malloc args from the Lease/softc to the make_dev_args struct
+    // create it for the case seen in echodev. Ptr::new(t, M_WAITOK) could work but I need to take
+    // care when piping the optional malloc args from the Ptr/softc to the make_dev_args struct
     // and decide how to store it in the cdev
     /// Initializes a [`MakeDevArgs`] for the given cdevsw (as declared by
     /// [`define_cdev!`][crate::define_cdev]), taking ownership of the boxed softc.
@@ -210,7 +210,7 @@ pub mod wrappers {
         }
     }
 
-    pub fn make_dev_s<T: 'static, M: Malloc>(args: MakeDevArgs<T, M>) -> Result<Lease<T>> {
+    pub fn make_dev_s<T: 'static, M: Malloc>(args: MakeDevArgs<T, M>) -> Result<Ptr<T>> {
         let mut outp = null_mut();
         let (mut args_raw, name) = args.into_raw();
         let sc_ptr = args_raw.mda_si_drv1.cast::<SoftcLayout<T>>();
@@ -232,8 +232,8 @@ pub mod wrappers {
     /// Destroys the character device created by [`make_dev_s`] and frees its softc.
     ///
     /// The softc is freed with the allocator recorded in the cdev by `make_dev_s`. Panics if any
-    /// other `Lease` to the softc is still outstanding.
-    pub fn destroy_dev<T: 'static>(sc: Lease<T>) {
+    /// other `Ptr` to the softc is still outstanding.
+    pub fn destroy_dev<T: 'static>(sc: Ptr<T>) {
         let dev = sc.cdev().0;
         // The allocator the softc was boxed with, recorded in si_drv2 by make_dev_s.
         let mtype = MallocType::from_raw(unsafe { (*dev).si_drv2.cast() });
@@ -241,7 +241,7 @@ pub mod wrappers {
         // can be created from the cdev afterwards.
         unsafe { bindings::destroy_dev(dev) };
         // Release our lease and the device's original reference, then free the softc.
-        let (sc_ptr, count_ptr) = Lease::into_raw(sc);
+        let (sc_ptr, count_ptr) = Ptr::into_raw(sc);
 
         unsafe { bindings::refcount_release(count_ptr) };
         let last = unsafe { bindings::refcount_release(count_ptr) };
