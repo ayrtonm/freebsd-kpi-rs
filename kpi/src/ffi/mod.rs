@@ -31,10 +31,7 @@
 use crate::boxed::Box;
 use crate::malloc::Malloc;
 use crate::sync::arc::Arc;
-use core::fmt::{Debug, Formatter};
 use core::pin::Pin;
-use core::ptr::null_mut;
-use core::{fmt, ptr};
 
 mod cstring;
 mod softc;
@@ -43,81 +40,6 @@ mod subclass;
 pub use cstring::{ArrayCString, CString, ToArrayCString};
 pub use softc::{Ptr, PtrSlot, Ref, SoftcLayout, UninitPtr};
 pub use subclass::{SubClass, SubClassOf};
-
-/// A pointer type implementing `Sync`.
-///
-/// This is useful for pointer types that are expected to be shared between threads without explicit
-/// synchronization.
-#[repr(C)]
-pub struct Ptr2<T>(pub(crate) *mut T);
-
-impl<T> PartialEq for Ptr2<T> {
-    fn eq(&self, other: &Self) -> bool {
-        ptr::eq(self, other)
-    }
-}
-
-impl<T> Eq for Ptr2<T> {}
-
-impl<T> Debug for Ptr2<T> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Ptr2").field("addr", &self.0).finish()
-    }
-}
-
-impl<T> Default for Ptr2<T> {
-    fn default() -> Self {
-        Self(null_mut())
-    }
-}
-
-// Allows explicitly cloning a `Ptr2` just like a regular raw pointer
-impl<T> Clone for Ptr2<T> {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-
-// Allows implicitly copying a `Ptr2` just like a raw pointer
-impl<T> Copy for Ptr2<T> {}
-
-impl<T> Ptr2<T> {
-    /// Creates a new null `Ptr2`
-    pub const fn null() -> Self {
-        Self(null_mut())
-    }
-
-    /// Creates a new `Ptr2` from a raw pointer.
-    pub const fn new(ptr: *mut T) -> Self {
-        Self(ptr)
-    }
-
-    /// Creates a new `Ptr2` from a reference.
-    ///
-    /// `Ptr2` does not guarantee that the pointee will not be freed/move so the caller should ensure
-    /// that the pointee will live at the same address for as long as the return value will be
-    /// needed.
-    pub const fn from_ref(x: &T) -> Self {
-        Self(x as *const T as *mut T)
-    }
-
-    /// Get a raw pointer for the `Ptr2`
-    pub fn as_ptr(self) -> *mut T {
-        self.0
-    }
-
-    pub fn is_null(&self) -> bool {
-        self.0.is_null()
-    }
-
-    pub unsafe fn get(&self) -> &T {
-        unsafe { self.0.as_ref().unwrap() }
-    }
-}
-
-// SAFETY: `Ptr2` is intended for cases where `Sync` is intentionally desired on the pointer
-unsafe impl<T> Sync for Ptr2<T> {}
-unsafe impl<T> Send for Ptr2<T> {}
 
 pub unsafe trait FixedIndex {}
 unsafe impl<T, const N: usize> FixedIndex for [T; N] {}

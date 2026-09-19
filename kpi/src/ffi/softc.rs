@@ -26,7 +26,6 @@
  * SUCH DAMAGE.
  */
 
-use crate::ErrCode;
 use crate::bindings::{_device, cdev, device_t, u_int};
 use crate::cdev::CDev;
 use crate::device::Device;

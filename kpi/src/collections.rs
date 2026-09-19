@@ -29,13 +29,13 @@
 use crate::ErrCode;
 use crate::bindings::sglist;
 use crate::boxed::Box;
-use crate::ffi::Ptr2;
 use crate::malloc::MallocFlags;
 use crate::prelude::*;
 use crate::vec::Vec;
 use core::ffi::c_void;
 use core::mem::{forget, size_of};
 use core::ops::DerefMut;
+use core::sync::atomic::{AtomicPtr, Ordering};
 
 /// Plain-ol-data which is valid for any bitpattern
 ///
@@ -92,8 +92,6 @@ unsafe impl<T: Default + Pod> Appendable for Vec<T> {
     }
 }
 
-type SgListPtr = Ptr2<sglist>;
-
 /// A handle to a buffer in a scatter-gather list
 ///
 /// This has both ownership of the appended buffer and owns a refcount to the list. Since the buffer
@@ -103,7 +101,7 @@ type SgListPtr = Ptr2<sglist>;
 pub struct SgBuffer<B: Appendable> {
     // The Option is only necessary to allow taking `buffer` out of the SgBuffer.
     buffer: Option<B>,
-    list: SgListPtr,
+    list: AtomicPtr<sglist>,
 }
 
 unsafe impl<T: Send + Appendable> Send for SgBuffer<T> {}
@@ -116,12 +114,12 @@ impl<B: Appendable> SgBuffer<B> {
         sglist_hold(sg);
         Self {
             buffer: Some(buffer),
-            list: sg.list,
+            list: AtomicPtr::new(sg.list.load(Ordering::Relaxed)),
         }
     }
 
     pub fn get_buffer(mut self) -> B {
-        let len = unsafe { bindings::sglist_length(self.list.as_ptr()) };
+        let len = unsafe { bindings::sglist_length(self.list.load(Ordering::Relaxed)) };
         if len != 0 {
             panic!("Must call sglist_reset before calling SgBuffer::get_buffer")
         }
@@ -133,23 +131,23 @@ impl<B: Appendable> SgBuffer<B> {
 
 impl<B: Appendable> Drop for SgBuffer<B> {
     fn drop(&mut self) {
-        let len = unsafe { bindings::sglist_length(self.list.as_ptr()) };
+        let len = unsafe { bindings::sglist_length(self.list.load(Ordering::Relaxed)) };
         if len != 0 {
             panic!("Must call sglist_reset before dropping an SgBuffer")
         }
         // Drop the refcount grabbed in the constructor
-        unsafe { bindings::sglist_free(self.list.as_ptr()) };
+        unsafe { bindings::sglist_free(self.list.load(Ordering::Relaxed)) };
     }
 }
 
 pub struct SgList {
-    list: SgListPtr,
+    list: AtomicPtr<sglist>,
 }
 
 impl SgList {
     pub unsafe fn from_raw(ptr: *mut sglist) -> Self {
         Self {
-            list: SgListPtr::new(ptr),
+            list: AtomicPtr::new(ptr),
         }
     }
 
@@ -164,12 +162,12 @@ impl SgList {
         if list.is_null() {
             return Err(ENOMEM);
         }
-        let list = SgListPtr::new(list);
+        let list = AtomicPtr::new(list);
         Ok(Self { list })
     }
 
     pub fn as_ptr(&self) -> *mut sglist {
-        self.list.as_ptr()
+        self.list.load(Ordering::Relaxed)
     }
 }
 
@@ -209,7 +207,7 @@ pub mod wrappers {
             }
         };
         let (ptr, size) = buffer.get_vaddr_range();
-        let res = unsafe { bindings::sglist_append(sg.list.as_ptr(), ptr, size) };
+        let res = unsafe { bindings::sglist_append(sg.list.load(Ordering::Relaxed), ptr, size) };
         if res != 0 {
             buffer_opt.replace(buffer);
             return Err(ErrCode::from(res));
@@ -218,14 +216,14 @@ pub mod wrappers {
     }
 
     pub fn sglist_reset(sg: &mut SgList) {
-        unsafe { bindings::sglist_reset(sg.list.as_ptr()) }
+        unsafe { bindings::sglist_reset(sg.list.load(Ordering::Relaxed)) }
     }
 
     pub fn sglist_length(sg: &SgList) -> usize {
-        unsafe { bindings::sglist_length(sg.list.as_ptr()) }
+        unsafe { bindings::sglist_length(sg.list.load(Ordering::Relaxed)) }
     }
 
     pub fn sglist_hold(sg: &SgList) {
-        unsafe { bindings::sglist_hold(sg.list.as_ptr()) };
+        unsafe { bindings::sglist_hold(sg.list.load(Ordering::Relaxed)) };
     }
 }

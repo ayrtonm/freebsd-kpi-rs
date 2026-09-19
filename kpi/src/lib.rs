@@ -132,15 +132,15 @@ pub mod misc {
     use crate::bindings::{cpuset_t, u_int};
     #[cfg(target_arch = "aarch64")]
     use crate::device::Device;
-    use crate::ffi::Ptr2;
     use crate::kobj::AsRustType;
     use core::ffi::c_int;
+    use core::ptr::NonNull;
 
-    pub struct Thread(pub Ptr2<bindings::thread>);
+    pub struct Thread(pub NonNull<bindings::thread>);
 
     impl AsRustType<'_, Thread> for *mut bindings::thread {
         fn as_rust_type(&self) -> Thread {
-            Thread(Ptr2::new(*self))
+            Thread(NonNull::new(*self).unwrap())
         }
     }
 
