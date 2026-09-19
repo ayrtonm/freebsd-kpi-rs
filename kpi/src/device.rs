@@ -229,7 +229,7 @@ pub trait DeviceIf: Driver {
     ///
     /// If the driver is a subclass of another, then this must be an appropriate
     /// [`SubClass`][crate::ffi::SubClass].
-    type Softc: 'static + Sync;
+    type Softc: 'static + Sync + Send;
 
     /// Used to probe whether the given device is supported by the driver.
     fn device_probe(dev: Device) -> Result<BusProbe> {
