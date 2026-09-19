@@ -37,7 +37,8 @@ use core::any::TypeId;
 use core::ffi::{c_int, c_void};
 use core::mem::transmute;
 use core::ops::{BitOr, Range};
-use core::ptr::{null_mut, NonNull};
+use core::ptr::null_mut;
+use core::sync::atomic::{AtomicPtr, Ordering};
 
 // This callback is invoked once per registration so just recreate the Ptr and let the callback drop it.
 pub type BusDmaMapFn<T> = extern "C" fn(Ptr<T>, &bus_dma_segment_t, i32, i32);
@@ -153,36 +154,43 @@ impl BitOr<BusDmaSyncFlags> for BusDmaSyncFlags {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
-pub struct BusDmaMap(*mut bus_dmamap);
+#[derive(Debug)]
+pub struct BusDmaMap(AtomicPtr<bus_dmamap>);
+
+impl PartialEq for BusDmaMap {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.load(Ordering::Relaxed) == other.0.load(Ordering::Relaxed)
+    }
+}
+
+impl Eq for BusDmaMap {}
+
+impl Default for BusDmaMap {
+    fn default() -> Self {
+        Self(AtomicPtr::new(null_mut()))
+    }
+}
 
 #[derive(Debug)]
-pub struct BusDmaMem<T = c_void>(NonNull<T>);
+pub struct BusDmaMem<T = c_void>(AtomicPtr<T>);
 
 impl<T> PartialEq for BusDmaMem<T> {
     fn eq(&self, other: &Self) -> bool {
-        PartialEq::eq(&self.0, &other.0)
+        self.0.load(Ordering::Relaxed) == other.0.load(Ordering::Relaxed)
     }
 }
 
 impl<T> Eq for BusDmaMem<T> {}
 
-impl<T> Copy for BusDmaMem<T> {}
-impl<T> Clone for BusDmaMem<T> {
-    fn clone(&self) -> Self {
-        Self(self.0)
-    }
-}
-
 impl<T> Default for BusDmaMem<T> {
     fn default() -> Self {
-        Self(NonNull::new(null_mut()).unwrap())
+        Self(AtomicPtr::new(null_mut()))
     }
 }
 
 impl BusDmaMem {
     pub fn as_ptr(&self) -> *mut c_void {
-        self.0.as_ptr()
+        self.0.load(Ordering::Relaxed)
     }
 }
 
@@ -238,7 +246,7 @@ pub mod wrappers {
         if res != 0 {
             return Err(ErrCode::from(res));
         }
-        Ok(BusDmaMap(map))
+        Ok(BusDmaMap(AtomicPtr::new(map)))
     }
 
     /// Creates a mapping in device visible address space of buflen bytes of buf, associated with the DMA map map.
@@ -266,11 +274,11 @@ pub mod wrappers {
         let res = unsafe {
             bindings::bus_dmamap_load(
                 dmat.0,
-                map.0,
+                map.0.load(Ordering::Relaxed),
                 //buf.as_mut_ptr().cast::<c_void>(),
                 //buf.len().try_into().unwrap(),
                 //ptr.as_ptr(),
-                kva.0.as_ptr(),
+                kva.0.load(Ordering::Relaxed),
                 len,
                 callback,
                 arg_ptr.cast::<c_void>(),
@@ -296,13 +304,13 @@ pub mod wrappers {
         if res != 0 {
             Err(ErrCode::from(res))
         } else {
-            let map = BusDmaMap(map);
-            let mem = BusDmaMem(NonNull::new(vaddr.cast::<T>()).unwrap());
+            let map = BusDmaMap(AtomicPtr::new(map));
+            let mem = BusDmaMem(AtomicPtr::new(vaddr.cast::<T>()));
             Ok((map, mem))
         }
     }
 
     pub fn bus_dmamap_sync(dmat: BusDmaTag, map: BusDmaMap, flags: BusDmaSyncFlags) {
-        unsafe { bindings::bus_dmamap_sync(dmat.0, map.0, flags.0) }
+        unsafe { bindings::bus_dmamap_sync(dmat.0, map.0.load(Ordering::Relaxed), flags.0) }
     }
 }
