@@ -105,15 +105,15 @@ impl<T> SoftcLayout<T> {
 
 /// A pointer to an uninitialized softc with no aliases.
 ///
-/// This struct also carries a mutable reference to a bool so the glue code creating the Uninit can
+/// This struct also carries a mutable reference to a bool so the glue code creating the UninitPtr can
 /// later see whether the init method was called or not.
 ///
-/// The second field is wrapped in Option rather than just &mut bool because Uninit is created from
+/// The second field is wrapped in Option rather than just &mut bool because UninitPtr is created from
 /// an AsRustType impl which cannot grab references to locals on the stack frame of device_attach.
 /// This kludge means that the glue code must call set_init_flag before handing it off to a driver.
-pub struct Uninit<'a, T>(&'a mut MaybeUninit<SoftcLayout<T>>, Option<&'a mut bool>);
+pub struct UninitPtr<'a, T>(&'a mut MaybeUninit<SoftcLayout<T>>, Option<&'a mut bool>);
 
-impl<'a, T> Uninit<'a, T> {
+impl<'a, T> UninitPtr<'a, T> {
     pub(crate) unsafe fn from_raw(
         sc_ref: &'a mut MaybeUninit<SoftcLayout<T>>,
         dev: device_t,
@@ -135,7 +135,7 @@ impl<'a, T> Uninit<'a, T> {
         Self(sc_ref, None)
     }
 
-    // Used for the second field kludge described in Uninit's doc comment.
+    // Used for the second field kludge described in UninitPtr's doc comment.
     // Must be public since it's called by KPI glue code in the driver .rlib's. Marked doc(hidden)
     // because it should not be called explicitly by the driver.
     #[doc(hidden)]
@@ -152,7 +152,7 @@ impl<'a, T> Uninit<'a, T> {
         let dev = unsafe { (*sc_ptr).dev };
         match dev {
             Some(nonnull_dev) => {
-                // SAFETY: The lifetime of the Device matches the Uninit borrow
+                // SAFETY: The lifetime of the Device matches the UninitPtr borrow
                 unsafe { Device::new_unchecked(nonnull_dev.as_ptr()) }
             }
             None => unreachable!(),
@@ -167,8 +167,8 @@ impl<'a, T> Uninit<'a, T> {
 
     /// Initialize the softc to `t` and return a Loan<T> pointer.
     ///
-    /// The returned pointer may only be used for the lifetime of the Uninit it was created from.
-    /// The KPI glue sets the Uninit lifetime parameter using a local on the device_attach stack
+    /// The returned pointer may only be used for the lifetime of the UninitPtr it was created from.
+    /// The KPI glue sets the UninitPtr lifetime parameter using a local on the device_attach stack
     /// frame so in practical terms this means that trying to stash the Loan in a global or
     /// equivalent (e.g. another softc) is a compile-time error.
     pub fn init(self, t: T) -> Loan<'a, T> {

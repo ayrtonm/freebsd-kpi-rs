@@ -29,7 +29,7 @@
 use crate::bindings::{_device, device_state_t, device_t, driver_t, kobjop_desc};
 use crate::boxed::Box;
 use crate::driver::Driver;
-use crate::ffi::{ArrayCString, Lease, Loan, SoftcLayout, Uninit};
+use crate::ffi::{ArrayCString, Lease, Loan, SoftcLayout, UninitPtr};
 use crate::kobj::{AsCType, AsRustType, rust_driver_marker_desc};
 use crate::prelude::*;
 use crate::vec::Vec;
@@ -123,12 +123,12 @@ impl<'a> AsRustType<'a, Device<'a>> for device_t {
 }
 
 // Used in device_attach
-impl<'a, T> AsRustType<'a, Uninit<'a, T>> for device_t {
-    fn as_rust_type(&'a self) -> Uninit<'a, T> {
+impl<'a, T> AsRustType<'a, UninitPtr<'a, T>> for device_t {
+    fn as_rust_type(&'a self) -> UninitPtr<'a, T> {
         let void_ptr = unsafe { bindings::device_get_softc(*self) };
         let sc_ptr = void_ptr.cast::<core::mem::MaybeUninit<SoftcLayout<T>>>();
         let sc_ref = unsafe { sc_ptr.as_mut().unwrap() };
-        unsafe { Uninit::from_raw(sc_ref, *self) }
+        unsafe { UninitPtr::from_raw(sc_ref, *self) }
     }
 }
 
@@ -153,7 +153,7 @@ define_interface! {
         with desc device_attach_desc
         and typedef device_attach_t,
         with init glue {
-            let _: $crate::ffi::Uninit<_> = dev;
+            let _: $crate::ffi::UninitPtr<_> = dev;
             let dev_ptr = dev.device().as_ptr();
             let mut init = false;
             dev.set_init_flag(&mut init);
@@ -161,7 +161,7 @@ define_interface! {
         with drop glue {
             // drop glue is only called if device_attach succeeded
             if !init {
-                device_println!(dev_ptr, "Must call .init() on Uninit<Softc> in device_attach");
+                device_println!(dev_ptr, "Must call .init() on UninitPtr<Softc> in device_attach");
                 return bindings::ENXIO;
             }
         };
@@ -238,9 +238,9 @@ pub trait DeviceIf: Driver {
 
     /// Used to initialize a driver.
     ///
-    /// All implementations must call [`init`][crate::ffi::Uninit::init] on the `uninit_sc`
+    /// All implementations must call [`init`][crate::ffi::UninitPtr::init] on the `uninit_sc`
     /// argument before this function returns to avoid a panic at runtime.
-    fn device_attach(uninit_sc: Uninit<Self::Softc>) -> Result<()> {
+    fn device_attach(uninit_sc: UninitPtr<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
 
@@ -497,7 +497,7 @@ pub mod wrappers {
 mod tests {
     use super::*;
     use crate::define_driver;
-    use crate::ffi::{Loan, Uninit};
+    use crate::ffi::{Loan, UninitPtr};
     use crate::tests::{DriverManager, LoudDrop};
     use core::ptr::null_mut;
     use core::sync::atomic::{AtomicPtr, Ordering};
@@ -538,7 +538,7 @@ mod tests {
             println!("test_driver: accepted {dev:x?}");
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: Uninit<Self::Softc>) -> Result<()> {
+        fn device_attach(uninit_sc: UninitPtr<Self::Softc>) -> Result<()> {
             let sc = uninit_sc.init(TestDriverSoftc {
                 const_data: 0xdeadbeef,
             });
@@ -588,7 +588,7 @@ mod tests {
             println!("another_driver: accepted {dev:x?}");
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: Uninit<Self::Softc>) -> Result<()> {
+        fn device_attach(uninit_sc: UninitPtr<Self::Softc>) -> Result<()> {
             let sc = uninit_sc.init(AnotherDriverSoftc { loud: LoudDrop });
             println!("attaching another driver");
             // Store a pointer owning a refcount to AnotherDriver's Softc in a TestDriverSoftc for
@@ -626,7 +626,7 @@ mod tests {
             device_set_desc(dev, c"undetachable driver");
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: Uninit<UndetachableDriverSoftc>) -> Result<()> {
+        fn device_attach(uninit_sc: UninitPtr<UndetachableDriverSoftc>) -> Result<()> {
             let sc = uninit_sc.init(UndetachableDriverSoftc {});
             if ofw_bus_is_compatible(sc.device(), c"undetachable_driver,check_undetachable") {
                 assert!(device_is_undetachable(sc.device()));

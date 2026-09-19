@@ -393,7 +393,7 @@ mod tests {
     use super::*;
     use crate::define_driver;
     use crate::device::{BusProbe, Device, DeviceIf};
-    use crate::ffi::{Loan, Uninit};
+    use crate::ffi::{Loan, UninitPtr};
     use crate::tests::DriverManager;
 
     #[repr(C)]
@@ -407,7 +407,7 @@ mod tests {
             }
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: Uninit<Self::Softc>) -> Result<()> {
+        fn device_attach(uninit_sc: UninitPtr<Self::Softc>) -> Result<()> {
             let sc = uninit_sc.init(IntcSoftc);
             intr_pic_claim_root(
                 sc.device(),
