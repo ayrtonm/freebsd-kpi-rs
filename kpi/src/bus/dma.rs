@@ -28,7 +28,7 @@
 
 use crate::ErrCode;
 use crate::bindings::{
-    bus_addr_t, bus_dma_lock_t, bus_dma_segment_t, bus_dma_tag_t, bus_dmamap, bus_size_t,
+    bus_addr_t, bus_dma_lock_t, bus_dma_segment_t, bus_dma_tag_t, bus_dmamap_t, bus_size_t,
 };
 use crate::device::Device;
 use crate::ffi::Ptr;
@@ -38,7 +38,6 @@ use core::ffi::{c_int, c_void};
 use core::mem::transmute;
 use core::ops::{BitOr, Range};
 use core::ptr::null_mut;
-use core::sync::atomic::{AtomicPtr, Ordering};
 
 // This callback is invoked once per registration so just recreate the Ptr and let the callback drop it.
 pub type BusDmaMapFn<T> = extern "C" fn(Ptr<T>, &bus_dma_segment_t, i32, i32);
@@ -126,11 +125,17 @@ impl BusDmaTagBuilder {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct BusDmaTag(bus_dma_tag_t);
 
 unsafe impl Sync for BusDmaTag {}
 unsafe impl Send for BusDmaTag {}
+
+impl Default for BusDmaTag {
+    fn default() -> Self {
+        Self(null_mut())
+    }
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub struct BusDmaFlags(pub c_int);
@@ -154,50 +159,53 @@ impl BitOr<BusDmaSyncFlags> for BusDmaSyncFlags {
     }
 }
 
-#[derive(Debug)]
-pub struct BusDmaMap(AtomicPtr<bus_dmamap>);
-
-impl PartialEq for BusDmaMap {
-    fn eq(&self, other: &Self) -> bool {
-        self.0.load(Ordering::Relaxed) == other.0.load(Ordering::Relaxed)
-    }
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct BusDmaMap {
+    map: bus_dmamap_t,
+    from_dmamem: bool,
 }
 
-impl Eq for BusDmaMap {}
+unsafe impl Send for BusDmaMap {}
+unsafe impl Sync for BusDmaMap {}
 
 impl Default for BusDmaMap {
     fn default() -> Self {
-        Self(AtomicPtr::new(null_mut()))
+        Self {
+            map: null_mut(),
+            from_dmamem: false,
+        }
     }
 }
 
-#[derive(Debug)]
-pub struct BusDmaMem<T = c_void>(AtomicPtr<T>);
+#[derive(Debug, PartialEq, Eq)]
+pub struct BusDmaMem<T = c_void>(*mut T);
 
-impl<T> PartialEq for BusDmaMem<T> {
-    fn eq(&self, other: &Self) -> bool {
-        self.0.load(Ordering::Relaxed) == other.0.load(Ordering::Relaxed)
+unsafe impl<T> Send for BusDmaMem<T> {}
+unsafe impl<T> Sync for BusDmaMem<T> {}
+
+impl<T> Copy for BusDmaMem<T> {}
+impl<T> Clone for BusDmaMem<T> {
+    fn clone(&self) -> Self {
+        Self(self.0)
     }
 }
-
-impl<T> Eq for BusDmaMem<T> {}
 
 impl<T> Default for BusDmaMem<T> {
     fn default() -> Self {
-        Self(AtomicPtr::new(null_mut()))
+        Self(null_mut())
     }
 }
 
-impl BusDmaMem {
-    pub fn as_ptr(&self) -> *mut c_void {
-        self.0.load(Ordering::Relaxed)
+impl<T> BusDmaMem<T> {
+    pub fn as_ptr(&self) -> *mut T {
+        self.0
     }
 }
 
 pub mod wrappers {
     use super::*;
     use crate::ErrCode;
-    use bindings::{bus_dmamap_callback_t, bus_dmamap_t};
+    use bindings::bus_dmamap_callback_t;
 
     gen_newtype! {
         BusDmaFlags as i32,
@@ -236,6 +244,15 @@ pub mod wrappers {
         }
     }
 
+    pub fn bus_dma_tag_destroy(tag: BusDmaTag) -> Result<()> {
+        let res = unsafe { bindings::bus_dma_tag_destroy(tag.0) };
+        if res != 0 {
+            Err(ErrCode::from(res))
+        } else {
+            Ok(())
+        }
+    }
+
     pub fn bus_dmamap_create(tag: BusDmaTag, flags: Option<BusDmaFlags>) -> Result<BusDmaMap> {
         let flags = match flags {
             Some(flags) => flags.0,
@@ -246,23 +263,34 @@ pub mod wrappers {
         if res != 0 {
             return Err(ErrCode::from(res));
         }
-        Ok(BusDmaMap(AtomicPtr::new(map)))
+        Ok(BusDmaMap {
+            map,
+            from_dmamem: false,
+        })
+    }
+
+    pub fn bus_dmamap_destroy(tag: BusDmaTag, map: BusDmaMap) -> Result<()> {
+        if map.from_dmamem {
+            return Err(EDOOFUS);
+        }
+        let res = unsafe { bindings::bus_dmamap_destroy(tag.0, map.map) };
+        if res != 0 {
+            Err(ErrCode::from(res))
+        } else {
+            Ok(())
+        }
     }
 
     /// Creates a mapping in device visible address space of buflen bytes of buf, associated with the DMA map map.
     pub fn bus_dmamap_load<T>(
         dmat: BusDmaTag,
         map: BusDmaMap,
-        //buf: &mut [u8],
-        //ptr: Ptr2<c_void>,
         kva: BusDmaMem,
         len: bus_size_t,
         callback: Option<BusDmaMapFn<T>>,
         arg: Ptr<T>,
         flags: Option<BusDmaFlags>,
     ) -> Result<()> {
-        // TODO: Add bounds check
-        //assert!(dev.region().in_bounds(arg), "callback argument not in device-owned memory");
         let flags = match flags {
             Some(flags) => flags.0,
             None => 0,
@@ -274,11 +302,8 @@ pub mod wrappers {
         let res = unsafe {
             bindings::bus_dmamap_load(
                 dmat.0,
-                map.0.load(Ordering::Relaxed),
-                //buf.as_mut_ptr().cast::<c_void>(),
-                //buf.len().try_into().unwrap(),
-                //ptr.as_ptr(),
-                kva.0.load(Ordering::Relaxed),
+                map.map,
+                kva.as_ptr(),
                 len,
                 callback,
                 arg_ptr.cast::<c_void>(),
@@ -291,6 +316,10 @@ pub mod wrappers {
         Ok(())
     }
 
+    pub fn bus_dmamap_unload(tag: BusDmaTag, map: BusDmaMap) {
+        unsafe { bindings::bus_dmamap_unload(tag.0, map.map) }
+    }
+
     /// Allocates memory that is mapped into KVA at the address returned in vaddr
     pub fn bus_dmamem_alloc<T>(
         dmat: BusDmaTag,
@@ -300,17 +329,27 @@ pub mod wrappers {
         let mut vaddr: *mut c_void = null_mut();
         let res =
             unsafe { bindings::bus_dmamem_alloc(dmat.0, &raw mut vaddr, flags.0, &raw mut map) };
-        //unsafe { bindings::bus_dmamem_alloc(dmat.0, &raw mut (*vaddr).0, flags.0, &mut map) };
         if res != 0 {
             Err(ErrCode::from(res))
         } else {
-            let map = BusDmaMap(AtomicPtr::new(map));
-            let mem = BusDmaMem(AtomicPtr::new(vaddr.cast::<T>()));
+            let map = BusDmaMap {
+                map,
+                from_dmamem: true,
+            };
+            let mem = BusDmaMem(vaddr.cast::<T>());
             Ok((map, mem))
         }
     }
 
+    pub fn bus_dmamem_free(tag: BusDmaTag, mem: BusDmaMem, map: BusDmaMap) -> Result<()> {
+        if !map.from_dmamem {
+            return Err(EDOOFUS);
+        }
+        unsafe { bindings::bus_dmamem_free(tag.0, mem.as_ptr(), map.map) };
+        Ok(())
+    }
+
     pub fn bus_dmamap_sync(dmat: BusDmaTag, map: BusDmaMap, flags: BusDmaSyncFlags) {
-        unsafe { bindings::bus_dmamap_sync(dmat.0, map.0.load(Ordering::Relaxed), flags.0) }
+        unsafe { bindings::bus_dmamap_sync(dmat.0, map.map, flags.0) }
     }
 }
