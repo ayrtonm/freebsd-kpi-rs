@@ -92,7 +92,12 @@ impl BusyDevice {
         unsafe { bindings::device_busy(ptr) };
         Self(ptr)
     }
+
+    pub fn as_ptr(&self) -> device_t {
+        self.0
+    }
 }
+
 impl Drop for BusyDevice {
     fn drop(&mut self) {
         unsafe { bindings::device_unbusy(self.0) }
@@ -161,7 +166,8 @@ define_interface! {
         with drop glue {
             // drop glue is only called if device_attach succeeded
             if !init {
-                device_println!(dev_ptr, "Must call .init() on UninitPtr<Softc> in device_attach");
+                let dev = unsafe { $crate::device::Device::new_unchecked(dev_ptr) };
+                device_println!(dev, "Must call .init() on UninitPtr<Softc> in device_attach");
                 return bindings::ENXIO;
             }
         };
