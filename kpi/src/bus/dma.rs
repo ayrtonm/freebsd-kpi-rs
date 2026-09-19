@@ -31,7 +31,7 @@ use crate::bindings::{
     bus_addr_t, bus_dma_lock_t, bus_dma_segment_t, bus_dma_tag_t, bus_dmamap, bus_size_t,
 };
 use crate::device::Device;
-use crate::ffi::{Lease, Ptr};
+use crate::ffi::{Lease, Ptr2};
 use crate::prelude::*;
 use core::any::TypeId;
 use core::ffi::{c_int, c_void};
@@ -154,10 +154,10 @@ impl BitOr<BusDmaSyncFlags> for BusDmaSyncFlags {
 }
 
 #[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
-pub struct BusDmaMap(Ptr<bus_dmamap>);
+pub struct BusDmaMap(Ptr2<bus_dmamap>);
 
 #[derive(Debug)]
-pub struct BusDmaMem<T = c_void>(Ptr<T>);
+pub struct BusDmaMem<T = c_void>(Ptr2<T>);
 
 impl<T> PartialEq for BusDmaMem<T> {
     fn eq(&self, other: &Self) -> bool {
@@ -176,7 +176,7 @@ impl<T> Clone for BusDmaMem<T> {
 
 impl<T> Default for BusDmaMem<T> {
     fn default() -> Self {
-        Self(Ptr::new(null_mut()))
+        Self(Ptr2::new(null_mut()))
     }
 }
 
@@ -238,7 +238,7 @@ pub mod wrappers {
         if res != 0 {
             return Err(ErrCode::from(res));
         }
-        Ok(BusDmaMap(Ptr::new(map)))
+        Ok(BusDmaMap(Ptr2::new(map)))
     }
 
     /// Creates a mapping in device visible address space of buflen bytes of buf, associated with the DMA map map.
@@ -246,7 +246,7 @@ pub mod wrappers {
         dmat: BusDmaTag,
         map: BusDmaMap,
         //buf: &mut [u8],
-        //ptr: Ptr<c_void>,
+        //ptr: Ptr2<c_void>,
         kva: BusDmaMem,
         len: bus_size_t,
         callback: Option<BusDmaMapFn<T>>,
@@ -296,8 +296,8 @@ pub mod wrappers {
         if res != 0 {
             Err(ErrCode::from(res))
         } else {
-            let map = BusDmaMap(Ptr::new(map));
-            let mem = BusDmaMem(Ptr::new(vaddr.cast::<T>()));
+            let map = BusDmaMap(Ptr2::new(map));
+            let mem = BusDmaMem(Ptr2::new(vaddr.cast::<T>()));
             Ok((map, mem))
         }
     }

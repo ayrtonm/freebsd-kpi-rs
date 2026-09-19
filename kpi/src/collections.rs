@@ -29,7 +29,7 @@
 use crate::ErrCode;
 use crate::bindings::sglist;
 use crate::boxed::Box;
-use crate::ffi::Ptr;
+use crate::ffi::Ptr2;
 use crate::malloc::MallocFlags;
 use crate::prelude::*;
 use crate::vec::Vec;
@@ -92,7 +92,7 @@ unsafe impl<T: Default + Pod> Appendable for Vec<T> {
     }
 }
 
-type SgListPtr = Ptr<sglist>;
+type SgListPtr = Ptr2<sglist>;
 
 /// A handle to a buffer in a scatter-gather list
 ///

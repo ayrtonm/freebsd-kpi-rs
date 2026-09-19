@@ -49,59 +49,59 @@ pub use subclass::{SubClass, SubClassOf};
 /// This is useful for pointer types that are expected to be shared between threads without explicit
 /// synchronization.
 #[repr(C)]
-pub struct Ptr<T>(pub(crate) *mut T);
+pub struct Ptr2<T>(pub(crate) *mut T);
 
-impl<T> PartialEq for Ptr<T> {
+impl<T> PartialEq for Ptr2<T> {
     fn eq(&self, other: &Self) -> bool {
         ptr::eq(self, other)
     }
 }
 
-impl<T> Eq for Ptr<T> {}
+impl<T> Eq for Ptr2<T> {}
 
-impl<T> Debug for Ptr<T> {
+impl<T> Debug for Ptr2<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Ptr").field("addr", &self.0).finish()
+        f.debug_struct("Ptr2").field("addr", &self.0).finish()
     }
 }
 
-impl<T> Default for Ptr<T> {
+impl<T> Default for Ptr2<T> {
     fn default() -> Self {
         Self(null_mut())
     }
 }
 
-// Allows explicitly cloning a `Ptr` just like a regular raw pointer
-impl<T> Clone for Ptr<T> {
+// Allows explicitly cloning a `Ptr2` just like a regular raw pointer
+impl<T> Clone for Ptr2<T> {
     fn clone(&self) -> Self {
         *self
     }
 }
 
-// Allows implicitly copying a `Ptr` just like a raw pointer
-impl<T> Copy for Ptr<T> {}
+// Allows implicitly copying a `Ptr2` just like a raw pointer
+impl<T> Copy for Ptr2<T> {}
 
-impl<T> Ptr<T> {
-    /// Creates a new null `Ptr`
+impl<T> Ptr2<T> {
+    /// Creates a new null `Ptr2`
     pub const fn null() -> Self {
         Self(null_mut())
     }
 
-    /// Creates a new `Ptr` from a raw pointer.
+    /// Creates a new `Ptr2` from a raw pointer.
     pub const fn new(ptr: *mut T) -> Self {
         Self(ptr)
     }
 
-    /// Creates a new `Ptr` from a reference.
+    /// Creates a new `Ptr2` from a reference.
     ///
-    /// `Ptr` does not guarantee that the pointee will not be freed/move so the caller should ensure
+    /// `Ptr2` does not guarantee that the pointee will not be freed/move so the caller should ensure
     /// that the pointee will live at the same address for as long as the return value will be
     /// needed.
     pub const fn from_ref(x: &T) -> Self {
         Self(x as *const T as *mut T)
     }
 
-    /// Get a raw pointer for the `Ptr`
+    /// Get a raw pointer for the `Ptr2`
     pub fn as_ptr(self) -> *mut T {
         self.0
     }
@@ -115,9 +115,9 @@ impl<T> Ptr<T> {
     }
 }
 
-// SAFETY: `Ptr` is intended for cases where `Sync` is intentionally desired on the pointer
-unsafe impl<T> Sync for Ptr<T> {}
-unsafe impl<T> Send for Ptr<T> {}
+// SAFETY: `Ptr2` is intended for cases where `Sync` is intentionally desired on the pointer
+unsafe impl<T> Sync for Ptr2<T> {}
+unsafe impl<T> Send for Ptr2<T> {}
 
 pub unsafe trait FixedIndex {}
 unsafe impl<T, const N: usize> FixedIndex for [T; N] {}

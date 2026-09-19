@@ -37,7 +37,7 @@
 )]
 #![cfg_attr(test, allow(invalid_runtime_symbol_definitions))]
 
-use crate::ffi::Ptr;
+use crate::ffi::Ptr2;
 
 pub type void = core::ffi::c_void;
 pub type char = core::ffi::c_char;
