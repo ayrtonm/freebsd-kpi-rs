@@ -28,7 +28,7 @@
 
 use crate::bindings;
 use crate::bindings::device_t;
-use crate::device::Device;
+use crate::device::{BusyDevice, Device};
 use core::fmt;
 use core::hint::black_box;
 
@@ -42,9 +42,9 @@ impl<'a> DebugDevice for Device<'a> {
     }
 }
 
-impl DebugDevice for device_t {
+impl DebugDevice for BusyDevice {
     fn as_device_t(&self) -> device_t {
-        *self
+        self.as_ptr()
     }
 }
 
