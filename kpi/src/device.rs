@@ -29,7 +29,7 @@
 use crate::bindings::{_device, device_state_t, device_t, driver_t, kobjop_desc};
 use crate::boxed::Box;
 use crate::driver::Driver;
-use crate::ffi::{ArrayCString, Lease, Loan, SoftcLayout, UninitPtr};
+use crate::ffi::{ArrayCString, Lease, Ref, SoftcLayout, UninitPtr};
 use crate::kobj::{AsCType, AsRustType, rust_driver_marker_desc};
 use crate::prelude::*;
 use crate::vec::Vec;
@@ -133,14 +133,14 @@ impl<'a, T> AsRustType<'a, UninitPtr<'a, T>> for device_t {
 }
 
 // Allows turning a device_t argument appearing in kobj interfaces into a Pin<&T> to any type. It's
-// the responsibility of a kobj trait authors to restrict the Loan to the softc's type or to one of
+// the responsibility of a kobj trait authors to restrict the Ref to the softc's type or to one of
 // its base classes.
-impl<'a, T> AsRustType<'a, Loan<'a, T>> for device_t {
-    fn as_rust_type(&'a self) -> Loan<'a, T> {
+impl<'a, T> AsRustType<'a, Ref<'a, T>> for device_t {
+    fn as_rust_type(&'a self) -> Ref<'a, T> {
         let void_ptr = unsafe { bindings::device_get_softc(*self) };
         let sc_ptr = void_ptr.cast::<SoftcLayout<T>>();
         let sc_ref = unsafe { sc_ptr.as_ref().unwrap() };
-        unsafe { Loan::from_raw(sc_ref) }
+        unsafe { Ref::from_raw(sc_ref) }
     }
 }
 
@@ -169,9 +169,9 @@ define_interface! {
         with desc device_detach_desc
         and typedef device_detach_t,
         with drop glue {
-            use $crate::ffi::Loan;
+            use $crate::ffi::Ref;
 
-            let (sc_ptr, count_ptr) = Loan::into_raw(dev);
+            let (sc_ptr, count_ptr) = Ref::into_raw(dev);
             let last = unsafe { $crate::bindings::refcount_release(count_ptr) };
             if !last {
                 let num_refs = unsafe { $crate::bindings::refcount_load(count_ptr) };
@@ -252,19 +252,19 @@ pub trait DeviceIf: Driver {
     /// example, if a softc struct includes a `Box<T>` field (i.e. a pointer to the heap with
     /// ownership of a `T`) the `T` in the heap will also be freed. This applies recursively through
     /// any number of layers of indirection.
-    fn device_detach(sc: Loan<Self::Softc>) -> Result<()> {
+    fn device_detach(sc: Ref<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
-    fn device_shutdown(sc: Loan<Self::Softc>) -> Result<()> {
+    fn device_shutdown(sc: Ref<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
-    fn device_suspend(sc: Loan<Self::Softc>) -> Result<()> {
+    fn device_suspend(sc: Ref<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
-    fn device_resume(sc: Loan<Self::Softc>) -> Result<()> {
+    fn device_resume(sc: Ref<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
-    fn device_quiesce(sc: Loan<Self::Softc>) -> Result<()> {
+    fn device_quiesce(sc: Ref<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
 }
@@ -340,16 +340,16 @@ pub mod wrappers {
         true
     }
 
-    /// Get a Loan to a device softc.
+    /// Get a Ref to a device softc.
     ///
     /// Note the existence of the Device ensures that the device won't be detached for its
-    /// associated lifetime so the returned Loan has a matching lifetime. To use the softc past that
-    /// scope, turn it into a lease using Loan::lease.
-    pub fn device_get_softc<'a, D: DeviceIf>(dev: Device<'a>) -> Loan<'a, D::Softc> {
+    /// associated lifetime so the returned Ref has a matching lifetime. To use the softc past that
+    /// scope, turn it into a lease using Ref::lease.
+    pub fn device_get_softc<'a, D: DeviceIf>(dev: Device<'a>) -> Ref<'a, D::Softc> {
         assert!(device_matches_driver::<D>(dev));
         let void_ptr = unsafe { bindings::device_get_softc(dev.as_ptr()) };
         let sc_ptr = unsafe { void_ptr.cast::<SoftcLayout<D::Softc>>().as_ref().unwrap() };
-        unsafe { Loan::from_raw(sc_ptr) }
+        unsafe { Ref::from_raw(sc_ptr) }
     }
 
     /// Get a Lease to the softc for a device managed by a rust driver.
@@ -370,7 +370,7 @@ pub mod wrappers {
     /// racing with device_detach, but before that there is no guarantee for detachable devices.
     pub unsafe fn device_get_softc_unchecked<D: DeviceIf>(dev_ptr: device_t) -> Lease<D::Softc> {
         assert!(!dev_ptr.is_null());
-        // Required to let this function return a Loan
+        // Required to let this function return a Ref
         // SAFETY: Safety requirements delegated to caller
         assert!(unsafe { device_has_rust_driver(dev_ptr) });
         // SAFETY: Lifetime safety requirements delegated to caller
@@ -497,7 +497,7 @@ pub mod wrappers {
 mod tests {
     use super::*;
     use crate::define_driver;
-    use crate::ffi::{Loan, UninitPtr};
+    use crate::ffi::{Ref, UninitPtr};
     use crate::tests::{DriverManager, LoudDrop};
     use core::ptr::null_mut;
     use core::sync::atomic::{AtomicPtr, Ordering};
@@ -551,7 +551,7 @@ mod tests {
             println!("{:x?}", sc);
             Ok(())
         }
-        fn device_detach(sc: Loan<Self::Softc>) -> Result<()> {
+        fn device_detach(sc: Ref<Self::Softc>) -> Result<()> {
             assert!(sc.const_data == 0xdeadbeef);
             Ok(())
         }
@@ -599,7 +599,7 @@ mod tests {
             }
             Ok(())
         }
-        fn device_detach(sc: Loan<Self::Softc>) -> Result<()> {
+        fn device_detach(sc: Ref<Self::Softc>) -> Result<()> {
             Ok(())
         }
     }

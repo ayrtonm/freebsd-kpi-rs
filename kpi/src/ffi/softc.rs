@@ -40,7 +40,7 @@ use core::ptr::NonNull;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use core::{fmt, ptr};
 
-/// The layout of the softc that Loan and Lease point to.
+/// The layout of the softc that Ref and Lease point to.
 ///
 /// This determines the memory layout of all driver and char device softc managed by rust drivers.
 /// It uses repr(C) and the driver-defined T is intentionally placed first to allow using rust
@@ -165,13 +165,13 @@ impl<'a, T> UninitPtr<'a, T> {
         self.device().as_static()
     }
 
-    /// Initialize the softc to `t` and return a Loan<T> pointer.
+    /// Initialize the softc to `t` and return a Ref<T> pointer.
     ///
     /// The returned pointer may only be used for the lifetime of the UninitPtr it was created from.
     /// The KPI glue sets the UninitPtr lifetime parameter using a local on the device_attach stack
-    /// frame so in practical terms this means that trying to stash the Loan in a global or
+    /// frame so in practical terms this means that trying to stash the Ref in a global or
     /// equivalent (e.g. another softc) is a compile-time error.
-    pub fn init(self, t: T) -> Loan<'a, T> {
+    pub fn init(self, t: T) -> Ref<'a, T> {
         // Get a pointer to the SoftcLayout on the heap from the MaybeUninit<SoftcLayout<T>> reference
         let sc_ptr = self.0.as_mut_ptr();
 
@@ -190,15 +190,15 @@ impl<'a, T> UninitPtr<'a, T> {
         }
         // All fields are now initialized since `dev` was written in `from_raw` and `inner` and
         // `count` were written above.
-        Loan(unsafe { self.0.assume_init_ref() })
+        Ref(unsafe { self.0.assume_init_ref() })
     }
 }
 
-// TODO: document the part about Loan<T> being explicitly pinning and how proj!(&sc.field) can give a Pin<&Field>
+// TODO: document the part about Ref<T> being explicitly pinning and how proj!(&sc.field) can give a Pin<&Field>
 /// A pointer to a softc passed in to kobj methods.
 ///
 /// This is the equivalent of calling `device_get_softc` from a kobj method in C. In rust the
-/// Loan<Softc> is created by the KPI glue and passed in to the trait method representing a kobj
+/// Ref<Softc> is created by the KPI glue and passed in to the trait method representing a kobj
 /// method as an argument. Functionally it behaves like a `&Softc` argument.
 ///
 /// Softc pointers passed to kobj methods do not need to be refcounted since the caller in C ensures
@@ -212,9 +212,9 @@ impl<'a, T> UninitPtr<'a, T> {
 /// otherwise the KPI glue will panic when it tries to free the softc. In practical terms this means
 /// if a callback was registered with a Lease, the corresponding unregister function must be called.
 #[repr(C)]
-pub struct Loan<'a, T: 'static>(&'a SoftcLayout<T>);
+pub struct Ref<'a, T: 'static>(&'a SoftcLayout<T>);
 
-impl<'a, T> Loan<'a, T> {
+impl<'a, T> Ref<'a, T> {
     // Only intended to be used by the proj! macro.
     #[doc(hidden)]
     pub unsafe fn map_unchecked<U: ?Sized, F>(self, f: F) -> Pin<&'a U>
@@ -237,12 +237,12 @@ impl<'a, T> Loan<'a, T> {
     }
 
     pub fn device(&self) -> Device<'_> {
-        // SAFETY: The lifetime of the return value is tied to the Loan borrow (&self)
+        // SAFETY: The lifetime of the return value is tied to the Ref borrow (&self)
         unsafe { Device::new_unchecked(self.0.device()) }
     }
 
     pub fn cdev(&self) -> CDev<'_> {
-        // SAFETY: The lifetime of the return value is tied to the Loan borrow (&self)
+        // SAFETY: The lifetime of the return value is tied to the Ref borrow (&self)
         unsafe { CDev::new_unchecked(self.0.cdev()) }
     }
 
@@ -257,21 +257,21 @@ impl<'a, T> Loan<'a, T> {
     }
 }
 
-impl<'a, T: 'static + Debug> Debug for Loan<'a, T> {
+impl<'a, T: 'static + Debug> Debug for Ref<'a, T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         Debug::fmt(&self.0.inner, f)
     }
 }
 
-impl<'a, T> Copy for Loan<'a, T> {}
+impl<'a, T> Copy for Ref<'a, T> {}
 
-impl<'a, T> Clone for Loan<'a, T> {
+impl<'a, T> Clone for Ref<'a, T> {
     fn clone(&self) -> Self {
         Self(self.0)
     }
 }
 
-impl<'a, T> Deref for Loan<'a, T> {
+impl<'a, T> Deref for Ref<'a, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -319,11 +319,11 @@ impl<T> Lease<T> {
     pub fn lease(&self) -> Self {
         // SAFETY: The pointee is freed in device_detach, but the KPI glue for it panics if there is
         // an outstanding softc Lease when it's ready to free it.
-        Loan(unsafe { self.0.as_ref() }).lease()
+        Ref(unsafe { self.0.as_ref() }).lease()
     }
 
-    pub fn as_loan(&self) -> Loan<'_, T> {
-        Loan(unsafe { self.0.as_ref() })
+    pub fn as_ref(&self) -> Ref<'_, T> {
+        Ref(unsafe { self.0.as_ref() })
     }
 
     pub fn into_raw(lease: Self) -> (*mut T, *mut u_int) {

@@ -29,7 +29,7 @@
 use crate::bindings::cdev;
 use crate::boxed::Box;
 use crate::define_interface;
-use crate::ffi::{Lease, Loan, SoftcLayout};
+use crate::ffi::{Lease, Ref, SoftcLayout};
 use crate::kobj::AsRustType;
 use crate::malloc::{Malloc, MallocType};
 use crate::misc::Thread;
@@ -56,16 +56,16 @@ pub trait CDevSwInternal {
 pub trait CDevSw: CDevSwInternal {
     type Softc: 'static + Sync;
 
-    fn d_open(sc: Loan<Self::Softc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
+    fn d_open(sc: Ref<Self::Softc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
         unimplemented!()
     }
-    fn d_close(sc: Loan<Self::Softc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
+    fn d_close(sc: Ref<Self::Softc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
         unimplemented!()
     }
-    fn d_read(sc: Loan<Self::Softc>, uio: UioRef, ioflag: c_int) -> Result<()> {
+    fn d_read(sc: Ref<Self::Softc>, uio: UioRef, ioflag: c_int) -> Result<()> {
         unimplemented!()
     }
-    fn d_write(sc: Loan<Self::Softc>, uio: UioRef, ioflag: c_int) -> Result<()> {
+    fn d_write(sc: Ref<Self::Softc>, uio: UioRef, ioflag: c_int) -> Result<()> {
         unimplemented!()
     }
 }
@@ -136,12 +136,12 @@ macro_rules! define_cdev {
     };
 }
 
-impl<'a, T> AsRustType<'a, Loan<'a, T>, T> for *mut cdev {
-    fn as_rust_type(&'a self) -> Loan<'a, T> {
+impl<'a, T> AsRustType<'a, Ref<'a, T>, T> for *mut cdev {
+    fn as_rust_type(&'a self) -> Ref<'a, T> {
         let dev = *self;
         let sc_ptr = unsafe { (*dev).si_drv1 };
         let res = unsafe { sc_ptr.cast::<SoftcLayout<T>>().as_ref().unwrap() };
-        unsafe { Loan::from_raw(res) }
+        unsafe { Ref::from_raw(res) }
     }
 }
 
@@ -225,8 +225,8 @@ pub mod wrappers {
         // need a dual-owner variant.
         // Record the cdev so destroy_dev can find it later.
         unsafe { (*sc_ptr).set_cdev(outp) };
-        let sc_loan = unsafe { Loan::from_raw(sc_ptr.as_ref().unwrap()) };
-        Ok(sc_loan.lease())
+        let sc_ref = unsafe { Ref::from_raw(sc_ptr.as_ref().unwrap()) };
+        Ok(sc_ref.lease())
     }
 
     /// Destroys the character device created by [`make_dev_s`] and frees its softc.
@@ -237,7 +237,7 @@ pub mod wrappers {
         let dev = sc.cdev().0;
         // The allocator the softc was boxed with, recorded in si_drv2 by make_dev_s.
         let mtype = MallocType::from_raw(unsafe { (*dev).si_drv2.cast() });
-        // Blocks until all threads have left this driver's cdevsw callbacks, so no new Loans
+        // Blocks until all threads have left this driver's cdevsw callbacks, so no new Refs
         // can be created from the cdev afterwards.
         unsafe { bindings::destroy_dev(dev) };
         // Release our lease and the device's original reference, then free the softc.

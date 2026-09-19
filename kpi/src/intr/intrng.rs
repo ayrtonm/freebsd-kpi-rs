@@ -31,7 +31,7 @@ use crate::bindings::{
 };
 use crate::bus::{Filter, Resource};
 use crate::device::{Device, DeviceIf};
-use crate::ffi::{ArrayCString, Lease, Loan, SubClass};
+use crate::ffi::{ArrayCString, Lease, Ref, SubClass};
 use crate::kobj::AsRustType;
 use crate::ofw::XRef;
 use crate::prelude::*;
@@ -60,7 +60,7 @@ impl AsRustType<'_, IntrRoot> for u32 {
     }
 }
 
-pub type IrqFilter<T> = extern "C" fn(Loan<T>) -> Filter;
+pub type IrqFilter<T> = extern "C" fn(Ref<T>) -> Filter;
 
 define_interface! {
     in PicIf
@@ -121,7 +121,7 @@ macro_rules! pic_map_intr {
             let void_ptr = unsafe { bindings::device_get_softc(dev) };
             let sc_ptr = void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
             let sc_ref = unsafe { sc_ptr.as_ref().unwrap() };
-            let sc = unsafe { $crate::ffi::Loan::from_raw(sc_ref) };
+            let sc = unsafe { $crate::ffi::Ref::from_raw(sc_ref) };
             let data = data.as_rust_type();
             let res = match <$driver_ty as PicIf>::pic_map_intr(sc, data) {
                 Ok(isrc_ref) => {
@@ -162,7 +162,7 @@ macro_rules! pic_ipi_setup {
             let void_ptr = unsafe { bindings::device_get_softc(dev) };
             let sc_ptr = void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
             let sc_ref = unsafe { sc_ptr.as_ref().unwrap() };
-            let sc = unsafe { $crate::ffi::Loan::from_raw(sc_ref) };
+            let sc = unsafe { $crate::ffi::Ref::from_raw(sc_ref) };
             let res = match <$driver_ty as PicIf>::pic_ipi_setup(sc, ipi) {
                 Ok(isrc_ref) => {
                     unsafe {
@@ -197,7 +197,7 @@ impl PicIf for {Self} {{
 pub trait PicIf: DeviceIf {
     type IrqSrcFields;
     fn pic_setup_intr(
-        sc: Loan<Self::Softc>,
+        sc: Ref<Self::Softc>,
         isrc: &IrqSrc<Self::IrqSrcFields>,
         res: Resource,
         data: MapData,
@@ -205,7 +205,7 @@ pub trait PicIf: DeviceIf {
         unimplemented!()
     }
     fn pic_teardown_intr(
-        sc: Loan<Self::Softc>,
+        sc: Ref<Self::Softc>,
         isrc: &IrqSrc<Self::IrqSrcFields>,
         res: Resource,
         data: MapData,
@@ -213,40 +213,40 @@ pub trait PicIf: DeviceIf {
         unimplemented!()
     }
     fn pic_map_intr(
-        sc: Loan<'_, Self::Softc>,
+        sc: Ref<'_, Self::Softc>,
         data: MapData,
     ) -> Result<Pin<&IrqSrc<Self::IrqSrcFields>>> {
         unimplemented!()
     }
-    fn pic_enable_intr(sc: Loan<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
+    fn pic_enable_intr(sc: Ref<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
-    fn pic_disable_intr(sc: Loan<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
+    fn pic_disable_intr(sc: Ref<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
-    fn pic_post_filter(sc: Loan<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
+    fn pic_post_filter(sc: Ref<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
-    fn pic_post_ithread(sc: Loan<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
+    fn pic_post_ithread(sc: Ref<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
-    fn pic_pre_ithread(sc: Loan<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
+    fn pic_pre_ithread(sc: Ref<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
-    fn pic_bind_intr(sc: Loan<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) -> Result<()> {
+    fn pic_bind_intr(sc: Ref<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) -> Result<()> {
         unimplemented!()
     }
-    fn pic_init_secondary(sc: Loan<Self::Softc>, root: IntrRoot) {
+    fn pic_init_secondary(sc: Ref<Self::Softc>, root: IntrRoot) {
         unimplemented!()
     }
     fn pic_ipi_setup(
-        sc: Loan<'_, Self::Softc>,
+        sc: Ref<'_, Self::Softc>,
         ipi: u32,
     ) -> Result<Pin<&IrqSrc<Self::IrqSrcFields>>> {
         unimplemented!()
     }
     fn pic_ipi_send(
-        sc: Loan<Self::Softc>,
+        sc: Ref<Self::Softc>,
         isrc: &IrqSrc<Self::IrqSrcFields>,
         cpus: &cpuset_t,
         ipi: u32,
@@ -393,7 +393,7 @@ mod tests {
     use super::*;
     use crate::define_driver;
     use crate::device::{BusProbe, Device, DeviceIf};
-    use crate::ffi::{Loan, UninitPtr};
+    use crate::ffi::{Ref, UninitPtr};
     use crate::tests::DriverManager;
 
     #[repr(C)]
@@ -417,7 +417,7 @@ mod tests {
                 INTR_ROOT_IRQ,
             )
         }
-        fn device_detach(_sc: Loan<Self::Softc>) -> Result<()> {
+        fn device_detach(_sc: Ref<Self::Softc>) -> Result<()> {
             Ok(())
         }
     }
@@ -432,7 +432,7 @@ mod tests {
         type IrqSrcFields = IntcIrqSrc;
 
         fn pic_setup_intr(
-            _sc: Loan<Self::Softc>,
+            _sc: Ref<Self::Softc>,
             isrc: &IrqSrc<Self::IrqSrcFields>,
             _res: Resource,
             _data: MapData,
@@ -444,7 +444,7 @@ mod tests {
     }
 
     impl IntcDriver {
-        extern "C" fn handle_irq(sc: Loan<IntcSoftc>) -> Filter {
+        extern "C" fn handle_irq(sc: Ref<IntcSoftc>) -> Filter {
             println!("invoked irq handler {sc:x?}");
             FILTER_HANDLED
         }

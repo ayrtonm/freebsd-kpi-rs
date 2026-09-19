@@ -16,7 +16,7 @@ use core::sync::atomic::{AtomicPtr, Ordering};
 use kpi::ErrCode;
 use kpi::boxed::Box;
 use kpi::cdev::{CDevSw, MakeDevArgs, UioRef};
-use kpi::ffi::{Lease, LeaseSlot, Loan, LoanLayout};
+use kpi::ffi::{Lease, LeaseSlot, Ref, RefLayout};
 use kpi::misc::Thread;
 use kpi::module::Module;
 use kpi::sync::Checked;
@@ -62,7 +62,7 @@ impl CDevSw for EchoDev {
     // This ensures all cdevsw use the same softc type
     type Softc = EchoDevSoftc;
 
-    // A `Loan<T>` is a pointer (ABI-compatible with `void*`) to a heap-allocated memory for a T and
+    // A `Ref<T>` is a pointer (ABI-compatible with `void*`) to a heap-allocated memory for a T and
     // a counter. It can only be used for the duration of the function (otherwise you'll get a
     // compiler-error). If you need to use it beyond that point (e.g. the cdevsw method needs to be
     // asynchronous so it passes the softc to a callback) you can call `sc.lease()` to create a
@@ -73,18 +73,18 @@ impl CDevSw for EchoDev {
     // TODO: the transition to `Lease` is still underway so some callback KPIs (e.g. taskqueue)
     // don't use it yet but will eventually. Also for some callbacks (like config_intrhook in device
     // drivers) its useless since we know the callback always gets invoked before the softc is
-    // destroyed. These will allow passing in a Loan<T>.
+    // destroyed. These will allow passing in a Ref<T>.
     //
-    // To access the cdev pointer itself we can use `sc.cdev()` on any `Loan` or `Lease` to a cdev
-    // softc. That returns a cdev that has a lifetime tied to the `Loan`/`Lease` so there's no way
+    // To access the cdev pointer itself we can use `sc.cdev()` on any `Ref` or `Lease` to a cdev
+    // softc. That returns a cdev that has a lifetime tied to the `Ref`/`Lease` so there's no way
     // to stash away a copy of the cdev and use it after the device is destroyed.
-    fn d_open(sc: Loan<EchoDevSoftc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
+    fn d_open(sc: Ref<EchoDevSoftc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
         Ok(())
     }
-    fn d_close(sc: Loan<EchoDevSoftc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
+    fn d_close(sc: Ref<EchoDevSoftc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
         Ok(())
     }
-    fn d_read(sc: Loan<EchoDevSoftc>, uio: UioRef, ioflag: c_int) -> Result<()> {
+    fn d_read(sc: Ref<EchoDevSoftc>, uio: UioRef, ioflag: c_int) -> Result<()> {
         if uio.resid() == 0 {
             return Ok(());
         }
@@ -135,7 +135,7 @@ impl CDevSw for EchoDev {
         res
     }
 
-    fn d_write(sc: Loan<EchoDevSoftc>, uio: UioRef, ioflag: c_int) -> Result<()> {
+    fn d_write(sc: Ref<EchoDevSoftc>, uio: UioRef, ioflag: c_int) -> Result<()> {
         if uio.resid() == 0 {
             return Ok(());
         }
@@ -179,17 +179,17 @@ static ECHODEV: LeaseSlot<EchoDevSoftc> = LeaseSlot::uninit();
 
 impl Module for EchoDev {
     fn on_load(data: *mut c_void) -> Result<()> {
-        // Allocate the softc on the heap. We use LoanLayout::new instead of just the softc type
-        // because make_dev_args_init requires a LoanLayout<T> where T is the softc in the CDevSw
-        // trait impl. This Box<LoanLayout<EchoDevSoftc>> is ABI-compatible with a `void *`
-        let mut sc: Box<_, M_DEVBUF> = Box::new(LoanLayout::new(EchoDevSoftc::default()), M_WAITOK);
+        // Allocate the softc on the heap. We use RefLayout::new instead of just the softc type
+        // because make_dev_args_init requires a RefLayout<T> where T is the softc in the CDevSw
+        // trait impl. This Box<RefLayout<EchoDevSoftc>> is ABI-compatible with a `void *`
+        let mut sc: Box<_, M_DEVBUF> = Box::new(RefLayout::new(EchoDevSoftc::default()), M_WAITOK);
 
         // We haven't passed the pointer anywhere and Box<T> provides mutable access to T so we can
         // mutate it at this point. Even though rust uses `.` for field accesses via pointers, this
         // mutates the softc on the heap. So it'd be equivalent to something like
         // `sc->inner.state...` in C.
         //
-        // `inner` is the only public field on LoanLayout<T> and it gives us access to the T.
+        // `inner` is the only public field on RefLayout<T> and it gives us access to the T.
         //
         // `state` is the `SxLock` in `EchoDevSoftc` and its `.get_mut()` gives us mutable access to
         // its data making us grab the lock. It's ok to skip grabbing the lock here because the Box
@@ -235,14 +235,14 @@ impl Module for EchoDev {
         // itself runs its drop implementation.
         //
         // Normally make_dev_s returns an out-pointer for the new cdev, but here it returns a
-        // pointer to the softc. The counter in the LoanLayout<EchoDevSoftc> is initialized to 2.
+        // pointer to the softc. The counter in the RefLayout<EchoDevSoftc> is initialized to 2.
         // One for the FFI glue and another for the pointer returned here. To access the cdev
-        // pointer itself we can call the `.cdev()` method on any `Lease<T>` or `Loan<T>`. This
-        // returns a `CDev` type which has a lifetime tied to the `Loan`/`Lease`.
+        // pointer itself we can call the `.cdev()` method on any `Lease<T>` or `Ref<T>`. This
+        // returns a `CDev` type which has a lifetime tied to the `Ref`/`Lease`.
         let sc: Lease<EchoDevSoftc> = make_dev_s(args)?;
 
         // proj! takes an argument of the form `&struct.field` and where struct is a
-        // Loan<TheStructType>/Lease<TheStructType>/Pin<TheStructType> and returns a
+        // Ref<TheStructType>/Lease<TheStructType>/Pin<TheStructType> and returns a
         // Pin<TheFieldType>. It's required to initialize the SxLock
         // TODO: explain Pin/field projection
         sx_init(proj!(&sc.state), c"echo");

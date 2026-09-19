@@ -29,7 +29,7 @@
 use crate::ErrCode;
 use crate::bindings::{bus_size_t, resource, resource_spec, u_int};
 use crate::device::Device;
-use crate::ffi::{Lease, Loan};
+use crate::ffi::{Lease, Ref};
 use crate::kobj::{AsCType, AsRustType};
 use crate::prelude::*;
 use core::cell::UnsafeCell;
@@ -65,8 +65,8 @@ impl BitOr<ResFlags> for ResFlags {
 pub type RawFilterFn = Option<unsafe extern "C" fn(*mut c_void) -> i32>;
 type RawHandler = Option<unsafe extern "C" fn(*mut c_void)>;
 
-pub type FilterFn<T> = Option<extern "C" fn(Loan<T>) -> Filter>;
-pub type Handler<T> = Option<extern "C" fn(Loan<T>)>;
+pub type FilterFn<T> = Option<extern "C" fn(Ref<T>) -> Filter>;
+pub type Handler<T> = Option<extern "C" fn(Ref<T>)>;
 
 impl AsRustType<'_, Resource> for *mut resource {
     fn as_rust_type(&self) -> Resource {
@@ -466,7 +466,7 @@ mod tests {
     use super::*;
     use crate::define_driver;
     use crate::device::{BusProbe, Device, DeviceIf};
-    use crate::ffi::{Loan, UninitPtr};
+    use crate::ffi::{Ref, UninitPtr};
     use crate::tests::{DriverManager, LoudDrop};
 
     #[repr(C)]
@@ -480,7 +480,7 @@ mod tests {
         fn setup(
             &self,
             dev: Device,
-            sc: Loan<IrqSoftc>,
+            sc: Ref<IrqSoftc>,
             filter: bool,
             handler: bool,
         ) -> Result<()> {
@@ -531,7 +531,7 @@ mod tests {
             }
             Ok(())
         }
-        fn device_detach(sc: Loan<Self::Softc>) -> Result<()> {
+        fn device_detach(sc: Ref<Self::Softc>) -> Result<()> {
             if ofw_bus_is_compatible(sc.device(), c"irq_driver,teardown_intr") {
                 bus_teardown_intr(sc.device(), &sc.irq).unwrap();
             }
@@ -540,7 +540,7 @@ mod tests {
     }
 
     impl IrqDriver {
-        extern "C" fn filter(sc: Loan<IrqSoftc>) -> Filter {
+        extern "C" fn filter(sc: Ref<IrqSoftc>) -> Filter {
             println!("called filter");
             if ofw_bus_is_compatible(sc.device(), c"irq_driver,filter_handled") {
                 FILTER_HANDLED
@@ -548,7 +548,7 @@ mod tests {
                 FILTER_SCHEDULE_THREAD
             }
         }
-        extern "C" fn handler(sc: Loan<IrqSoftc>) {
+        extern "C" fn handler(sc: Ref<IrqSoftc>) {
             println!("called handler {sc:x?}");
         }
     }

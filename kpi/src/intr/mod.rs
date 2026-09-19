@@ -28,7 +28,7 @@
 
 use crate::ErrCode;
 use crate::bindings::{callout, callout_func_t, ich_func_t, intr_config_hook, u_int};
-use crate::ffi::{Lease, Loan};
+use crate::ffi::{Lease, Ref};
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::ffi::{c_int, c_void};
@@ -71,7 +71,7 @@ impl ConfigHook {
         }
     }
 
-    pub fn init<T>(self: Pin<&Self>, func: ConfigHookFn<T>, arg: Loan<T>) {
+    pub fn init<T>(self: Pin<&Self>, func: ConfigHookFn<T>, arg: Ref<T>) {
         let c_hook = self.inner.get();
         let arg_ptr = arg.deref() as *const T;
         unsafe {
@@ -87,7 +87,7 @@ impl Drop for ConfigHook {
     }
 }
 
-pub type CalloutFn<T> = extern "C" fn(Loan<T>);
+pub type CalloutFn<T> = extern "C" fn(Ref<T>);
 
 #[derive(Debug, Default)]
 pub struct Callout {
@@ -288,7 +288,7 @@ mod tests {
     use super::*;
     use crate::define_driver;
     use crate::device::{BusProbe, Device, DeviceIf};
-    use crate::ffi::{Loan, UninitPtr};
+    use crate::ffi::{Ref, UninitPtr};
     use crate::tests::{DriverManager, LoudDrop};
 
     #[repr(C)]
@@ -312,7 +312,7 @@ mod tests {
             config_intrhook_establish(proj!(&sc.hook)).unwrap();
             Ok(())
         }
-        fn device_detach(_sc: Loan<Self::Softc>) -> Result<()> {
+        fn device_detach(_sc: Ref<Self::Softc>) -> Result<()> {
             Ok(())
         }
     }
