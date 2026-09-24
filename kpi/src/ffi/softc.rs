@@ -31,9 +31,11 @@ use crate::cdev::CDev;
 use crate::device::Device;
 use crate::prelude::*;
 use core::cell::UnsafeCell;
+use crate::boxed::Box;
+use crate::malloc::{Malloc, MallocFlags};
 use core::fmt::{Debug, Formatter};
 use core::mem::{MaybeUninit, forget};
-use core::ops::Deref;
+use core::ops::{Deref, DerefMut};
 use core::pin::Pin;
 use core::ptr::NonNull;
 use core::{fmt, ptr};
@@ -53,7 +55,7 @@ pub struct Softc<T> {
     // This is the softc type specified by a driver or char device. It must be first to support
     // subclass drivers. Note there may be padding between the end of the softc to ensure the next
     // field is aligned to 8 bytes.
-    pub inner: T,
+    inner: T,
     // The type in these Option<T>s must be non-null so NULL is used as a niche value to represent
     // None. That means the following two fields are each the size of void*.
     dev: Option<NonNull<_device>>,
@@ -65,19 +67,21 @@ pub struct Softc<T> {
 }
 
 impl<T> Softc<T> {
-    // TODO: This is only pub to suport the echodev demo. Ideally Softc would not be exposed
-    // outside this crate at all.
-    pub unsafe fn new_unchecked(t: T) -> Self {
-        let mut res = Self {
+    pub fn new<M: Malloc>(t: T, flags: MallocFlags) -> Box<Self, M> {
+        Softc::try_new(t, flags).unwrap()
+    }
+
+    pub fn try_new<M: Malloc>(t: T, flags: MallocFlags) -> Result<Box<Self, M>> {
+        let mut res = Box::try_new(Self {
             inner: t,
             dev: None,
             cdev: None,
             count: UnsafeCell::new(0),
-        };
+        }, flags)?;
         let count_ptr = UnsafeCell::raw_get(&raw mut res.count);
         // This is just an address-insensitive atomic write
         unsafe { bindings::refcount_init(count_ptr, 1) };
-        res
+        Ok(res)
     }
 
     pub fn set_cdev(&mut self, dev: *mut cdev) {
@@ -137,6 +141,12 @@ impl<T> Deref for Softc<T> {
 
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+
+impl<T> DerefMut for Softc<T> {
+    fn deref_mut(&mut self) -> &mut <Self as Deref>::Target {
+        &mut self.inner
     }
 }
 
