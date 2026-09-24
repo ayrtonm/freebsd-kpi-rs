@@ -61,7 +61,7 @@ pub struct ConfigHook {
 unsafe impl Sync for ConfigHook {}
 unsafe impl Send for ConfigHook {}
 
-pub type ConfigHookFn<T> = extern "C" fn(Pin<&T>);
+pub type ConfigHookFn<T> = extern "C" fn(Ref<T>);
 
 impl ConfigHook {
     pub fn new() -> Self {
