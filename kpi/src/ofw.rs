@@ -34,7 +34,7 @@ use crate::kobj::AsRustType;
 use crate::prelude::*;
 use core::ffi::{CStr, c_char, c_int};
 use core::mem::{MaybeUninit, align_of, offset_of, size_of};
-use core::ptr::null;
+use core::ptr::{null, null_mut};
 
 #[repr(C)]
 #[derive(Debug)]
@@ -175,9 +175,15 @@ pub mod wrappers {
     /// Registers a device with the given devicetree xref
     ///
     /// Note that this function ensure that the device won't be detached later.
-    pub fn OF_device_register_xref(xref: XRef, dev: Device) {
+    pub fn OF_device_register_xref(xref: XRef, dev: Device<'static>) {
+        let _always_ok = unsafe {
+            bindings::OF_device_register_xref(xref.0, dev.as_ptr())
+        };
+    }
+
+    pub fn OF_device_unregister_xref(xref: XRef) {
         unsafe {
-            bindings::OF_device_register_xref(xref.0, dev.as_ptr());
+            bindings::OF_device_unregister_xref(xref.0, null_mut() /* unused device_t arg */)
         }
     }
 
@@ -200,6 +206,8 @@ pub mod wrappers {
     }
 
     pub fn OF_getencprop<T: Pod>(node: Node, propname: &CStr) -> Result<T> {
+        // compile-time assertion to avoid hitting C KASSERT in debug builds
+        const { assert!(size_of::<T>() % 4 == 0) };
         // SAFETY: If T implements Pod it must be valid for any bitpattern
         unsafe { OF_getencprop_unchecked(node, propname) }
     }
@@ -231,12 +239,15 @@ pub mod wrappers {
     }
 
     /// Get a device from a devicetree XRef.
-    pub fn OF_device_from_xref(xref: XRef) -> Result<device_t> {
-        let res = unsafe { bindings::OF_device_from_xref(xref.0) };
-        if res.is_null() {
+    pub fn OF_device_from_xref(xref: XRef) -> Result<Device<'static>> {
+        let ptr = unsafe { bindings::OF_device_from_xref(xref.0) };
+        if ptr.is_null() {
             Err(ENULLPTR)
         } else {
-            Ok(res)
+            // SAFETY: OF_device_register_xref ensures this is always an undetachable Device. If the
+            // C version of OF_device_register_xref is called instead the burden for ensuring the
+            // device_t never has its driver detached is on that unsafe block.
+            Ok(unsafe { Device::new_unchecked(ptr) })
         }
     }
 
