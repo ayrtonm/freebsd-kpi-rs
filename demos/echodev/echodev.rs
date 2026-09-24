@@ -16,13 +16,13 @@ use core::sync::atomic::{AtomicPtr, Ordering};
 use kpi::ErrCode;
 use kpi::boxed::Box;
 use kpi::cdev::{CDevSw, MakeDevArgs, UioRef};
-use kpi::ffi::{Ptr, Ref, Softc};
+use kpi::ffi::{Ptr, Softc};
 use kpi::misc::Thread;
 use kpi::module::Module;
 use kpi::sync::Checked;
 use kpi::sync::sx::SxLock;
 use kpi::vec::Vec;
-use kpi::{define_cdev, define_module, proj};
+use kpi::{define_cdev, define_module, define_projectable};
 
 // This imports all public functions defined in the `mod wrappers` modules across the KPI crate.
 // These functions typically are named after their C counterparts, but may have different arg/return
@@ -40,9 +40,11 @@ use kpi::prelude::*;
 // which is like `Checked` but has no runtime cost. It's getters are unsafe so if you are wrong
 // about the variable only being modified from one place/thread at a time you are essentially giving
 // LLVM permission to perform invalid optimizations on the code.
-#[derive(Default)]
-pub struct EchoDevSoftc {
-    state: SxLock<EchoDevState>,
+define_projectable! {
+    #[derive(Default)]
+    pub struct EchoDevSoftc {
+        state: SxLock<EchoDevState>,
+    }
 }
 
 // These are all behind a lock in the softc so we'll be able to mutate them
@@ -78,13 +80,13 @@ impl CDevSw for EchoDev {
     // To access the cdev pointer itself we can use `sc.cdev()` on any `Ref` or `Ptr` to a cdev
     // softc. That returns a cdev that has a lifetime tied to the `Ref`/`Ptr` so there's no way
     // to stash away a copy of the cdev and use it after the device is destroyed.
-    fn d_open(sc: Ref<EchoDevSoftc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
+    fn d_open(sc: &Softc<EchoDevSoftc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
         Ok(())
     }
-    fn d_close(sc: Ref<EchoDevSoftc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
+    fn d_close(sc: &Softc<EchoDevSoftc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
         Ok(())
     }
-    fn d_read(sc: Ref<EchoDevSoftc>, uio: UioRef, ioflag: c_int) -> Result<()> {
+    fn d_read(sc: &Softc<EchoDevSoftc>, uio: UioRef, ioflag: c_int) -> Result<()> {
         if uio.resid() == 0 {
             return Ok(());
         }
@@ -135,7 +137,7 @@ impl CDevSw for EchoDev {
         res
     }
 
-    fn d_write(sc: Ref<EchoDevSoftc>, uio: UioRef, ioflag: c_int) -> Result<()> {
+    fn d_write(sc: &Softc<EchoDevSoftc>, uio: UioRef, ioflag: c_int) -> Result<()> {
         if uio.resid() == 0 {
             return Ok(());
         }
@@ -182,9 +184,9 @@ impl Module for EchoDev {
         // Allocate the softc on the heap. We use Softc::new instead of just the softc type
         // because make_dev_args_init requires a Softc<T> where T is the softc in the CDevSw
         // trait impl. This Box<Softc<EchoDevSoftc>> is ABI-compatible with a `void *`
-        let mut sc: Box<_, M_DEVBUF> = Box::new(Softc::new(EchoDevSoftc::default()), M_WAITOK);
+        let mut sc = Softc::new::<M_DEVBUF>(EchoDevSoftc::default(), M_WAITOK);
 
-        // We haven't passed the pointer anywhere and Box<T> provides mutable access to T so we can
+        // We haven't passed the pointer anywhere and Box<Softc<T>> provides mutable access to T so we can
         // mutate it at this point. Even though rust uses `.` for field accesses via pointers, this
         // mutates the softc on the heap. So it'd be equivalent to something like
         // `sc->inner.state...` in C.
@@ -201,7 +203,7 @@ impl Module for EchoDev {
         //
         // That makes this `Vec::fill_with_capacity(0, 64, M_WAITOK)` equivalent to
         // `malloc(64, M_DEVBUF, M_WAITOK | M_ZERO)`
-        sc.inner.state.get_mut().buf = Vec::fill_with_capacity(0, 64, M_WAITOK);
+        sc.state.get_mut().buf = Vec::fill_with_capacity(0, 64, M_WAITOK);
 
         // make_dev_args_init takes a reference to the cdevsw variable we defined with define_cdev!
         // and a pointer to the softc. It takes ownership of the boxed softc so we can't access it
@@ -244,7 +246,7 @@ impl Module for EchoDev {
         // Ref<TheStructType>/Ptr<TheStructType>/Pin<TheStructType> and returns a
         // Pin<TheFieldType>. It's required to initialize the SxLock
         // TODO: explain Pin/field projection
-        sx_init(proj!(&sc.state), c"echo");
+        sx_init(sc.project().state, c"echo");
 
         // If we want to eventually destroy the character device we need to pass some
         // Ptr<EchoDevSoftc> to destroy_dev. To make sure we can do that let's stash this pointer
