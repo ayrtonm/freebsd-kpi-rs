@@ -29,7 +29,7 @@
 use crate::bindings::cdev;
 use crate::boxed::Box;
 use crate::define_interface;
-use crate::ffi::{Ptr, Ref, Softc};
+use crate::ffi::{Ptr, Softc};
 use crate::kobj::AsRustType;
 use crate::malloc::{Malloc, MallocType};
 use crate::misc::Thread;
@@ -56,16 +56,16 @@ pub trait CDevSwInternal {
 pub trait CDevSw: CDevSwInternal {
     type Softc: 'static + Sync;
 
-    fn d_open(sc: Ref<Self::Softc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
+    fn d_open(sc: &Softc<Self::Softc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
         unimplemented!()
     }
-    fn d_close(sc: Ref<Self::Softc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
+    fn d_close(sc: &Softc<Self::Softc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
         unimplemented!()
     }
-    fn d_read(sc: Ref<Self::Softc>, uio: UioRef, ioflag: c_int) -> Result<()> {
+    fn d_read(sc: &Softc<Self::Softc>, uio: UioRef, ioflag: c_int) -> Result<()> {
         unimplemented!()
     }
-    fn d_write(sc: Ref<Self::Softc>, uio: UioRef, ioflag: c_int) -> Result<()> {
+    fn d_write(sc: &Softc<Self::Softc>, uio: UioRef, ioflag: c_int) -> Result<()> {
         unimplemented!()
     }
 }
@@ -136,12 +136,11 @@ macro_rules! define_cdev {
     };
 }
 
-impl<'a, T> AsRustType<'a, Ref<'a, T>, T> for *mut cdev {
-    fn as_rust_type(&'a self) -> Ref<'a, T> {
+impl<'a, T> AsRustType<'a, &'a Softc<T>, T> for *mut cdev {
+    fn as_rust_type(&'a self) -> &'a Softc<T> {
         let dev = *self;
         let sc_ptr = unsafe { (*dev).si_drv1 };
-        let res = unsafe { sc_ptr.cast::<Softc<T>>().as_ref().unwrap() };
-        unsafe { Ref::from_raw(res) }
+        unsafe { sc_ptr.cast::<Softc<T>>().as_ref().unwrap() }
     }
 }
 
@@ -225,8 +224,7 @@ pub mod wrappers {
         // need a dual-owner variant.
         // Record the cdev so destroy_dev can find it later.
         unsafe { (*sc_ptr).set_cdev(outp) };
-        let sc_ref = unsafe { Ref::from_raw(sc_ptr.as_ref().unwrap()) };
-        Ok(sc_ref.lease())
+        Ok(unsafe { sc_ptr.as_ref().unwrap().get_ptr() })
     }
 
     /// Destroys the character device created by [`make_dev_s`] and frees its softc.

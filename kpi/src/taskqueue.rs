@@ -28,7 +28,7 @@
 
 use crate::ErrCode;
 use crate::bindings::{task, taskqueue, u_int};
-use crate::ffi::{ArrayCString, Ptr, Ref};
+use crate::ffi::{ArrayCString, Ptr, Softc};
 use crate::intr::Priority;
 use crate::malloc::MallocFlags;
 use crate::prelude::*;
@@ -74,7 +74,7 @@ impl Drop for Taskqueue {
     }
 }
 
-pub type TaskFn<T> = extern "C" fn(Ref<'_, T>, u32);
+pub type TaskFn<T> = extern "C" fn(&Softc<T>, u32);
 
 #[derive(Debug)]
 pub struct Task {

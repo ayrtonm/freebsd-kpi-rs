@@ -31,7 +31,7 @@ use crate::bindings::{
 };
 use crate::bus::{Filter, Resource};
 use crate::device::{Device, DeviceIf};
-use crate::ffi::{ArrayCString, Ptr, Ref, SubClass};
+use crate::ffi::{ArrayCString, Ptr, Softc, SubClass};
 use crate::kobj::AsRustType;
 use crate::ofw::XRef;
 use crate::prelude::*;
@@ -60,7 +60,7 @@ impl AsRustType<'_, IntrRoot> for u32 {
     }
 }
 
-pub type IrqFilter<T> = extern "C" fn(Ref<T>) -> Filter;
+pub type IrqFilter<T> = extern "C" fn(&Softc<T>) -> Filter;
 
 define_interface! {
     in PicIf
@@ -197,7 +197,7 @@ impl PicIf for {Self} {{
 pub trait PicIf: DeviceIf {
     type IrqSrcFields;
     fn pic_setup_intr(
-        sc: Ref<Self::Softc>,
+        sc: &Softc<Self::Softc>,
         isrc: &IrqSrc<Self::IrqSrcFields>,
         res: Resource,
         data: MapData,
@@ -205,7 +205,7 @@ pub trait PicIf: DeviceIf {
         unimplemented!()
     }
     fn pic_teardown_intr(
-        sc: Ref<Self::Softc>,
+        sc: &Softc<Self::Softc>,
         isrc: &IrqSrc<Self::IrqSrcFields>,
         res: Resource,
         data: MapData,
@@ -213,40 +213,40 @@ pub trait PicIf: DeviceIf {
         unimplemented!()
     }
     fn pic_map_intr(
-        sc: Ref<'_, Self::Softc>,
+        sc: &Softc<Self::Softc>,
         data: MapData,
     ) -> Result<Pin<&IrqSrc<Self::IrqSrcFields>>> {
         unimplemented!()
     }
-    fn pic_enable_intr(sc: Ref<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
+    fn pic_enable_intr(sc: &Softc<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
-    fn pic_disable_intr(sc: Ref<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
+    fn pic_disable_intr(sc: &Softc<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
-    fn pic_post_filter(sc: Ref<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
+    fn pic_post_filter(sc: &Softc<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
-    fn pic_post_ithread(sc: Ref<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
+    fn pic_post_ithread(sc: &Softc<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
-    fn pic_pre_ithread(sc: Ref<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
+    fn pic_pre_ithread(sc: &Softc<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) {
         unimplemented!()
     }
-    fn pic_bind_intr(sc: Ref<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) -> Result<()> {
+    fn pic_bind_intr(sc: &Softc<Self::Softc>, isrc: &IrqSrc<Self::IrqSrcFields>) -> Result<()> {
         unimplemented!()
     }
-    fn pic_init_secondary(sc: Ref<Self::Softc>, root: IntrRoot) {
+    fn pic_init_secondary(sc: &Softc<Self::Softc>, root: IntrRoot) {
         unimplemented!()
     }
     fn pic_ipi_setup(
-        sc: Ref<'_, Self::Softc>,
+        sc: &Softc<Self::Softc>,
         ipi: u32,
     ) -> Result<Pin<&IrqSrc<Self::IrqSrcFields>>> {
         unimplemented!()
     }
     fn pic_ipi_send(
-        sc: Ref<Self::Softc>,
+        sc: &Softc<Self::Softc>,
         isrc: &IrqSrc<Self::IrqSrcFields>,
         cpus: &cpuset_t,
         ipi: u32,
@@ -393,7 +393,7 @@ mod tests {
     use super::*;
     use crate::define_driver;
     use crate::device::{BusProbe, Device, DeviceIf};
-    use crate::ffi::{Ref, UninitPtr};
+    use crate::ffi::{UninitPtr};
     use crate::tests::DriverManager;
 
     #[repr(C)]
@@ -413,11 +413,11 @@ mod tests {
                 sc.device(),
                 XRef(0),
                 IntcDriver::handle_irq,
-                sc.lease(),
+                sc.get_ptr(),
                 INTR_ROOT_IRQ,
             )
         }
-        fn device_detach(_sc: Ref<Self::Softc>) -> Result<()> {
+        fn device_detach(_sc: &Softc<Self::Softc>) -> Result<()> {
             Ok(())
         }
     }
@@ -432,7 +432,7 @@ mod tests {
         type IrqSrcFields = IntcIrqSrc;
 
         fn pic_setup_intr(
-            _sc: Ref<Self::Softc>,
+            _sc: &Softc<Self::Softc>,
             isrc: &IrqSrc<Self::IrqSrcFields>,
             _res: Resource,
             _data: MapData,
@@ -444,7 +444,7 @@ mod tests {
     }
 
     impl IntcDriver {
-        extern "C" fn handle_irq(sc: Ref<IntcSoftc>) -> Filter {
+        extern "C" fn handle_irq(sc: &Softc<IntcSoftc>) -> Filter {
             println!("invoked irq handler {sc:x?}");
             FILTER_HANDLED
         }

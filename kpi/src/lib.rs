@@ -135,7 +135,7 @@ pub mod misc {
     use core::ffi::c_int;
     use core::ptr::NonNull;
     use crate::define_interface;
-    use crate::ffi::Ref;
+    use crate::ffi::Softc;
     use crate::device::DeviceIf;
 
     pub struct Thread(pub NonNull<bindings::thread>);
@@ -214,11 +214,12 @@ pub mod misc {
             Ok(unsafe { Device::new_unchecked(res) })
         }
     }
+    #[allow(unused_variables)]
     pub unsafe trait GpioIf: DeviceIf {
-        fn gpio_get_bus(sc: Ref<Self::Softc>) -> device_t {
+        fn gpio_get_bus(sc: &Softc<Self::Softc>) -> device_t {
             unimplemented!()
         }
-        fn gpio_pin_set(sc: Ref<Self::Softc>, pin: u32, value: u32) -> Result<()> {
+        fn gpio_pin_set(sc: &Softc<Self::Softc>, pin: u32, value: u32) -> Result<()> {
             unimplemented!()
         }
     }

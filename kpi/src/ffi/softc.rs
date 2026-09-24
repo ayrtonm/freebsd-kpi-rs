@@ -67,7 +67,7 @@ pub struct Softc<T> {
 impl<T> Softc<T> {
     // TODO: This is only pub to suport the echodev demo. Ideally Softc would not be exposed
     // outside this crate at all.
-    pub fn new(t: T) -> Self {
+    pub unsafe fn new_unchecked(t: T) -> Self {
         let mut res = Self {
             inner: t,
             dev: None,
@@ -86,19 +86,57 @@ impl<T> Softc<T> {
     }
 
     /// Panics if this `Softc` is not attached to a cdev.
-    pub fn cdev(&self) -> *mut cdev {
-        match self.cdev {
+    pub fn cdev(&self) -> CDev<'_> {
+        let ptr = match self.cdev {
             Some(nonnull_cdev) => nonnull_cdev.as_ptr(),
             None => panic!("softc does not have an associated *mut cdev"),
-        }
+        };
+        // SAFETY: The lifetime of the return value is tied to the Ref borrow (&self)
+        unsafe { CDev::new_unchecked(ptr) }
     }
 
     /// Panics if this `Softc` is not attached to a device_t.
-    pub fn device(&self) -> device_t {
-        match self.dev {
+    pub fn device(&self) -> Device<'_> {
+        let ptr = match self.dev {
             Some(nonnull_dev) => nonnull_dev.as_ptr(),
             None => panic!("softc does not have an associated device_t"),
-        }
+        };
+        // SAFETY: The lifetime of the return value is tied to the Ref borrow (&self)
+        unsafe { Device::new_unchecked(ptr) }
+    }
+
+    pub fn get_ptr(&self) -> Ptr<T> {
+        let count_ptr = self.count.get();
+        unsafe { bindings::refcount_acquire(count_ptr) };
+        Ptr(NonNull::from_ref(self))
+    }
+
+    pub fn as_pin(&self) -> Pin<&T> {
+        unsafe { Pin::new_unchecked(&self.inner) }
+    }
+
+    pub fn project(&self) -> T::ProjHelper<'_>
+    where T: PinProject {
+        self.as_pin().project()
+    }
+
+    pub fn as_raw(&self) -> (*mut T, *mut u_int) {
+        let t_ptr = ptr::from_ref(&self.inner).cast_mut();
+        (t_ptr, self.count.get())
+    }
+}
+
+impl<'a, T: 'static + Debug> Debug for Softc<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Debug::fmt(&self.inner, f)
+    }
+}
+
+impl<T> Deref for Softc<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
     }
 }
 
@@ -110,7 +148,7 @@ impl<T> Softc<T> {
 /// The second field is wrapped in Option rather than just &mut bool because UninitPtr is created from
 /// an AsRustType impl which cannot grab references to locals on the stack frame of device_attach.
 /// This kludge means that the glue code must call set_init_flag before handing it off to a driver.
-pub struct UninitPtr<'a, T>(&'a mut MaybeUninit<Softc<T>>, Option<&'a mut bool>);
+pub struct UninitPtr<'a, T>(&'a mut MaybeUninit<Softc<T>>);
 
 impl<'a, T> UninitPtr<'a, T> {
     pub(crate) unsafe fn from_raw(
@@ -131,16 +169,7 @@ impl<'a, T> UninitPtr<'a, T> {
             // create references to the entire Softc so None is the correct value here.
             (*sc_ptr).cdev = None;
         }
-        Self(sc_ref, None)
-    }
-
-    // Used for the second field kludge described in UninitPtr's doc comment.
-    // Must be public since it's called by KPI glue code in the driver .rlib's. Marked doc(hidden)
-    // because it should not be called explicitly by the driver.
-    #[doc(hidden)]
-    pub fn set_init_flag(&mut self, flag: &'a mut bool) {
-        *flag = false;
-        self.1 = Some(flag);
+        Self(sc_ref)
     }
 
     pub fn device(&self) -> Device<'_> {
@@ -164,7 +193,7 @@ impl<'a, T> UninitPtr<'a, T> {
     /// The KPI glue sets the UninitPtr lifetime parameter using a local on the device_attach stack
     /// frame so in practical terms this means that trying to stash the Ref in a global or
     /// equivalent (e.g. another softc) is a compile-time error.
-    pub fn init(self, t: T) -> Ref<'a, T> {
+    pub fn init(self, t: T) -> &'a Softc<T> {
         // Get a pointer to the Softc on the heap from the MaybeUninit<Softc<T>> reference
         let sc_ptr = self.0.as_mut_ptr();
 
@@ -176,14 +205,9 @@ impl<'a, T> UninitPtr<'a, T> {
         // This points to the heap, but this is just an address-insensitive atomic write anyway
         unsafe { bindings::refcount_init(count_ptr, 1) };
 
-        match self.1 {
-            Some(init_flag) => *init_flag = true,
-            // This means there was a bug in the KPI glue
-            None => unreachable!(),
-        }
         // All fields are now initialized since `dev` was written in `from_raw` and `inner` and
         // `count` were written above.
-        Ref(unsafe { self.0.assume_init_ref() })
+        unsafe { self.0.assume_init_ref() }
     }
 }
 
@@ -208,6 +232,14 @@ impl<'a, T> UninitPtr<'a, T> {
 pub struct Ref<'a, T: 'static>(&'a Softc<T>);
 
 impl<'a, T> Ref<'a, T> {
+    pub fn device(&self) -> Device<'_> {
+        self.0.device()
+    }
+
+    pub fn cdev(&self) -> CDev<'_> {
+        self.0.cdev()
+    }
+
     // TODO: document safety reqs (on heap, anything else?)
     pub unsafe fn from_raw(ptr: &'a Softc<T>) -> Self {
         Self(ptr)
@@ -218,16 +250,6 @@ impl<'a, T> Ref<'a, T> {
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
         let t_ptr = ptr::from_ref(&self.0.inner).cast_mut();
         (t_ptr, count_ptr)
-    }
-
-    pub fn device(&self) -> Device<'_> {
-        // SAFETY: The lifetime of the return value is tied to the Ref borrow (&self)
-        unsafe { Device::new_unchecked(self.0.device()) }
-    }
-
-    pub fn cdev(&self) -> CDev<'_> {
-        // SAFETY: The lifetime of the return value is tied to the Ref borrow (&self)
-        unsafe { CDev::new_unchecked(self.0.cdev()) }
     }
 
     /// Increments the refcount and returns a new Ptr<T> pointing to the softc.
@@ -285,9 +307,9 @@ impl<T> Ptr<T> {
         // SAFETY: The pointee is freed in device_detach, but the KPI glue for it panics if there is
         // an outstanding softc Ptr when it's ready to free it. The return value lifetime is tied
         // to the Ptr borrow.
-        let dev_ptr = unsafe { self.0.as_ref().device() };
+        unsafe { self.0.as_ref().device() }
         // SAFETY: The lifetime of the return value is tied to the Ptr borrow (&self)
-        unsafe { Device::new_unchecked(dev_ptr) }
+        //unsafe { Device::new_unchecked(dev_ptr) }
     }
 
     /// Get a CDev that owns the softc.
@@ -299,7 +321,7 @@ impl<T> Ptr<T> {
         // SAFETY: The pointee is freed in device_detach, but the KPI glue for it panics if there is
         // an outstanding softc Ptr when it's ready to free it. The return value lifetime is tied
         // to the Ptr borrow.
-        unsafe { CDev::new_unchecked(self.0.as_ref().cdev()) }
+        unsafe { self.0.as_ref().cdev() }
     }
 
     pub fn lease(&self) -> Self {

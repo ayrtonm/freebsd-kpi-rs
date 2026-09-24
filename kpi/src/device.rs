@@ -29,7 +29,7 @@
 use crate::bindings::{_device, device_state_t, device_t, driver_t, kobjop_desc};
 use crate::boxed::Box;
 use crate::driver::Driver;
-use crate::ffi::{ArrayCString, Ptr, Ref, Softc, UninitPtr};
+use crate::ffi::{ArrayCString, Ptr, Softc, UninitPtr};
 use crate::kobj::{AsCType, AsRustType, rust_driver_marker_desc};
 use crate::prelude::*;
 use crate::vec::Vec;
@@ -140,12 +140,11 @@ impl<'a, T> AsRustType<'a, UninitPtr<'a, T>> for device_t {
 // Allows turning a device_t argument appearing in kobj interfaces into a Pin<&T> to any type. It's
 // the responsibility of a kobj trait authors to restrict the Ref to the softc's type or to one of
 // its base classes.
-impl<'a, T> AsRustType<'a, Ref<'a, T>> for device_t {
-    fn as_rust_type(&'a self) -> Ref<'a, T> {
+impl<'a, T> AsRustType<'a, &'a Softc<T>> for device_t {
+    fn as_rust_type(&'a self) -> &'a Softc<T> {
         let void_ptr = unsafe { bindings::device_get_softc(*self) };
         let sc_ptr = void_ptr.cast::<Softc<T>>();
-        let sc_ref = unsafe { sc_ptr.as_ref().unwrap() };
-        unsafe { Ref::from_raw(sc_ref) }
+        unsafe { sc_ptr.as_ref().unwrap() }
     }
 }
 
@@ -160,24 +159,21 @@ define_interface! {
         with init glue {
             let _: $crate::ffi::UninitPtr<_> = dev;
             let dev_ptr = dev.device().as_ptr();
-            let mut init = false;
-            dev.set_init_flag(&mut init);
         },
         with drop glue {
             // drop glue is only called if device_attach succeeded
-            if !init {
-                let dev = unsafe { $crate::device::Device::new_unchecked(dev_ptr) };
-                device_println!(dev, "Must call .init() on UninitPtr<Softc> in device_attach");
-                return bindings::ENXIO;
-            }
+            // TODO: re-enable
+            //if !init {
+            //    let dev = unsafe { $crate::device::Device::new_unchecked(dev_ptr) };
+            //    device_println!(dev, "Must call .init() on UninitPtr<Softc> in device_attach");
+            //    return bindings::ENXIO;
+            //}
         };
     fn device_detach(dev: device_t) -> int,
         with desc device_detach_desc
         and typedef device_detach_t,
         with drop glue {
-            use $crate::ffi::Ref;
-
-            let (sc_ptr, count_ptr) = Ref::into_raw(dev);
+            let (sc_ptr, count_ptr) = $crate::ffi::Softc::as_raw(dev);
             let last = unsafe { $crate::bindings::refcount_release(count_ptr) };
             if !last {
                 let num_refs = unsafe { $crate::bindings::refcount_load(count_ptr) };
@@ -258,19 +254,19 @@ pub trait DeviceIf: Driver {
     /// example, if a softc struct includes a `Box<T>` field (i.e. a pointer to the heap with
     /// ownership of a `T`) the `T` in the heap will also be freed. This applies recursively through
     /// any number of layers of indirection.
-    fn device_detach(sc: Ref<Self::Softc>) -> Result<()> {
+    fn device_detach(sc: &Softc<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
-    fn device_shutdown(sc: Ref<Self::Softc>) -> Result<()> {
+    fn device_shutdown(sc: &Softc<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
-    fn device_suspend(sc: Ref<Self::Softc>) -> Result<()> {
+    fn device_suspend(sc: &Softc<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
-    fn device_resume(sc: Ref<Self::Softc>) -> Result<()> {
+    fn device_resume(sc: &Softc<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
-    fn device_quiesce(sc: Ref<Self::Softc>) -> Result<()> {
+    fn device_quiesce(sc: &Softc<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
 }
@@ -351,11 +347,10 @@ pub mod wrappers {
     /// Note the existence of the Device ensures that the device won't be detached for its
     /// associated lifetime so the returned Ref has a matching lifetime. To use the softc past that
     /// scope, turn it into a lease using Ref::lease.
-    pub fn device_get_softc<'a, D: DeviceIf>(dev: Device<'a>) -> Ref<'a, D::Softc> {
+    pub fn device_get_softc<D: DeviceIf>(dev: Device<'_>) -> &Softc<D::Softc> {
         assert!(device_matches_driver::<D>(dev));
         let void_ptr = unsafe { bindings::device_get_softc(dev.as_ptr()) };
-        let sc_ptr = unsafe { void_ptr.cast::<Softc<D::Softc>>().as_ref().unwrap() };
-        unsafe { Ref::from_raw(sc_ptr) }
+        unsafe { void_ptr.cast::<Softc<D::Softc>>().as_ref().unwrap() }
     }
 
     /// Get a Ptr to the softc for a device managed by a rust driver.
@@ -385,7 +380,7 @@ pub mod wrappers {
         let sc = device_get_softc::<D>(dev);
 
         // If device_detach runs after this point it will panic if this Ptr hasn't been dropped
-        sc.lease()
+        sc.get_ptr()
     }
 
     /// Marks the device as busy returning a BusyDevice without an associated lifetime.
@@ -503,7 +498,7 @@ pub mod wrappers {
 mod tests {
     use super::*;
     use crate::define_driver;
-    use crate::ffi::{Ref, UninitPtr};
+    use crate::ffi::{UninitPtr};
     use crate::tests::{DriverManager, LoudDrop};
     use core::ptr::null_mut;
     use core::sync::atomic::{AtomicPtr, Ordering};
@@ -557,7 +552,7 @@ mod tests {
             println!("{:x?}", sc);
             Ok(())
         }
-        fn device_detach(sc: Ref<Self::Softc>) -> Result<()> {
+        fn device_detach(sc: &Softc<Self::Softc>) -> Result<()> {
             assert!(sc.const_data == 0xdeadbeef);
             Ok(())
         }
@@ -605,7 +600,7 @@ mod tests {
             }
             Ok(())
         }
-        fn device_detach(sc: Ref<Self::Softc>) -> Result<()> {
+        fn device_detach(sc: &Softc<Self::Softc>) -> Result<()> {
             Ok(())
         }
     }

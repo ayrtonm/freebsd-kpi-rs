@@ -28,9 +28,6 @@
 
 //! Utilities related to FFI with C.
 
-use crate::boxed::Box;
-use crate::malloc::Malloc;
-use crate::sync::arc::Arc;
 use core::pin::Pin;
 use core::slice::SliceIndex;
 use core::ops::Index;
@@ -40,7 +37,7 @@ mod softc;
 mod subclass;
 
 pub use cstring::{ArrayCString, CString, ToArrayCString};
-pub use softc::{Ptr, Ref, Softc, UninitPtr};
+pub use softc::{Ptr, Softc, UninitPtr};
 pub use subclass::{SubClass, SubClassOf};
 
 pub trait PinProject {
