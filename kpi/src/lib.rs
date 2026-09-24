@@ -123,18 +123,20 @@ pub type Result<T> = core::result::Result<T, ErrCode>;
 /// A catch-all module for miscellaneous functions
 #[allow(non_snake_case)]
 pub mod misc {
-    #[cfg(target_arch = "aarch64")]
     use crate::prelude::*;
     #[cfg(target_arch = "aarch64")]
     use core::sync::atomic::AtomicU32;
 
     use crate::bindings;
-    use crate::bindings::{cpuset_t, u_int};
+    use crate::bindings::{cpuset_t, u_int, device_t};
     #[cfg(target_arch = "aarch64")]
     use crate::device::Device;
     use crate::kobj::AsRustType;
     use core::ffi::c_int;
     use core::ptr::NonNull;
+    use crate::define_interface;
+    use crate::ffi::Ref;
+    use crate::device::DeviceIf;
 
     pub struct Thread(pub NonNull<bindings::thread>);
 
@@ -211,6 +213,23 @@ pub mod misc {
             // TODO: The output lifetime is wrong just like device_add_child
             Ok(unsafe { Device::new_unchecked(res) })
         }
+    }
+    pub unsafe trait GpioIf: DeviceIf {
+        fn gpio_get_bus(sc: Ref<Self::Softc>) -> device_t {
+            unimplemented!()
+        }
+        fn gpio_pin_set(sc: Ref<Self::Softc>, pin: u32, value: u32) -> Result<()> {
+            unimplemented!()
+        }
+    }
+    define_interface! {
+        in GpioIf
+        fn gpio_get_bus(dev: device_t) -> device_t,
+            with desc gpio_get_bus_desc
+            and typedef gpio_get_bus_t;
+        fn gpio_pin_set(dev: device_t, pin: u32, value: u32) -> core::ffi::c_int,
+            with desc gpio_pin_set_desc
+            and typedef gpio_pin_set_t;
     }
 }
 

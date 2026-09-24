@@ -38,6 +38,7 @@ pub mod interfaces {
     pub use crate::device::DeviceIf;
     #[cfg(feature = "intrng")]
     pub use crate::intr::PicIf;
+    pub use crate::misc::GpioIf;
 }
 
 pub trait KobjLayout: Sized {
