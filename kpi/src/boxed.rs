@@ -32,6 +32,7 @@ use crate::malloc::{Malloc, MallocFlags};
 use crate::prelude::*;
 use core::cmp::PartialEq;
 use core::ffi::c_void;
+use core::pin::Pin;
 use core::fmt::{Debug, Formatter};
 use core::marker::PhantomData;
 use core::mem::{forget, size_of};
@@ -114,6 +115,10 @@ impl<T, M: Malloc> Box<T, M> {
 }
 
 impl<T: ?Sized, M: Malloc> Box<T, M> {
+    pub fn into_pin(b: Self) -> Pin<Self> {
+        unsafe { Pin::new_unchecked(b) }
+    }
+
     pub fn into_raw(b: Self) -> *mut T {
         let res = b.0.as_ptr();
         forget(b);

@@ -32,6 +32,8 @@ use crate::boxed::Box;
 use crate::malloc::Malloc;
 use crate::sync::arc::Arc;
 use core::pin::Pin;
+use core::slice::SliceIndex;
+use core::ops::Index;
 
 mod cstring;
 mod softc;
@@ -51,3 +53,12 @@ pub trait NoDropImpl {}
 // implements Drop
 #[allow(drop_bounds)]
 impl<T: Drop> NoDropImpl for T {}
+
+pub unsafe trait PinIndex<I>: Index<I> {
+    fn pin_index(self: Pin<&Self>, idx: I) -> Pin<&Self::Output> {
+        unsafe { self.map_unchecked(|s| &s[idx]) }
+    }
+}
+
+unsafe impl <T, I: SliceIndex<[T]>> PinIndex<I> for [T] {}
+unsafe impl <T, I, const N: usize> PinIndex<I> for [T; N] where [T]: Index<I> {}
