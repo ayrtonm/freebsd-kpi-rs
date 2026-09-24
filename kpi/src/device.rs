@@ -69,7 +69,7 @@ impl<'a> Device<'a> {
         self.0
     }
 
-    pub fn as_static(&self) -> Result<Device<'static>> {
+    pub fn as_undetachable(&self) -> Result<Device<'static>> {
         if !device_is_undetachable(*self) {
             return Err(EDOOFUS);
         }

@@ -157,12 +157,6 @@ impl<'a, T> UninitPtr<'a, T> {
         }
     }
 
-    // TODO: Consider removing this. It may have been needed for apple aic since there is no
-    // function to undo pic_claim_root
-    pub fn device_as_static(&self) -> Result<Device<'static>> {
-        self.device().as_static()
-    }
-
     /// Initialize the softc to `t` and return a Ref<T> pointer.
     ///
     /// The returned pointer may only be used for the lifetime of the UninitPtr it was created from.
