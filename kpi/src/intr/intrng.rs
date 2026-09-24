@@ -121,9 +121,8 @@ macro_rules! pic_map_intr {
             let void_ptr = unsafe { bindings::device_get_softc(dev) };
             let sc_ptr = void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
             let sc_ref = unsafe { sc_ptr.as_ref().unwrap() };
-            let sc = unsafe { $crate::ffi::Ref::from_raw(sc_ref) };
             let data = data.as_rust_type();
-            let res = match <$driver_ty as PicIf>::pic_map_intr(sc, data) {
+            let res = match <$driver_ty as PicIf>::pic_map_intr(sc_ref, data) {
                 Ok(isrc_ref) => {
                     unsafe {
                         *isrcp = base!(&isrc_ref);
@@ -162,8 +161,7 @@ macro_rules! pic_ipi_setup {
             let void_ptr = unsafe { bindings::device_get_softc(dev) };
             let sc_ptr = void_ptr.cast::<<$driver_ty as KobjLayout>::Layout>();
             let sc_ref = unsafe { sc_ptr.as_ref().unwrap() };
-            let sc = unsafe { $crate::ffi::Ref::from_raw(sc_ref) };
-            let res = match <$driver_ty as PicIf>::pic_ipi_setup(sc, ipi) {
+            let res = match <$driver_ty as PicIf>::pic_ipi_setup(sc_ref, ipi) {
                 Ok(isrc_ref) => {
                     unsafe {
                         *isrcp = base!(&isrc_ref);
