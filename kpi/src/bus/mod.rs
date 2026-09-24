@@ -469,11 +469,13 @@ mod tests {
     use crate::ffi::{Ref, UninitPtr};
     use crate::tests::{DriverManager, LoudDrop};
 
-    #[repr(C)]
-    #[derive(Debug)]
-    pub struct IrqSoftc {
-        irq: Irq,
-        loud: LoudDrop,
+    define_projectable! {
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct IrqSoftc {
+            irq: Irq,
+            loud: LoudDrop,
+        }
     }
 
     impl IrqDriver {
@@ -494,7 +496,7 @@ mod tests {
             } else {
                 None
             };
-            bus_setup_intr(dev, proj!(&sc.irq), 0, filter, handler, sc.lease())
+            bus_setup_intr(dev, sc.project().irq, 0, filter, handler, sc.lease())
         }
     }
 
@@ -514,7 +516,7 @@ mod tests {
             });
             let dev = sc.device();
             assert_eq!(
-                bus_setup_intr(dev, proj!(&sc.irq), 0, None, None, sc.lease()),
+                bus_setup_intr(dev, sc.project().irq, 0, None, None, sc.lease()),
                 Err(EDOOFUS)
             );
             if ofw_bus_is_compatible(dev, c"irq_driver,set_both") {

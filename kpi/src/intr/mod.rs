@@ -291,10 +291,12 @@ mod tests {
     use crate::ffi::{Ref, UninitPtr};
     use crate::tests::{DriverManager, LoudDrop};
 
-    #[repr(C)]
-    pub struct HookSoftc {
-        hook: ConfigHook,
-        loud: LoudDrop,
+    define_projectable! {
+        #[repr(C)]
+        pub struct HookSoftc {
+            hook: ConfigHook,
+            loud: LoudDrop,
+        }
     }
     impl DeviceIf for HookDriver {
         type Softc = HookSoftc;
@@ -308,8 +310,8 @@ mod tests {
             let hook = ConfigHook::new();
             let loud = LoudDrop;
             let sc = uninit_sc.init(HookSoftc { hook, loud });
-            proj!(&sc.hook).init(hook_driver_deferred_attach, sc);
-            config_intrhook_establish(proj!(&sc.hook)).unwrap();
+            sc.project().hook.init(hook_driver_deferred_attach, sc);
+            config_intrhook_establish(sc.project().hook).unwrap();
             Ok(())
         }
         fn device_detach(_sc: Ref<Self::Softc>) -> Result<()> {
@@ -317,7 +319,7 @@ mod tests {
         }
     }
 
-    extern "C" fn hook_driver_deferred_attach(sc: Pin<&HookSoftc>) {
+    extern "C" fn hook_driver_deferred_attach(sc: Ref<HookSoftc>) {
         println!("called config hook rust function/deferred_attach");
         config_intrhook_disestablish(&sc.hook);
     }

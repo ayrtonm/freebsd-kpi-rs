@@ -87,33 +87,35 @@ macro_rules! base {
 }
 
 #[macro_export]
-macro_rules! proj {
-    (& $struct:ident . $field_name:ident) => {
-        {
-            $crate::ffi::assert_is_pinning(&$struct);
-            unsafe { $struct.map_unchecked(|s| &s.$field_name) }
+macro_rules! define_projectable {
+    (
+        $(#[$attr:meta])*
+        $vis:vis struct $name:ident {
+            $($(#[$field_attr:meta])* $field_vis:vis $field_name:ident : $field_ty:ty),* $(,)?
         }
-    };
-    (& $indexable:ident [ $idx:expr ]) => {
-        {
+    ) => {
+        $(#[$attr])*
+        $vis struct $name {
+            $($(#[$field_attr])* $field_vis $field_name : $field_ty,)*
+        }
+        const _: () = {
             use core::pin::Pin;
-            let _ty_ck: &Pin<_> = &$indexable;
-            $crate::ffi::assert_pin_has_fixed_index($indexable);
-            unsafe { Pin::map_unchecked($indexable, |a| &a[$idx]) }
-        }
-    };
-    (& $struct:ident . $field:ident $($rest:tt)*) => {
-        {
-            let first_proj = $crate::proj!(&$struct.$field);
-            let res = $crate::proj!(& first_proj $($rest)*);
-            res
-        }
-    };
-    (& $indexable:ident [ $idx:expr ] $($rest:tt)*) => {
-        {
-            let first_proj = $crate::proj!(&$indexable[$idx]);
-            let res = $crate::proj!(& first_proj $($rest)*);
-            res
-        }
+
+            pub struct FieldProjHelper<'_a> {
+                $(pub $field_name: Pin<&'_a $field_ty>,)*
+            }
+            impl $crate::ffi::PinProject for $name {
+                type ProjHelper<'_a> = FieldProjHelper<'_a>;
+                fn project<'_a>(self: Pin<&'_a Self>) -> FieldProjHelper<'_a> {
+                    let Self { $($field_name,)* } = Pin::get_ref(self);
+                    unsafe {
+                        FieldProjHelper {
+                            $($field_name: Pin::new_unchecked($field_name),)*
+                        }
+                    }
+                }
+            }
+            impl $crate::ffi::NoDropImpl for $name {}
+        };
     };
 }

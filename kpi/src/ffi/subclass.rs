@@ -31,6 +31,8 @@ use core::fmt;
 use core::fmt::{Debug, Formatter};
 use core::mem::MaybeUninit;
 use core::ops::{Deref, DerefMut};
+use core::pin::Pin;
+use crate::ffi::PinProject;
 
 pub trait SubClassOf<B> {}
 
@@ -111,6 +113,17 @@ impl<B, F> SubClass<B, F> {
 
     pub unsafe fn from_base_ptr_mut<'a>(ptr: *mut B) -> &'a mut Self {
         unsafe { ptr.cast::<Self>().as_mut().unwrap() }
+    }
+
+    pub fn as_pin(self: Pin<&Self>) -> Pin<&F> {
+        unsafe { self.map_unchecked(|s| &s.sub_fields) }
+    }
+}
+
+impl<B, F: PinProject> PinProject for SubClass<B, F> {
+    type ProjHelper<'a> = F::ProjHelper<'a> where Self: 'a;
+    fn project<'a>(self: Pin<&'a Self>) -> F::ProjHelper<'a> {
+        self.as_pin().project()
     }
 }
 

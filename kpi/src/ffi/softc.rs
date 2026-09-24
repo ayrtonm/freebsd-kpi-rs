@@ -37,6 +37,7 @@ use core::ops::Deref;
 use core::pin::Pin;
 use core::ptr::NonNull;
 use core::{fmt, ptr};
+use crate::ffi::PinProject;
 
 /// The layout of the softc that Ref and Ptr point to.
 ///
@@ -207,15 +208,6 @@ impl<'a, T> UninitPtr<'a, T> {
 pub struct Ref<'a, T: 'static>(&'a SoftcLayout<T>);
 
 impl<'a, T> Ref<'a, T> {
-    // Only intended to be used by the proj! macro.
-    #[doc(hidden)]
-    pub unsafe fn map_unchecked<U: ?Sized, F>(self, f: F) -> Pin<&'a U>
-    where
-        F: FnOnce(&T) -> &U,
-    {
-        unsafe { Pin::new_unchecked(f(&self.0.inner)) }
-    }
-
     // TODO: document safety reqs (on heap, anything else?)
     pub unsafe fn from_raw(ptr: &'a SoftcLayout<T>) -> Self {
         Self(ptr)
@@ -247,6 +239,15 @@ impl<'a, T> Ref<'a, T> {
         unsafe { bindings::refcount_acquire(count_ptr) };
         Ptr(NonNull::from_ref(self.0))
     }
+
+    pub fn as_pin(self) -> Pin<&'a T> {
+        unsafe { Pin::new_unchecked(&self.0.inner) }
+    }
+
+    pub fn project(self) -> T::ProjHelper<'a>
+    where T: PinProject {
+        self.as_pin().project()
+    }
 }
 
 impl<'a, T: 'static + Debug> Debug for Ref<'a, T> {
@@ -275,13 +276,6 @@ impl<'a, T> Deref for Ref<'a, T> {
 pub struct Ptr<T: 'static>(pub(crate) NonNull<SoftcLayout<T>>);
 
 impl<T> Ptr<T> {
-    pub unsafe fn map_unchecked<U: ?Sized, F>(&self, f: F) -> Pin<&U>
-    where
-        F: FnOnce(&T) -> &U,
-    {
-        unsafe { Pin::new_unchecked(f(self.deref())) }
-    }
-
     /// Get a Device that owns the softc.
     ///
     /// The Device may only be used for the lifetime of the Ptr. Attempting to use it after
@@ -316,6 +310,15 @@ impl<T> Ptr<T> {
 
     pub fn as_ref(&self) -> Ref<'_, T> {
         Ref(unsafe { self.0.as_ref() })
+    }
+
+    pub fn as_pin(&self) -> Pin<&T> {
+        unsafe { Pin::new_unchecked(&self.0.as_ref().inner) }
+    }
+
+    pub fn project(&self) -> T::ProjHelper<'_>
+    where T: PinProject {
+        self.as_pin().project()
     }
 
     pub fn into_raw(lease: Self) -> (*mut T, *mut u_int) {
