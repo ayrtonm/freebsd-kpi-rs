@@ -29,7 +29,7 @@
 use crate::bindings::{_device, device_state_t, device_t, driver_t, kobjop_desc};
 use crate::boxed::Box;
 use crate::driver::Driver;
-use crate::ffi::{ArrayCString, Ptr, Ref, SoftcLayout, UninitPtr};
+use crate::ffi::{ArrayCString, Ptr, Ref, Softc, UninitPtr};
 use crate::kobj::{AsCType, AsRustType, rust_driver_marker_desc};
 use crate::prelude::*;
 use crate::vec::Vec;
@@ -47,7 +47,7 @@ use core::ptr::null_mut;
 /// won't get detached while it's in use.
 ///
 /// Note that rust drivers may have some (or even all) methods written in C so the only thing that
-/// that allows you to assume is that the memory layout of the softc matches SoftcLayout<TheSoftc>.
+/// that allows you to assume is that the memory layout of the softc matches Softc<TheSoftc>.
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct Device<'a>(device_t, PhantomData<&'a ()>);
@@ -131,7 +131,7 @@ impl<'a> AsRustType<'a, Device<'a>> for device_t {
 impl<'a, T> AsRustType<'a, UninitPtr<'a, T>> for device_t {
     fn as_rust_type(&'a self) -> UninitPtr<'a, T> {
         let void_ptr = unsafe { bindings::device_get_softc(*self) };
-        let sc_ptr = void_ptr.cast::<core::mem::MaybeUninit<SoftcLayout<T>>>();
+        let sc_ptr = void_ptr.cast::<core::mem::MaybeUninit<Softc<T>>>();
         let sc_ref = unsafe { sc_ptr.as_mut().unwrap() };
         unsafe { UninitPtr::from_raw(sc_ref, *self) }
     }
@@ -143,7 +143,7 @@ impl<'a, T> AsRustType<'a, UninitPtr<'a, T>> for device_t {
 impl<'a, T> AsRustType<'a, Ref<'a, T>> for device_t {
     fn as_rust_type(&'a self) -> Ref<'a, T> {
         let void_ptr = unsafe { bindings::device_get_softc(*self) };
-        let sc_ptr = void_ptr.cast::<SoftcLayout<T>>();
+        let sc_ptr = void_ptr.cast::<Softc<T>>();
         let sc_ref = unsafe { sc_ptr.as_ref().unwrap() };
         unsafe { Ref::from_raw(sc_ref) }
     }
@@ -354,7 +354,7 @@ pub mod wrappers {
     pub fn device_get_softc<'a, D: DeviceIf>(dev: Device<'a>) -> Ref<'a, D::Softc> {
         assert!(device_matches_driver::<D>(dev));
         let void_ptr = unsafe { bindings::device_get_softc(dev.as_ptr()) };
-        let sc_ptr = unsafe { void_ptr.cast::<SoftcLayout<D::Softc>>().as_ref().unwrap() };
+        let sc_ptr = unsafe { void_ptr.cast::<Softc<D::Softc>>().as_ref().unwrap() };
         unsafe { Ref::from_raw(sc_ptr) }
     }
 

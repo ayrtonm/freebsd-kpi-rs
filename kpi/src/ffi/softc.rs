@@ -49,7 +49,7 @@ use crate::ffi::PinProject;
 /// to users so it's marked as doc(hidden).
 #[doc(hidden)]
 #[repr(C)]
-pub struct SoftcLayout<T> {
+pub struct Softc<T> {
     // This is the softc type specified by a driver or char device. It must be first to support
     // subclass drivers. Note there may be padding between the end of the softc to ensure the next
     // field is aligned to 8 bytes.
@@ -64,8 +64,8 @@ pub struct SoftcLayout<T> {
     count: UnsafeCell<u_int>,
 }
 
-impl<T> SoftcLayout<T> {
-    // TODO: This is only pub to suport the echodev demo. Ideally SoftcLayout would not be exposed
+impl<T> Softc<T> {
+    // TODO: This is only pub to suport the echodev demo. Ideally Softc would not be exposed
     // outside this crate at all.
     pub fn new(t: T) -> Self {
         let mut res = Self {
@@ -85,7 +85,7 @@ impl<T> SoftcLayout<T> {
         self.cdev = Some(NonNull::new(dev).unwrap());
     }
 
-    /// Panics if this `SoftcLayout` is not attached to a cdev.
+    /// Panics if this `Softc` is not attached to a cdev.
     pub fn cdev(&self) -> *mut cdev {
         match self.cdev {
             Some(nonnull_cdev) => nonnull_cdev.as_ptr(),
@@ -93,7 +93,7 @@ impl<T> SoftcLayout<T> {
         }
     }
 
-    /// Panics if this `SoftcLayout` is not attached to a device_t.
+    /// Panics if this `Softc` is not attached to a device_t.
     pub fn device(&self) -> device_t {
         match self.dev {
             Some(nonnull_dev) => nonnull_dev.as_ptr(),
@@ -110,15 +110,15 @@ impl<T> SoftcLayout<T> {
 /// The second field is wrapped in Option rather than just &mut bool because UninitPtr is created from
 /// an AsRustType impl which cannot grab references to locals on the stack frame of device_attach.
 /// This kludge means that the glue code must call set_init_flag before handing it off to a driver.
-pub struct UninitPtr<'a, T>(&'a mut MaybeUninit<SoftcLayout<T>>, Option<&'a mut bool>);
+pub struct UninitPtr<'a, T>(&'a mut MaybeUninit<Softc<T>>, Option<&'a mut bool>);
 
 impl<'a, T> UninitPtr<'a, T> {
     pub(crate) unsafe fn from_raw(
-        sc_ref: &'a mut MaybeUninit<SoftcLayout<T>>,
+        sc_ref: &'a mut MaybeUninit<Softc<T>>,
         dev: device_t,
     ) -> Self {
-        // Get a pointer to the SoftcLayout on the heap from the MaybeUninit<SoftcLayout<T>> reference
-        let sc_ptr: *mut SoftcLayout<T> = sc_ref.as_mut_ptr();
+        // Get a pointer to the Softc on the heap from the MaybeUninit<Softc<T>> reference
+        let sc_ptr: *mut Softc<T> = sc_ref.as_mut_ptr();
         // SAFETY: Since the softc has not been initialized we can't create a mutable reference to
         // the entire thing. Instead we'll just write directly to the fields that need to be set
         // here. An unsynchronized write is safe here since there are it has no aliases (the ptr arg
@@ -128,7 +128,7 @@ impl<'a, T> UninitPtr<'a, T> {
             // If a softc has both a device_t and a cdev pointer, the device_t is always initialized
             // first since newbus allocates the device softc. That means there should be no case
             // where this was already initialized to Some. We have to initialize it to soundly
-            // create references to the entire SoftcLayout so None is the correct value here.
+            // create references to the entire Softc so None is the correct value here.
             (*sc_ptr).cdev = None;
         }
         Self(sc_ref, None)
@@ -144,9 +144,9 @@ impl<'a, T> UninitPtr<'a, T> {
     }
 
     pub fn device(&self) -> Device<'_> {
-        // We still can't make a reference to the entire SoftcLayout<T> so calling SoftcLayout::device
+        // We still can't make a reference to the entire Softc<T> so calling Softc::device
         // is not an option to get a device_t.
-        let sc_ptr: *const SoftcLayout<T> = self.0.as_ptr();
+        let sc_ptr: *const Softc<T> = self.0.as_ptr();
         // SAFETY: `dev` was initialized in `from_raw`.
         let dev = unsafe { (*sc_ptr).dev };
         match dev {
@@ -165,7 +165,7 @@ impl<'a, T> UninitPtr<'a, T> {
     /// frame so in practical terms this means that trying to stash the Ref in a global or
     /// equivalent (e.g. another softc) is a compile-time error.
     pub fn init(self, t: T) -> Ref<'a, T> {
-        // Get a pointer to the SoftcLayout on the heap from the MaybeUninit<SoftcLayout<T>> reference
+        // Get a pointer to the Softc on the heap from the MaybeUninit<Softc<T>> reference
         let sc_ptr = self.0.as_mut_ptr();
 
         unsafe {
@@ -205,11 +205,11 @@ impl<'a, T> UninitPtr<'a, T> {
 /// otherwise the KPI glue will panic when it tries to free the softc. In practical terms this means
 /// if a callback was registered with a Ptr, the corresponding unregister function must be called.
 #[repr(C)]
-pub struct Ref<'a, T: 'static>(&'a SoftcLayout<T>);
+pub struct Ref<'a, T: 'static>(&'a Softc<T>);
 
 impl<'a, T> Ref<'a, T> {
     // TODO: document safety reqs (on heap, anything else?)
-    pub unsafe fn from_raw(ptr: &'a SoftcLayout<T>) -> Self {
+    pub unsafe fn from_raw(ptr: &'a Softc<T>) -> Self {
         Self(ptr)
     }
 
@@ -273,7 +273,7 @@ impl<'a, T> Deref for Ref<'a, T> {
 }
 
 #[repr(C)]
-pub struct Ptr<T: 'static>(pub(crate) NonNull<SoftcLayout<T>>);
+pub struct Ptr<T: 'static>(pub(crate) NonNull<Softc<T>>);
 
 impl<T> Ptr<T> {
     /// Get a Device that owns the softc.
@@ -330,7 +330,7 @@ impl<T> Ptr<T> {
     }
 
     pub unsafe fn from_raw(ptr: *mut T) -> Self {
-        Self(NonNull::new(ptr.cast::<SoftcLayout<T>>()).unwrap())
+        Self(NonNull::new(ptr.cast::<Softc<T>>()).unwrap())
     }
 }
 

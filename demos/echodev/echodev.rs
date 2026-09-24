@@ -16,7 +16,7 @@ use core::sync::atomic::{AtomicPtr, Ordering};
 use kpi::ErrCode;
 use kpi::boxed::Box;
 use kpi::cdev::{CDevSw, MakeDevArgs, UioRef};
-use kpi::ffi::{Ptr, Ref, SoftcLayout};
+use kpi::ffi::{Ptr, Ref, Softc};
 use kpi::misc::Thread;
 use kpi::module::Module;
 use kpi::sync::Checked;
@@ -179,17 +179,17 @@ static ECHODEV: Checked<Option<Ptr<EchoDevSoftc>>> = Checked::new(None);
 
 impl Module for EchoDev {
     fn on_load(data: *mut c_void) -> Result<()> {
-        // Allocate the softc on the heap. We use SoftcLayout::new instead of just the softc type
-        // because make_dev_args_init requires a SoftcLayout<T> where T is the softc in the CDevSw
-        // trait impl. This Box<SoftcLayout<EchoDevSoftc>> is ABI-compatible with a `void *`
-        let mut sc: Box<_, M_DEVBUF> = Box::new(SoftcLayout::new(EchoDevSoftc::default()), M_WAITOK);
+        // Allocate the softc on the heap. We use Softc::new instead of just the softc type
+        // because make_dev_args_init requires a Softc<T> where T is the softc in the CDevSw
+        // trait impl. This Box<Softc<EchoDevSoftc>> is ABI-compatible with a `void *`
+        let mut sc: Box<_, M_DEVBUF> = Box::new(Softc::new(EchoDevSoftc::default()), M_WAITOK);
 
         // We haven't passed the pointer anywhere and Box<T> provides mutable access to T so we can
         // mutate it at this point. Even though rust uses `.` for field accesses via pointers, this
         // mutates the softc on the heap. So it'd be equivalent to something like
         // `sc->inner.state...` in C.
         //
-        // `inner` is the only public field on SoftcLayout<T> and it gives us access to the T.
+        // `inner` is the only public field on Softc<T> and it gives us access to the T.
         //
         // `state` is the `SxLock` in `EchoDevSoftc` and its `.get_mut()` gives us mutable access to
         // its data making us grab the lock. It's ok to skip grabbing the lock here because the Box
