@@ -211,89 +211,6 @@ impl<'a, T> UninitPtr<'a, T> {
     }
 }
 
-// TODO: document the part about Ref<T> being explicitly pinning and how proj!(&sc.field) can give a Pin<&Field>
-/// A pointer to a softc passed in to kobj methods.
-///
-/// This is the equivalent of calling `device_get_softc` from a kobj method in C. In rust the
-/// Ref<Softc> is created by the KPI glue and passed in to the trait method representing a kobj
-/// method as an argument. Functionally it behaves like a `&Softc` argument.
-///
-/// Softc pointers passed to kobj methods do not need to be refcounted since the caller in C ensures
-/// that the pointee will not be freed for the duration of the function being called. However, if a
-/// softc is passed as a callback argument to a safe rust function there must be some way to ensure
-/// the callback won't access the softc after it's freed. To do this the `sc.lease()` can be used to
-/// create a Ptr<T> pointer to the same softc. Like Arc<T> in the standard library, this
-/// increments a refcount embedded in the softc and dropping it decrements the refcount. Unlike
-/// Arc<T> the refcount cannot be used to extend the lifetime of the softc past device_detach or
-/// destroy_dev. The caller is responsible for dropping all Ptr<T>s created before that point
-/// otherwise the KPI glue will panic when it tries to free the softc. In practical terms this means
-/// if a callback was registered with a Ptr, the corresponding unregister function must be called.
-#[repr(C)]
-pub struct Ref<'a, T: 'static>(&'a Softc<T>);
-
-impl<'a, T> Ref<'a, T> {
-    pub fn device(&self) -> Device<'_> {
-        self.0.device()
-    }
-
-    pub fn cdev(&self) -> CDev<'_> {
-        self.0.cdev()
-    }
-
-    // TODO: document safety reqs (on heap, anything else?)
-    pub unsafe fn from_raw(ptr: &'a Softc<T>) -> Self {
-        Self(ptr)
-    }
-
-    pub fn into_raw(self) -> (*mut T, *mut u_int) {
-        let inner_ptr = ptr::from_ref(self.0).cast_mut();
-        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
-        let t_ptr = ptr::from_ref(&self.0.inner).cast_mut();
-        (t_ptr, count_ptr)
-    }
-
-    /// Increments the refcount and returns a new Ptr<T> pointing to the softc.
-    ///
-    /// Dropping the Ptr<T> decrements the refcount
-    pub fn lease(&self) -> Ptr<T> {
-        let inner_ptr = ptr::from_ref(self.0).cast_mut();
-        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
-        unsafe { bindings::refcount_acquire(count_ptr) };
-        Ptr(NonNull::from_ref(self.0))
-    }
-
-    pub fn as_pin(self) -> Pin<&'a T> {
-        unsafe { Pin::new_unchecked(&self.0.inner) }
-    }
-
-    pub fn project(self) -> T::ProjHelper<'a>
-    where T: PinProject {
-        self.as_pin().project()
-    }
-}
-
-impl<'a, T: 'static + Debug> Debug for Ref<'a, T> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Debug::fmt(&self.0.inner, f)
-    }
-}
-
-impl<'a, T> Copy for Ref<'a, T> {}
-
-impl<'a, T> Clone for Ref<'a, T> {
-    fn clone(&self) -> Self {
-        Self(self.0)
-    }
-}
-
-impl<'a, T> Deref for Ref<'a, T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0.inner
-    }
-}
-
 #[repr(C)]
 pub struct Ptr<T: 'static>(pub(crate) NonNull<Softc<T>>);
 
@@ -324,14 +241,10 @@ impl<T> Ptr<T> {
         unsafe { self.0.as_ref().cdev() }
     }
 
-    pub fn lease(&self) -> Self {
+    pub fn get_ptr(&self) -> Self {
         // SAFETY: The pointee is freed in device_detach, but the KPI glue for it panics if there is
         // an outstanding softc Ptr when it's ready to free it.
-        Ref(unsafe { self.0.as_ref() }).lease()
-    }
-
-    pub fn as_ref(&self) -> Ref<'_, T> {
-        Ref(unsafe { self.0.as_ref() })
+        unsafe { self.0.as_ref().get_ptr() }
     }
 
     pub fn as_pin(&self) -> Pin<&T> {
