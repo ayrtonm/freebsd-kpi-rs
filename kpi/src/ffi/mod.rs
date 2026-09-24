@@ -59,3 +59,7 @@ pub unsafe trait PinIndex<I>: Index<I> {
 
 unsafe impl <T, I: SliceIndex<[T]>> PinIndex<I> for [T] {}
 unsafe impl <T, I, const N: usize> PinIndex<I> for [T; N] where [T]: Index<I> {}
+
+pub trait Embeds<T> {
+    fn get_embedded(self: Pin<&Self>) -> Pin<&T>;
+}

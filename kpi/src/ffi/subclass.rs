@@ -32,7 +32,7 @@ use core::fmt::{Debug, Formatter};
 use core::mem::MaybeUninit;
 use core::ops::{Deref, DerefMut};
 use core::pin::Pin;
-use crate::ffi::PinProject;
+use crate::ffi::{PinProject, Embeds};
 
 pub trait SubClassOf<B> {}
 
@@ -138,5 +138,11 @@ impl<B, F> Deref for SubClass<B, F> {
 impl<B, F> DerefMut for SubClass<B, F> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.sub_fields
+    }
+}
+
+impl<T, B, F: Embeds<T>> Embeds<T> for SubClass<B, F> {
+    fn get_embedded(self: Pin<&Self>) -> Pin<&T> {
+        self.as_pin().get_embedded()
     }
 }
