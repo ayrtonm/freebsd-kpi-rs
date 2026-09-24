@@ -227,7 +227,8 @@ pub mod misc {
         in GpioIf
         fn gpio_get_bus(dev: device_t) -> device_t,
             with desc gpio_get_bus_desc
-            and typedef gpio_get_bus_t;
+            and typedef gpio_get_bus_t,
+            is infallible;
         fn gpio_pin_set(dev: device_t, pin: u32, value: u32) -> core::ffi::c_int,
             with desc gpio_pin_set_desc
             and typedef gpio_pin_set_t;
