@@ -104,6 +104,16 @@ impl Drop for BusyDevice {
     }
 }
 
+#[repr(C)]
+#[derive(Debug)]
+pub struct ChildDevice(device_t);
+
+impl ChildDevice {
+    pub unsafe fn new_unchecked(ptr: device_t) -> Self {
+        Self(ptr)
+    }
+}
+
 /// The result of probing a device with a driver.
 ///
 /// This intentionally has no constructors and instead can be created by using the `BUS_PROBE_*`
@@ -481,14 +491,13 @@ pub mod wrappers {
         dev: Device<'a>,
         name: &'static CStr,
         unit: Option<u32>,
-    ) -> Result<Device<'a>> {
+    ) -> Result<ChildDevice> {
         let unit = unit.unwrap_or(bindings::DEVICE_UNIT_ANY as u32);
         let child = unsafe { bindings::device_add_child(dev.as_ptr(), name.as_ptr(), unit as i32) };
         if child.is_null() {
             Err(ENULLPTR)
         } else {
-            // TODO: Double check the output lifetime is valid
-            Ok(unsafe { Device::new_unchecked(child) })
+            Ok(unsafe { ChildDevice::new_unchecked(child) })
         }
     }
 }
