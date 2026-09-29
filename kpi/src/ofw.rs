@@ -101,6 +101,10 @@ impl Node {
 pub struct XRef(pub(crate) phandle_t);
 
 impl XRef {
+    pub unsafe fn new_unchecked(val: phandle_t) -> Self {
+        Self(val)
+    }
+
     pub fn as_phandle(&self) -> phandle_t {
         self.0
     }
