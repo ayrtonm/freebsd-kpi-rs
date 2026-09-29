@@ -112,6 +112,10 @@ impl ChildDevice {
     pub unsafe fn new_unchecked(ptr: device_t) -> Self {
         Self(ptr)
     }
+
+    pub fn as_ptr(&self) -> device_t {
+        self.0
+    }
 }
 
 /// The result of probing a device with a driver.
