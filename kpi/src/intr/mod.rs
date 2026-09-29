@@ -82,6 +82,12 @@ impl ConfigHook {
 
 impl Drop for ConfigHook {
     fn drop(&mut self) {
+        let c_hook = self.inner.get();
+        unsafe {
+            if (*c_hook).ich_arg.is_null() {
+                return;
+            }
+        }
         config_intrhook_disestablish(self)
     }
 }
@@ -207,7 +213,11 @@ pub mod wrappers {
     }
 
     pub fn config_intrhook_disestablish(hook: &ConfigHook) {
-        unsafe { bindings::config_intrhook_disestablish(hook.inner.get()) };
+        let c_hook = hook.inner.get();
+        unsafe {
+            bindings::config_intrhook_disestablish(c_hook);
+            (*c_hook).ich_arg = null_mut();
+        }
     }
 
     pub fn callout_init(c: &mut Callout) -> Result<()> {
