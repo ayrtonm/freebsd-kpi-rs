@@ -100,6 +100,12 @@ macro_rules! define_interface {
             macro_rules! $fn_name {
                 (get_typedef) => { $($crate::bindings::$typedef)* };
                 (get_desc) => { $($crate::bindings::$desc)* };
+                // Compile-time check that the typedef matches the extern "C" function for the
+                // implementation. The $( )* around $typedef is used to make it expand to nothing if
+                // the $typedef isn't provided.
+                (check_typedef $impl:ident) => {
+                    $(const _: $crate::bindings::$typedef = Some($impl);)*
+                };
                 ($driver_ty:ident $impl_fn_name:ident) => {
                     $crate::define_c_function! {
                         $driver_ty $impl_fn_name in $trait as
@@ -124,16 +130,13 @@ macro_rules! define_c_function {
         $(with drop glue { $($drop_glue:tt)* })?
         $(with prefix args { $($prefix_args:ident)* })?
     ) => {
+        $fn_name!(check_typedef $impl);
+
         #[allow(unused)]
         #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) {
             type SelfType = $driver_ty;
             use $crate::kobj::{AsRustType, AsCType};
-            //use core::any::{Any, TypeId};
-            //let typedef_val = <$fn_name!(get_typedef)>::default();
-            //let typedef_id = typedef_val.type_id();
-            //let this_fn_id = TypeId::of::<Option<unsafe extern "C" fn($($arg,)*)>>();
-            //assert!(typedef_id == this_fn_id);
 
             // Convert all arguments from C types to rust types
             $(let mut $arg_name: _ = $arg_name.as_rust_type();)*
@@ -156,16 +159,13 @@ macro_rules! define_c_function {
         $(with prefix args { $($prefix_args:ident)* })?
         $(rust returns $ret_as_rust_ty:ty)?
     ) => {
+        $fn_name!(check_typedef $impl);
+
         #[allow(unused)]
         #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) -> $ret {
             type SelfType = $driver_ty;
             use $crate::kobj::{AsRustType, AsCType};
-            //use core::any::{Any, TypeId};
-            //let typedef_val = <$fn_name!(get_typedef)>::default();
-            //let typedef_id = typedef_val.type_id();
-            //let this_fn_id = TypeId::of::<Option<unsafe extern "C" fn($($arg,)*) -> $ret>>();
-            //assert!(typedef_id == this_fn_id);
 
             // Convert all arguments from C types to rust types
             $(let mut $arg_name: _ = $arg_name.as_rust_type();)*
@@ -195,16 +195,13 @@ macro_rules! define_c_function {
         $(with prefix args { $($prefix_args:ident)* })?
         infallible
     ) => {
+        $fn_name!(check_typedef $impl);
+
         #[allow(unused)]
         #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $impl($($arg_name: $arg,)*) -> $ret {
             type SelfType = $driver_ty;
             use $crate::kobj::{AsRustType, AsCType};
-            //use core::any::{Any, TypeId};
-            //let typedef_val = <$fn_name!(get_typedef)>::default();
-            //let typedef_id = typedef_val.type_id();
-            //let this_fn_id = TypeId::of::<Option<unsafe extern "C" fn($($arg,)*) -> $ret>>();
-            //assert!(typedef_id == this_fn_id);
 
             // Convert all arguments from C types to rust types
             $(let mut $arg_name: _ = $arg_name.as_rust_type();)*
