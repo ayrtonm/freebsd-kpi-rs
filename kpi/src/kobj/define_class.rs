@@ -58,6 +58,8 @@ macro_rules! define_class {
             },
             methods: $class_sym::$method_table.0.get().cast::<$crate::bindings::kobj_method_t>(),
             size: core::mem::size_of::<<$class_ty as $crate::kobj::KobjLayout>::Layout>(),
+            total_size: 0,
+            total_size_inited: false,
             baseclasses: {
                 $crate::expand_if_something_or_else_null!({
                     // expand to this
