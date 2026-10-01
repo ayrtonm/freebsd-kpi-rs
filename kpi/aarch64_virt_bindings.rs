@@ -466,7 +466,7 @@ pub const NBBY: i32 = 8;
 pub const BSD: i32 = 199506;
 pub const BSD4_3: i32 = 1;
 pub const BSD4_4: i32 = 1;
-pub const __FreeBSD_version: i32 = 1600025;
+pub const __FreeBSD_version: i32 = 1600026;
 pub const P_OSREL_SIGWAIT: i32 = 700000;
 pub const P_OSREL_SIGSEGV: i32 = 700004;
 pub const P_OSREL_MAP_ANON: i32 = 800104;
@@ -881,6 +881,76 @@ pub const C_ABSOLUTE: i32 = 512;
 pub const C_PRECALC: i32 = 1024;
 pub const C_CATCH: i32 = 2048;
 pub const CS_DRAIN: i32 = 1;
+pub const LOCK_DEBUG: i32 = 1;
+pub const KTR_GEN: i32 = 1;
+pub const KTR_NET: i32 = 2;
+pub const KTR_DEV: i32 = 4;
+pub const KTR_LOCK: i32 = 8;
+pub const KTR_SMP: i32 = 16;
+pub const KTR_SUBSYS: i32 = 32;
+pub const KTR_PMAP: i32 = 64;
+pub const KTR_MALLOC: i32 = 128;
+pub const KTR_TRAP: i32 = 256;
+pub const KTR_INTR: i32 = 512;
+pub const KTR_SIG: i32 = 1024;
+pub const KTR_SPARE2: i32 = 2048;
+pub const KTR_PROC: i32 = 4096;
+pub const KTR_SYSC: i32 = 8192;
+pub const KTR_INIT: i32 = 16384;
+pub const KTR_SPARE3: i32 = 32768;
+pub const KTR_SPARE4: i32 = 65536;
+pub const KTR_EVH: i32 = 131072;
+pub const KTR_VFS: i32 = 262144;
+pub const KTR_VOP: i32 = 524288;
+pub const KTR_VM: i32 = 1048576;
+pub const KTR_INET: i32 = 2097152;
+pub const KTR_RUNQ: i32 = 4194304;
+pub const KTR_SPARE5: i32 = 8388608;
+pub const KTR_UMA: i32 = 16777216;
+pub const KTR_CALLOUT: i32 = 33554432;
+pub const KTR_GEOM: i32 = 67108864;
+pub const KTR_BUSDMA: i32 = 134217728;
+pub const KTR_INET6: i32 = 268435456;
+pub const KTR_SCHED: i32 = 536870912;
+pub const KTR_BUF: i32 = 1073741824;
+pub const KTR_PTRACE: i64 = 2147483648;
+pub const KTR_ALL: i64 = 4294967295;
+pub const KTR_COMPILE: i32 = 0;
+pub const LC_SLEEPLOCK: i32 = 1;
+pub const LC_SPINLOCK: i32 = 2;
+pub const LC_SLEEPABLE: i32 = 4;
+pub const LC_RECURSABLE: i32 = 8;
+pub const LC_UPGRADABLE: i32 = 16;
+pub const LO_CLASSFLAGS: i32 = 65535;
+pub const LO_INITIALIZED: i32 = 65536;
+pub const LO_WITNESS: i32 = 131072;
+pub const LO_QUIET: i32 = 262144;
+pub const LO_RECURSABLE: i32 = 524288;
+pub const LO_SLEEPABLE: i32 = 1048576;
+pub const LO_UPGRADABLE: i32 = 2097152;
+pub const LO_DUPOK: i32 = 4194304;
+pub const LO_IS_VNODE: i32 = 8388608;
+pub const LO_CLASSMASK: i32 = 251658240;
+pub const LO_NOPROFILE: i32 = 268435456;
+pub const LO_NEW: i32 = 536870912;
+pub const LO_CLASSSHIFT: i32 = 24;
+pub const LOCK_CLASS_MAX: i32 = 15;
+pub const LOP_NEWORDER: i32 = 1;
+pub const LOP_QUIET: i32 = 2;
+pub const LOP_TRYLOCK: i32 = 4;
+pub const LOP_EXCLUSIVE: i32 = 8;
+pub const LOP_DUPOK: i32 = 16;
+pub const LOP_NOSLEEP: i32 = 32;
+pub const LA_MASKASSERT: i32 = 255;
+pub const LA_UNLOCKED: i32 = 0;
+pub const LA_LOCKED: i32 = 1;
+pub const LA_SLOCKED: i32 = 2;
+pub const LA_XLOCKED: i32 = 4;
+pub const LA_RECURSED: i32 = 8;
+pub const LA_NOTRECURSED: i32 = 16;
+pub const WARN_GIANTOK: i32 = 1;
+pub const WARN_PANIC: i32 = 2;
+pub const WARN_SLEEPOK: i32 = 4;
 pub const INT8_MIN: i32 = -128;
 pub const INT16_MIN: i32 = -32768;
 pub const INT32_MIN: i32 = -2147483648;
@@ -1031,7 +1101,7 @@ pub const APIBKeyLo_EL1_op1: i32 = 0;
 pub const APIBKeyLo_EL1_CRn: i32 = 2;
 pub const APIBKeyLo_EL1_CRm: i32 = 1;
 pub const APIBKeyLo_EL1_op2: i32 = 2;
-pub const CCSIDR_EL1_op0: i32 = 2;
+pub const CCSIDR_EL1_op0: i32 = 3;
 pub const CCSIDR_EL1_op1: i32 = 1;
 pub const CCSIDR_EL1_CRn: i32 = 0;
 pub const CCSIDR_EL1_CRm: i32 = 0;
@@ -2488,7 +2558,6 @@ pub const ZCR_LEN_SHIFT: i32 = 0;
 pub const ZCR_LEN_MASK: i32 = 15;
 pub const CPU_SETSIZE: i32 = 1024;
 pub const CPU_MAXSIZE: i32 = 1024;
-pub const LOCK_DEBUG: i32 = 1;
 pub const PRIO_MIN: i32 = -20;
 pub const PRIO_MAX: i32 = 20;
 pub const PRIO_PROCESS: i32 = 0;
@@ -3033,75 +3102,6 @@ pub const INTR_ISRCF_BOUND: i32 = 4;
 pub const ICHS_QUEUED: i32 = 1;
 pub const ICHS_RUNNING: i32 = 2;
 pub const ICHS_DONE: i32 = 3;
-pub const KTR_GEN: i32 = 1;
-pub const KTR_NET: i32 = 2;
-pub const KTR_DEV: i32 = 4;
-pub const KTR_LOCK: i32 = 8;
-pub const KTR_SMP: i32 = 16;
-pub const KTR_SUBSYS: i32 = 32;
-pub const KTR_PMAP: i32 = 64;
-pub const KTR_MALLOC: i32 = 128;
-pub const KTR_TRAP: i32 = 256;
-pub const KTR_INTR: i32 = 512;
-pub const KTR_SIG: i32 = 1024;
-pub const KTR_SPARE2: i32 = 2048;
-pub const KTR_PROC: i32 = 4096;
-pub const KTR_SYSC: i32 = 8192;
-pub const KTR_INIT: i32 = 16384;
-pub const KTR_SPARE3: i32 = 32768;
-pub const KTR_SPARE4: i32 = 65536;
-pub const KTR_EVH: i32 = 131072;
-pub const KTR_VFS: i32 = 262144;
-pub const KTR_VOP: i32 = 524288;
-pub const KTR_VM: i32 = 1048576;
-pub const KTR_INET: i32 = 2097152;
-pub const KTR_RUNQ: i32 = 4194304;
-pub const KTR_SPARE5: i32 = 8388608;
-pub const KTR_UMA: i32 = 16777216;
-pub const KTR_CALLOUT: i32 = 33554432;
-pub const KTR_GEOM: i32 = 67108864;
-pub const KTR_BUSDMA: i32 = 134217728;
-pub const KTR_INET6: i32 = 268435456;
-pub const KTR_SCHED: i32 = 536870912;
-pub const KTR_BUF: i32 = 1073741824;
-pub const KTR_PTRACE: i64 = 2147483648;
-pub const KTR_ALL: i64 = 4294967295;
-pub const KTR_COMPILE: i32 = 0;
-pub const LC_SLEEPLOCK: i32 = 1;
-pub const LC_SPINLOCK: i32 = 2;
-pub const LC_SLEEPABLE: i32 = 4;
-pub const LC_RECURSABLE: i32 = 8;
-pub const LC_UPGRADABLE: i32 = 16;
-pub const LO_CLASSFLAGS: i32 = 65535;
-pub const LO_INITIALIZED: i32 = 65536;
-pub const LO_WITNESS: i32 = 131072;
-pub const LO_QUIET: i32 = 262144;
-pub const LO_RECURSABLE: i32 = 524288;
-pub const LO_SLEEPABLE: i32 = 1048576;
-pub const LO_UPGRADABLE: i32 = 2097152;
-pub const LO_DUPOK: i32 = 4194304;
-pub const LO_IS_VNODE: i32 = 8388608;
-pub const LO_CLASSMASK: i32 = 251658240;
-pub const LO_NOPROFILE: i32 = 268435456;
-pub const LO_NEW: i32 = 536870912;
-pub const LO_CLASSSHIFT: i32 = 24;
-pub const LOCK_CLASS_MAX: i32 = 15;
-pub const LOP_NEWORDER: i32 = 1;
-pub const LOP_QUIET: i32 = 2;
-pub const LOP_TRYLOCK: i32 = 4;
-pub const LOP_EXCLUSIVE: i32 = 8;
-pub const LOP_DUPOK: i32 = 16;
-pub const LOP_NOSLEEP: i32 = 32;
-pub const LA_MASKASSERT: i32 = 255;
-pub const LA_UNLOCKED: i32 = 0;
-pub const LA_LOCKED: i32 = 1;
-pub const LA_SLOCKED: i32 = 2;
-pub const LA_XLOCKED: i32 = 4;
-pub const LA_RECURSED: i32 = 8;
-pub const LA_NOTRECURSED: i32 = 16;
-pub const WARN_GIANTOK: i32 = 1;
-pub const WARN_PANIC: i32 = 2;
-pub const WARN_SLEEPOK: i32 = 4;
 pub const MDT_DEPEND: i32 = 1;
 pub const MDT_MODULE: i32 = 2;
 pub const MDT_VERSION: i32 = 3;
@@ -4999,10 +4999,6 @@ pub const MIXER_NAMELEN: i32 = 16;
 pub const MIXER_TYPE_PRIMARY: i32 = 0;
 pub const MIXER_TYPE_SECONDARY: i32 = 1;
 pub const SND_STATUSLEN: i32 = 64;
-pub const SOUND_MODVER: i32 = 5;
-pub const SOUND_MINVER: i32 = 5;
-pub const SOUND_PREFVER: i32 = 5;
-pub const SOUND_MAXVER: i32 = 5;
 pub const SD_F_SIMPLEX: i32 = 1;
 pub const SD_F_SOFTPCMVOL: i32 = 4;
 pub const SD_F_BUSY: i32 = 8;
@@ -6042,7 +6038,10 @@ pub type dumper_start_t = ::core::option::Option<
     ) -> ::core::ffi::c_int,
 >;
 pub type dumper_hdr_t = ::core::option::Option<
-    unsafe extern "C" fn(di: *mut dumperinfo, kdh: *mut kerneldumpheader) -> ::core::ffi::c_int,
+    unsafe extern "C" fn(
+        di: *mut dumperinfo,
+        kdh: *mut kerneldumpheader,
+    ) -> ::core::ffi::c_int,
 >;
 #[repr(C)]
 pub struct cdevsw {
@@ -6405,6 +6404,8 @@ pub struct kobj_class {
     pub baseclasses: *mut kobj_class_t,
     pub refs: u_int,
     pub ops: kobj_ops_t,
+    pub total_size: usize,
+    pub total_size_inited: bool_,
 }
 impl Default for kobj_class {
     fn default() -> Self {
@@ -6585,6 +6586,82 @@ impl Default for callout {
         }
     }
 }
+#[repr(C)]
+#[derive(Debug)]
+pub struct lock_object {
+    pub lo_name: *const ::core::ffi::c_char,
+    pub lo_flags: ::core::ffi::c_uint,
+    pub lo_data: ::core::ffi::c_uint,
+    pub lo_witness: *mut witness,
+}
+impl Default for lock_object {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct lock_list_entry {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct lock_class {
+    pub lc_name: *const ::core::ffi::c_char,
+    pub lc_flags: u_int,
+    pub lc_assert: ::core::option::Option<
+        unsafe extern "C" fn(lock: *const lock_object, what: ::core::ffi::c_int),
+    >,
+    pub lc_ddb_show: ::core::option::Option<unsafe extern "C" fn(lock: *const lock_object)>,
+    pub lc_lock:
+        ::core::option::Option<unsafe extern "C" fn(lock: *mut lock_object, how: usize)>,
+    pub lc_owner: ::core::option::Option<
+        unsafe extern "C" fn(
+            lock: *const lock_object,
+            owner: *mut *mut thread,
+        ) -> ::core::ffi::c_int,
+    >,
+    pub lc_unlock:
+        ::core::option::Option<unsafe extern "C" fn(lock: *mut lock_object) -> usize>,
+    pub lc_trylock: ::core::option::Option<
+        unsafe extern "C" fn(lock: *mut lock_object, how: usize) -> ::core::ffi::c_int,
+    >,
+}
+impl Default for lock_class {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct lock_delay_config {
+    pub base: u_short,
+    pub max: u_short,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct lock_delay_arg {
+    pub config: *mut lock_delay_config,
+    pub delay: u_int,
+    pub spin_cnt: u_int,
+}
+impl Default for lock_delay_arg {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub type int_least8_t = __int_least8_t;
 pub type int_least16_t = __int_least16_t;
 pub type int_least32_t = __int_least32_t;
@@ -6624,23 +6701,6 @@ pub struct _cpuset {
     pub __bits: [::core::ffi::c_ulong; 16usize],
 }
 pub type cpuset_t = _cpuset;
-#[repr(C)]
-#[derive(Debug)]
-pub struct lock_object {
-    pub lo_name: *const ::core::ffi::c_char,
-    pub lo_flags: ::core::ffi::c_uint,
-    pub lo_data: ::core::ffi::c_uint,
-    pub lo_witness: *mut witness,
-}
-impl Default for lock_object {
-    fn default() -> Self {
-        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
 #[repr(C)]
 #[derive(Debug)]
 pub struct mtx {
@@ -6920,7 +6980,8 @@ pub type sig_atomic_t = ::core::ffi::c_long;
 pub struct sigcontext {
     pub _dummy: ::core::ffi::c_int,
 }
-pub type __sighandler_t = ::core::option::Option<unsafe extern "C" fn(arg1: ::core::ffi::c_int)>;
+pub type __sighandler_t =
+    ::core::option::Option<unsafe extern "C" fn(arg1: ::core::ffi::c_int)>;
 #[repr(C)]
 pub struct sigevent {
     pub sigev_notify: ::core::ffi::c_int,
@@ -7116,8 +7177,9 @@ pub struct sigaction {
 }
 #[repr(C)]
 pub struct sigaction__bindgen_ty_1 {
-    pub __sa_handler:
-        __BindgenUnionField<::core::option::Option<unsafe extern "C" fn(arg1: ::core::ffi::c_int)>>,
+    pub __sa_handler: __BindgenUnionField<
+        ::core::option::Option<unsafe extern "C" fn(arg1: ::core::ffi::c_int)>,
+    >,
     pub __sa_sigaction: __BindgenUnionField<
         ::core::option::Option<
             unsafe extern "C" fn(
@@ -7415,9 +7477,11 @@ pub struct arm64_addr_mask {
     _unused: [u8; 0],
 }
 pub type cpu_reset_hook_t = ::core::option::Option<unsafe extern "C" fn()>;
-pub type pcpu_bp_harden = ::core::option::Option<unsafe extern "C" fn() -> ::core::ffi::c_int>;
-pub type pcpu_ssbd =
-    ::core::option::Option<unsafe extern "C" fn(arg1: ::core::ffi::c_int) -> ::core::ffi::c_int>;
+pub type pcpu_bp_harden =
+    ::core::option::Option<unsafe extern "C" fn() -> ::core::ffi::c_int>;
+pub type pcpu_ssbd = ::core::option::Option<
+    unsafe extern "C" fn(arg1: ::core::ffi::c_int) -> ::core::ffi::c_int,
+>;
 #[repr(C)]
 #[repr(align(128))]
 pub struct pcpu {
@@ -7826,7 +7890,11 @@ pub type bus_alloc_resource_t = ::core::option::Option<
 >;
 #[doc = " @brief A function implementing the BUS_ACTIVATE_RESOURCE() method"]
 pub type bus_activate_resource_t = ::core::option::Option<
-    unsafe extern "C" fn(_dev: device_t, _child: device_t, _r: *mut resource) -> ::core::ffi::c_int,
+    unsafe extern "C" fn(
+        _dev: device_t,
+        _child: device_t,
+        _r: *mut resource,
+    ) -> ::core::ffi::c_int,
 >;
 #[doc = " @brief A function implementing the BUS_MAP_RESOURCE() method"]
 pub type bus_map_resource_t = ::core::option::Option<
@@ -7849,7 +7917,11 @@ pub type bus_unmap_resource_t = ::core::option::Option<
 >;
 #[doc = " @brief A function implementing the BUS_DEACTIVATE_RESOURCE() method"]
 pub type bus_deactivate_resource_t = ::core::option::Option<
-    unsafe extern "C" fn(_dev: device_t, _child: device_t, _r: *mut resource) -> ::core::ffi::c_int,
+    unsafe extern "C" fn(
+        _dev: device_t,
+        _child: device_t,
+        _r: *mut resource,
+    ) -> ::core::ffi::c_int,
 >;
 #[doc = " @brief A function implementing the BUS_ADJUST_RESOURCE() method"]
 pub type bus_adjust_resource_t = ::core::option::Option<
@@ -7953,7 +8025,11 @@ pub type bus_get_resource_list_t = ::core::option::Option<
 >;
 #[doc = " @brief A function implementing the BUS_GET_RMAN() method"]
 pub type bus_get_rman_t = ::core::option::Option<
-    unsafe extern "C" fn(_dev: device_t, _type: ::core::ffi::c_int, _flags: u_int) -> *mut rman,
+    unsafe extern "C" fn(
+        _dev: device_t,
+        _type: ::core::ffi::c_int,
+        _flags: u_int,
+    ) -> *mut rman,
 >;
 #[doc = " @brief A function implementing the BUS_CHILD_PRESENT() method"]
 pub type bus_child_present_t = ::core::option::Option<
@@ -7961,11 +8037,19 @@ pub type bus_child_present_t = ::core::option::Option<
 >;
 #[doc = " @brief A function implementing the BUS_CHILD_PNPINFO() method"]
 pub type bus_child_pnpinfo_t = ::core::option::Option<
-    unsafe extern "C" fn(_dev: device_t, _child: device_t, _sb: *mut sbuf) -> ::core::ffi::c_int,
+    unsafe extern "C" fn(
+        _dev: device_t,
+        _child: device_t,
+        _sb: *mut sbuf,
+    ) -> ::core::ffi::c_int,
 >;
 #[doc = " @brief A function implementing the BUS_CHILD_LOCATION() method"]
 pub type bus_child_location_t = ::core::option::Option<
-    unsafe extern "C" fn(_dev: device_t, _child: device_t, _sb: *mut sbuf) -> ::core::ffi::c_int,
+    unsafe extern "C" fn(
+        _dev: device_t,
+        _child: device_t,
+        _sb: *mut sbuf,
+    ) -> ::core::ffi::c_int,
 >;
 #[doc = " @brief A function implementing the BUS_BIND_INTR() method"]
 pub type bus_bind_intr_t = ::core::option::Option<
@@ -8004,8 +8088,9 @@ pub type bus_hinted_child_t = ::core::option::Option<
     ),
 >;
 #[doc = " @brief A function implementing the BUS_GET_DMA_TAG() method"]
-pub type bus_get_dma_tag_t =
-    ::core::option::Option<unsafe extern "C" fn(_dev: device_t, _child: device_t) -> bus_dma_tag_t>;
+pub type bus_get_dma_tag_t = ::core::option::Option<
+    unsafe extern "C" fn(_dev: device_t, _child: device_t) -> bus_dma_tag_t,
+>;
 #[doc = " @brief A function implementing the BUS_GET_BUS_TAG() method"]
 pub type bus_get_bus_tag_t = ::core::option::Option<
     unsafe extern "C" fn(_dev: device_t, _child: device_t) -> bus_space_tag_t,
@@ -8023,7 +8108,11 @@ pub type bus_hint_device_unit_t = ::core::option::Option<
 pub type bus_new_pass_t = ::core::option::Option<unsafe extern "C" fn(_dev: device_t)>;
 #[doc = " @brief A function implementing the BUS_REMAP_INTR() method"]
 pub type bus_remap_intr_t = ::core::option::Option<
-    unsafe extern "C" fn(_dev: device_t, _child: device_t, _irq: u_int) -> ::core::ffi::c_int,
+    unsafe extern "C" fn(
+        _dev: device_t,
+        _child: device_t,
+        _irq: u_int,
+    ) -> ::core::ffi::c_int,
 >;
 #[doc = " @brief A function implementing the BUS_SUSPEND_CHILD() method"]
 pub type bus_suspend_child_t = ::core::option::Option<
@@ -8690,7 +8779,8 @@ impl Default for tunable_str {
         }
     }
 }
-pub type ich_func_t = ::core::option::Option<unsafe extern "C" fn(_arg: *mut ::core::ffi::c_void)>;
+pub type ich_func_t =
+    ::core::option::Option<unsafe extern "C" fn(_arg: *mut ::core::ffi::c_void)>;
 #[repr(C)]
 #[derive(Debug)]
 pub struct intr_config_hook {
@@ -8714,63 +8804,6 @@ impl Default for intr_config_hook__bindgen_ty_1 {
     }
 }
 impl Default for intr_config_hook {
-    fn default() -> Self {
-        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct lock_list_entry {
-    _unused: [u8; 0],
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct lock_class {
-    pub lc_name: *const ::core::ffi::c_char,
-    pub lc_flags: u_int,
-    pub lc_assert: ::core::option::Option<
-        unsafe extern "C" fn(lock: *const lock_object, what: ::core::ffi::c_int),
-    >,
-    pub lc_ddb_show: ::core::option::Option<unsafe extern "C" fn(lock: *const lock_object)>,
-    pub lc_lock: ::core::option::Option<unsafe extern "C" fn(lock: *mut lock_object, how: usize)>,
-    pub lc_owner: ::core::option::Option<
-        unsafe extern "C" fn(
-            lock: *const lock_object,
-            owner: *mut *mut thread,
-        ) -> ::core::ffi::c_int,
-    >,
-    pub lc_unlock: ::core::option::Option<unsafe extern "C" fn(lock: *mut lock_object) -> usize>,
-    pub lc_trylock: ::core::option::Option<
-        unsafe extern "C" fn(lock: *mut lock_object, how: usize) -> ::core::ffi::c_int,
-    >,
-}
-impl Default for lock_class {
-    fn default() -> Self {
-        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-#[repr(C)]
-#[derive(Debug, Default)]
-pub struct lock_delay_config {
-    pub base: u_short,
-    pub max: u_short,
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct lock_delay_arg {
-    pub config: *mut lock_delay_config,
-    pub delay: u_int,
-    pub spin_cnt: u_int,
-}
-impl Default for lock_delay_arg {
     fn default() -> Self {
         let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
         unsafe {
@@ -9190,8 +9223,10 @@ impl Default for kqlist {
 #[derive(Debug)]
 pub struct knlist {
     pub kl_list: klist,
-    pub kl_lock: ::core::option::Option<unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void)>,
-    pub kl_unlock: ::core::option::Option<unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void)>,
+    pub kl_lock:
+        ::core::option::Option<unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void)>,
+    pub kl_unlock:
+        ::core::option::Option<unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void)>,
     pub kl_assert_lock: ::core::option::Option<
         unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: ::core::ffi::c_int),
     >,
@@ -9220,7 +9255,10 @@ pub struct filterops {
         ::core::option::Option<unsafe extern "C" fn(kn: *mut knote) -> ::core::ffi::c_int>,
     pub f_detach: ::core::option::Option<unsafe extern "C" fn(kn: *mut knote)>,
     pub f_event: ::core::option::Option<
-        unsafe extern "C" fn(kn: *mut knote, hint: ::core::ffi::c_long) -> ::core::ffi::c_int,
+        unsafe extern "C" fn(
+            kn: *mut knote,
+            hint: ::core::ffi::c_long,
+        ) -> ::core::ffi::c_int,
     >,
     pub f_touch: ::core::option::Option<
         unsafe extern "C" fn(kn: *mut knote, kev: *mut kevent, type_: u_long),
@@ -11979,7 +12017,10 @@ pub struct bus_dma_segment {
 }
 pub type bus_dma_segment_t = bus_dma_segment;
 pub type bus_dma_filter_t = ::core::option::Option<
-    unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: bus_addr_t) -> ::core::ffi::c_int,
+    unsafe extern "C" fn(
+        arg1: *mut ::core::ffi::c_void,
+        arg2: bus_addr_t,
+    ) -> ::core::ffi::c_int,
 >;
 #[repr(C)]
 #[derive(Debug)]
@@ -12111,12 +12152,18 @@ pub struct bus_dma_impl {
             dmat: *mut bus_dma_tag_t,
         ) -> ::core::ffi::c_int,
     >,
-    pub tag_destroy:
-        ::core::option::Option<unsafe extern "C" fn(dmat: bus_dma_tag_t) -> ::core::ffi::c_int>,
-    pub tag_set_domain:
-        ::core::option::Option<unsafe extern "C" fn(arg1: bus_dma_tag_t) -> ::core::ffi::c_int>,
+    pub tag_destroy: ::core::option::Option<
+        unsafe extern "C" fn(dmat: bus_dma_tag_t) -> ::core::ffi::c_int,
+    >,
+    pub tag_set_domain: ::core::option::Option<
+        unsafe extern "C" fn(arg1: bus_dma_tag_t) -> ::core::ffi::c_int,
+    >,
     pub id_mapped: ::core::option::Option<
-        unsafe extern "C" fn(arg1: bus_dma_tag_t, arg2: vm_paddr_t, arg3: bus_size_t) -> bool_,
+        unsafe extern "C" fn(
+            arg1: bus_dma_tag_t,
+            arg2: vm_paddr_t,
+            arg3: bus_size_t,
+        ) -> bool_,
     >,
     pub map_create: ::core::option::Option<
         unsafe extern "C" fn(
@@ -12437,6 +12484,69 @@ pub type power_pm_fn_t = ::core::option::Option<
         _stype: power_stype,
     ) -> ::core::ffi::c_int,
 >;
+pub type power_change_fn = ::core::option::Option<
+    unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, stype: power_stype),
+>;
+#[repr(C)]
+#[derive(Debug)]
+pub struct eventhandler_entry_power_resume {
+    pub ee: eventhandler_entry,
+    pub eh_func: power_change_fn,
+}
+impl Default for eventhandler_entry_power_resume {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct eventhandler_entry_power_resume_check {
+    pub ee: eventhandler_entry,
+    pub eh_func: power_change_fn,
+}
+impl Default for eventhandler_entry_power_resume_check {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct eventhandler_entry_power_suspend {
+    pub ee: eventhandler_entry,
+    pub eh_func: power_change_fn,
+}
+impl Default for eventhandler_entry_power_suspend {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct eventhandler_entry_power_suspend_early {
+    pub ee: eventhandler_entry,
+    pub eh_func: power_change_fn,
+}
+impl Default for eventhandler_entry_power_suspend_early {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub type power_profile_change_hook = ::core::option::Option<
     unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: ::core::ffi::c_int),
 >;
@@ -12570,54 +12680,6 @@ impl Default for eventhandler_entry_shutdown_final {
         }
     }
 }
-pub type power_change_fn = ::core::option::Option<
-    unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, stype: power_stype),
->;
-#[repr(C)]
-#[derive(Debug)]
-pub struct eventhandler_entry_power_resume {
-    pub ee: eventhandler_entry,
-    pub eh_func: power_change_fn,
-}
-impl Default for eventhandler_entry_power_resume {
-    fn default() -> Self {
-        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct eventhandler_entry_power_suspend {
-    pub ee: eventhandler_entry,
-    pub eh_func: power_change_fn,
-}
-impl Default for eventhandler_entry_power_suspend {
-    fn default() -> Self {
-        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct eventhandler_entry_power_suspend_early {
-    pub ee: eventhandler_entry,
-    pub eh_func: power_change_fn,
-}
-impl Default for eventhandler_entry_power_suspend_early {
-    fn default() -> Self {
-        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
 pub type vm_lowmem_handler_t = ::core::option::Option<
     unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: ::core::ffi::c_int),
 >;
@@ -12682,7 +12744,11 @@ pub type vfs_mounted_notify_fn = ::core::option::Option<
     ),
 >;
 pub type vfs_unmounted_notify_fn = ::core::option::Option<
-    unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: *mut mount, arg3: *mut thread),
+    unsafe extern "C" fn(
+        arg1: *mut ::core::ffi::c_void,
+        arg2: *mut mount,
+        arg3: *mut thread,
+    ),
 >;
 #[repr(C)]
 #[derive(Debug)]
@@ -12719,8 +12785,9 @@ impl Default for eventhandler_entry_vfs_unmounted {
 pub struct image_params {
     _unused: [u8; 0],
 }
-pub type exitlist_fn =
-    ::core::option::Option<unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: *mut proc_)>;
+pub type exitlist_fn = ::core::option::Option<
+    unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: *mut proc_),
+>;
 pub type forklist_fn = ::core::option::Option<
     unsafe extern "C" fn(
         arg1: *mut ::core::ffi::c_void,
@@ -12730,16 +12797,24 @@ pub type forklist_fn = ::core::option::Option<
     ),
 >;
 pub type execlist_fn = ::core::option::Option<
-    unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: *mut proc_, arg3: *mut image_params),
+    unsafe extern "C" fn(
+        arg1: *mut ::core::ffi::c_void,
+        arg2: *mut proc_,
+        arg3: *mut image_params,
+    ),
 >;
-pub type proc_ctor_fn =
-    ::core::option::Option<unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: *mut proc_)>;
-pub type proc_dtor_fn =
-    ::core::option::Option<unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: *mut proc_)>;
-pub type proc_init_fn =
-    ::core::option::Option<unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: *mut proc_)>;
-pub type proc_fini_fn =
-    ::core::option::Option<unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: *mut proc_)>;
+pub type proc_ctor_fn = ::core::option::Option<
+    unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: *mut proc_),
+>;
+pub type proc_dtor_fn = ::core::option::Option<
+    unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: *mut proc_),
+>;
+pub type proc_init_fn = ::core::option::Option<
+    unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: *mut proc_),
+>;
+pub type proc_fini_fn = ::core::option::Option<
+    unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: *mut proc_),
+>;
 #[repr(C)]
 #[derive(Debug)]
 pub struct eventhandler_entry_process_ctor {
@@ -12859,8 +12934,9 @@ pub type app_coredump_progress_fn = ::core::option::Option<
         byte_count: ::core::ffi::c_int,
     ),
 >;
-pub type app_coredump_finish_fn =
-    ::core::option::Option<unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, td: *mut thread)>;
+pub type app_coredump_finish_fn = ::core::option::Option<
+    unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, td: *mut thread),
+>;
 pub type app_coredump_error_fn = ::core::option::Option<
     unsafe extern "C" fn(
         arg1: *mut ::core::ffi::c_void,
@@ -12929,14 +13005,18 @@ impl Default for eventhandler_entry_app_coredump_error {
         }
     }
 }
-pub type thread_ctor_fn =
-    ::core::option::Option<unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: *mut thread)>;
-pub type thread_dtor_fn =
-    ::core::option::Option<unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: *mut thread)>;
-pub type thread_fini_fn =
-    ::core::option::Option<unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: *mut thread)>;
-pub type thread_init_fn =
-    ::core::option::Option<unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: *mut thread)>;
+pub type thread_ctor_fn = ::core::option::Option<
+    unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: *mut thread),
+>;
+pub type thread_dtor_fn = ::core::option::Option<
+    unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: *mut thread),
+>;
+pub type thread_fini_fn = ::core::option::Option<
+    unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: *mut thread),
+>;
+pub type thread_init_fn = ::core::option::Option<
+    unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: *mut thread),
+>;
 #[repr(C)]
 #[derive(Debug)]
 pub struct eventhandler_entry_thread_ctor {
@@ -13186,10 +13266,12 @@ impl Default for eventhandler_entry_ada_probe_veto {
 pub struct swdevt {
     _unused: [u8; 0],
 }
-pub type swapon_fn =
-    ::core::option::Option<unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: *mut swdevt)>;
-pub type swapoff_fn =
-    ::core::option::Option<unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: *mut swdevt)>;
+pub type swapon_fn = ::core::option::Option<
+    unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: *mut swdevt),
+>;
+pub type swapoff_fn = ::core::option::Option<
+    unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: *mut swdevt),
+>;
 #[repr(C)]
 #[derive(Debug)]
 pub struct eventhandler_entry_swapon {
@@ -13224,13 +13306,19 @@ pub const EVHDEV_DETACH_BEGIN: evhdev_detach = 0;
 pub const EVHDEV_DETACH_COMPLETE: evhdev_detach = 1;
 pub const EVHDEV_DETACH_FAILED: evhdev_detach = 2;
 pub type evhdev_detach = ::core::ffi::c_uint;
-pub type device_attach_fn =
-    ::core::option::Option<unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: device_t)>;
-pub type device_detach_fn = ::core::option::Option<
-    unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: device_t, arg3: evhdev_detach),
+pub type device_attach_fn = ::core::option::Option<
+    unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: device_t),
 >;
-pub type device_nomatch_fn =
-    ::core::option::Option<unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: device_t)>;
+pub type device_detach_fn = ::core::option::Option<
+    unsafe extern "C" fn(
+        arg1: *mut ::core::ffi::c_void,
+        arg2: device_t,
+        arg3: evhdev_detach,
+    ),
+>;
+pub type device_nomatch_fn = ::core::option::Option<
+    unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: device_t),
+>;
 #[repr(C)]
 #[derive(Debug)]
 pub struct eventhandler_entry_device_attach {
@@ -13540,7 +13628,10 @@ pub type fo_add_seals_t = ::core::option::Option<
     unsafe extern "C" fn(fp: *mut file, flags: ::core::ffi::c_int) -> ::core::ffi::c_int,
 >;
 pub type fo_get_seals_t = ::core::option::Option<
-    unsafe extern "C" fn(fp: *mut file, flags: *mut ::core::ffi::c_int) -> ::core::ffi::c_int,
+    unsafe extern "C" fn(
+        fp: *mut file,
+        flags: *mut ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int,
 >;
 pub type fo_fallocate_t = ::core::option::Option<
     unsafe extern "C" fn(
@@ -13562,7 +13653,11 @@ pub type fo_fspacectl_t = ::core::option::Option<
     ) -> ::core::ffi::c_int,
 >;
 pub type fo_cmp_t = ::core::option::Option<
-    unsafe extern "C" fn(fp: *mut file, fp1: *mut file, td: *mut thread) -> ::core::ffi::c_int,
+    unsafe extern "C" fn(
+        fp: *mut file,
+        fp1: *mut file,
+        td: *mut thread,
+    ) -> ::core::ffi::c_int,
 >;
 pub type fo_fork_t = ::core::option::Option<
     unsafe extern "C" fn(
@@ -15263,6 +15358,8 @@ pub struct feeder_class {
     pub baseclasses: *mut kobj_class_t,
     pub refs: u_int,
     pub ops: kobj_ops_t,
+    pub total_size: usize,
+    pub total_size_inited: bool_,
     pub type_: feeder_type,
     pub link: feeder_class__bindgen_ty_1,
 }
@@ -15348,8 +15445,10 @@ pub struct snd_mixer {
     pub child: [u32; 32usize],
     pub realdev: [u8; 32usize],
     pub name: [::core::ffi::c_char; 16usize],
-    pub lock: mtx,
+    pub lock: *mut mtx,
+    pub priv_lock: mtx,
     pub modify_counter: ::core::ffi::c_int,
+    pub cdev: *mut cdev,
 }
 impl Default for snd_mixer {
     fn default() -> Self {
@@ -15373,8 +15472,8 @@ pub struct snddev_info {
     pub dev: device_t,
     pub status: [::core::ffi::c_char; 64usize],
     pub lock: mtx,
-    pub mixer_dev: *mut cdev,
     pub dsp_dev: *mut cdev,
+    pub mixer: *mut snd_mixer,
     pub pvchanrate: u32,
     pub pvchanformat: u32,
     pub pvchanmode: u32,
@@ -16622,10 +16721,14 @@ pub struct xsocket_xsockbuf {
     pub sb_flags: i16,
 }
 #[doc = " @brief A function implementing the GPIO_GET_BUS() method"]
-pub type gpio_get_bus_t = ::core::option::Option<unsafe extern "C" fn(dev: device_t) -> device_t>;
+pub type gpio_get_bus_t =
+    ::core::option::Option<unsafe extern "C" fn(dev: device_t) -> device_t>;
 #[doc = " @brief A function implementing the GPIO_PIN_MAX() method"]
 pub type gpio_pin_max_t = ::core::option::Option<
-    unsafe extern "C" fn(dev: device_t, maxpin: *mut ::core::ffi::c_int) -> ::core::ffi::c_int,
+    unsafe extern "C" fn(
+        dev: device_t,
+        maxpin: *mut ::core::ffi::c_int,
+    ) -> ::core::ffi::c_int,
 >;
 #[doc = " @brief A function implementing the GPIO_PIN_SET() method"]
 pub type gpio_pin_set_t = ::core::option::Option<
@@ -16633,11 +16736,16 @@ pub type gpio_pin_set_t = ::core::option::Option<
 >;
 #[doc = " @brief A function implementing the GPIO_PIN_GET() method"]
 pub type gpio_pin_get_t = ::core::option::Option<
-    unsafe extern "C" fn(dev: device_t, pin_num: u32, pin_value: *mut u32) -> ::core::ffi::c_int,
+    unsafe extern "C" fn(
+        dev: device_t,
+        pin_num: u32,
+        pin_value: *mut u32,
+    ) -> ::core::ffi::c_int,
 >;
 #[doc = " @brief A function implementing the GPIO_PIN_TOGGLE() method"]
-pub type gpio_pin_toggle_t =
-    ::core::option::Option<unsafe extern "C" fn(dev: device_t, pin_num: u32) -> ::core::ffi::c_int>;
+pub type gpio_pin_toggle_t = ::core::option::Option<
+    unsafe extern "C" fn(dev: device_t, pin_num: u32) -> ::core::ffi::c_int,
+>;
 #[doc = " @brief A function implementing the GPIO_PIN_GETCAPS() method"]
 pub type gpio_pin_getcaps_t = ::core::option::Option<
     unsafe extern "C" fn(dev: device_t, pin_num: u32, caps: *mut u32) -> ::core::ffi::c_int,
@@ -17053,20 +17161,6 @@ unsafe extern "C" {
     pub fn tvtosbt_sat(_tv: timeval) -> sbintime_t;
     pub fn inittodr(base: time_t);
     pub fn resettodr();
-    pub static mut time_second: time_t;
-    pub static mut time_uptime: time_t;
-    pub static mut tc_tick_bt: bintime;
-    pub static mut tc_tick_sbt: sbintime_t;
-    pub static mut tick_seconds_max: time_t;
-    pub static mut tick_bt: bintime;
-    pub static mut tick_sbt: sbintime_t;
-    pub static mut tc_precexp: ::core::ffi::c_int;
-    pub static mut tc_timepercentage: ::core::ffi::c_int;
-    pub static mut bt_timethreshold: bintime;
-    pub static mut bt_tickthreshold: bintime;
-    pub static mut sbt_timethreshold: sbintime_t;
-    pub static mut sbt_tickthreshold: sbintime_t;
-    pub static mut rtc_generation: ::core::ffi::c_int;
     pub fn binuptime(bt: *mut bintime);
     pub fn nanouptime(tsp: *mut timespec);
     pub fn microuptime(tvp: *mut timeval);
@@ -17100,8 +17194,6 @@ unsafe extern "C" {
     pub fn htons(arg1: __uint16_t) -> __uint16_t;
     pub fn ntohl(arg1: __uint32_t) -> __uint32_t;
     pub fn ntohs(arg1: __uint16_t) -> __uint16_t;
-    pub static mut panicstr: *const ::core::ffi::c_char;
-    pub static mut poisoned_buf: *mut ::core::ffi::c_void;
     pub fn panic(arg1: *const ::core::ffi::c_char, ...) -> !;
     pub fn vpanic(arg1: *const ::core::ffi::c_char, arg2: __va_list) -> !;
     pub fn clone_setup(cdp: *mut *mut clonedevs);
@@ -17223,8 +17315,6 @@ unsafe extern "C" {
         _stem: *const ::core::ffi::c_char,
         _unit: *mut ::core::ffi::c_int,
     ) -> ::core::ffi::c_int;
-    pub static mut dumping: ::core::ffi::c_int;
-    pub static mut dumped_core: bool_;
     pub fn doadump(arg1: boolean_t) -> ::core::ffi::c_int;
     pub fn dumper_create(
         di_template: *const dumperinfo,
@@ -17275,12 +17365,116 @@ unsafe extern "C" {
     pub fn kobj_init(obj: kobj_t, cls: kobj_class_t);
     pub fn kobj_init_static(obj: kobj_t, cls: kobj_class_t);
     pub fn kobj_delete(obj: kobj_t, mtype: *mut malloc_type);
+    pub fn kobj_instance_offset(cls: kobj_class_t, subclass: kobj_class_t) -> usize;
+    pub fn kobj_total_data_size(cls: kobj_class_t) -> usize;
     pub fn kobj_lookup_method(
         cls: kobj_class_t,
         cep: *mut *const kobj_method,
         desc: kobjop_desc_t,
     ) -> *const kobj_method;
     pub fn kobj_error_method() -> ::core::ffi::c_int;
+    #[link_name = "lock_delay_arg_init__extern"]
+    pub fn lock_delay_arg_init(la: *mut lock_delay_arg, lc: *mut lock_delay_config);
+    #[link_name = "lock_delay_arg_init_noadapt__extern"]
+    pub fn lock_delay_arg_init_noadapt(la: *mut lock_delay_arg);
+    pub fn lock_init(
+        arg1: *mut lock_object,
+        arg2: *mut lock_class,
+        arg3: *const ::core::ffi::c_char,
+        arg4: *const ::core::ffi::c_char,
+        arg5: ::core::ffi::c_int,
+    );
+    pub fn lock_destroy(arg1: *mut lock_object);
+    pub fn lock_delay(arg1: *mut lock_delay_arg);
+    pub fn lock_delay_default_init(arg1: *mut lock_delay_config);
+    pub fn spinlock_enter();
+    pub fn spinlock_exit();
+    pub fn witness_init(arg1: *mut lock_object, arg2: *const ::core::ffi::c_char);
+    pub fn witness_destroy(arg1: *mut lock_object);
+    pub fn witness_defineorder(
+        arg1: *mut lock_object,
+        arg2: *mut lock_object,
+    ) -> ::core::ffi::c_int;
+    pub fn witness_checkorder(
+        arg1: *mut lock_object,
+        arg2: ::core::ffi::c_int,
+        arg3: *const ::core::ffi::c_char,
+        arg4: ::core::ffi::c_int,
+        arg5: *mut lock_object,
+    );
+    pub fn witness_lock(
+        arg1: *mut lock_object,
+        arg2: ::core::ffi::c_int,
+        arg3: *const ::core::ffi::c_char,
+        arg4: ::core::ffi::c_int,
+    );
+    pub fn witness_upgrade(
+        arg1: *mut lock_object,
+        arg2: ::core::ffi::c_int,
+        arg3: *const ::core::ffi::c_char,
+        arg4: ::core::ffi::c_int,
+    );
+    pub fn witness_downgrade(
+        arg1: *mut lock_object,
+        arg2: ::core::ffi::c_int,
+        arg3: *const ::core::ffi::c_char,
+        arg4: ::core::ffi::c_int,
+    );
+    pub fn witness_unlock(
+        arg1: *mut lock_object,
+        arg2: ::core::ffi::c_int,
+        arg3: *const ::core::ffi::c_char,
+        arg4: ::core::ffi::c_int,
+    );
+    pub fn witness_save(
+        arg1: *mut lock_object,
+        arg2: *mut *const ::core::ffi::c_char,
+        arg3: *mut ::core::ffi::c_int,
+    );
+    pub fn witness_restore(
+        arg1: *mut lock_object,
+        arg2: *const ::core::ffi::c_char,
+        arg3: ::core::ffi::c_int,
+    );
+    pub fn witness_list_locks(
+        arg1: *mut *mut lock_list_entry,
+        arg2: ::core::option::Option<
+            unsafe extern "C" fn(
+                arg1: *const ::core::ffi::c_char,
+                ...
+            ) -> ::core::ffi::c_int,
+        >,
+    ) -> ::core::ffi::c_int;
+    pub fn witness_warn(
+        arg1: ::core::ffi::c_int,
+        arg2: *mut lock_object,
+        arg3: *const ::core::ffi::c_char,
+        ...
+    ) -> ::core::ffi::c_int;
+    pub fn witness_assert(
+        arg1: *const lock_object,
+        arg2: ::core::ffi::c_int,
+        arg3: *const ::core::ffi::c_char,
+        arg4: ::core::ffi::c_int,
+    );
+    pub fn witness_is_owned(lock: *const lock_object) -> ::core::ffi::c_int;
+    pub fn witness_display_spinlock(
+        arg1: *mut lock_object,
+        arg2: *mut thread,
+        arg3: ::core::option::Option<
+            unsafe extern "C" fn(
+                arg1: *const ::core::ffi::c_char,
+                ...
+            ) -> ::core::ffi::c_int,
+        >,
+    );
+    pub fn witness_line(arg1: *mut lock_object) -> ::core::ffi::c_int;
+    pub fn witness_norelease(arg1: *mut lock_object);
+    pub fn witness_releaseok(arg1: *mut lock_object);
+    pub fn witness_file(arg1: *mut lock_object) -> *const ::core::ffi::c_char;
+    pub fn witness_thread_exit(arg1: *mut thread);
+    pub fn witness_startup_count(arg1: u_long) -> u_long;
+    pub fn witness_startup(arg1: *mut ::core::ffi::c_void);
     pub fn callout_init(arg1: *mut callout, arg2: ::core::ffi::c_int);
     pub fn _callout_init_lock(arg1: *mut callout, arg2: *mut lock_object, arg3: ::core::ffi::c_int);
     pub fn callout_reset_sbt_on(
@@ -17307,7 +17501,6 @@ unsafe extern "C" {
         sbt_res: *mut sbintime_t,
         prec_res: *mut sbintime_t,
     );
-    pub static mut lse_supported: bool;
     #[link_name = "atomic_add_8_llsc__extern"]
     pub fn atomic_add_8_llsc(p: *mut u8, val: u8);
     #[link_name = "atomic_add_8_lse__extern"]
@@ -17929,19 +18122,12 @@ unsafe extern "C" {
     pub fn invalidate_icache();
     #[link_name = "invalidate_local_icache__extern"]
     pub fn invalidate_local_icache();
+    #[link_name = "wfe__extern"]
+    pub fn wfe();
     #[link_name = "wfet__extern"]
     pub fn wfet(val: u64);
     #[link_name = "wfit__extern"]
     pub fn wfit(val: u64);
-    pub static mut icache_aliasing: bool_;
-    pub static mut icache_vmid: bool_;
-    pub static mut dcache_line_size: i64;
-    pub static mut icache_line_size: i64;
-    pub static mut idcache_line_size: i64;
-    pub static mut dczva_line_size: i64;
-    pub static mut arm64_icache_sync_range: ::core::option::Option<
-        unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: vm_size_t),
-    >;
     pub fn arm64_nullop();
     pub fn arm64_dic_idc_icache_sync_range(arg1: *mut ::core::ffi::c_void, arg2: vm_size_t);
     pub fn arm64_idc_aliasing_icache_sync_range(arg1: *mut ::core::ffi::c_void, arg2: vm_size_t);
@@ -17957,24 +18143,6 @@ unsafe extern "C" {
         arg1: *mut ::core::ffi::c_void,
         arg2: *mut *mut ::core::ffi::c_void,
     ) -> bool_;
-    pub static mut cold: ::core::ffi::c_int;
-    pub static mut suspend_blocked: ::core::ffi::c_int;
-    pub static mut rebooting: ::core::ffi::c_int;
-    pub static version: [::core::ffi::c_char; 0usize];
-    pub static compiler_version: [::core::ffi::c_char; 0usize];
-    pub static copyright: [::core::ffi::c_char; 0usize];
-    pub static mut kstack_pages: ::core::ffi::c_int;
-    pub static mut pagesizes: [u_long; 0usize];
-    pub static mut physmem: ::core::ffi::c_long;
-    pub static mut realmem: ::core::ffi::c_long;
-    pub static mut rootdevnames: [*mut ::core::ffi::c_char; 2usize];
-    pub static mut boothowto: ::core::ffi::c_int;
-    pub static mut bootverbose: ::core::ffi::c_int;
-    pub static mut maxusers: ::core::ffi::c_int;
-    pub static mut ngroups_max: ::core::ffi::c_int;
-    pub static mut vm_guest: ::core::ffi::c_int;
-    pub static mut maxphys: u_long;
-    pub static mut averunnable: loadavg;
     pub fn read_cpu_time(cp_time: *mut ::core::ffi::c_long);
     pub fn signal(arg1: ::core::ffi::c_int, arg2: __sighandler_t) -> __sighandler_t;
     pub fn convert_sigevent32(sig32: *mut sigevent32, sig: *mut sigevent) -> ::core::ffi::c_int;
@@ -17995,12 +18163,6 @@ unsafe extern "C" {
         var_high: u_int,
         part_high: u_int,
     ) -> bool_;
-    pub static mut btext: [::core::ffi::c_char; 0usize];
-    pub static mut etext: [::core::ffi::c_char; 0usize];
-    pub static mut __cpu_affinity: [u64; 0usize];
-    pub static mut elf64_addr_mask: arm64_addr_mask;
-    pub static mut elf64_addr_mask_14: arm64_addr_mask;
-    pub static mut cpu_reset_hook: cpu_reset_hook_t;
     pub fn cpu_halt() -> !;
     pub fn cpu_reset() -> !;
     pub fn fork_trampoline();
@@ -18046,12 +18208,6 @@ unsafe extern "C" {
     pub fn get_pcpu() -> *mut pcpu;
     #[link_name = "get_curthread__extern"]
     pub fn get_curthread() -> *mut thread;
-    pub static mut __start_set_pcpu: *mut usize;
-    pub static mut __stop_set_pcpu: *mut usize;
-    pub static mut dpcpu_off: [usize; 0usize];
-    pub static mut cpuhead: cpuhead;
-    pub static mut cpuid_to_pcpu: [*mut pcpu; 0usize];
-    pub static mut pcpu0: pcpu;
     pub fn cpu_pcpu_init(pcpu: *mut pcpu, cpuid: ::core::ffi::c_int, size: usize);
     pub fn db_show_mdpcpu(pcpu: *mut pcpu);
     pub fn dpcpu_alloc(size: ::core::ffi::c_int) -> *mut ::core::ffi::c_void;
@@ -18065,10 +18221,6 @@ unsafe extern "C" {
     pub fn sched_pin_lite(td: *mut thread_lite);
     #[link_name = "sched_unpin_lite__extern"]
     pub fn sched_unpin_lite(td: *mut thread_lite);
-    pub static mut scheduler_stopped: bool_;
-    pub static osreldate: ::core::ffi::c_int;
-    pub static mut zero_region: *const ::core::ffi::c_void;
-    pub static mut unmapped_buf_allowed: ::core::ffi::c_int;
     pub fn setjmp(arg1: *mut _jmp_buf) -> ::core::ffi::c_int;
     pub fn longjmp(arg1: *mut _jmp_buf, arg2: ::core::ffi::c_int) -> !;
     pub fn dumpstatus(addr: vm_offset_t, count: off_t) -> ::core::ffi::c_int;
@@ -18107,9 +18259,6 @@ unsafe extern "C" {
     pub fn init_param2(physpages: ::core::ffi::c_long);
     pub fn init_static_kenv(arg1: *mut ::core::ffi::c_char, arg2: usize);
     pub fn tablefull(arg1: *const ::core::ffi::c_char);
-    pub static mut lkpi_alloc_current: ::core::option::Option<
-        unsafe extern "C" fn(arg1: *mut thread, arg2: ::core::ffi::c_int) -> ::core::ffi::c_int,
-    >;
     pub fn linux_alloc_current_noop(
         arg1: *mut thread,
         arg2: ::core::ffi::c_int,
@@ -18326,8 +18475,6 @@ unsafe extern "C" {
     pub fn cpu_activeclock();
     pub fn cpu_new_callout(cpu: ::core::ffi::c_int, bt: sbintime_t, bt_opt: sbintime_t);
     pub fn cpu_et_frequency(et: *mut eventtimer, newfreq: u64);
-    pub static mut cpu_disable_c2_sleep: ::core::ffi::c_int;
-    pub static mut cpu_disable_c3_sleep: ::core::ffi::c_int;
     pub fn kern_getenv(name: *const ::core::ffi::c_char) -> *mut ::core::ffi::c_char;
     pub fn freeenv(env: *mut ::core::ffi::c_char);
     pub fn getenv_int(
@@ -18372,12 +18519,8 @@ unsafe extern "C" {
         allow_signed: bool_,
     ) -> ::core::ffi::c_int;
     pub fn set_cputicker(func: cpu_tick_f, freq: u64, isvariable: bool_);
-    pub static mut cpu_ticks: cpu_tick_f;
     pub fn cpu_tickrate() -> u64;
     pub fn cputick2usec(tick: u64) -> u64;
-    pub static bcd2bin_data: [u_char; 0usize];
-    pub static bin2bcd_data: [u_char; 0usize];
-    pub static hex2ascii_data: [::core::ffi::c_char; 0usize];
     #[link_name = "bcd2bin__extern"]
     pub fn bcd2bin(bcd: ::core::ffi::c_int) -> u_char;
     #[link_name = "bin2bcd__extern"]
@@ -18426,7 +18569,6 @@ unsafe extern "C" {
     pub fn abs64(a: i64) -> i64;
     #[link_name = "qabs__extern"]
     pub fn qabs(a: quad_t) -> quad_t;
-    pub static mut arc4rand_iniseed_state: ::core::ffi::c_int;
     pub fn arc4random() -> u32;
     pub fn arc4random_buf(arg1: *mut ::core::ffi::c_void, arg2: usize);
     pub fn arc4random_uniform(arg1: u32) -> u32;
@@ -18826,8 +18968,6 @@ unsafe extern "C" {
         type_: ::core::ffi::c_int,
         format: *const ::core::ffi::c_char,
     ) -> ::core::ffi::c_int;
-    pub static mut root_bus: device_t;
-    pub static mut root_devclass: devclass_t;
     pub fn root_bus_configure();
     pub fn bus_generic_activate_resource(
         dev: device_t,
@@ -19301,6 +19441,7 @@ unsafe extern "C" {
     pub fn device_get_name(dev: device_t) -> *const ::core::ffi::c_char;
     pub fn device_get_nameunit(dev: device_t) -> *const ::core::ffi::c_char;
     pub fn device_get_softc(dev: device_t) -> *mut ::core::ffi::c_void;
+    pub fn device_get_softc_class(dev: device_t, cls: kobj_class_t) -> *mut ::core::ffi::c_void;
     pub fn device_get_state(dev: device_t) -> device_state_t;
     pub fn device_get_unit(dev: device_t) -> ::core::ffi::c_int;
     pub fn device_get_sysctl_ctx(dev: device_t) -> *mut sysctl_ctx_list;
@@ -19442,63 +19583,39 @@ unsafe extern "C" {
     pub fn bus_topo_unlock();
     pub fn bus_topo_mtx() -> *mut mtx;
     pub fn bus_topo_assert();
-    #[doc = " @brief Unique descriptor for the DEVICE_PROBE() method"]
-    pub static mut device_probe_desc: kobjop_desc;
     #[doc = " @brief Probe to see if a device matches a driver.\n\n Users should not call this method directly. Normally, this\n is called via device_probe_and_attach() to select a driver\n calling the DEVICE_PROBE() of all candidate drivers and attach\n the winning driver (if any) to the device.\n\n This function is used to match devices to device drivers.\n Typically, the driver will examine the device to see if\n it is suitable for this driver. This might include checking\n the values of various device instance variables or reading\n hardware registers.\n\n In some cases, there may be more than one driver available\n which can be used for a device (for instance there might\n be a generic driver which works for a set of many types of\n device and a more specific driver which works for a subset\n of devices). Because of this, a driver should not assume\n that it will be the driver that attaches to the device even\n if it returns a success status from DEVICE_PROBE(). In particular,\n a driver must free any resources which it allocated during\n the probe before returning. The return value of DEVICE_PROBE()\n is used to elect which driver is used - the driver which returns\n the largest non-error value wins the election and attaches to\n the device. Common non-error values are described in the\n DEVICE_PROBE(9) manual page.\n\n If a driver matches the hardware, it should set the device\n description string using device_set_desc() or\n device_set_desc_copy(). This string is used to generate an\n informative message when DEVICE_ATTACH() is called.\n\n As a special case, if a driver returns zero, the driver election\n is cut short and that driver will attach to the device\n immediately. This should rarely be used.\n\n For example, a probe method for a PCI device driver might look\n like this:\n\n @code\n int\n foo_probe(device_t dev)\n {\n         if (pci_get_vendor(dev) == FOOVENDOR &&\n             pci_get_device(dev) == FOODEVICE) {\n                 device_set_desc(dev, \"Foo device\");\n                 return (BUS_PROBE_DEFAULT);\n         }\n         return (ENXIO);\n }\n @endcode\n\n To include this method in a device driver, use a line like this\n in the driver's method list:\n\n @code\n \tKOBJMETHOD(device_probe, foo_probe)\n @endcode\n\n @param dev\t\tthe device to probe\n\n @retval 0\t\tif this is the only possible driver for this\n\t\t\tdevice\n @retval negative\tif the driver can match this device - the\n\t\t\tleast negative value is used to select the\n\t\t\tdriver\n @retval ENXIO\tif the driver does not match the device\n @retval positive\tif some kind of error was detected during\n\t\t\tthe probe, a regular unix error code should\n\t\t\tbe returned to indicate the type of error\n @see DEVICE_ATTACH(), pci_get_vendor(), pci_get_device()"]
     #[link_name = "DEVICE_PROBE__extern"]
     pub fn DEVICE_PROBE(dev: device_t) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the DEVICE_IDENTIFY() method"]
-    pub static mut device_identify_desc: kobjop_desc;
     #[doc = " @brief Allow a device driver to detect devices not otherwise enumerated.\n\n The DEVICE_IDENTIFY() method is used by some drivers (e.g. the ISA\n bus driver) to help populate the bus device with a useful set of\n child devices, normally by calling the BUS_ADD_CHILD() method of\n the parent device. For instance, the ISA bus driver uses several\n special drivers, including the isahint driver and the pnp driver to\n create child devices based on configuration hints and PnP bus\n probes respectively.\n\n Many bus drivers which support true plug-and-play do not need to\n use this method at all since child devices can be discovered\n automatically without help from child drivers.\n\n To include this method in a device driver, use a line like this\n in the driver's method list:\n\n @code\n \tKOBJMETHOD(device_identify, foo_identify)\n @endcode\n\n @param driver\tthe driver whose identify method is being called\n @param parent\tthe parent device to use when adding new children"]
     #[link_name = "DEVICE_IDENTIFY__extern"]
     pub fn DEVICE_IDENTIFY(driver: *mut driver_t, parent: device_t);
-    #[doc = " @brief Unique descriptor for the DEVICE_ATTACH() method"]
-    pub static mut device_attach_desc: kobjop_desc;
     #[doc = " @brief Attach a device to a device driver\n\n Normally only called via device_probe_and_attach(), this is called\n when a driver has succeeded in probing against a device.\n This method should initialise the hardware and allocate other\n system resources (e.g. devfs entries) as required.\n\n To include this method in a device driver, use a line like this\n in the driver's method list:\n\n @code\n \tKOBJMETHOD(device_attach, foo_attach)\n @endcode\n\n @param dev\t\tthe device to probe\n\n @retval 0\t\tsuccess\n @retval non-zero\tif some kind of error was detected during\n\t\t\tthe attach, a regular unix error code should\n\t\t\tbe returned to indicate the type of error\n @see DEVICE_PROBE()"]
     #[link_name = "DEVICE_ATTACH__extern"]
     pub fn DEVICE_ATTACH(dev: device_t) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the DEVICE_DETACH() method"]
-    pub static mut device_detach_desc: kobjop_desc;
     #[doc = " @brief Detach a driver from a device.\n\n This can be called if the user is replacing the\n driver software or if a device is about to be physically removed\n from the system (e.g. for removable hardware such as USB or PCCARD).\n\n To include this method in a device driver, use a line like this\n in the driver's method list:\n\n @code\n \tKOBJMETHOD(device_detach, foo_detach)\n @endcode\n\n @param dev\t\tthe device to detach\n\n @retval 0\t\tsuccess\n @retval non-zero\tthe detach could not be performed, e.g. if the\n\t\t\tdriver does not support detaching.\n\n @see DEVICE_ATTACH()"]
     #[link_name = "DEVICE_DETACH__extern"]
     pub fn DEVICE_DETACH(dev: device_t) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the DEVICE_SHUTDOWN() method"]
-    pub static mut device_shutdown_desc: kobjop_desc;
     #[doc = " @brief Called during system shutdown.\n\n This method allows drivers to detect when the system is being shut down.\n Some drivers need to use this to place their hardware in a consistent\n state before rebooting the computer.\n\n To include this method in a device driver, use a line like this\n in the driver's method list:\n\n @code\n \tKOBJMETHOD(device_shutdown, foo_shutdown)\n @endcode"]
     #[link_name = "DEVICE_SHUTDOWN__extern"]
     pub fn DEVICE_SHUTDOWN(dev: device_t) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the DEVICE_SUSPEND() method"]
-    pub static mut device_suspend_desc: kobjop_desc;
     #[doc = " @brief This is called by the power-management subsystem when a\n suspend has been requested by the user or by some automatic\n mechanism.\n\n This gives drivers a chance to veto the suspend or save their\n configuration before power is removed.\n\n To include this method in a device driver, use a line like this in\n the driver's method list:\n\n @code\n \tKOBJMETHOD(device_suspend, foo_suspend)\n @endcode\n\n @param dev\t\tthe device being suspended\n\n @retval 0\t\tsuccess\n @retval non-zero\tan error occurred while attempting to prepare the\n                      device for suspension\n\n @see DEVICE_RESUME()"]
     #[link_name = "DEVICE_SUSPEND__extern"]
     pub fn DEVICE_SUSPEND(dev: device_t) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the DEVICE_RESUME() method"]
-    pub static mut device_resume_desc: kobjop_desc;
     #[doc = " @brief This is called when the system resumes after a suspend.\n\n To include this method in a device driver, use a line like this\n in the driver's method list:\n\n @code\n \tKOBJMETHOD(device_resume, foo_resume)\n @endcode\n\n @param dev\t\tthe device being resumed\n\n @retval 0\t\tsuccess\n @retval non-zero\tan error occurred while attempting to restore the\n                      device from suspension\n\n @see DEVICE_SUSPEND()"]
     #[link_name = "DEVICE_RESUME__extern"]
     pub fn DEVICE_RESUME(dev: device_t) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the DEVICE_QUIESCE() method"]
-    pub static mut device_quiesce_desc: kobjop_desc;
     #[doc = " @brief This is called when the driver is asked to quiesce itself.\n\n The driver should arrange for the orderly shutdown of this device.\n All further access to the device should be curtailed.  Soon there\n will be a request to detach, but there won't necessarily be one.\n\n To include this method in a device driver, use a line like this\n in the driver's method list:\n\n @code\n \tKOBJMETHOD(device_quiesce, foo_quiesce)\n @endcode\n\n @param dev\t\tthe device being quiesced\n\n @retval 0\t\tsuccess\n @retval non-zero\tan error occurred while attempting to quiesce the\n                      device\n\n @see DEVICE_DETACH()"]
     #[link_name = "DEVICE_QUIESCE__extern"]
     pub fn DEVICE_QUIESCE(dev: device_t) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the DEVICE_REGISTER() method"]
-    pub static mut device_register_desc: kobjop_desc;
     #[doc = " @brief This is called when the driver is asked to register handlers.\n\n\n To include this method in a device driver, use a line like this\n in the driver's method list:\n\n @code\n \tKOBJMETHOD(device_register, foo_register)\n @endcode\n\n @param dev\t\tthe device for which handlers are being registered\n\n @retval NULL     method not implemented\n @retval non-NULL\ta pointer to implementation specific static driver state\n"]
     #[link_name = "DEVICE_REGISTER__extern"]
     pub fn DEVICE_REGISTER(dev: device_t) -> *mut ::core::ffi::c_void;
-    #[doc = " @brief Unique descriptor for the BUS_PRINT_CHILD() method"]
-    pub static mut bus_print_child_desc: kobjop_desc;
     #[doc = " @brief Print a description of a child device\n\n This is called from system code which prints out a description of a\n device. It should describe the attachment that the child has with\n the parent. For instance the TurboLaser bus prints which node the\n device is attached to. See bus_generic_print_child() for more\n information.\n\n @param _dev\t\tthe device whose child is being printed\n @param _child\tthe child device to describe\n\n @returns\t\tthe number of characters output."]
     #[link_name = "BUS_PRINT_CHILD__extern"]
     pub fn BUS_PRINT_CHILD(_dev: device_t, _child: device_t) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the BUS_PROBE_NOMATCH() method"]
-    pub static mut bus_probe_nomatch_desc: kobjop_desc;
     #[doc = " @brief Print a notification about an unprobed child device.\n\n Called for each child device that did not succeed in probing for a\n driver.\n\n @param _dev\t\tthe device whose child was being probed\n @param _child\tthe child device which failed to probe"]
     #[link_name = "BUS_PROBE_NOMATCH__extern"]
     pub fn BUS_PROBE_NOMATCH(_dev: device_t, _child: device_t);
-    #[doc = " @brief Unique descriptor for the BUS_READ_IVAR() method"]
-    pub static mut bus_read_ivar_desc: kobjop_desc;
     #[doc = " @brief Read the value of a bus-specific attribute of a device\n\n This method, along with BUS_WRITE_IVAR() manages a bus-specific set\n of instance variables of a child device.  The intention is that\n each different type of bus defines a set of appropriate instance\n variables (such as ports and irqs for ISA bus etc.)\n\n This information could be given to the child device as a struct but\n that makes it hard for a bus to add or remove variables without\n forcing an edit and recompile for all drivers which may not be\n possible for vendor supplied binary drivers.\n\n This method copies the value of an instance variable to the\n location specified by @p *_result.\n\n @param _dev\t\tthe device whose child was being examined\n @param _child\tthe child device whose instance variable is\n\t\t\tbeing read\n @param _index\tthe instance variable to read\n @param _result\ta location to receive the instance variable\n\t\t\tvalue\n\n @retval 0\t\tsuccess\n @retval ENOENT\tno such instance variable is supported by @p\n\t\t\t_dev"]
     #[link_name = "BUS_READ_IVAR__extern"]
     pub fn BUS_READ_IVAR(
@@ -19507,8 +19624,6 @@ unsafe extern "C" {
         _index: ::core::ffi::c_int,
         _result: *mut usize,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the BUS_WRITE_IVAR() method"]
-    pub static mut bus_write_ivar_desc: kobjop_desc;
     #[doc = " @brief Write the value of a bus-specific attribute of a device\n\n This method sets the value of an instance variable to @p _value.\n\n @param _dev\t\tthe device whose child was being updated\n @param _child\tthe child device whose instance variable is\n\t\t\tbeing written\n @param _index\tthe instance variable to write\n @param _value\tthe value to write to that instance variable\n\n @retval 0\t\tsuccess\n @retval ENOENT\tno such instance variable is supported by @p\n\t\t\t_dev\n @retval EINVAL\tthe instance variable was recognised but\n\t\t\tcontains a read-only value"]
     #[link_name = "BUS_WRITE_IVAR__extern"]
     pub fn BUS_WRITE_IVAR(
@@ -19517,23 +19632,15 @@ unsafe extern "C" {
         _indx: ::core::ffi::c_int,
         _value: usize,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the BUS_CHILD_DELETED() method"]
-    pub static mut bus_child_deleted_desc: kobjop_desc;
     #[doc = " @brief Notify a bus that a child was deleted\n\n Called at the beginning of device_delete_child() to allow the parent\n to teardown any bus-specific state for the child.\n\n @param _dev\t\tthe device whose child is being deleted\n @param _child\tthe child device which is being deleted"]
     #[link_name = "BUS_CHILD_DELETED__extern"]
     pub fn BUS_CHILD_DELETED(_dev: device_t, _child: device_t);
-    #[doc = " @brief Unique descriptor for the BUS_CHILD_DETACHED() method"]
-    pub static mut bus_child_detached_desc: kobjop_desc;
     #[doc = " @brief Notify a bus that a child was detached\n\n Called after the child's DEVICE_DETACH() method to allow the parent\n to reclaim any resources allocated on behalf of the child.\n\n @param _dev\t\tthe device whose child changed state\n @param _child\tthe child device which changed state"]
     #[link_name = "BUS_CHILD_DETACHED__extern"]
     pub fn BUS_CHILD_DETACHED(_dev: device_t, _child: device_t);
-    #[doc = " @brief Unique descriptor for the BUS_DRIVER_ADDED() method"]
-    pub static mut bus_driver_added_desc: kobjop_desc;
     #[doc = " @brief Notify a bus that a new driver was added\n\n Called when a new driver is added to the devclass which owns this\n bus. The generic implementation of this method attempts to probe and\n attach any un-matched children of the bus.\n\n @param _dev\t\tthe device whose devclass had a new driver\n\t\t\tadded to it\n @param _driver\tthe new driver which was added"]
     #[link_name = "BUS_DRIVER_ADDED__extern"]
     pub fn BUS_DRIVER_ADDED(_dev: device_t, _driver: *mut driver_t);
-    #[doc = " @brief Unique descriptor for the BUS_ADD_CHILD() method"]
-    pub static mut bus_add_child_desc: kobjop_desc;
     #[doc = " @brief Create a new child device\n\n For buses which use use drivers supporting DEVICE_IDENTIFY() to\n enumerate their devices, this method is used to create new\n device instances. The new device will be added after the last\n existing child with the same order. Implementations of bus_add_child\n call device_add_child_ordered to add the child and often add\n a suitable ivar to the device specific to that bus.\n\n @param _dev\t\tthe bus device which will be the parent of the\n\t\t\tnew child device\n @param _order\ta value which is used to partially sort the\n\t\t\tchildren of @p _dev - devices created using\n\t\t\tlower values of @p _order appear first in @p\n\t\t\t_dev's list of children\n @param _name\t\tdevclass name for new device or @c NULL if not\n\t\t\tspecified\n @param _unit\t\tunit number for new device or @c -1 if not\n\t\t\tspecified"]
     #[link_name = "BUS_ADD_CHILD__extern"]
     pub fn BUS_ADD_CHILD(
@@ -19542,13 +19649,9 @@ unsafe extern "C" {
         _name: *const ::core::ffi::c_char,
         _unit: ::core::ffi::c_int,
     ) -> device_t;
-    #[doc = " @brief Unique descriptor for the BUS_RESCAN() method"]
-    pub static mut bus_rescan_desc: kobjop_desc;
     #[doc = " @brief Rescan the bus\n\n This method is called by a parent bridge or devctl to trigger a bus\n rescan.  The rescan should delete devices no longer present and\n enumerate devices that have newly arrived.\n\n @param _dev\t\tthe bus device"]
     #[link_name = "BUS_RESCAN__extern"]
     pub fn BUS_RESCAN(_dev: device_t) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the BUS_ALLOC_RESOURCE() method"]
-    pub static mut bus_alloc_resource_desc: kobjop_desc;
     #[doc = " @brief Allocate a system resource\n\n This method is called by child devices of a bus to allocate resources.\n The types are defined in <machine/resource.h>; the meaning of the\n resource-ID field varies from bus to bus. If a resource was allocated\n and the caller did not use the RF_ACTIVE to specify that it should be\n activated immediately, the caller is responsible for calling\n BUS_ACTIVATE_RESOURCE() when it actually uses the resource.\n\n @param _dev\t\tthe parent device of @p _child\n @param _child\tthe device which is requesting an allocation\n @param _type\t\tthe type of resource to allocate\n @param _rid\t\tthe resource identifier\n @param _start\thint at the start of the resource range - pass\n\t\t\t@c 0 for any start address\n @param _end\t\thint at the end of the resource range - pass\n\t\t\t@c ~0 for any end address\n @param _count\thint at the size of range required - pass @c 1\n\t\t\tfor any size\n @param _flags\tany extra flags to control the resource\n\t\t\tallocation - see @c RF_XXX flags in\n\t\t\t<sys/rman.h> for details\n\n @returns\t\tthe resource which was allocated or @c NULL if no\n\t\t\tresource could be allocated"]
     #[link_name = "BUS_ALLOC_RESOURCE__extern"]
     pub fn BUS_ALLOC_RESOURCE(
@@ -19561,8 +19664,6 @@ unsafe extern "C" {
         _count: rman_res_t,
         _flags: u_int,
     ) -> *mut resource;
-    #[doc = " @brief Unique descriptor for the BUS_ACTIVATE_RESOURCE() method"]
-    pub static mut bus_activate_resource_desc: kobjop_desc;
     #[doc = " @brief Activate a resource\n\n Activate a resource previously allocated with\n BUS_ALLOC_RESOURCE().  This may enable decoding of this resource in a\n device for instance.  It will also establish a mapping for the resource\n unless RF_UNMAPPED was set when allocating the resource.\n\n @param _dev\t\tthe parent device of @p _child\n @param _child\tthe device which allocated the resource\n @param _r\t\tthe resource to activate"]
     #[link_name = "BUS_ACTIVATE_RESOURCE__extern"]
     pub fn BUS_ACTIVATE_RESOURCE(
@@ -19570,8 +19671,6 @@ unsafe extern "C" {
         _child: device_t,
         _r: *mut resource,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the BUS_MAP_RESOURCE() method"]
-    pub static mut bus_map_resource_desc: kobjop_desc;
     #[doc = " @brief Map a resource\n\n Allocate a mapping for a range of an active resource.  The mapping\n is described by a struct resource_map object.  This may for instance\n map a memory region into the kernel's virtual address space.\n\n @param _dev\t\tthe parent device of @p _child\n @param _child\tthe device which allocated the resource\n @param _r\t\tthe resource to map\n @param _args\t\toptional attributes of the mapping\n @param _map\t\tthe mapping"]
     #[link_name = "BUS_MAP_RESOURCE__extern"]
     pub fn BUS_MAP_RESOURCE(
@@ -19581,8 +19680,6 @@ unsafe extern "C" {
         _args: *mut resource_map_request,
         _map: *mut resource_map,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the BUS_UNMAP_RESOURCE() method"]
-    pub static mut bus_unmap_resource_desc: kobjop_desc;
     #[doc = " @brief Unmap a resource\n\n Release a mapping previously allocated with\n BUS_MAP_RESOURCE(). This may for instance unmap a memory region\n from the kernel's virtual address space.\n\n @param _dev\t\tthe parent device of @p _child\n @param _child\tthe device which allocated the resource\n @param _r\t\tthe resource\n @param _map\t\tthe mapping to release"]
     #[link_name = "BUS_UNMAP_RESOURCE__extern"]
     pub fn BUS_UNMAP_RESOURCE(
@@ -19591,8 +19688,6 @@ unsafe extern "C" {
         _r: *mut resource,
         _map: *mut resource_map,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the BUS_DEACTIVATE_RESOURCE() method"]
-    pub static mut bus_deactivate_resource_desc: kobjop_desc;
     #[doc = " @brief Deactivate a resource\n\n Deactivate a resource previously allocated with\n BUS_ALLOC_RESOURCE().\n\n @param _dev\t\tthe parent device of @p _child\n @param _child\tthe device which allocated the resource\n @param _r\t\tthe resource to deactivate"]
     #[link_name = "BUS_DEACTIVATE_RESOURCE__extern"]
     pub fn BUS_DEACTIVATE_RESOURCE(
@@ -19600,8 +19695,6 @@ unsafe extern "C" {
         _child: device_t,
         _r: *mut resource,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the BUS_ADJUST_RESOURCE() method"]
-    pub static mut bus_adjust_resource_desc: kobjop_desc;
     #[doc = " @brief Adjust a resource\n\n Adjust the start and/or end of a resource allocated by\n BUS_ALLOC_RESOURCE.  At least part of the new address range must overlap\n with the existing address range.  If the successful, the resource's range\n will be adjusted to [start, end] on return.\n\n @param _dev\t\tthe parent device of @p _child\n @param _child\tthe device which allocated the resource\n @param _res\t\tthe resource to adjust\n @param _start\tthe new starting address of the resource range\n @param _end\t\tthe new ending address of the resource range"]
     #[link_name = "BUS_ADJUST_RESOURCE__extern"]
     pub fn BUS_ADJUST_RESOURCE(
@@ -19611,8 +19704,6 @@ unsafe extern "C" {
         _start: rman_res_t,
         _end: rman_res_t,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the BUS_TRANSLATE_RESOURCE() method"]
-    pub static mut bus_translate_resource_desc: kobjop_desc;
     #[doc = " @brief translate a resource value\n\n Give a bus driver the opportunity to translate resource ranges.  If\n successful, the host's view of the resource starting at @p _start is\n returned in @p _newstart, otherwise an error is returned.\n\n @param _dev\t\tthe device associated with the resource\n @param _type\t\tthe type of resource\n @param _start\tthe starting address of the resource range\n @param _newstart\tthe new starting address of the resource range"]
     #[link_name = "BUS_TRANSLATE_RESOURCE__extern"]
     pub fn BUS_TRANSLATE_RESOURCE(
@@ -19621,8 +19712,6 @@ unsafe extern "C" {
         _start: rman_res_t,
         _newstart: *mut rman_res_t,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the BUS_RELEASE_RESOURCE() method"]
-    pub static mut bus_release_resource_desc: kobjop_desc;
     #[doc = " @brief Release a resource\n\n Free a resource allocated by the BUS_ALLOC_RESOURCE.  The @p _rid\n value must be the same as the one returned by BUS_ALLOC_RESOURCE()\n (which is not necessarily the same as the one the client passed).\n\n @param _dev\t\tthe parent device of @p _child\n @param _child\tthe device which allocated the resource\n @param _r\t\tthe resource to release"]
     #[link_name = "BUS_RELEASE_RESOURCE__extern"]
     pub fn BUS_RELEASE_RESOURCE(
@@ -19630,8 +19719,6 @@ unsafe extern "C" {
         _child: device_t,
         _res: *mut resource,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the BUS_SETUP_INTR() method"]
-    pub static mut bus_setup_intr_desc: kobjop_desc;
     #[doc = " @brief Install an interrupt handler\n\n This method is used to associate an interrupt handler function with\n an irq resource. When the interrupt triggers, the function @p _intr\n will be called with the value of @p _arg as its single\n argument. The value returned in @p *_cookiep is used to cancel the\n interrupt handler - the caller should save this value to use in a\n future call to BUS_TEARDOWN_INTR().\n\n @param _dev\t\tthe parent device of @p _child\n @param _child\tthe device which allocated the resource\n @param _irq\t\tthe resource representing the interrupt\n @param _flags\ta set of bits from enum intr_type specifying\n\t\t\tthe class of interrupt\n @param _intr\t\tthe function to call when the interrupt\n\t\t\ttriggers\n @param _arg\t\ta value to use as the single argument in calls\n\t\t\tto @p _intr\n @param _cookiep\ta pointer to a location to receive a cookie\n\t\t\tvalue that may be used to remove the interrupt\n\t\t\thandler"]
     #[link_name = "BUS_SETUP_INTR__extern"]
     pub fn BUS_SETUP_INTR(
@@ -19644,8 +19731,6 @@ unsafe extern "C" {
         _arg: *mut ::core::ffi::c_void,
         _cookiep: *mut *mut ::core::ffi::c_void,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the BUS_TEARDOWN_INTR() method"]
-    pub static mut bus_teardown_intr_desc: kobjop_desc;
     #[doc = " @brief Uninstall an interrupt handler\n\n This method is used to disassociate an interrupt handler function\n with an irq resource. The value of @p _cookie must be the value\n returned from a previous call to BUS_SETUP_INTR().\n\n @param _dev\t\tthe parent device of @p _child\n @param _child\tthe device which allocated the resource\n @param _irq\t\tthe resource representing the interrupt\n @param _cookie\tthe cookie value returned when the interrupt\n\t\t\twas originally registered"]
     #[link_name = "BUS_TEARDOWN_INTR__extern"]
     pub fn BUS_TEARDOWN_INTR(
@@ -19654,8 +19739,6 @@ unsafe extern "C" {
         _irq: *mut resource,
         _cookie: *mut ::core::ffi::c_void,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the BUS_SUSPEND_INTR() method"]
-    pub static mut bus_suspend_intr_desc: kobjop_desc;
     #[doc = " @brief Suspend an interrupt handler\n\n This method is used to mark a handler as suspended in the case\n that the associated device is powered down and cannot be a source\n for the, typically shared, interrupt.\n The value of @p _irq must be the interrupt resource passed\n to a previous call to BUS_SETUP_INTR().\n\n @param _dev\t\tthe parent device of @p _child\n @param _child\tthe device which allocated the resource\n @param _irq\t\tthe resource representing the interrupt"]
     #[link_name = "BUS_SUSPEND_INTR__extern"]
     pub fn BUS_SUSPEND_INTR(
@@ -19663,8 +19746,6 @@ unsafe extern "C" {
         _child: device_t,
         _irq: *mut resource,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the BUS_RESUME_INTR() method"]
-    pub static mut bus_resume_intr_desc: kobjop_desc;
     #[doc = " @brief Resume an interrupt handler\n\n This method is used to clear suspended state of a handler when\n the associated device is powered up and can be an interrupt source\n again.\n The value of @p _irq must be the interrupt resource passed\n to a previous call to BUS_SETUP_INTR().\n\n @param _dev\t\tthe parent device of @p _child\n @param _child\tthe device which allocated the resource\n @param _irq\t\tthe resource representing the interrupt"]
     #[link_name = "BUS_RESUME_INTR__extern"]
     pub fn BUS_RESUME_INTR(
@@ -19672,8 +19753,6 @@ unsafe extern "C" {
         _child: device_t,
         _irq: *mut resource,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the BUS_SET_RESOURCE() method"]
-    pub static mut bus_set_resource_desc: kobjop_desc;
     #[doc = " @brief Define a resource which can be allocated with\n BUS_ALLOC_RESOURCE().\n\n This method is used by some buses (typically ISA) to allow a\n driver to describe a resource range that it would like to\n allocate. The resource defined by @p _type and @p _rid is defined\n to start at @p _start and to include @p _count indices in its\n range.\n\n @param _dev\t\tthe parent device of @p _child\n @param _child\tthe device which owns the resource\n @param _type\t\tthe type of resource\n @param _rid\t\tthe resource identifier\n @param _start\tthe start of the resource range\n @param _count\tthe size of the resource range"]
     #[link_name = "BUS_SET_RESOURCE__extern"]
     pub fn BUS_SET_RESOURCE(
@@ -19684,8 +19763,6 @@ unsafe extern "C" {
         _start: rman_res_t,
         _count: rman_res_t,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the BUS_GET_RESOURCE() method"]
-    pub static mut bus_get_resource_desc: kobjop_desc;
     #[doc = " @brief Describe a resource\n\n This method allows a driver to examine the range used for a given\n resource without actually allocating it.\n\n @param _dev\t\tthe parent device of @p _child\n @param _child\tthe device which owns the resource\n @param _type\t\tthe type of resource\n @param _rid\t\tthe resource identifier\n @param _start\tthe address of a location to receive the start\n\t\t\tindex of the resource range\n @param _count\tthe address of a location to receive the size\n\t\t\tof the resource range"]
     #[link_name = "BUS_GET_RESOURCE__extern"]
     pub fn BUS_GET_RESOURCE(
@@ -19696,8 +19773,6 @@ unsafe extern "C" {
         _startp: *mut rman_res_t,
         _countp: *mut rman_res_t,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the BUS_DELETE_RESOURCE() method"]
-    pub static mut bus_delete_resource_desc: kobjop_desc;
     #[doc = " @brief Delete a resource.\n\n Use this to delete a resource (possibly one previously added with\n BUS_SET_RESOURCE()).\n\n @param _dev\t\tthe parent device of @p _child\n @param _child\tthe device which owns the resource\n @param _type\t\tthe type of resource\n @param _rid\t\tthe resource identifier"]
     #[link_name = "BUS_DELETE_RESOURCE__extern"]
     pub fn BUS_DELETE_RESOURCE(
@@ -19706,23 +19781,15 @@ unsafe extern "C" {
         _type: ::core::ffi::c_int,
         _rid: ::core::ffi::c_int,
     );
-    #[doc = " @brief Unique descriptor for the BUS_GET_RESOURCE_LIST() method"]
-    pub static mut bus_get_resource_list_desc: kobjop_desc;
     #[doc = " @brief Return a struct resource_list.\n\n Used by drivers which use bus_generic_rl_alloc_resource() etc. to\n implement their resource handling. It should return the resource\n list of the given child device.\n\n @param _dev\t\tthe parent device of @p _child\n @param _child\tthe device which owns the resource list"]
     #[link_name = "BUS_GET_RESOURCE_LIST__extern"]
     pub fn BUS_GET_RESOURCE_LIST(_dev: device_t, _child: device_t) -> *mut resource_list;
-    #[doc = " @brief Unique descriptor for the BUS_GET_RMAN() method"]
-    pub static mut bus_get_rman_desc: kobjop_desc;
     #[doc = " @brief Return a struct rman.\n\n Used by drivers which use bus_generic_rman_alloc_resource() etc. to\n implement their resource handling. It should return the resource\n manager used for the given resource type.\n\n @param _dev\t\tthe bus device\n @param _type\t\tthe resource type\n @param _flags\tresource flags (@c RF_XXX flags in\n\t\t\t<sys/rman.h>)"]
     #[link_name = "BUS_GET_RMAN__extern"]
     pub fn BUS_GET_RMAN(_dev: device_t, _type: ::core::ffi::c_int, _flags: u_int) -> *mut rman;
-    #[doc = " @brief Unique descriptor for the BUS_CHILD_PRESENT() method"]
-    pub static mut bus_child_present_desc: kobjop_desc;
     #[doc = " @brief Is the hardware described by @p _child still attached to the\n system?\n\n This method should return 0 if the device is not present.  It\n should return -1 if it is present.  Any errors in determining\n should be returned as a normal errno value.  Client drivers are to\n assume that the device is present, even if there is an error\n determining if it is there.  Buses are to try to avoid returning\n errors, but newcard will return an error if the device fails to\n implement this method.\n\n @param _dev\t\tthe parent device of @p _child\n @param _child\tthe device which is being examined"]
     #[link_name = "BUS_CHILD_PRESENT__extern"]
     pub fn BUS_CHILD_PRESENT(_dev: device_t, _child: device_t) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the BUS_CHILD_PNPINFO() method"]
-    pub static mut bus_child_pnpinfo_desc: kobjop_desc;
     #[doc = " @brief Returns the pnp info for this device.\n\n Return it as a string, appended to @p _sb\n\n The string must be formatted as a space-separated list of\n name=value pairs.  Names may only contain alphanumeric characters,\n underscores ('_') and hyphens ('-').  Values can contain any\n non-whitespace characters.  Values containing whitespace can be\n quoted with double quotes ('\"').  Double quotes and backslashes in\n quoted values can be escaped with backslashes ('\\').\n\n @param _dev\t\tthe parent device of @p _child\n @param _child\tthe device which is being examined\n @param _sb\t\tsbuf for results string"]
     #[link_name = "BUS_CHILD_PNPINFO__extern"]
     pub fn BUS_CHILD_PNPINFO(
@@ -19730,8 +19797,6 @@ unsafe extern "C" {
         _child: device_t,
         _sb: *mut sbuf,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the BUS_CHILD_LOCATION() method"]
-    pub static mut bus_child_location_desc: kobjop_desc;
     #[doc = " @brief Returns the location for this device.\n\n Return it as a string, appended to @p _sb\n\n The string must be formatted as a space-separated list of\n name=value pairs.  Names may only contain alphanumeric characters,\n underscores ('_') and hyphens ('-').  Values can contain any\n non-whitespace characters.  Values containing whitespace can be\n quoted with double quotes ('\"').  Double quotes and backslashes in\n quoted values can be escaped with backslashes ('\\').\n\n @param _dev\t\tthe parent device of @p _child\n @param _child\tthe device which is being examined\n @param _sb\t\tsbuf for results string"]
     #[link_name = "BUS_CHILD_LOCATION__extern"]
     pub fn BUS_CHILD_LOCATION(
@@ -19739,8 +19804,6 @@ unsafe extern "C" {
         _child: device_t,
         _sb: *mut sbuf,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the BUS_BIND_INTR() method"]
-    pub static mut bus_bind_intr_desc: kobjop_desc;
     #[doc = " @brief Allow drivers to request that an interrupt be bound to a specific\n CPU.\n\n @param _dev\t\tthe parent device of @p _child\n @param _child\tthe device which allocated the resource\n @param _irq\t\tthe resource representing the interrupt\n @param _cpu\t\tthe CPU to bind the interrupt to"]
     #[link_name = "BUS_BIND_INTR__extern"]
     pub fn BUS_BIND_INTR(
@@ -19749,8 +19812,6 @@ unsafe extern "C" {
         _irq: *mut resource,
         _cpu: ::core::ffi::c_int,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the BUS_CONFIG_INTR() method"]
-    pub static mut bus_config_intr_desc: kobjop_desc;
     #[doc = " @brief Allow (bus) drivers to specify the trigger mode and polarity\n of the specified interrupt.\n\n @param _dev\t\tthe bus device\n @param _irq\t\tthe interrupt number to modify\n @param _trig\t\tthe trigger mode required\n @param _pol\t\tthe interrupt polarity required"]
     #[link_name = "BUS_CONFIG_INTR__extern"]
     pub fn BUS_CONFIG_INTR(
@@ -19759,8 +19820,6 @@ unsafe extern "C" {
         _trig: intr_trigger,
         _pol: intr_polarity,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the BUS_DESCRIBE_INTR() method"]
-    pub static mut bus_describe_intr_desc: kobjop_desc;
     #[doc = " @brief Allow drivers to associate a description with an active\n interrupt handler.\n\n @param _dev\t\tthe parent device of @p _child\n @param _child\tthe device which allocated the resource\n @param _irq\t\tthe resource representing the interrupt\n @param _cookie\tthe cookie value returned when the interrupt\n\t\t\twas originally registered\n @param _descr\tthe description to associate with the interrupt"]
     #[link_name = "BUS_DESCRIBE_INTR__extern"]
     pub fn BUS_DESCRIBE_INTR(
@@ -19770,8 +19829,6 @@ unsafe extern "C" {
         _cookie: *mut ::core::ffi::c_void,
         _descr: *const ::core::ffi::c_char,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the BUS_HINTED_CHILD() method"]
-    pub static mut bus_hinted_child_desc: kobjop_desc;
     #[doc = " @brief Notify a (bus) driver about a child that the hints mechanism\n believes it has discovered.\n\n The bus is responsible for then adding the child in the right order\n and discovering other things about the child.  The bus driver is\n free to ignore this hint, to do special things, etc.  It is all up\n to the bus driver to interpret.\n\n This method is only called in response to the parent bus asking for\n hinted devices to be enumerated.\n\n @param _dev\t\tthe bus device\n @param _dname\tthe name of the device w/o unit numbers\n @param _dunit\tthe unit number of the device"]
     #[link_name = "BUS_HINTED_CHILD__extern"]
     pub fn BUS_HINTED_CHILD(
@@ -19779,18 +19836,12 @@ unsafe extern "C" {
         _dname: *const ::core::ffi::c_char,
         _dunit: ::core::ffi::c_int,
     );
-    #[doc = " @brief Unique descriptor for the BUS_GET_DMA_TAG() method"]
-    pub static mut bus_get_dma_tag_desc: kobjop_desc;
     #[doc = " @brief Returns bus_dma_tag_t for use w/ devices on the bus.\n\n @param _dev\t\tthe parent device of @p _child\n @param _child\tthe device to which the tag will belong"]
     #[link_name = "BUS_GET_DMA_TAG__extern"]
     pub fn BUS_GET_DMA_TAG(_dev: device_t, _child: device_t) -> bus_dma_tag_t;
-    #[doc = " @brief Unique descriptor for the BUS_GET_BUS_TAG() method"]
-    pub static mut bus_get_bus_tag_desc: kobjop_desc;
     #[doc = " @brief Returns bus_space_tag_t for use w/ devices on the bus.\n\n @param _dev\t\tthe parent device of @p _child\n @param _child\tthe device to which the tag will belong"]
     #[link_name = "BUS_GET_BUS_TAG__extern"]
     pub fn BUS_GET_BUS_TAG(_dev: device_t, _child: device_t) -> bus_space_tag_t;
-    #[doc = " @brief Unique descriptor for the BUS_HINT_DEVICE_UNIT() method"]
-    pub static mut bus_hint_device_unit_desc: kobjop_desc;
     #[doc = " @brief Allow the bus to determine the unit number of a device.\n\n @param _dev\t\tthe parent device of @p _child\n @param _child\tthe device whose unit is to be wired\n @param _name\t\tthe name of the device's new devclass\n @param _unitp\ta pointer to the device's new unit value"]
     #[link_name = "BUS_HINT_DEVICE_UNIT__extern"]
     pub fn BUS_HINT_DEVICE_UNIT(
@@ -19799,28 +19850,18 @@ unsafe extern "C" {
         _name: *const ::core::ffi::c_char,
         _unitp: *mut ::core::ffi::c_int,
     );
-    #[doc = " @brief Unique descriptor for the BUS_NEW_PASS() method"]
-    pub static mut bus_new_pass_desc: kobjop_desc;
     #[doc = " @brief Notify a bus that the bus pass level has been changed\n\n @param _dev\t\tthe bus device"]
     #[link_name = "BUS_NEW_PASS__extern"]
     pub fn BUS_NEW_PASS(_dev: device_t);
-    #[doc = " @brief Unique descriptor for the BUS_REMAP_INTR() method"]
-    pub static mut bus_remap_intr_desc: kobjop_desc;
     #[doc = " @brief Notify a bus that specified child's IRQ should be remapped.\n\n @param _dev\t\tthe bus device\n @param _child\tthe child device\n @param _irq\t\tthe irq number"]
     #[link_name = "BUS_REMAP_INTR__extern"]
     pub fn BUS_REMAP_INTR(_dev: device_t, _child: device_t, _irq: u_int) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the BUS_SUSPEND_CHILD() method"]
-    pub static mut bus_suspend_child_desc: kobjop_desc;
     #[doc = " @brief Suspend a given child\n\n @param _dev\t\tthe parent device of @p _child\n @param _child\tthe device to suspend"]
     #[link_name = "BUS_SUSPEND_CHILD__extern"]
     pub fn BUS_SUSPEND_CHILD(_dev: device_t, _child: device_t) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the BUS_RESUME_CHILD() method"]
-    pub static mut bus_resume_child_desc: kobjop_desc;
     #[doc = " @brief Resume a given child\n\n @param _dev\t\tthe parent device of @p _child\n @param _child\tthe device to resume"]
     #[link_name = "BUS_RESUME_CHILD__extern"]
     pub fn BUS_RESUME_CHILD(_dev: device_t, _child: device_t) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the BUS_GET_DOMAIN() method"]
-    pub static mut bus_get_domain_desc: kobjop_desc;
     #[doc = " @brief Get the VM domain handle for the given bus and child.\n\n @param _dev\t\tthe bus device\n @param _child\tthe child device\n @param _domain\ta pointer to the bus's domain handle identifier"]
     #[link_name = "BUS_GET_DOMAIN__extern"]
     pub fn BUS_GET_DOMAIN(
@@ -19828,8 +19869,6 @@ unsafe extern "C" {
         _child: device_t,
         _domain: *mut ::core::ffi::c_int,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the BUS_GET_CPUS() method"]
-    pub static mut bus_get_cpus_desc: kobjop_desc;
     #[doc = " @brief Request a set of CPUs\n\n @param _dev\t\tthe bus device\n @param _child\tthe child device\n @param _op\t\ttype of CPUs to request\n @param _setsize\tthe size of the set passed in _cpuset\n @param _cpuset\ta pointer to a cpuset to receive the requested\n\t\t\tset of CPUs"]
     #[link_name = "BUS_GET_CPUS__extern"]
     pub fn BUS_GET_CPUS(
@@ -19839,18 +19878,12 @@ unsafe extern "C" {
         _setsize: usize,
         _cpuset: *mut _cpuset,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the BUS_RESET_PREPARE() method"]
-    pub static mut bus_reset_prepare_desc: kobjop_desc;
     #[doc = " @brief Prepares the given child of the bus for reset\n\n Typically bus detaches or suspends children' drivers, and then\n calls this method to save bus-specific information, for instance,\n PCI config space, which is damaged by reset.\n\n The bus_helper_reset_prepare() helper is provided to ease\n implementing bus reset methods.\n\n @param _dev\t\tthe bus device\n @param _child\tthe child device"]
     #[link_name = "BUS_RESET_PREPARE__extern"]
     pub fn BUS_RESET_PREPARE(_dev: device_t, _child: device_t) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the BUS_RESET_POST() method"]
-    pub static mut bus_reset_post_desc: kobjop_desc;
     #[doc = " @brief Restores the child operations after the reset\n\n The bus_helper_reset_post() helper is provided to ease\n implementing bus reset methods.\n\n @param _dev\t\tthe bus device\n @param _child\tthe child device"]
     #[link_name = "BUS_RESET_POST__extern"]
     pub fn BUS_RESET_POST(_dev: device_t, _child: device_t) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the BUS_RESET_CHILD() method"]
-    pub static mut bus_reset_child_desc: kobjop_desc;
     #[doc = " @brief Performs reset of the child\n\n @param _dev\t\tthe bus device\n @param _child\tthe child device\n @param _flags\tDEVF_RESET_ flags"]
     #[link_name = "BUS_RESET_CHILD__extern"]
     pub fn BUS_RESET_CHILD(
@@ -19858,8 +19891,6 @@ unsafe extern "C" {
         _child: device_t,
         _flags: ::core::ffi::c_int,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the BUS_GET_PROPERTY() method"]
-    pub static mut bus_get_property_desc: kobjop_desc;
     #[doc = " @brief Gets child's specific property\n\n The bus_get_property can be used to access device\n specific properties stored on the bus. If _propvalue\n is NULL or _size is 0, then method only returns size\n of the property.\n\n @param _dev\t\t\tthe bus device\n @param _child\t\tthe child device\n @param _propname\t\tproperty name\n @param _propvalue\tproperty value destination\n @param _size\t\t\tproperty value size\n\n @returns size of property if successful otherwise -1"]
     #[link_name = "BUS_GET_PROPERTY__extern"]
     pub fn BUS_GET_PROPERTY(
@@ -19870,8 +19901,6 @@ unsafe extern "C" {
         _size: usize,
         type_: device_property_type_t,
     ) -> isize;
-    #[doc = " @brief Unique descriptor for the BUS_GET_DEVICE_PATH() method"]
-    pub static mut bus_get_device_path_desc: kobjop_desc;
     #[doc = " @brief Gets a child's full path to the device\n\n The get_device_path method retrieves a device's\n full path to the device using one of several\n locators present in the system.\n\n @param _bus\t\t\tthe bus device\n @param _child\t\tthe child device\n @param _locator\t\tlocator name\n @param _sb\t\t\tbuffer loaction string"]
     #[link_name = "BUS_GET_DEVICE_PATH__extern"]
     pub fn BUS_GET_DEVICE_PATH(
@@ -19907,8 +19936,6 @@ unsafe extern "C" {
     pub fn device_clear_prop(dev: device_t, name: *const ::core::ffi::c_char)
     -> ::core::ffi::c_int;
     pub fn device_clear_prop_alldev(name: *const ::core::ffi::c_char);
-    pub static mut cpusetsizemin: u_int;
-    pub static mut cpuset_root: *mut cpuset_t;
     pub fn cpuset_thread0() -> *mut cpuset;
     pub fn cpuset_ref(arg1: *mut cpuset) -> *mut cpuset;
     pub fn cpuset_rel(arg1: *mut cpuset);
@@ -19932,14 +19959,6 @@ unsafe extern "C" {
         arg1: *mut cpuset_t,
         arg2: *const ::core::ffi::c_char,
     ) -> ::core::ffi::c_int;
-    pub static mut M_CACHE: [malloc_type; 1usize];
-    pub static mut M_DEVBUF: [malloc_type; 1usize];
-    pub static mut M_PARGS: [malloc_type; 1usize];
-    pub static mut M_SESSION: [malloc_type; 1usize];
-    pub static mut M_SUBPROC: [malloc_type; 1usize];
-    pub static mut M_TEMP: [malloc_type; 1usize];
-    pub static mut M_IOV: [malloc_type; 1usize];
-    pub static mut malloc_mtx: mtx;
     pub fn contigfree(
         addr: *mut ::core::ffi::c_void,
         arg1: ::core::ffi::c_ulong,
@@ -20045,11 +20064,6 @@ unsafe extern "C" {
     pub fn swap_reserve_force_by_cred(incr: vm_ooffset_t, cred: *mut ucred);
     pub fn swap_release(decr: vm_ooffset_t);
     pub fn swap_release_by_cred(decr: vm_ooffset_t, cred: *mut ucred);
-    pub static mut kmi: kva_md_info;
-    pub static mut old_mlock: ::core::ffi::c_int;
-    pub static mut vm_ndomains: ::core::ffi::c_int;
-    pub static mut vm_overcommit: ::core::ffi::c_int;
-    pub static mut M_OFWPROP: [malloc_type; 1usize];
     pub fn OF_install(name: *mut ::core::ffi::c_char, prio: ::core::ffi::c_int) -> bool_;
     pub fn OF_init(cookie: *mut ::core::ffi::c_void) -> ::core::ffi::c_int;
     pub fn OF_test(name: *const ::core::ffi::c_char) -> ::core::ffi::c_int;
@@ -20275,7 +20289,6 @@ unsafe extern "C" {
         arg3: ::core::ffi::c_int,
     ) -> ::core::ffi::c_int;
     pub fn intr_pic_init_secondary();
-    pub static mut intr_nirq: u_int;
     pub fn intr_ipi_pic_register(dev: device_t, priority: u_int) -> ::core::ffi::c_int;
     pub fn intr_ipi_setup(
         ipi: u_int,
@@ -20286,15 +20299,6 @@ unsafe extern "C" {
     pub fn intr_ipi_send(cpus: cpuset_t, ipi: u_int);
     pub fn intr_ipi_dispatch(ipi: u_int);
     pub fn intr_irq_handler(tf: *mut trapframe, rootnum: u32);
-    pub static mut kernelname: [::core::ffi::c_char; 1024usize];
-    pub static mut tick: ::core::ffi::c_int;
-    pub static mut hz: ::core::ffi::c_int;
-    pub static mut psratio: ::core::ffi::c_int;
-    pub static mut stathz: ::core::ffi::c_int;
-    pub static mut profhz: ::core::ffi::c_int;
-    pub static mut profprocs: ::core::ffi::c_int;
-    pub static mut ticks: ::core::ffi::c_int;
-    pub static mut ticksl: ::core::ffi::c_long;
     pub fn sysinit_add(set: *mut *mut sysinit, set_end: *mut *mut sysinit);
     pub fn tunable_int_init(arg1: *const ::core::ffi::c_void);
     pub fn tunable_long_init(arg1: *const ::core::ffi::c_void);
@@ -20308,115 +20312,6 @@ unsafe extern "C" {
     pub fn config_intrhook_disestablish(hook: *mut intr_config_hook);
     pub fn config_intrhook_drain(hook: *mut intr_config_hook) -> ::core::ffi::c_int;
     pub fn config_intrhook_oneshot(_func: ich_func_t, _arg: *mut ::core::ffi::c_void);
-    pub static mut lock_class_mtx_sleep: lock_class;
-    pub static mut lock_class_mtx_spin: lock_class;
-    pub static mut lock_class_sx: lock_class;
-    pub static mut lock_class_rw: lock_class;
-    pub static mut lock_class_rm: lock_class;
-    pub static mut lock_class_rm_sleepable: lock_class;
-    pub static mut lock_class_lockmgr: lock_class;
-    pub static mut lock_classes: [*mut lock_class; 0usize];
-    pub static mut locks_delay: lock_delay_config;
-    pub static mut locks_delay_retries: u_short;
-    pub static mut locks_delay_loops: u_short;
-    #[link_name = "lock_delay_arg_init__extern"]
-    pub fn lock_delay_arg_init(la: *mut lock_delay_arg, lc: *mut lock_delay_config);
-    #[link_name = "lock_delay_arg_init_noadapt__extern"]
-    pub fn lock_delay_arg_init_noadapt(la: *mut lock_delay_arg);
-    pub fn lock_init(
-        arg1: *mut lock_object,
-        arg2: *mut lock_class,
-        arg3: *const ::core::ffi::c_char,
-        arg4: *const ::core::ffi::c_char,
-        arg5: ::core::ffi::c_int,
-    );
-    pub fn lock_destroy(arg1: *mut lock_object);
-    pub fn lock_delay(arg1: *mut lock_delay_arg);
-    pub fn lock_delay_default_init(arg1: *mut lock_delay_config);
-    pub fn spinlock_enter();
-    pub fn spinlock_exit();
-    pub fn witness_init(arg1: *mut lock_object, arg2: *const ::core::ffi::c_char);
-    pub fn witness_destroy(arg1: *mut lock_object);
-    pub fn witness_defineorder(
-        arg1: *mut lock_object,
-        arg2: *mut lock_object,
-    ) -> ::core::ffi::c_int;
-    pub fn witness_checkorder(
-        arg1: *mut lock_object,
-        arg2: ::core::ffi::c_int,
-        arg3: *const ::core::ffi::c_char,
-        arg4: ::core::ffi::c_int,
-        arg5: *mut lock_object,
-    );
-    pub fn witness_lock(
-        arg1: *mut lock_object,
-        arg2: ::core::ffi::c_int,
-        arg3: *const ::core::ffi::c_char,
-        arg4: ::core::ffi::c_int,
-    );
-    pub fn witness_upgrade(
-        arg1: *mut lock_object,
-        arg2: ::core::ffi::c_int,
-        arg3: *const ::core::ffi::c_char,
-        arg4: ::core::ffi::c_int,
-    );
-    pub fn witness_downgrade(
-        arg1: *mut lock_object,
-        arg2: ::core::ffi::c_int,
-        arg3: *const ::core::ffi::c_char,
-        arg4: ::core::ffi::c_int,
-    );
-    pub fn witness_unlock(
-        arg1: *mut lock_object,
-        arg2: ::core::ffi::c_int,
-        arg3: *const ::core::ffi::c_char,
-        arg4: ::core::ffi::c_int,
-    );
-    pub fn witness_save(
-        arg1: *mut lock_object,
-        arg2: *mut *const ::core::ffi::c_char,
-        arg3: *mut ::core::ffi::c_int,
-    );
-    pub fn witness_restore(
-        arg1: *mut lock_object,
-        arg2: *const ::core::ffi::c_char,
-        arg3: ::core::ffi::c_int,
-    );
-    pub fn witness_list_locks(
-        arg1: *mut *mut lock_list_entry,
-        arg2: ::core::option::Option<
-            unsafe extern "C" fn(arg1: *const ::core::ffi::c_char, ...) -> ::core::ffi::c_int,
-        >,
-    ) -> ::core::ffi::c_int;
-    pub fn witness_warn(
-        arg1: ::core::ffi::c_int,
-        arg2: *mut lock_object,
-        arg3: *const ::core::ffi::c_char,
-        ...
-    ) -> ::core::ffi::c_int;
-    pub fn witness_assert(
-        arg1: *const lock_object,
-        arg2: ::core::ffi::c_int,
-        arg3: *const ::core::ffi::c_char,
-        arg4: ::core::ffi::c_int,
-    );
-    pub fn witness_is_owned(lock: *const lock_object) -> ::core::ffi::c_int;
-    pub fn witness_display_spinlock(
-        arg1: *mut lock_object,
-        arg2: *mut thread,
-        arg3: ::core::option::Option<
-            unsafe extern "C" fn(arg1: *const ::core::ffi::c_char, ...) -> ::core::ffi::c_int,
-        >,
-    );
-    pub fn witness_line(arg1: *mut lock_object) -> ::core::ffi::c_int;
-    pub fn witness_norelease(arg1: *mut lock_object);
-    pub fn witness_releaseok(arg1: *mut lock_object);
-    pub fn witness_file(arg1: *mut lock_object) -> *const ::core::ffi::c_char;
-    pub fn witness_thread_exit(arg1: *mut thread);
-    pub fn witness_startup_count(arg1: u_long) -> u_long;
-    pub fn witness_startup(arg1: *mut ::core::ffi::c_void);
-    #[doc = " descr is a string that describes each entry in the table. The general\n form is the grammar (TYPE:pnp_name[/pnp_name];)*\n where TYPE is one of the following:\n\tU8\tuint8_t element\n\tV8\tlike U8 and 0xff means match any\n\tG16\tuint16_t element, any value >= matches\n\tL16\tuint16_t element, any value <= matches\n\tM16\tuint16_t element, mask of which of the following fields to use.\n\tU16\tuint16_t element\n\tV16\tlike U16 and 0xffff means match any\n\tU32\tuint32_t element\n\tV32\tlike U32 and 0xffffffff means match any\n\tW32\tTwo 16-bit values with first pnp_name in LSW and second in MSW.\n\tZ\tpointer to a string to match exactly\n\tD\tpointer to a string to human readable description for device\n\tP\tA pointer that should be ignored\n\tE\tEISA PNP Identifier (in binary, but bus publishes string)\n\tT\tKey for whole table. pnp_name=value. must be last, if present.\n\n The pnp_name \"#\" is reserved for other fields that should be ignored.\n Otherwise pnp_name must match the name from the parent device's pnpinfo\n output. The second pnp_name is used for the W32 type."]
-    pub static mut modules_sx: sx;
     pub fn module_register_init(arg1: *const ::core::ffi::c_void);
     pub fn module_register(arg1: *const moduledata, arg2: *mut linker_file) -> ::core::ffi::c_int;
     pub fn module_lookupbyname(arg1: *const ::core::ffi::c_char) -> module_t;
@@ -20430,7 +20325,6 @@ unsafe extern "C" {
     pub fn module_getname(arg1: module_t) -> *const ::core::ffi::c_char;
     pub fn module_setspecific(arg1: module_t, arg2: *mut modspecific_t);
     pub fn module_file(arg1: module_t) -> *mut linker_file;
-    pub static mut sdt_probes_enabled: bool_;
     pub fn sdt_probe(arg1: u32, arg2: usize, arg3: usize, arg4: usize, arg5: usize, arg6: usize);
     pub fn sdt_probe6(
         arg1: u32,
@@ -20444,13 +20338,6 @@ unsafe extern "C" {
     pub fn sdt_tracepoint_valid(patchpoint: usize, target: usize) -> bool_;
     pub fn sdt_tracepoint_patch(patchpoint: usize, target: usize);
     pub fn sdt_tracepoint_restore(patchpoint: usize);
-    pub static mut __start_set_sdt_providers_set: *mut sdt_provider;
-    pub static mut __stop_set_sdt_providers_set: *mut sdt_provider;
-    pub static mut __start_set_sdt_probes_set: *mut sdt_probe;
-    pub static mut __stop_set_sdt_probes_set: *mut sdt_probe;
-    pub static mut __start_set_sdt_argtypes_set: *mut sdt_argtype;
-    pub static mut __stop_set_sdt_argtypes_set: *mut sdt_argtype;
-    pub static mut sdt_probe_func: sdt_probe_func_t;
     pub fn sdt_probe_stub(
         arg1: u32,
         arg2: usize,
@@ -20460,35 +20347,6 @@ unsafe extern "C" {
         arg6: usize,
         arg7: usize,
     );
-    pub static mut sdt_provider_sdt: sdt_provider;
-    pub static mut sdt_provider_lockstat: sdt_provider;
-    pub static mut sdt_lockstat___adaptive__acquire: sdt_probe;
-    pub static mut sdt_lockstat___adaptive__release: sdt_probe;
-    pub static mut sdt_lockstat___adaptive__spin: sdt_probe;
-    pub static mut sdt_lockstat___adaptive__block: sdt_probe;
-    pub static mut sdt_lockstat___spin__acquire: sdt_probe;
-    pub static mut sdt_lockstat___spin__release: sdt_probe;
-    pub static mut sdt_lockstat___spin__spin: sdt_probe;
-    pub static mut sdt_lockstat___rw__acquire: sdt_probe;
-    pub static mut sdt_lockstat___rw__release: sdt_probe;
-    pub static mut sdt_lockstat___rw__block: sdt_probe;
-    pub static mut sdt_lockstat___rw__spin: sdt_probe;
-    pub static mut sdt_lockstat___rw__upgrade: sdt_probe;
-    pub static mut sdt_lockstat___rw__downgrade: sdt_probe;
-    pub static mut sdt_lockstat___sx__acquire: sdt_probe;
-    pub static mut sdt_lockstat___sx__release: sdt_probe;
-    pub static mut sdt_lockstat___sx__block: sdt_probe;
-    pub static mut sdt_lockstat___sx__spin: sdt_probe;
-    pub static mut sdt_lockstat___sx__upgrade: sdt_probe;
-    pub static mut sdt_lockstat___sx__downgrade: sdt_probe;
-    pub static mut sdt_lockstat___lockmgr__acquire: sdt_probe;
-    pub static mut sdt_lockstat___lockmgr__release: sdt_probe;
-    pub static mut sdt_lockstat___lockmgr__disown: sdt_probe;
-    pub static mut sdt_lockstat___lockmgr__block: sdt_probe;
-    pub static mut sdt_lockstat___lockmgr__upgrade: sdt_probe;
-    pub static mut sdt_lockstat___lockmgr__downgrade: sdt_probe;
-    pub static mut sdt_lockstat___thread__spin: sdt_probe;
-    pub static mut lockstat_enabled: bool_;
     pub fn lockstat_nsecs(arg1: *mut lock_object) -> u64;
     pub fn _mtx_init(
         c: *mut usize,
@@ -20590,9 +20448,6 @@ unsafe extern "C" {
     pub fn mtx_pool_destroy(poolp: *mut *mut mtx_pool);
     pub fn mtx_pool_find(pool: *mut mtx_pool, ptr: *mut ::core::ffi::c_void) -> *mut mtx;
     pub fn mtx_pool_alloc(pool: *mut mtx_pool) -> *mut mtx;
-    pub static mut mtxpool_sleep: *mut mtx_pool;
-    pub static mut Giant: mtx;
-    pub static mut blocked_lock: mtx;
     pub fn knote(list: *mut knlist, hint: ::core::ffi::c_long, lockflags: ::core::ffi::c_int);
     pub fn knote_fork(list: *mut knlist, pid: ::core::ffi::c_int);
     pub fn knote_triv_copy(kn: *mut knote, p1: *mut proc_) -> ::core::ffi::c_int;
@@ -20604,8 +20459,12 @@ unsafe extern "C" {
     pub fn knlist_init(
         knl: *mut knlist,
         lock: *mut ::core::ffi::c_void,
-        kl_lock: ::core::option::Option<unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void)>,
-        kl_unlock: ::core::option::Option<unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void)>,
+        kl_lock: ::core::option::Option<
+            unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void),
+        >,
+        kl_unlock: ::core::option::Option<
+            unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void),
+        >,
         kl_assert_lock: ::core::option::Option<
             unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: ::core::ffi::c_int),
         >,
@@ -20694,15 +20553,12 @@ unsafe extern "C" {
     pub fn __sigisempty(set: *mut sigset_t) -> ::core::ffi::c_int;
     #[link_name = "__sigseteq__extern"]
     pub fn __sigseteq(set1: *mut sigset_t, set2: *mut sigset_t) -> ::core::ffi::c_int;
-    pub static mut sigfastblock_fetch_always: bool_;
-    pub static mut pt_attach_transparent: bool_;
     #[link_name = "sigsetmasked__extern"]
     pub fn sigsetmasked(set: *mut sigset_t, mask: *mut sigset_t) -> bool_;
     #[link_name = "ksiginfo_copy__extern"]
     pub fn ksiginfo_copy(src: *mut ksiginfo_t, dst: *mut ksiginfo_t);
     #[link_name = "ksiginfo_set_sigev__extern"]
     pub fn ksiginfo_set_sigev(dst: *mut ksiginfo_t, sigev: *mut sigevent);
-    pub static mut sigio_lock: mtx;
     pub fn sigdeferstop_impl(mode: ::core::ffi::c_int) -> ::core::ffi::c_int;
     pub fn sigallowstop_impl(prev: ::core::ffi::c_int);
     #[link_name = "sigdeferstop__extern"]
@@ -20814,32 +20670,6 @@ unsafe extern "C" {
     pub fn thread_lock_block_wait(arg1: *mut thread);
     pub fn thread_lock_set(arg1: *mut thread, arg2: *mut mtx);
     pub fn thread_lock_unblock(arg1: *mut thread, arg2: *mut mtx);
-    pub static mut pid_max: pid_t;
-    pub static mut pidhashtbl: *mut pidhashhead;
-    pub static mut pidhashtbl_lock: *mut sx;
-    pub static mut pidhash: u_long;
-    pub static mut pidhashlock: u_long;
-    pub static mut pgrphashtbl: *mut pgrphashhead;
-    pub static mut pgrphash: u_long;
-    pub static mut allproc_lock: sx;
-    pub static mut allproc_gen: ::core::ffi::c_int;
-    pub static mut proctree_lock: sx;
-    pub static mut ppeers_lock: mtx;
-    pub static mut procid_lock: mtx;
-    pub static mut proc0: proc_;
-    pub static mut thread0_st: thread0_storage;
-    pub static mut vmspace0: vmspace;
-    pub static mut hogticks: ::core::ffi::c_int;
-    pub static mut lastpid: ::core::ffi::c_int;
-    pub static mut nprocs: ::core::ffi::c_int;
-    pub static mut maxproc: ::core::ffi::c_int;
-    pub static mut maxprocperuid: ::core::ffi::c_int;
-    pub static mut ps_arg_cache_limit: u_long;
-    pub static mut allproc: proclist;
-    pub static mut initproc: *mut proc_;
-    pub static mut pageproc: *mut proc_;
-    pub static mut proc_zone: *mut uma_zone;
-    pub static mut pgrp_zone: *mut uma_zone;
     pub fn pfind(arg1: pid_t) -> *mut proc_;
     pub fn pfind_any(arg1: pid_t) -> *mut proc_;
     pub fn pfind_any_locked(pid: pid_t) -> *mut proc_;
@@ -20853,7 +20683,9 @@ unsafe extern "C" {
         ast: ::core::ffi::c_int,
         ast_flags: ::core::ffi::c_int,
         tdp: ::core::ffi::c_int,
-        f: ::core::option::Option<unsafe extern "C" fn(td: *mut thread, asts: ::core::ffi::c_int)>,
+        f: ::core::option::Option<
+            unsafe extern "C" fn(td: *mut thread, asts: ::core::ffi::c_int),
+        >,
     );
     pub fn ast_deregister(tda: ::core::ffi::c_int);
     pub fn ast_sched_locked(td: *mut thread, tda: ::core::ffi::c_int);
@@ -20967,7 +20799,6 @@ unsafe extern "C" {
     pub fn tidhash_remove(arg1: *mut thread);
     pub fn cpu_idle(arg1: ::core::ffi::c_int);
     pub fn cpu_idle_wakeup(arg1: ::core::ffi::c_int) -> ::core::ffi::c_int;
-    pub static mut cpu_idle_hook: ::core::option::Option<unsafe extern "C" fn(arg1: sbintime_t)>;
     pub fn cpu_switch(arg1: *mut thread, arg2: *mut thread, arg3: *mut mtx);
     pub fn cpu_sync_core();
     pub fn cpu_throw(arg1: *mut thread, arg2: *mut thread) -> !;
@@ -21075,16 +20906,6 @@ unsafe extern "C" {
     pub fn proc_id_set(type_: ::core::ffi::c_int, id: pid_t);
     pub fn proc_id_set_cond(type_: ::core::ffi::c_int, id: pid_t);
     pub fn proc_id_clear(type_: ::core::ffi::c_int, id: pid_t);
-    pub static mut _eventhandler_list_process_ctor: *mut eventhandler_list;
-    pub static mut _eventhandler_list_process_dtor: *mut eventhandler_list;
-    pub static mut _eventhandler_list_process_init: *mut eventhandler_list;
-    pub static mut _eventhandler_list_process_fini: *mut eventhandler_list;
-    pub static mut _eventhandler_list_process_exit: *mut eventhandler_list;
-    pub static mut _eventhandler_list_process_fork: *mut eventhandler_list;
-    pub static mut _eventhandler_list_process_exec: *mut eventhandler_list;
-    pub static mut _eventhandler_list_thread_ctor: *mut eventhandler_list;
-    pub static mut _eventhandler_list_thread_dtor: *mut eventhandler_list;
-    pub static mut _eventhandler_list_thread_init: *mut eventhandler_list;
     #[link_name = "_refcount_update_saturated__extern"]
     pub fn _refcount_update_saturated(count: *mut u_int);
     #[link_name = "refcount_init__extern"]
@@ -21171,7 +20992,6 @@ unsafe extern "C" {
     pub fn rman_set_rid(_r: *mut resource, _rid: ::core::ffi::c_int);
     pub fn rman_set_type(_r: *mut resource, _type: ::core::ffi::c_int);
     pub fn rman_set_virtual(_r: *mut resource, _v: *mut ::core::ffi::c_void);
-    pub static mut rman_head: rman_head;
     #[link_name = "sglist_init__extern"]
     pub fn sglist_init(sg: *mut sglist, maxsegs: u_short, segs: *mut sglist_seg);
     #[link_name = "sglist_reset__extern"]
@@ -21240,7 +21060,6 @@ unsafe extern "C" {
         length: usize,
         mflags: ::core::ffi::c_int,
     ) -> ::core::ffi::c_int;
-    pub static mut cpu_top: cpu_group_t;
     pub fn topo_init_node(node: *mut topo_node);
     pub fn topo_init_root(root: *mut topo_node);
     pub fn topo_add_node_by_hwid(
@@ -21277,26 +21096,9 @@ unsafe extern "C" {
         l1flags: ::core::ffi::c_int,
     ) -> *mut cpu_group;
     pub fn smp_topo_find(top: *mut cpu_group, cpu: ::core::ffi::c_int) -> *mut cpu_group;
-    pub static mut cpustop_restartfunc: ::core::option::Option<unsafe extern "C" fn()>;
-    pub static mut resuming_cpus: cpuset_t;
-    pub static mut started_cpus: cpuset_t;
-    pub static mut stopped_cpus: cpuset_t;
-    pub static mut suspended_cpus: cpuset_t;
-    pub static mut toresume_cpus: cpuset_t;
-    pub static mut logical_cpus_mask: cpuset_t;
     pub fn smp_topo() -> *mut cpu_group;
     pub fn smp_topo_alloc(count: u_int) -> *mut cpu_group;
     pub fn smp_topo_none() -> *mut cpu_group;
-    pub static mut mp_maxid: u_int;
-    pub static mut mp_maxcpus: ::core::ffi::c_int;
-    pub static mut mp_ncores: ::core::ffi::c_int;
-    pub static mut mp_ncpus: ::core::ffi::c_int;
-    pub static mut smp_cpus: ::core::ffi::c_int;
-    pub static mut smp_started: ::core::ffi::c_int;
-    pub static mut smp_threads_per_core: ::core::ffi::c_int;
-    pub static mut all_cpus: cpuset_t;
-    pub static mut cpuset_domain: [cpuset_t; 8usize];
-    pub static mut stoppcbs: *mut pcb;
     #[link_name = "cpu_first__extern"]
     pub fn cpu_first() -> ::core::ffi::c_int;
     #[link_name = "cpu_next__extern"]
@@ -21312,7 +21114,6 @@ unsafe extern "C" {
     pub fn stop_cpus(arg1: cpuset_t) -> ::core::ffi::c_int;
     pub fn stop_cpus_hard(arg1: cpuset_t) -> ::core::ffi::c_int;
     pub fn smp_rendezvous_action();
-    pub static mut smp_ipi_mtx: mtx;
     pub fn quiesce_all_cpus(
         arg1: *const ::core::ffi::c_char,
         arg2: ::core::ffi::c_int,
@@ -21521,18 +21322,12 @@ unsafe extern "C" {
         func: task_fn_t,
         context: *mut ::core::ffi::c_void,
     );
-    pub static mut taskqueue_swi_giant: *mut taskqueue;
-    pub static mut taskqueue_swi: *mut taskqueue;
-    pub static mut taskqueue_thread: *mut taskqueue;
-    pub static mut taskqueue_fast: *mut taskqueue;
     pub fn taskqueue_create_fast(
         name: *const ::core::ffi::c_char,
         mflags: ::core::ffi::c_int,
         enqueue: taskqueue_enqueue_fn,
         context: *mut ::core::ffi::c_void,
     ) -> *mut taskqueue;
-    pub static mut taskqueue_bus: *mut taskqueue;
-    pub static mut net_epoch_task_limit: ::core::ffi::c_uint;
     pub fn allocuio(iovcnt: u_int) -> *mut uio;
     pub fn freeuio(uio: *mut uio);
     pub fn cloneuio(uiop: *mut uio) -> *mut uio;
@@ -21542,7 +21337,11 @@ unsafe extern "C" {
         iov: *mut *mut iovec,
         error: ::core::ffi::c_int,
     ) -> ::core::ffi::c_int;
-    pub fn copyinuio(iovp: *const iovec, iovcnt: u_int, uiop: *mut *mut uio) -> ::core::ffi::c_int;
+    pub fn copyinuio(
+        iovp: *const ::core::ffi::c_void,
+        iovcnt: u_int,
+        uiop: *mut *mut uio,
+    ) -> ::core::ffi::c_int;
     pub fn copyout_map(td: *mut thread, addr: *mut vm_offset_t, sz: usize) -> ::core::ffi::c_int;
     pub fn copyout_unmap(td: *mut thread, addr: vm_offset_t, sz: usize) -> ::core::ffi::c_int;
     pub fn exterr_copyout(td: *mut thread);
@@ -21601,6 +21400,7 @@ unsafe extern "C" {
         cnt: usize,
         uio: *mut uio,
     ) -> ::core::ffi::c_int;
+    pub fn updateiov(uiop: *const uio, iovp: *mut ::core::ffi::c_void) -> ::core::ffi::c_int;
     pub fn busdma_lock_mutex(arg: *mut ::core::ffi::c_void, op: bus_dma_lock_op_t);
     pub fn _busdma_dflt_lock(arg: *mut ::core::ffi::c_void, op: bus_dma_lock_op_t);
     pub fn bus_dma_tag_create(
@@ -21754,7 +21554,6 @@ unsafe extern "C" {
         sz: usize,
         dmat: *mut *mut ::core::ffi::c_void,
     ) -> ::core::ffi::c_int;
-    pub static mut bus_dma_bounce_impl: bus_dma_impl;
     #[link_name = "bus_dma_id_mapped__extern"]
     pub fn bus_dma_id_mapped(dmat: bus_dma_tag_t, buf: vm_paddr_t, buflen: bus_size_t) -> bool_;
     #[link_name = "_bus_dmamap_load_phys__extern"]
@@ -21805,7 +21604,6 @@ unsafe extern "C" {
         nsegs: ::core::ffi::c_int,
         error: ::core::ffi::c_int,
     ) -> *mut bus_dma_segment_t;
-    pub static mut arm64_bus_method: arm64_bus;
     pub fn dbg_init();
     pub fn has_hyp() -> bool_;
     pub fn in_vhe() -> bool_;
@@ -21848,32 +21646,18 @@ unsafe extern "C" {
     pub fn ipi_all_but_self(ipi: u_int);
     pub fn ipi_cpu(cpu: ::core::ffi::c_int, ipi: u_int);
     pub fn ipi_selected(cpus: cpuset_t, ipi: u_int);
-    #[doc = " @brief Unique descriptor for the OFW_BUS_GET_DEVINFO() method"]
-    pub static mut ofw_bus_get_devinfo_desc: kobjop_desc;
     #[link_name = "OFW_BUS_GET_DEVINFO__extern"]
     pub fn OFW_BUS_GET_DEVINFO(bus: device_t, dev: device_t) -> *const ofw_bus_devinfo;
-    #[doc = " @brief Unique descriptor for the OFW_BUS_GET_COMPAT() method"]
-    pub static mut ofw_bus_get_compat_desc: kobjop_desc;
     #[link_name = "OFW_BUS_GET_COMPAT__extern"]
     pub fn OFW_BUS_GET_COMPAT(bus: device_t, dev: device_t) -> *const ::core::ffi::c_char;
-    #[doc = " @brief Unique descriptor for the OFW_BUS_GET_MODEL() method"]
-    pub static mut ofw_bus_get_model_desc: kobjop_desc;
     #[link_name = "OFW_BUS_GET_MODEL__extern"]
     pub fn OFW_BUS_GET_MODEL(bus: device_t, dev: device_t) -> *const ::core::ffi::c_char;
-    #[doc = " @brief Unique descriptor for the OFW_BUS_GET_NAME() method"]
-    pub static mut ofw_bus_get_name_desc: kobjop_desc;
     #[link_name = "OFW_BUS_GET_NAME__extern"]
     pub fn OFW_BUS_GET_NAME(bus: device_t, dev: device_t) -> *const ::core::ffi::c_char;
-    #[doc = " @brief Unique descriptor for the OFW_BUS_GET_NODE() method"]
-    pub static mut ofw_bus_get_node_desc: kobjop_desc;
     #[link_name = "OFW_BUS_GET_NODE__extern"]
     pub fn OFW_BUS_GET_NODE(bus: device_t, dev: device_t) -> phandle_t;
-    #[doc = " @brief Unique descriptor for the OFW_BUS_GET_TYPE() method"]
-    pub static mut ofw_bus_get_type_desc: kobjop_desc;
     #[link_name = "OFW_BUS_GET_TYPE__extern"]
     pub fn OFW_BUS_GET_TYPE(bus: device_t, dev: device_t) -> *const ::core::ffi::c_char;
-    #[doc = " @brief Unique descriptor for the OFW_BUS_MAP_INTR() method"]
-    pub static mut ofw_bus_map_intr_desc: kobjop_desc;
     #[link_name = "OFW_BUS_MAP_INTR__extern"]
     pub fn OFW_BUS_MAP_INTR(
         bus: device_t,
@@ -21899,7 +21683,6 @@ unsafe extern "C" {
         icells: ::core::ffi::c_int,
         intr: *mut pcell_t,
     ) -> ::core::ffi::c_int;
-    pub static mut simplebus_driver: kobj_class;
     pub fn simplebus_init(dev: device_t, node: phandle_t);
     pub fn simplebus_add_device(
         dev: device_t,
@@ -21916,7 +21699,11 @@ unsafe extern "C" {
     ) -> *mut simplebus_devinfo;
     pub fn simplebus_fill_ranges(node: phandle_t, sc: *mut simplebus_softc) -> ::core::ffi::c_int;
     pub fn simplebus_attach(dev: device_t) -> ::core::ffi::c_int;
-    pub fn simplebus_attach_impl(dev: device_t) -> ::core::ffi::c_int;
+    pub fn simplebus_attach_impl(
+        dev: device_t,
+        flags: ::core::ffi::c_int,
+        node: phandle_t,
+    ) -> ::core::ffi::c_int;
     pub fn simplebus_detach(dev: device_t) -> ::core::ffi::c_int;
     pub fn ofw_bus_gen_setup_devinfo(
         arg1: *mut ofw_bus_devinfo,
@@ -22057,16 +21844,6 @@ unsafe extern "C" {
         list_name: *const ::core::ffi::c_char,
         array: *mut *mut *const ::core::ffi::c_char,
     ) -> ::core::ffi::c_int;
-    pub static mut ktr_cpumask: cpuset_t;
-    pub static mut ktr_mask: u64;
-    pub static mut ktr_entries: ::core::ffi::c_int;
-    pub static mut ktr_verbose: ::core::ffi::c_int;
-    pub static mut ktr_idx: ::core::ffi::c_int;
-    pub static mut ktr_buf: *mut ktr_entry;
-    pub static mut power_stype_names: [[::core::ffi::c_char; 16usize]; 6usize];
-    pub static mut power_standby_stype: power_stype;
-    pub static mut power_suspend_stype: power_stype;
-    pub static mut power_hibernate_stype: power_stype;
     pub fn power_name_to_stype(_name: *const ::core::ffi::c_char) -> power_stype;
     pub fn power_stype_to_name(_stype: power_stype) -> *const ::core::ffi::c_char;
     pub fn power_pm_register(
@@ -22123,12 +21900,6 @@ unsafe extern "C" {
     pub fn fsetfl_unlock(fp: *mut file);
     #[link_name = "foffset_get__extern"]
     pub fn foffset_get(fp: *mut file) -> off_t;
-    pub static vnops: fileops;
-    pub static badfileops: fileops;
-    pub static path_fileops: fileops;
-    pub static socketops: fileops;
-    pub static mut maxfiles: ::core::ffi::c_int;
-    pub static mut maxfilesperproc: ::core::ffi::c_int;
     pub fn fget(
         td: *mut thread,
         fd: ::core::ffi::c_int,
@@ -22421,7 +22192,6 @@ unsafe extern "C" {
         path: *mut ::core::ffi::c_char,
         sz: usize,
     ) -> ::core::ffi::c_int;
-    pub static shm_ops: fileops;
     pub fn sbuf_new(
         arg1: *mut sbuf,
         arg2: *mut ::core::ffi::c_char,
@@ -22681,36 +22451,6 @@ unsafe extern "C" {
     pub fn sysctl_register_disabled_oid(oidp: *mut sysctl_oid);
     pub fn sysctl_enable_oid(oidp: *mut sysctl_oid);
     pub fn sysctl_unregister_oid(oidp: *mut sysctl_oid);
-    pub static mut sysctl__children: sysctl_oid_list;
-    pub static mut sysctl___kern: sysctl_oid;
-    pub static mut sysctl___kern_features: sysctl_oid;
-    pub static mut sysctl___kern_ipc: sysctl_oid;
-    pub static mut sysctl___kern_proc: sysctl_oid;
-    pub static mut sysctl___kern_sched: sysctl_oid;
-    pub static mut sysctl___kern_sched_stats: sysctl_oid;
-    pub static mut sysctl___sysctl: sysctl_oid;
-    pub static mut sysctl___vm: sysctl_oid;
-    pub static mut sysctl___vm_stats: sysctl_oid;
-    pub static mut sysctl___vm_stats_misc: sysctl_oid;
-    pub static mut sysctl___vfs: sysctl_oid;
-    pub static mut sysctl___net: sysctl_oid;
-    pub static mut sysctl___debug: sysctl_oid;
-    pub static mut sysctl___debug_sizeof: sysctl_oid;
-    pub static mut sysctl___dev: sysctl_oid;
-    pub static mut sysctl___hw: sysctl_oid;
-    pub static mut sysctl___hw_bus: sysctl_oid;
-    pub static mut sysctl___hw_bus_devices: sysctl_oid;
-    pub static mut sysctl___machdep: sysctl_oid;
-    pub static mut sysctl___machdep_mitigations: sysctl_oid;
-    pub static mut sysctl___user: sysctl_oid;
-    pub static mut sysctl___compat: sysctl_oid;
-    pub static mut sysctl___regression: sysctl_oid;
-    pub static mut sysctl___security: sysctl_oid;
-    pub static mut sysctl___security_bsd: sysctl_oid;
-    pub static machine: [::core::ffi::c_char; 0usize];
-    pub static osrelease: [::core::ffi::c_char; 0usize];
-    pub static ostype: [::core::ffi::c_char; 0usize];
-    pub static kern_ident: [::core::ffi::c_char; 0usize];
     pub fn sysctl_add_oid(
         clist: *mut sysctl_ctx_list,
         parent: *mut sysctl_oid_list,
@@ -22829,12 +22569,6 @@ unsafe extern "C" {
     #[link_name = "pv_to_chunk__extern"]
     pub fn pv_to_chunk(pv: pv_entry_t) -> *mut pv_chunk;
     pub fn pmap_page_set_memattr(m: vm_page_t, ma: vm_memattr_t);
-    pub static mut kernel_pmap_store: pmap;
-    pub static mut pmap_lpa_enabled: bool_;
-    pub static mut virtual_avail: vm_offset_t;
-    pub static mut virtual_end: vm_offset_t;
-    pub static mut pmap_sh_attr: pt_entry_t;
-    pub static mut prot_ns_shared_pa: u64;
     pub fn pmap_activate_vm(arg1: pmap_t);
     pub fn pmap_bootstrap_dmap(arg1: vm_size_t);
     pub fn pmap_bootstrap();
@@ -22898,17 +22632,10 @@ unsafe extern "C" {
     pub fn pmap_fault(arg1: pmap_t, arg2: u64, arg3: u64) -> ::core::ffi::c_int;
     pub fn pmap_switch(arg1: *mut thread) -> *mut pcb;
     pub fn pmap_s1_invalidate_all_kernel();
-    pub static mut pmap_clean_stage2_tlbi: ::core::option::Option<unsafe extern "C" fn()>;
-    pub static mut pmap_stage2_invalidate_range: ::core::option::Option<
-        unsafe extern "C" fn(arg1: u64, arg2: vm_offset_t, arg3: vm_offset_t, arg4: bool_),
-    >;
-    pub static mut pmap_stage2_invalidate_all:
-        ::core::option::Option<unsafe extern "C" fn(arg1: u64)>;
     pub fn pmap_vmspace_copy(arg1: pmap_t, arg2: pmap_t) -> ::core::ffi::c_int;
     pub fn pmap_bti_set(arg1: pmap_t, arg2: vm_offset_t, arg3: vm_offset_t) -> ::core::ffi::c_int;
     pub fn pmap_bti_clear(arg1: pmap_t, arg2: vm_offset_t, arg3: vm_offset_t)
     -> ::core::ffi::c_int;
-    pub static mut kernel_vm_end: vm_offset_t;
     pub fn pmap_activate(td: *mut thread);
     pub fn pmap_active_cpus(pmap: pmap_t, res: *mut cpuset_t);
     pub fn pmap_advise(
@@ -23079,10 +22806,6 @@ unsafe extern "C" {
     ) -> ::core::ffi::c_int;
     #[link_name = "snd_xbytes__extern"]
     pub fn snd_xbytes(v: u32, from: u32, to: u32) -> u32;
-    pub static mut snd_pcm_syncgroups_mtx: mtx;
-    pub static mut snd_pcm_syncgroups: pcm_synclist;
-    #[doc = " @brief Unique descriptor for the CHANNEL_INIT() method"]
-    pub static mut channel_init_desc: kobjop_desc;
     #[link_name = "CHANNEL_INIT__extern"]
     pub fn CHANNEL_INIT(
         obj: kobj_t,
@@ -23091,37 +22814,23 @@ unsafe extern "C" {
         c: *mut pcm_channel,
         dir: ::core::ffi::c_int,
     ) -> *mut ::core::ffi::c_void;
-    #[doc = " @brief Unique descriptor for the CHANNEL_FREE() method"]
-    pub static mut channel_free_desc: kobjop_desc;
     #[link_name = "CHANNEL_FREE__extern"]
     pub fn CHANNEL_FREE(obj: kobj_t, data: *mut ::core::ffi::c_void) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the CHANNEL_RESET() method"]
-    pub static mut channel_reset_desc: kobjop_desc;
     #[link_name = "CHANNEL_RESET__extern"]
     pub fn CHANNEL_RESET(obj: kobj_t, data: *mut ::core::ffi::c_void) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the CHANNEL_RESETDONE() method"]
-    pub static mut channel_resetdone_desc: kobjop_desc;
     #[link_name = "CHANNEL_RESETDONE__extern"]
     pub fn CHANNEL_RESETDONE(obj: kobj_t, data: *mut ::core::ffi::c_void) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the CHANNEL_SETFORMAT() method"]
-    pub static mut channel_setformat_desc: kobjop_desc;
     #[link_name = "CHANNEL_SETFORMAT__extern"]
     pub fn CHANNEL_SETFORMAT(
         obj: kobj_t,
         data: *mut ::core::ffi::c_void,
         format: u32,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the CHANNEL_SETSPEED() method"]
-    pub static mut channel_setspeed_desc: kobjop_desc;
     #[link_name = "CHANNEL_SETSPEED__extern"]
     pub fn CHANNEL_SETSPEED(obj: kobj_t, data: *mut ::core::ffi::c_void, speed: u32) -> u32;
-    #[doc = " @brief Unique descriptor for the CHANNEL_SETBLOCKSIZE() method"]
-    pub static mut channel_setblocksize_desc: kobjop_desc;
     #[link_name = "CHANNEL_SETBLOCKSIZE__extern"]
     pub fn CHANNEL_SETBLOCKSIZE(obj: kobj_t, data: *mut ::core::ffi::c_void, blocksize: u32)
     -> u32;
-    #[doc = " @brief Unique descriptor for the CHANNEL_SETFRAGMENTS() method"]
-    pub static mut channel_setfragments_desc: kobjop_desc;
     #[link_name = "CHANNEL_SETFRAGMENTS__extern"]
     pub fn CHANNEL_SETFRAGMENTS(
         obj: kobj_t,
@@ -23129,32 +22838,22 @@ unsafe extern "C" {
         blocksize: u32,
         blockcount: u32,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the CHANNEL_TRIGGER() method"]
-    pub static mut channel_trigger_desc: kobjop_desc;
     #[link_name = "CHANNEL_TRIGGER__extern"]
     pub fn CHANNEL_TRIGGER(
         obj: kobj_t,
         data: *mut ::core::ffi::c_void,
         go: ::core::ffi::c_int,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the CHANNEL_GETPTR() method"]
-    pub static mut channel_getptr_desc: kobjop_desc;
     #[link_name = "CHANNEL_GETPTR__extern"]
     pub fn CHANNEL_GETPTR(obj: kobj_t, data: *mut ::core::ffi::c_void) -> u32;
-    #[doc = " @brief Unique descriptor for the CHANNEL_GETCAPS() method"]
-    pub static mut channel_getcaps_desc: kobjop_desc;
     #[link_name = "CHANNEL_GETCAPS__extern"]
     pub fn CHANNEL_GETCAPS(obj: kobj_t, data: *mut ::core::ffi::c_void) -> *mut pcmchan_caps;
-    #[doc = " @brief Unique descriptor for the CHANNEL_NOTIFY() method"]
-    pub static mut channel_notify_desc: kobjop_desc;
     #[link_name = "CHANNEL_NOTIFY__extern"]
     pub fn CHANNEL_NOTIFY(
         obj: kobj_t,
         data: *mut ::core::ffi::c_void,
         changed: u32,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the CHANNEL_GETPEAKS() method"]
-    pub static mut channel_getpeaks_desc: kobjop_desc;
     #[doc = " @brief Retrieve channel peak values\n\n This function is intended to obtain peak volume values for samples\n played/recorded on a channel.  Values are on a linear scale from 0 to\n 32767.  If the channel is monaural, a single value should be recorded\n in @c lpeak.\n\n If hardware support isn't available, the SNDCTL_DSP_GET[IO]PEAKS\n operation should return EINVAL.  However, we may opt to provide\n software support that the user may toggle via sysctl/mixext.\n\n @param obj\tstandard kobj object (usually @c channel->methods)\n @param data\tdriver-specific data (usually @c channel->devinfo)\n @param lpeak\tpointer to store left peak level\n @param rpeak\tpointer to store right peak level\n\n @retval -1\tError; usually operation isn't supported.\n @retval 0\tsuccess"]
     #[link_name = "CHANNEL_GETPEAKS__extern"]
     pub fn CHANNEL_GETPEAKS(
@@ -23163,8 +22862,6 @@ unsafe extern "C" {
         lpeak: *mut ::core::ffi::c_int,
         rpeak: *mut ::core::ffi::c_int,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the CHANNEL_GETRATES() method"]
-    pub static mut channel_getrates_desc: kobjop_desc;
     #[doc = " @brief Retrieve discrete supported sample rates\n\n Some cards operate at fixed rates, and this call is intended to retrieve\n those rates primarily for when in-kernel rate adjustment is undesirable\n (e.g., application wants direct DMA access after setting a channel to run\n \"uncooked\").\n\n The parameter @c rates is a double pointer which will be reset to\n point to an array of supported sample rates.  The number of elements\n in the array is returned to the caller.\n\n @param obj\tstandard kobj object (usually @c channel->methods)\n @param data\tdriver-specific data (usually @c channel->devinfo)\n @param rates\trate array pointer\n\n @return Number of rates in the array"]
     #[link_name = "CHANNEL_GETRATES__extern"]
     pub fn CHANNEL_GETRATES(
@@ -23172,16 +22869,12 @@ unsafe extern "C" {
         data: *mut ::core::ffi::c_void,
         rates: *mut *mut ::core::ffi::c_int,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the CHANNEL_GETMATRIX() method"]
-    pub static mut channel_getmatrix_desc: kobjop_desc;
     #[link_name = "CHANNEL_GETMATRIX__extern"]
     pub fn CHANNEL_GETMATRIX(
         obj: kobj_t,
         data: *mut ::core::ffi::c_void,
         format: u32,
     ) -> *mut pcmchan_matrix;
-    #[doc = " @brief Unique descriptor for the CHANNEL_SETMATRIX() method"]
-    pub static mut channel_setmatrix_desc: kobjop_desc;
     #[link_name = "CHANNEL_SETMATRIX__extern"]
     pub fn CHANNEL_SETMATRIX(
         obj: kobj_t,
@@ -23287,10 +22980,6 @@ unsafe extern "C" {
     pub fn snd_fmtvalid(fmt: u32, fmtlist: *mut u32) -> ::core::ffi::c_int;
     pub fn snd_str2afmt(arg1: *const ::core::ffi::c_char) -> u32;
     pub fn snd_afmt2str(arg1: u32, arg2: *mut ::core::ffi::c_char, arg3: usize) -> u32;
-    pub static mut chn_latency: ::core::ffi::c_int;
-    pub static mut chn_latency_profile: ::core::ffi::c_int;
-    pub static mut report_soft_formats: ::core::ffi::c_int;
-    pub static mut report_soft_matrix: ::core::ffi::c_int;
     pub fn chn_2ndbufmaxsize(arg1: *mut pcm_channel) -> u32;
     pub fn feeder_register(p: *mut ::core::ffi::c_void);
     pub fn feeder_getclass(type_: u32) -> *mut feeder_class;
@@ -23303,10 +22992,6 @@ unsafe extern "C" {
     pub fn feeder_remove(c: *mut pcm_channel);
     pub fn feeder_find(c: *mut pcm_channel, type_: u32) -> *mut pcm_feeder;
     pub fn feeder_chain(arg1: *mut pcm_channel) -> ::core::ffi::c_int;
-    pub static mut feeder_rate_min: ::core::ffi::c_int;
-    pub static mut feeder_rate_max: ::core::ffi::c_int;
-    pub static mut feeder_rate_round: ::core::ffi::c_int;
-    pub static mut feeder_rate_quality: ::core::ffi::c_int;
     pub fn feeder_eq_validrate(arg1: u32) -> ::core::ffi::c_int;
     pub fn feeder_eq_initsys(arg1: device_t);
     pub fn feeder_volume_apply_matrix(
@@ -23350,6 +23035,7 @@ unsafe extern "C" {
     ) -> ::core::ffi::c_int;
     pub fn mixer_uninit(dev: device_t) -> ::core::ffi::c_int;
     pub fn mixer_reinit(dev: device_t) -> ::core::ffi::c_int;
+    pub fn mixer_make_dev(dev: device_t) -> ::core::ffi::c_int;
     pub fn mixer_ioctl_cmd(
         i_dev: *mut cdev,
         cmd: ::core::ffi::c_ulong,
@@ -23359,13 +23045,7 @@ unsafe extern "C" {
     ) -> ::core::ffi::c_int;
     pub fn mixer_oss_mixerinfo(i_dev: *mut cdev, mi: *mut oss_mixerinfo) -> ::core::ffi::c_int;
     pub fn mixer_hwvol_init(dev: device_t) -> ::core::ffi::c_int;
-    pub fn mixer_hwvol_mute_locked(m: *mut snd_mixer);
     pub fn mixer_hwvol_mute(dev: device_t);
-    pub fn mixer_hwvol_step_locked(
-        m: *mut snd_mixer,
-        l_step: ::core::ffi::c_int,
-        r_step: ::core::ffi::c_int,
-    );
     pub fn mixer_hwvol_step(
         dev: device_t,
         left_step: ::core::ffi::c_int,
@@ -23399,11 +23079,6 @@ unsafe extern "C" {
         arg3: bool_,
     ) -> ::core::ffi::c_int;
     pub fn dsp_oss_engineinfo(arg1: *mut cdev, arg2: *mut oss_audioinfo) -> ::core::ffi::c_int;
-    pub static mut snd_unit: ::core::ffi::c_int;
-    pub static mut snd_verbose: ::core::ffi::c_int;
-    pub static mut pcm_devclass: devclass_t;
-    pub static mut pcmsg_unrhdr: *mut unrhdr;
-    pub static mut sysctl___hw_snd: sysctl_oid;
     pub fn pcm_addchan(
         dev: device_t,
         dir: ::core::ffi::c_int,
@@ -23432,20 +23107,12 @@ unsafe extern "C" {
     ) -> ::core::ffi::c_int;
     pub fn sound_oss_sysinfo(arg1: *mut oss_sysinfo);
     pub fn sound_oss_card_info(arg1: *mut oss_card_info) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the MIXER_INIT() method"]
-    pub static mut mixer_init_desc: kobjop_desc;
     #[link_name = "MIXER_INIT__extern"]
     pub fn MIXER_INIT(m: *mut snd_mixer) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the MIXER_REINIT() method"]
-    pub static mut mixer_reinit_desc: kobjop_desc;
     #[link_name = "MIXER_REINIT__extern"]
     pub fn MIXER_REINIT(m: *mut snd_mixer) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the MIXER_UNINIT() method"]
-    pub static mut mixer_uninit_desc: kobjop_desc;
     #[link_name = "MIXER_UNINIT__extern"]
     pub fn MIXER_UNINIT(m: *mut snd_mixer) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the MIXER_SET() method"]
-    pub static mut mixer_set_desc: kobjop_desc;
     #[link_name = "MIXER_SET__extern"]
     pub fn MIXER_SET(
         m: *mut snd_mixer,
@@ -23453,8 +23120,6 @@ unsafe extern "C" {
         left: ::core::ffi::c_uint,
         right: ::core::ffi::c_uint,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the MIXER_SETRECSRC() method"]
-    pub static mut mixer_setrecsrc_desc: kobjop_desc;
     #[link_name = "MIXER_SETRECSRC__extern"]
     pub fn MIXER_SETRECSRC(m: *mut snd_mixer, src: u32) -> u32;
     #[link_name = "be16dec__extern"]
@@ -23627,8 +23292,6 @@ unsafe extern "C" {
     ) -> *mut protosw;
     pub fn protosw_register(arg1: *mut domain, arg2: *mut protosw) -> ::core::ffi::c_int;
     pub fn protosw_unregister(arg1: *mut protosw) -> ::core::ffi::c_int;
-    pub static mut inetdomain: domain;
-    pub static mut inet6domain: domain;
     pub fn so_options_get(arg1: *const socket) -> ::core::ffi::c_int;
     pub fn so_options_set(arg1: *mut socket, arg2: ::core::ffi::c_int);
     pub fn so_error_get(arg1: *const socket) -> ::core::ffi::c_int;
@@ -23716,57 +23379,6 @@ unsafe extern "C" {
     pub fn sbused(sb: *mut sockbuf) -> u_int;
     #[link_name = "sbspace__extern"]
     pub fn sbspace(sb: *mut sockbuf) -> ::core::ffi::c_long;
-    pub static cap_accept_rights: cap_rights_t;
-    pub static cap_bind_rights: cap_rights_t;
-    pub static cap_connect_rights: cap_rights_t;
-    pub static cap_event_rights: cap_rights_t;
-    pub static cap_fchdir_rights: cap_rights_t;
-    pub static cap_fchflags_rights: cap_rights_t;
-    pub static cap_fchmod_rights: cap_rights_t;
-    pub static cap_fchown_rights: cap_rights_t;
-    pub static cap_fchroot_rights: cap_rights_t;
-    pub static cap_fcntl_rights: cap_rights_t;
-    pub static cap_fexecve_rights: cap_rights_t;
-    pub static cap_flock_rights: cap_rights_t;
-    pub static cap_fpathconf_rights: cap_rights_t;
-    pub static cap_fstat_rights: cap_rights_t;
-    pub static cap_fstatfs_rights: cap_rights_t;
-    pub static cap_fsync_rights: cap_rights_t;
-    pub static cap_ftruncate_rights: cap_rights_t;
-    pub static cap_futimes_rights: cap_rights_t;
-    pub static cap_getpeername_rights: cap_rights_t;
-    pub static cap_getsockopt_rights: cap_rights_t;
-    pub static cap_getsockname_rights: cap_rights_t;
-    pub static cap_inotify_add_rights: cap_rights_t;
-    pub static cap_inotify_rm_rights: cap_rights_t;
-    pub static cap_ioctl_rights: cap_rights_t;
-    pub static cap_linkat_source_rights: cap_rights_t;
-    pub static cap_linkat_target_rights: cap_rights_t;
-    pub static cap_listen_rights: cap_rights_t;
-    pub static cap_mkdirat_rights: cap_rights_t;
-    pub static cap_mkfifoat_rights: cap_rights_t;
-    pub static cap_mknodat_rights: cap_rights_t;
-    pub static cap_mmap_rights: cap_rights_t;
-    pub static cap_no_rights: cap_rights_t;
-    pub static cap_pddupfd_rights: cap_rights_t;
-    pub static cap_pdgetpid_rights: cap_rights_t;
-    pub static cap_pdkill_rights: cap_rights_t;
-    pub static cap_pdwait_rights: cap_rights_t;
-    pub static cap_pread_rights: cap_rights_t;
-    pub static cap_ptrace_rights: cap_rights_t;
-    pub static cap_pwrite_rights: cap_rights_t;
-    pub static cap_read_rights: cap_rights_t;
-    pub static cap_recv_rights: cap_rights_t;
-    pub static cap_renameat_source_rights: cap_rights_t;
-    pub static cap_renameat_target_rights: cap_rights_t;
-    pub static cap_seek_rights: cap_rights_t;
-    pub static cap_send_rights: cap_rights_t;
-    pub static cap_send_connect_rights: cap_rights_t;
-    pub static cap_setsockopt_rights: cap_rights_t;
-    pub static cap_shutdown_rights: cap_rights_t;
-    pub static cap_symlinkat_rights: cap_rights_t;
-    pub static cap_unlinkat_rights: cap_rights_t;
-    pub static cap_write_rights: cap_rights_t;
     pub fn sosetopt(so: *mut socket, sopt: *mut sockopt) -> ::core::ffi::c_int;
     pub fn sogetopt(so: *mut socket, sopt: *mut sockopt) -> ::core::ffi::c_int;
     pub fn sooptcopyin(
@@ -23798,12 +23410,6 @@ unsafe extern "C" {
     pub fn soeventmtx(so: *mut socket, which: sb_which) -> *mut mtx;
     #[link_name = "soreadable__extern"]
     pub fn soreadable(so: *mut socket) -> bool_;
-    pub static mut M_ACCF: [malloc_type; 1usize];
-    pub static mut M_PCB: [malloc_type; 1usize];
-    pub static mut M_SONAME: [malloc_type; 1usize];
-    pub static mut maxsockets: ::core::ffi::c_int;
-    pub static mut sb_max: u_long;
-    pub static mut so_gencnt: so_gen_t;
     pub fn getsockaddr(
         namp: *mut *mut sockaddr,
         uaddr: *const sockaddr,
@@ -24005,48 +23611,28 @@ unsafe extern "C" {
     ) -> ::core::ffi::c_int;
     pub fn sotoxsocket(so: *mut socket, xso: *mut xsocket);
     pub fn sbtoxsockbuf(sb: *mut sockbuf, xsb: *mut xsocket_xsockbuf);
-    #[doc = " @brief Unique descriptor for the GPIO_GET_BUS() method"]
-    pub static mut gpio_get_bus_desc: kobjop_desc;
     #[link_name = "GPIO_GET_BUS__extern"]
     pub fn GPIO_GET_BUS(dev: device_t) -> device_t;
-    #[doc = " @brief Unique descriptor for the GPIO_PIN_MAX() method"]
-    pub static mut gpio_pin_max_desc: kobjop_desc;
     #[link_name = "GPIO_PIN_MAX__extern"]
     pub fn GPIO_PIN_MAX(dev: device_t, maxpin: *mut ::core::ffi::c_int) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the GPIO_PIN_SET() method"]
-    pub static mut gpio_pin_set_desc: kobjop_desc;
     #[link_name = "GPIO_PIN_SET__extern"]
     pub fn GPIO_PIN_SET(dev: device_t, pin_num: u32, pin_value: u32) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the GPIO_PIN_GET() method"]
-    pub static mut gpio_pin_get_desc: kobjop_desc;
     #[link_name = "GPIO_PIN_GET__extern"]
     pub fn GPIO_PIN_GET(dev: device_t, pin_num: u32, pin_value: *mut u32) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the GPIO_PIN_TOGGLE() method"]
-    pub static mut gpio_pin_toggle_desc: kobjop_desc;
     #[link_name = "GPIO_PIN_TOGGLE__extern"]
     pub fn GPIO_PIN_TOGGLE(dev: device_t, pin_num: u32) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the GPIO_PIN_GETCAPS() method"]
-    pub static mut gpio_pin_getcaps_desc: kobjop_desc;
     #[link_name = "GPIO_PIN_GETCAPS__extern"]
     pub fn GPIO_PIN_GETCAPS(dev: device_t, pin_num: u32, caps: *mut u32) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the GPIO_PIN_GETFLAGS() method"]
-    pub static mut gpio_pin_getflags_desc: kobjop_desc;
     #[link_name = "GPIO_PIN_GETFLAGS__extern"]
     pub fn GPIO_PIN_GETFLAGS(dev: device_t, pin_num: u32, flags: *mut u32) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the GPIO_PIN_GETNAME() method"]
-    pub static mut gpio_pin_getname_desc: kobjop_desc;
     #[link_name = "GPIO_PIN_GETNAME__extern"]
     pub fn GPIO_PIN_GETNAME(
         dev: device_t,
         pin_num: u32,
         name: *mut ::core::ffi::c_char,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the GPIO_PIN_SETFLAGS() method"]
-    pub static mut gpio_pin_setflags_desc: kobjop_desc;
     #[link_name = "GPIO_PIN_SETFLAGS__extern"]
     pub fn GPIO_PIN_SETFLAGS(dev: device_t, pin_num: u32, flags: u32) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the GPIO_MAP_GPIOS() method"]
-    pub static mut gpio_map_gpios_desc: kobjop_desc;
     #[link_name = "GPIO_MAP_GPIOS__extern"]
     pub fn GPIO_MAP_GPIOS(
         bus: device_t,
@@ -24057,8 +23643,6 @@ unsafe extern "C" {
         pin: *mut u32,
         flags: *mut u32,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the GPIO_PIN_ACCESS_32() method"]
-    pub static mut gpio_pin_access_32_desc: kobjop_desc;
     #[link_name = "GPIO_PIN_ACCESS_32__extern"]
     pub fn GPIO_PIN_ACCESS_32(
         dev: device_t,
@@ -24067,8 +23651,6 @@ unsafe extern "C" {
         change_pins: u32,
         orig_pins: *mut u32,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the GPIO_PIN_CONFIG_32() method"]
-    pub static mut gpio_pin_config_32_desc: kobjop_desc;
     #[link_name = "GPIO_PIN_CONFIG_32__extern"]
     pub fn GPIO_PIN_CONFIG_32(
         dev: device_t,
@@ -24076,8 +23658,6 @@ unsafe extern "C" {
         num_pins: u32,
         pin_flags: *mut u32,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the GPIO_GET_PIN_LIST() method"]
-    pub static mut gpio_get_pin_list_desc: kobjop_desc;
     #[link_name = "GPIO_GET_PIN_LIST__extern"]
     pub fn GPIO_GET_PIN_LIST(dev: device_t, pin_list: *mut u32) -> ::core::ffi::c_int;
     #[link_name = "gpiobus_has_npins__extern"]
@@ -24167,8 +23747,6 @@ unsafe extern "C" {
     pub fn gpiobus_detach_bus(arg1: device_t) -> ::core::ffi::c_int;
     pub fn apple_smc_get_bus(dev: device_t) -> device_t;
     pub fn apple_smc_pin_set(dev: device_t, pin: u32, value: u32) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the PIC_ACTIVATE_INTR() method"]
-    pub static mut pic_activate_intr_desc: kobjop_desc;
     #[link_name = "PIC_ACTIVATE_INTR__extern"]
     pub fn PIC_ACTIVATE_INTR(
         dev: device_t,
@@ -24176,28 +23754,18 @@ unsafe extern "C" {
         res: *mut resource,
         data: *mut intr_map_data,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the PIC_BIND_INTR() method"]
-    pub static mut pic_bind_intr_desc: kobjop_desc;
     #[link_name = "PIC_BIND_INTR__extern"]
     pub fn PIC_BIND_INTR(dev: device_t, isrc: *mut intr_irqsrc) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the PIC_DISABLE_INTR() method"]
-    pub static mut pic_disable_intr_desc: kobjop_desc;
     #[link_name = "PIC_DISABLE_INTR__extern"]
     pub fn PIC_DISABLE_INTR(dev: device_t, isrc: *mut intr_irqsrc);
-    #[doc = " @brief Unique descriptor for the PIC_ENABLE_INTR() method"]
-    pub static mut pic_enable_intr_desc: kobjop_desc;
     #[link_name = "PIC_ENABLE_INTR__extern"]
     pub fn PIC_ENABLE_INTR(dev: device_t, isrc: *mut intr_irqsrc);
-    #[doc = " @brief Unique descriptor for the PIC_MAP_INTR() method"]
-    pub static mut pic_map_intr_desc: kobjop_desc;
     #[link_name = "PIC_MAP_INTR__extern"]
     pub fn PIC_MAP_INTR(
         dev: device_t,
         data: *mut intr_map_data,
         isrcp: *mut *mut intr_irqsrc,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the PIC_DEACTIVATE_INTR() method"]
-    pub static mut pic_deactivate_intr_desc: kobjop_desc;
     #[link_name = "PIC_DEACTIVATE_INTR__extern"]
     pub fn PIC_DEACTIVATE_INTR(
         dev: device_t,
@@ -24205,8 +23773,6 @@ unsafe extern "C" {
         res: *mut resource,
         data: *mut intr_map_data,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the PIC_SETUP_INTR() method"]
-    pub static mut pic_setup_intr_desc: kobjop_desc;
     #[link_name = "PIC_SETUP_INTR__extern"]
     pub fn PIC_SETUP_INTR(
         dev: device_t,
@@ -24214,8 +23780,6 @@ unsafe extern "C" {
         res: *mut resource,
         data: *mut intr_map_data,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the PIC_TEARDOWN_INTR() method"]
-    pub static mut pic_teardown_intr_desc: kobjop_desc;
     #[link_name = "PIC_TEARDOWN_INTR__extern"]
     pub fn PIC_TEARDOWN_INTR(
         dev: device_t,
@@ -24223,35 +23787,22 @@ unsafe extern "C" {
         res: *mut resource,
         data: *mut intr_map_data,
     ) -> ::core::ffi::c_int;
-    #[doc = " @brief Unique descriptor for the PIC_POST_FILTER() method"]
-    pub static mut pic_post_filter_desc: kobjop_desc;
     #[link_name = "PIC_POST_FILTER__extern"]
     pub fn PIC_POST_FILTER(dev: device_t, isrc: *mut intr_irqsrc);
-    #[doc = " @brief Unique descriptor for the PIC_POST_ITHREAD() method"]
-    pub static mut pic_post_ithread_desc: kobjop_desc;
     #[link_name = "PIC_POST_ITHREAD__extern"]
     pub fn PIC_POST_ITHREAD(dev: device_t, isrc: *mut intr_irqsrc);
-    #[doc = " @brief Unique descriptor for the PIC_PRE_ITHREAD() method"]
-    pub static mut pic_pre_ithread_desc: kobjop_desc;
     #[link_name = "PIC_PRE_ITHREAD__extern"]
     pub fn PIC_PRE_ITHREAD(dev: device_t, isrc: *mut intr_irqsrc);
-    #[doc = " @brief Unique descriptor for the PIC_INIT_SECONDARY() method"]
-    pub static mut pic_init_secondary_desc: kobjop_desc;
     #[link_name = "PIC_INIT_SECONDARY__extern"]
     pub fn PIC_INIT_SECONDARY(dev: device_t, rootnum: u32);
-    #[doc = " @brief Unique descriptor for the PIC_IPI_SEND() method"]
-    pub static mut pic_ipi_send_desc: kobjop_desc;
     #[link_name = "PIC_IPI_SEND__extern"]
     pub fn PIC_IPI_SEND(dev: device_t, isrc: *mut intr_irqsrc, cpus: cpuset_t, ipi: u_int);
-    #[doc = " @brief Unique descriptor for the PIC_IPI_SETUP() method"]
-    pub static mut pic_ipi_setup_desc: kobjop_desc;
     #[link_name = "PIC_IPI_SETUP__extern"]
     pub fn PIC_IPI_SETUP(
         dev: device_t,
         ipi: u_int,
         isrcp: *mut *mut intr_irqsrc,
     ) -> ::core::ffi::c_int;
-    pub static mut memmap_bus: bus_space;
     pub fn rust_bindings_CPU_SET(cpu: u_int, set: *mut cpuset_t);
     pub fn rust_bindings_CPU_ISSET(cpu: u_int, set: *mut cpuset_t) -> bool_;
     pub fn rust_bindings_CPU_AFFINITY(cpu: u_int) -> u64;
@@ -24320,4 +23871,588 @@ unsafe extern "C" {
     pub fn fn_bus_read_8(res: *mut resource, offset: bus_size_t) -> u64;
     pub fn fn_bus_write_region_8(res: *mut resource, o: bus_size_t, p: *mut u64, count: bus_size_t);
     pub fn fn_bus_write_8(res: *mut resource, offset: bus_size_t, value: u64);
+}
+unsafe extern "C" {
+    pub static mut time_second: time_t;
+    pub static mut time_uptime: time_t;
+    pub static mut tc_tick_bt: bintime;
+    pub static mut tc_tick_sbt: sbintime_t;
+    pub static mut tick_seconds_max: time_t;
+    pub static mut tick_bt: bintime;
+    pub static mut tick_sbt: sbintime_t;
+    pub static mut tc_precexp: ::core::ffi::c_int;
+    pub static mut tc_timepercentage: ::core::ffi::c_int;
+    pub static mut bt_timethreshold: bintime;
+    pub static mut bt_tickthreshold: bintime;
+    pub static mut sbt_timethreshold: sbintime_t;
+    pub static mut sbt_tickthreshold: sbintime_t;
+    pub static mut rtc_generation: ::core::ffi::c_int;
+    pub static mut panicstr: *const ::core::ffi::c_char;
+    pub static mut poisoned_buf: *mut ::core::ffi::c_void;
+    pub static mut dumping: ::core::ffi::c_int;
+    pub static mut dumped_core: bool_;
+    pub static mut lock_class_mtx_sleep: lock_class;
+    pub static mut lock_class_mtx_spin: lock_class;
+    pub static mut lock_class_sx: lock_class;
+    pub static mut lock_class_rw: lock_class;
+    pub static mut lock_class_rm: lock_class;
+    pub static mut lock_class_rm_sleepable: lock_class;
+    pub static mut lock_class_lockmgr: lock_class;
+    pub static mut lock_classes: [*mut lock_class; 0usize];
+    pub static mut locks_delay: lock_delay_config;
+    pub static mut locks_delay_retries: u_short;
+    pub static mut locks_delay_loops: u_short;
+    pub static mut lse_supported: bool;
+    pub static mut icache_aliasing: bool_;
+    pub static mut icache_vmid: bool_;
+    pub static mut dcache_line_size: i64;
+    pub static mut icache_line_size: i64;
+    pub static mut idcache_line_size: i64;
+    pub static mut dczva_line_size: i64;
+    pub static mut arm64_icache_sync_range: ::core::option::Option<
+        unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: vm_size_t),
+    >;
+    pub static mut cold: ::core::ffi::c_int;
+    pub static mut suspend_blocked: ::core::ffi::c_int;
+    pub static mut rebooting: ::core::ffi::c_int;
+    pub static version: [::core::ffi::c_char; 0usize];
+    pub static compiler_version: [::core::ffi::c_char; 0usize];
+    pub static copyright: [::core::ffi::c_char; 0usize];
+    pub static mut kstack_pages: ::core::ffi::c_int;
+    pub static mut pagesizes: [u_long; 0usize];
+    pub static mut physmem: ::core::ffi::c_long;
+    pub static mut realmem: ::core::ffi::c_long;
+    pub static mut rootdevnames: [*mut ::core::ffi::c_char; 2usize];
+    pub static mut boothowto: ::core::ffi::c_int;
+    pub static mut bootverbose: ::core::ffi::c_int;
+    pub static mut maxusers: ::core::ffi::c_int;
+    pub static mut ngroups_max: ::core::ffi::c_int;
+    pub static mut vm_guest: ::core::ffi::c_int;
+    pub static mut maxphys: u_long;
+    pub static mut averunnable: loadavg;
+    pub static mut btext: [::core::ffi::c_char; 0usize];
+    pub static mut etext: [::core::ffi::c_char; 0usize];
+    pub static mut __cpu_affinity: [u64; 0usize];
+    pub static mut elf64_addr_mask: arm64_addr_mask;
+    pub static mut elf64_addr_mask_14: arm64_addr_mask;
+    pub static mut cpu_reset_hook: cpu_reset_hook_t;
+    pub static mut __start_set_pcpu: *mut usize;
+    pub static mut __stop_set_pcpu: *mut usize;
+    pub static mut dpcpu_off: [usize; 0usize];
+    pub static mut cpuhead: cpuhead;
+    pub static mut cpuid_to_pcpu: [*mut pcpu; 0usize];
+    pub static mut pcpu0: pcpu;
+    pub static mut scheduler_stopped: bool_;
+    pub static osreldate: ::core::ffi::c_int;
+    pub static mut zero_region: *const ::core::ffi::c_void;
+    pub static mut unmapped_buf_allowed: ::core::ffi::c_int;
+    pub static mut lkpi_alloc_current: ::core::option::Option<
+        unsafe extern "C" fn(
+            arg1: *mut thread,
+            arg2: ::core::ffi::c_int,
+        ) -> ::core::ffi::c_int,
+    >;
+    pub static mut cpu_disable_c2_sleep: ::core::ffi::c_int;
+    pub static mut cpu_disable_c3_sleep: ::core::ffi::c_int;
+    pub static mut cpu_ticks: cpu_tick_f;
+    pub static bcd2bin_data: [u_char; 0usize];
+    pub static bin2bcd_data: [u_char; 0usize];
+    pub static hex2ascii_data: [::core::ffi::c_char; 0usize];
+    pub static mut arc4rand_iniseed_state: ::core::ffi::c_int;
+    pub static mut root_bus: device_t;
+    pub static mut root_devclass: devclass_t;
+    #[doc = " @brief Unique descriptor for the DEVICE_PROBE() method"]
+    pub static mut device_probe_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the DEVICE_IDENTIFY() method"]
+    pub static mut device_identify_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the DEVICE_ATTACH() method"]
+    pub static mut device_attach_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the DEVICE_DETACH() method"]
+    pub static mut device_detach_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the DEVICE_SHUTDOWN() method"]
+    pub static mut device_shutdown_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the DEVICE_SUSPEND() method"]
+    pub static mut device_suspend_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the DEVICE_RESUME() method"]
+    pub static mut device_resume_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the DEVICE_QUIESCE() method"]
+    pub static mut device_quiesce_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the DEVICE_REGISTER() method"]
+    pub static mut device_register_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_PRINT_CHILD() method"]
+    pub static mut bus_print_child_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_PROBE_NOMATCH() method"]
+    pub static mut bus_probe_nomatch_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_READ_IVAR() method"]
+    pub static mut bus_read_ivar_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_WRITE_IVAR() method"]
+    pub static mut bus_write_ivar_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_CHILD_DELETED() method"]
+    pub static mut bus_child_deleted_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_CHILD_DETACHED() method"]
+    pub static mut bus_child_detached_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_DRIVER_ADDED() method"]
+    pub static mut bus_driver_added_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_ADD_CHILD() method"]
+    pub static mut bus_add_child_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_RESCAN() method"]
+    pub static mut bus_rescan_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_ALLOC_RESOURCE() method"]
+    pub static mut bus_alloc_resource_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_ACTIVATE_RESOURCE() method"]
+    pub static mut bus_activate_resource_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_MAP_RESOURCE() method"]
+    pub static mut bus_map_resource_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_UNMAP_RESOURCE() method"]
+    pub static mut bus_unmap_resource_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_DEACTIVATE_RESOURCE() method"]
+    pub static mut bus_deactivate_resource_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_ADJUST_RESOURCE() method"]
+    pub static mut bus_adjust_resource_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_TRANSLATE_RESOURCE() method"]
+    pub static mut bus_translate_resource_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_RELEASE_RESOURCE() method"]
+    pub static mut bus_release_resource_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_SETUP_INTR() method"]
+    pub static mut bus_setup_intr_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_TEARDOWN_INTR() method"]
+    pub static mut bus_teardown_intr_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_SUSPEND_INTR() method"]
+    pub static mut bus_suspend_intr_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_RESUME_INTR() method"]
+    pub static mut bus_resume_intr_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_SET_RESOURCE() method"]
+    pub static mut bus_set_resource_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_GET_RESOURCE() method"]
+    pub static mut bus_get_resource_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_DELETE_RESOURCE() method"]
+    pub static mut bus_delete_resource_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_GET_RESOURCE_LIST() method"]
+    pub static mut bus_get_resource_list_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_GET_RMAN() method"]
+    pub static mut bus_get_rman_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_CHILD_PRESENT() method"]
+    pub static mut bus_child_present_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_CHILD_PNPINFO() method"]
+    pub static mut bus_child_pnpinfo_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_CHILD_LOCATION() method"]
+    pub static mut bus_child_location_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_BIND_INTR() method"]
+    pub static mut bus_bind_intr_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_CONFIG_INTR() method"]
+    pub static mut bus_config_intr_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_DESCRIBE_INTR() method"]
+    pub static mut bus_describe_intr_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_HINTED_CHILD() method"]
+    pub static mut bus_hinted_child_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_GET_DMA_TAG() method"]
+    pub static mut bus_get_dma_tag_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_GET_BUS_TAG() method"]
+    pub static mut bus_get_bus_tag_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_HINT_DEVICE_UNIT() method"]
+    pub static mut bus_hint_device_unit_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_NEW_PASS() method"]
+    pub static mut bus_new_pass_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_REMAP_INTR() method"]
+    pub static mut bus_remap_intr_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_SUSPEND_CHILD() method"]
+    pub static mut bus_suspend_child_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_RESUME_CHILD() method"]
+    pub static mut bus_resume_child_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_GET_DOMAIN() method"]
+    pub static mut bus_get_domain_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_GET_CPUS() method"]
+    pub static mut bus_get_cpus_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_RESET_PREPARE() method"]
+    pub static mut bus_reset_prepare_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_RESET_POST() method"]
+    pub static mut bus_reset_post_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_RESET_CHILD() method"]
+    pub static mut bus_reset_child_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_GET_PROPERTY() method"]
+    pub static mut bus_get_property_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the BUS_GET_DEVICE_PATH() method"]
+    pub static mut bus_get_device_path_desc: kobjop_desc;
+    pub static mut cpusetsizemin: u_int;
+    pub static mut cpuset_root: *mut cpuset_t;
+    pub static mut M_CACHE: [malloc_type; 1usize];
+    pub static mut M_DEVBUF: [malloc_type; 1usize];
+    pub static mut M_PARGS: [malloc_type; 1usize];
+    pub static mut M_SESSION: [malloc_type; 1usize];
+    pub static mut M_SUBPROC: [malloc_type; 1usize];
+    pub static mut M_TEMP: [malloc_type; 1usize];
+    pub static mut M_IOV: [malloc_type; 1usize];
+    pub static mut malloc_mtx: mtx;
+    pub static mut kmi: kva_md_info;
+    pub static mut old_mlock: ::core::ffi::c_int;
+    pub static mut vm_ndomains: ::core::ffi::c_int;
+    pub static mut vm_overcommit: ::core::ffi::c_int;
+    pub static mut M_OFWPROP: [malloc_type; 1usize];
+    pub static mut intr_nirq: u_int;
+    pub static mut kernelname: [::core::ffi::c_char; 1024usize];
+    pub static mut tick: ::core::ffi::c_int;
+    pub static mut hz: ::core::ffi::c_int;
+    pub static mut psratio: ::core::ffi::c_int;
+    pub static mut stathz: ::core::ffi::c_int;
+    pub static mut profhz: ::core::ffi::c_int;
+    pub static mut profprocs: ::core::ffi::c_int;
+    pub static mut ticks: ::core::ffi::c_int;
+    pub static mut ticksl: ::core::ffi::c_long;
+    #[doc = " descr is a string that describes each entry in the table. The general\n form is the grammar (TYPE:pnp_name[/pnp_name];)*\n where TYPE is one of the following:\n\tU8\tuint8_t element\n\tV8\tlike U8 and 0xff means match any\n\tG16\tuint16_t element, any value >= matches\n\tL16\tuint16_t element, any value <= matches\n\tM16\tuint16_t element, mask of which of the following fields to use.\n\tU16\tuint16_t element\n\tV16\tlike U16 and 0xffff means match any\n\tU32\tuint32_t element\n\tV32\tlike U32 and 0xffffffff means match any\n\tW32\tTwo 16-bit values with first pnp_name in LSW and second in MSW.\n\tZ\tpointer to a string to match exactly\n\tD\tpointer to a string to human readable description for device\n\tP\tA pointer that should be ignored\n\tE\tEISA PNP Identifier (in binary, but bus publishes string)\n\tT\tKey for whole table. pnp_name=value. must be last, if present.\n\n The pnp_name \"#\" is reserved for other fields that should be ignored.\n Otherwise pnp_name must match the name from the parent device's pnpinfo\n output. The second pnp_name is used for the W32 type."]
+    pub static mut modules_sx: sx;
+    pub static mut sdt_probes_enabled: bool_;
+    pub static mut __start_set_sdt_providers_set: *mut sdt_provider;
+    pub static mut __stop_set_sdt_providers_set: *mut sdt_provider;
+    pub static mut __start_set_sdt_probes_set: *mut sdt_probe;
+    pub static mut __stop_set_sdt_probes_set: *mut sdt_probe;
+    pub static mut __start_set_sdt_argtypes_set: *mut sdt_argtype;
+    pub static mut __stop_set_sdt_argtypes_set: *mut sdt_argtype;
+    pub static mut sdt_probe_func: sdt_probe_func_t;
+    pub static mut sdt_provider_sdt: sdt_provider;
+    pub static mut sdt_provider_lockstat: sdt_provider;
+    pub static mut sdt_lockstat___adaptive__acquire: sdt_probe;
+    pub static mut sdt_lockstat___adaptive__release: sdt_probe;
+    pub static mut sdt_lockstat___adaptive__spin: sdt_probe;
+    pub static mut sdt_lockstat___adaptive__block: sdt_probe;
+    pub static mut sdt_lockstat___spin__acquire: sdt_probe;
+    pub static mut sdt_lockstat___spin__release: sdt_probe;
+    pub static mut sdt_lockstat___spin__spin: sdt_probe;
+    pub static mut sdt_lockstat___rw__acquire: sdt_probe;
+    pub static mut sdt_lockstat___rw__release: sdt_probe;
+    pub static mut sdt_lockstat___rw__block: sdt_probe;
+    pub static mut sdt_lockstat___rw__spin: sdt_probe;
+    pub static mut sdt_lockstat___rw__upgrade: sdt_probe;
+    pub static mut sdt_lockstat___rw__downgrade: sdt_probe;
+    pub static mut sdt_lockstat___sx__acquire: sdt_probe;
+    pub static mut sdt_lockstat___sx__release: sdt_probe;
+    pub static mut sdt_lockstat___sx__block: sdt_probe;
+    pub static mut sdt_lockstat___sx__spin: sdt_probe;
+    pub static mut sdt_lockstat___sx__upgrade: sdt_probe;
+    pub static mut sdt_lockstat___sx__downgrade: sdt_probe;
+    pub static mut sdt_lockstat___lockmgr__acquire: sdt_probe;
+    pub static mut sdt_lockstat___lockmgr__release: sdt_probe;
+    pub static mut sdt_lockstat___lockmgr__disown: sdt_probe;
+    pub static mut sdt_lockstat___lockmgr__block: sdt_probe;
+    pub static mut sdt_lockstat___lockmgr__upgrade: sdt_probe;
+    pub static mut sdt_lockstat___lockmgr__downgrade: sdt_probe;
+    pub static mut sdt_lockstat___thread__spin: sdt_probe;
+    pub static mut lockstat_enabled: bool_;
+    pub static mut mtxpool_sleep: *mut mtx_pool;
+    pub static mut Giant: mtx;
+    pub static mut blocked_lock: mtx;
+    pub static mut sigfastblock_fetch_always: bool_;
+    pub static mut pt_attach_transparent: bool_;
+    pub static mut sigio_lock: mtx;
+    pub static mut pid_max: pid_t;
+    pub static mut pidhashtbl: *mut pidhashhead;
+    pub static mut pidhashtbl_lock: *mut sx;
+    pub static mut pidhash: u_long;
+    pub static mut pidhashlock: u_long;
+    pub static mut pgrphashtbl: *mut pgrphashhead;
+    pub static mut pgrphash: u_long;
+    pub static mut allproc_lock: sx;
+    pub static mut allproc_gen: ::core::ffi::c_int;
+    pub static mut proctree_lock: sx;
+    pub static mut ppeers_lock: mtx;
+    pub static mut procid_lock: mtx;
+    pub static mut proc0: proc_;
+    pub static mut thread0_st: thread0_storage;
+    pub static mut vmspace0: vmspace;
+    pub static mut hogticks: ::core::ffi::c_int;
+    pub static mut lastpid: ::core::ffi::c_int;
+    pub static mut nprocs: ::core::ffi::c_int;
+    pub static mut maxproc: ::core::ffi::c_int;
+    pub static mut maxprocperuid: ::core::ffi::c_int;
+    pub static mut ps_arg_cache_limit: u_long;
+    pub static mut allproc: proclist;
+    pub static mut initproc: *mut proc_;
+    pub static mut pageproc: *mut proc_;
+    pub static mut proc_zone: *mut uma_zone;
+    pub static mut pgrp_zone: *mut uma_zone;
+    pub static mut cpu_idle_hook:
+        ::core::option::Option<unsafe extern "C" fn(arg1: sbintime_t)>;
+    pub static mut _eventhandler_list_process_ctor: *mut eventhandler_list;
+    pub static mut _eventhandler_list_process_dtor: *mut eventhandler_list;
+    pub static mut _eventhandler_list_process_init: *mut eventhandler_list;
+    pub static mut _eventhandler_list_process_fini: *mut eventhandler_list;
+    pub static mut _eventhandler_list_process_exit: *mut eventhandler_list;
+    pub static mut _eventhandler_list_process_fork: *mut eventhandler_list;
+    pub static mut _eventhandler_list_process_exec: *mut eventhandler_list;
+    pub static mut _eventhandler_list_thread_ctor: *mut eventhandler_list;
+    pub static mut _eventhandler_list_thread_dtor: *mut eventhandler_list;
+    pub static mut _eventhandler_list_thread_init: *mut eventhandler_list;
+    pub static mut rman_head: rman_head;
+    pub static mut cpu_top: cpu_group_t;
+    pub static mut cpustop_restartfunc: ::core::option::Option<unsafe extern "C" fn()>;
+    pub static mut resuming_cpus: cpuset_t;
+    pub static mut started_cpus: cpuset_t;
+    pub static mut stopped_cpus: cpuset_t;
+    pub static mut suspended_cpus: cpuset_t;
+    pub static mut toresume_cpus: cpuset_t;
+    pub static mut logical_cpus_mask: cpuset_t;
+    pub static mut mp_maxid: u_int;
+    pub static mut mp_maxcpus: ::core::ffi::c_int;
+    pub static mut mp_ncores: ::core::ffi::c_int;
+    pub static mut mp_ncpus: ::core::ffi::c_int;
+    pub static mut smp_cpus: ::core::ffi::c_int;
+    pub static mut smp_started: ::core::ffi::c_int;
+    pub static mut smp_threads_per_core: ::core::ffi::c_int;
+    pub static mut all_cpus: cpuset_t;
+    pub static mut cpuset_domain: [cpuset_t; 8usize];
+    pub static mut stoppcbs: *mut pcb;
+    pub static mut smp_ipi_mtx: mtx;
+    pub static mut taskqueue_swi_giant: *mut taskqueue;
+    pub static mut taskqueue_swi: *mut taskqueue;
+    pub static mut taskqueue_thread: *mut taskqueue;
+    pub static mut taskqueue_fast: *mut taskqueue;
+    pub static mut taskqueue_bus: *mut taskqueue;
+    pub static mut net_epoch_task_limit: ::core::ffi::c_uint;
+    pub static mut bus_dma_bounce_impl: bus_dma_impl;
+    pub static mut arm64_bus_method: arm64_bus;
+    #[doc = " @brief Unique descriptor for the OFW_BUS_GET_DEVINFO() method"]
+    pub static mut ofw_bus_get_devinfo_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the OFW_BUS_GET_COMPAT() method"]
+    pub static mut ofw_bus_get_compat_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the OFW_BUS_GET_MODEL() method"]
+    pub static mut ofw_bus_get_model_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the OFW_BUS_GET_NAME() method"]
+    pub static mut ofw_bus_get_name_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the OFW_BUS_GET_NODE() method"]
+    pub static mut ofw_bus_get_node_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the OFW_BUS_GET_TYPE() method"]
+    pub static mut ofw_bus_get_type_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the OFW_BUS_MAP_INTR() method"]
+    pub static mut ofw_bus_map_intr_desc: kobjop_desc;
+    pub static mut simplebus_driver: kobj_class;
+    pub static mut ktr_cpumask: cpuset_t;
+    pub static mut ktr_mask: u64;
+    pub static mut ktr_entries: ::core::ffi::c_int;
+    pub static mut ktr_verbose: ::core::ffi::c_int;
+    pub static mut ktr_idx: ::core::ffi::c_int;
+    pub static mut ktr_buf: *mut ktr_entry;
+    pub static mut power_stype_names: [[::core::ffi::c_char; 16usize]; 6usize];
+    pub static mut power_standby_stype: power_stype;
+    pub static mut power_suspend_stype: power_stype;
+    pub static mut power_hibernate_stype: power_stype;
+    pub static vnops: fileops;
+    pub static badfileops: fileops;
+    pub static path_fileops: fileops;
+    pub static socketops: fileops;
+    pub static mut maxfiles: ::core::ffi::c_int;
+    pub static mut maxfilesperproc: ::core::ffi::c_int;
+    pub static shm_ops: fileops;
+    pub static mut sysctl__children: sysctl_oid_list;
+    pub static mut sysctl___kern: sysctl_oid;
+    pub static mut sysctl___kern_features: sysctl_oid;
+    pub static mut sysctl___kern_ipc: sysctl_oid;
+    pub static mut sysctl___kern_proc: sysctl_oid;
+    pub static mut sysctl___kern_sched: sysctl_oid;
+    pub static mut sysctl___kern_sched_stats: sysctl_oid;
+    pub static mut sysctl___sysctl: sysctl_oid;
+    pub static mut sysctl___vm: sysctl_oid;
+    pub static mut sysctl___vm_stats: sysctl_oid;
+    pub static mut sysctl___vm_stats_misc: sysctl_oid;
+    pub static mut sysctl___vfs: sysctl_oid;
+    pub static mut sysctl___net: sysctl_oid;
+    pub static mut sysctl___debug: sysctl_oid;
+    pub static mut sysctl___debug_sizeof: sysctl_oid;
+    pub static mut sysctl___dev: sysctl_oid;
+    pub static mut sysctl___hw: sysctl_oid;
+    pub static mut sysctl___hw_bus: sysctl_oid;
+    pub static mut sysctl___hw_bus_devices: sysctl_oid;
+    pub static mut sysctl___machdep: sysctl_oid;
+    pub static mut sysctl___machdep_mitigations: sysctl_oid;
+    pub static mut sysctl___user: sysctl_oid;
+    pub static mut sysctl___compat: sysctl_oid;
+    pub static mut sysctl___regression: sysctl_oid;
+    pub static mut sysctl___security: sysctl_oid;
+    pub static mut sysctl___security_bsd: sysctl_oid;
+    pub static machine: [::core::ffi::c_char; 0usize];
+    pub static osrelease: [::core::ffi::c_char; 0usize];
+    pub static ostype: [::core::ffi::c_char; 0usize];
+    pub static kern_ident: [::core::ffi::c_char; 0usize];
+    pub static mut kernel_pmap_store: pmap;
+    pub static mut pmap_lpa_enabled: bool_;
+    pub static mut virtual_avail: vm_offset_t;
+    pub static mut virtual_end: vm_offset_t;
+    pub static mut pmap_sh_attr: pt_entry_t;
+    pub static mut prot_ns_shared_pa: u64;
+    pub static mut pmap_clean_stage2_tlbi: ::core::option::Option<unsafe extern "C" fn()>;
+    pub static mut pmap_stage2_invalidate_range: ::core::option::Option<
+        unsafe extern "C" fn(arg1: u64, arg2: vm_offset_t, arg3: vm_offset_t, arg4: bool_),
+    >;
+    pub static mut pmap_stage2_invalidate_all:
+        ::core::option::Option<unsafe extern "C" fn(arg1: u64)>;
+    pub static mut kernel_vm_end: vm_offset_t;
+    pub static mut snd_pcm_syncgroups_mtx: mtx;
+    pub static mut snd_pcm_syncgroups: pcm_synclist;
+    #[doc = " @brief Unique descriptor for the CHANNEL_INIT() method"]
+    pub static mut channel_init_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the CHANNEL_FREE() method"]
+    pub static mut channel_free_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the CHANNEL_RESET() method"]
+    pub static mut channel_reset_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the CHANNEL_RESETDONE() method"]
+    pub static mut channel_resetdone_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the CHANNEL_SETFORMAT() method"]
+    pub static mut channel_setformat_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the CHANNEL_SETSPEED() method"]
+    pub static mut channel_setspeed_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the CHANNEL_SETBLOCKSIZE() method"]
+    pub static mut channel_setblocksize_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the CHANNEL_SETFRAGMENTS() method"]
+    pub static mut channel_setfragments_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the CHANNEL_TRIGGER() method"]
+    pub static mut channel_trigger_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the CHANNEL_GETPTR() method"]
+    pub static mut channel_getptr_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the CHANNEL_GETCAPS() method"]
+    pub static mut channel_getcaps_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the CHANNEL_NOTIFY() method"]
+    pub static mut channel_notify_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the CHANNEL_GETPEAKS() method"]
+    pub static mut channel_getpeaks_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the CHANNEL_GETRATES() method"]
+    pub static mut channel_getrates_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the CHANNEL_GETMATRIX() method"]
+    pub static mut channel_getmatrix_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the CHANNEL_SETMATRIX() method"]
+    pub static mut channel_setmatrix_desc: kobjop_desc;
+    pub static mut chn_latency: ::core::ffi::c_int;
+    pub static mut chn_latency_profile: ::core::ffi::c_int;
+    pub static mut report_soft_formats: ::core::ffi::c_int;
+    pub static mut report_soft_matrix: ::core::ffi::c_int;
+    pub static mut feeder_rate_min: ::core::ffi::c_int;
+    pub static mut feeder_rate_max: ::core::ffi::c_int;
+    pub static mut feeder_rate_round: ::core::ffi::c_int;
+    pub static mut feeder_rate_quality: ::core::ffi::c_int;
+    pub static mut snd_unit: ::core::ffi::c_int;
+    pub static mut snd_verbose: ::core::ffi::c_int;
+    pub static mut pcm_devclass: devclass_t;
+    pub static mut pcmsg_unrhdr: *mut unrhdr;
+    pub static mut sysctl___hw_snd: sysctl_oid;
+    #[doc = " @brief Unique descriptor for the MIXER_INIT() method"]
+    pub static mut mixer_init_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the MIXER_REINIT() method"]
+    pub static mut mixer_reinit_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the MIXER_UNINIT() method"]
+    pub static mut mixer_uninit_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the MIXER_SET() method"]
+    pub static mut mixer_set_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the MIXER_SETRECSRC() method"]
+    pub static mut mixer_setrecsrc_desc: kobjop_desc;
+    pub static mut inetdomain: domain;
+    pub static mut inet6domain: domain;
+    pub static cap_accept_rights: cap_rights_t;
+    pub static cap_bind_rights: cap_rights_t;
+    pub static cap_connect_rights: cap_rights_t;
+    pub static cap_event_rights: cap_rights_t;
+    pub static cap_fchdir_rights: cap_rights_t;
+    pub static cap_fchflags_rights: cap_rights_t;
+    pub static cap_fchmod_rights: cap_rights_t;
+    pub static cap_fchown_rights: cap_rights_t;
+    pub static cap_fchroot_rights: cap_rights_t;
+    pub static cap_fcntl_rights: cap_rights_t;
+    pub static cap_fexecve_rights: cap_rights_t;
+    pub static cap_flock_rights: cap_rights_t;
+    pub static cap_fpathconf_rights: cap_rights_t;
+    pub static cap_fstat_rights: cap_rights_t;
+    pub static cap_fstatfs_rights: cap_rights_t;
+    pub static cap_fsync_rights: cap_rights_t;
+    pub static cap_ftruncate_rights: cap_rights_t;
+    pub static cap_futimes_rights: cap_rights_t;
+    pub static cap_getpeername_rights: cap_rights_t;
+    pub static cap_getsockopt_rights: cap_rights_t;
+    pub static cap_getsockname_rights: cap_rights_t;
+    pub static cap_inotify_add_rights: cap_rights_t;
+    pub static cap_inotify_rm_rights: cap_rights_t;
+    pub static cap_ioctl_rights: cap_rights_t;
+    pub static cap_linkat_source_rights: cap_rights_t;
+    pub static cap_linkat_target_rights: cap_rights_t;
+    pub static cap_listen_rights: cap_rights_t;
+    pub static cap_mkdirat_rights: cap_rights_t;
+    pub static cap_mkfifoat_rights: cap_rights_t;
+    pub static cap_mknodat_rights: cap_rights_t;
+    pub static cap_mmap_rights: cap_rights_t;
+    pub static cap_no_rights: cap_rights_t;
+    pub static cap_pddupfd_rights: cap_rights_t;
+    pub static cap_pdgetpid_rights: cap_rights_t;
+    pub static cap_pdkill_rights: cap_rights_t;
+    pub static cap_pdwait_rights: cap_rights_t;
+    pub static cap_pread_rights: cap_rights_t;
+    pub static cap_ptrace_rights: cap_rights_t;
+    pub static cap_pwrite_rights: cap_rights_t;
+    pub static cap_read_rights: cap_rights_t;
+    pub static cap_recv_rights: cap_rights_t;
+    pub static cap_renameat_source_rights: cap_rights_t;
+    pub static cap_renameat_target_rights: cap_rights_t;
+    pub static cap_seek_rights: cap_rights_t;
+    pub static cap_send_rights: cap_rights_t;
+    pub static cap_send_connect_rights: cap_rights_t;
+    pub static cap_setsockopt_rights: cap_rights_t;
+    pub static cap_shutdown_rights: cap_rights_t;
+    pub static cap_symlinkat_rights: cap_rights_t;
+    pub static cap_unlinkat_rights: cap_rights_t;
+    pub static cap_write_rights: cap_rights_t;
+    pub static mut M_ACCF: [malloc_type; 1usize];
+    pub static mut M_PCB: [malloc_type; 1usize];
+    pub static mut M_SONAME: [malloc_type; 1usize];
+    pub static mut maxsockets: ::core::ffi::c_int;
+    pub static mut sb_max: u_long;
+    pub static mut so_gencnt: so_gen_t;
+    #[doc = " @brief Unique descriptor for the GPIO_GET_BUS() method"]
+    pub static mut gpio_get_bus_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the GPIO_PIN_MAX() method"]
+    pub static mut gpio_pin_max_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the GPIO_PIN_SET() method"]
+    pub static mut gpio_pin_set_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the GPIO_PIN_GET() method"]
+    pub static mut gpio_pin_get_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the GPIO_PIN_TOGGLE() method"]
+    pub static mut gpio_pin_toggle_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the GPIO_PIN_GETCAPS() method"]
+    pub static mut gpio_pin_getcaps_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the GPIO_PIN_GETFLAGS() method"]
+    pub static mut gpio_pin_getflags_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the GPIO_PIN_GETNAME() method"]
+    pub static mut gpio_pin_getname_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the GPIO_PIN_SETFLAGS() method"]
+    pub static mut gpio_pin_setflags_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the GPIO_MAP_GPIOS() method"]
+    pub static mut gpio_map_gpios_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the GPIO_PIN_ACCESS_32() method"]
+    pub static mut gpio_pin_access_32_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the GPIO_PIN_CONFIG_32() method"]
+    pub static mut gpio_pin_config_32_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the GPIO_GET_PIN_LIST() method"]
+    pub static mut gpio_get_pin_list_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the PIC_ACTIVATE_INTR() method"]
+    pub static mut pic_activate_intr_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the PIC_BIND_INTR() method"]
+    pub static mut pic_bind_intr_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the PIC_DISABLE_INTR() method"]
+    pub static mut pic_disable_intr_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the PIC_ENABLE_INTR() method"]
+    pub static mut pic_enable_intr_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the PIC_MAP_INTR() method"]
+    pub static mut pic_map_intr_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the PIC_DEACTIVATE_INTR() method"]
+    pub static mut pic_deactivate_intr_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the PIC_SETUP_INTR() method"]
+    pub static mut pic_setup_intr_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the PIC_TEARDOWN_INTR() method"]
+    pub static mut pic_teardown_intr_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the PIC_POST_FILTER() method"]
+    pub static mut pic_post_filter_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the PIC_POST_ITHREAD() method"]
+    pub static mut pic_post_ithread_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the PIC_PRE_ITHREAD() method"]
+    pub static mut pic_pre_ithread_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the PIC_INIT_SECONDARY() method"]
+    pub static mut pic_init_secondary_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the PIC_IPI_SEND() method"]
+    pub static mut pic_ipi_send_desc: kobjop_desc;
+    #[doc = " @brief Unique descriptor for the PIC_IPI_SETUP() method"]
+    pub static mut pic_ipi_setup_desc: kobjop_desc;
+    pub static mut memmap_bus: bus_space;
 }
