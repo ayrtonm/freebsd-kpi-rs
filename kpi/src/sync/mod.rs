@@ -72,7 +72,7 @@ impl<T> OnceInit<T> {
         }
     }
 
-    pub fn init(&self, t: T) -> &mut T {
+    pub fn init(&self, t: T) -> &T {
         // Claim exclusive right to write `t`. This alone doesn't need to publish anything to
         // readers yet, since the state isn't COMPLETE until after the write below.
         if self
@@ -87,7 +87,7 @@ impl<T> OnceInit<T> {
         {
             panic!("already init {:?}", type_name::<T>());
         }
-        let r = unsafe { self.t.get().as_mut().unwrap().write(t) };
+        let r = &*unsafe { self.t.get().as_mut().unwrap().write(t) };
         // Release-pairs with the Acquire load in try_get() so the write above is visible to any
         // thread that observes COMPLETE.
         self.state.store(ONCE_INIT_COMPLETE, Ordering::Release);
@@ -111,8 +111,8 @@ impl<T> OnceInit<T> {
     }
 }
 
-unsafe impl<T: Sync> Sync for OnceInit<T> {}
-unsafe impl<T: Sync + Send> Send for OnceInit<T> {}
+unsafe impl<T: Sync + Send> Sync for OnceInit<T> {}
+unsafe impl<T: Send> Send for OnceInit<T> {}
 
 // TODO: document that this is for safe mutable access i.e. not Unchecked
 pub trait Mutable<T> {
@@ -155,20 +155,19 @@ pub struct Checked<T> {
 
 impl<T: Debug> Debug for Checked<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        // Just read the pointer and don't overcomplicate things. There may be mutable references to
-        // the pointee so this is a best effort thing and may not be fully reliable, but it avoids
-        // panics (as self.get_mut() might) while being informative.
-        let t = unsafe { ptr::read(self.t.get()) };
-        f.debug_struct("Checked")
-            .field("t", &t)
-            .field("borrowed", &self.borrowed)
-            .finish()
+        let mut res = f.debug_struct("Checked");
+        if self.borrowed.compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed).is_ok() {
+            let guard = CheckedGuard { value: self.t.get(), borrowed: &self.borrowed };
+            res.field("t", &*guard);
+        } else {
+            res.field("t", &"<borrowed>");
+        }
+        res.finish()
     }
 }
 
+// Send for Checked<T> is automatically derived
 unsafe impl<T: Send> Sync for Checked<T> {}
-
-unsafe impl<T: Send> Send for Checked<T> {}
 
 impl<T> Checked<T> {
     /// Creates a new `Checked<T>`
@@ -238,6 +237,10 @@ impl<T: ?Sized> Drop for CheckedGuard<'_, T> {
         self.borrowed.store(false, Ordering::Release);
     }
 }
+
+// CheckedGuard mostly matches MutexGuard, but because it doesn't go through the mtx KPI it can move between threads (impl Send)
+unsafe impl<T: ?Sized + Send> Send for CheckedGuard<'_, T> {}
+unsafe impl<T: ?Sized + Sync> Sync for CheckedGuard<'_, T> {}
 
 #[derive(Default)]
 pub struct Unchecked<T> {
