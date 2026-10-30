@@ -123,6 +123,20 @@ impl Drop for Callout {
     }
 }
 
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct Channel(u8);
+
+impl Channel {
+    pub const fn new() -> Self {
+        Self(0)
+    }
+    pub fn get_ptr(&self) -> *mut c_void {
+        let ptr = &raw const self.0;
+        ptr.cast::<c_void>().cast_mut()
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Priority(pub i32);
 
@@ -269,29 +283,27 @@ pub mod wrappers {
         Ok(())
     }
 
-    pub fn tsleep<T>(
-        chan: &T,
+    pub fn tsleep(
+        chan: &Channel,
         new_priority: Option<Priority>,
         wmesg: &CStr,
         timo: i32,
     ) -> Result<()> {
-        let chan_ptr = ptr::from_ref(chan);
         let wmesg_ptr = wmesg.as_ptr();
         let priority = match new_priority {
             Some(Priority(p)) => p,
             None => 0,
         };
         let res =
-            unsafe { bindings::fn_tsleep(chan_ptr.cast::<c_void>(), priority, wmesg_ptr, timo) };
+            unsafe { bindings::fn_tsleep(chan.get_ptr(), priority, wmesg_ptr, timo) };
         if res != 0 {
             return Err(ErrCode::from(res));
         }
         Ok(())
     }
 
-    pub fn wakeup<T>(chan: &T) {
-        let chan_ptr = ptr::from_ref(chan);
-        unsafe { bindings::wakeup(chan_ptr.cast::<c_void>()) }
+    pub fn wakeup(chan: &Channel) {
+        unsafe { bindings::wakeup(chan.get_ptr()) }
     }
 }
 

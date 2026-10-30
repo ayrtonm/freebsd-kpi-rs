@@ -34,6 +34,7 @@ use core::ffi::{CStr, c_int, c_void};
 use core::mem::drop;
 use core::ops::{Deref, DerefMut};
 use core::marker::PhantomPinned;
+use crate::intr::Channel;
 
 pub struct SxSharedGuard<'a, T> {
     lock: &'a SxLock<T>,
@@ -133,8 +134,8 @@ pub mod wrappers {
         SxExclusiveGuard { lock }
     }
 
-    pub fn sx_sleep<'a, T, C>(
-        chan: &C,
+    pub fn sx_sleep<'a, T>(
+        chan: &Channel,
         guard: SxExclusiveGuard<'a, T>,
         pri: c_int,
         wmesg: &CStr,
@@ -147,7 +148,7 @@ pub mod wrappers {
 
         let res = unsafe {
             bindings::fn_sx_sleep(
-                (chan as *const C).cast::<c_void>().cast_mut(),
+                chan.get_ptr(),
                 sx_ptr,
                 pri,
                 wmesg.as_ptr(),

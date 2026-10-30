@@ -29,6 +29,7 @@
 use crate::ErrCode;
 use crate::bindings::{MTX_DEF, MTX_SPIN, mtx};
 use crate::prelude::*;
+use crate::intr::Channel;
 use crate::sync::Mutable;
 use core::cell::UnsafeCell;
 use core::ffi::{CStr, c_int, c_void};
@@ -259,8 +260,8 @@ pub mod wrappers {
         SpinLockGuard { lock: mutex }
     }
 
-    pub fn mtx_sleep<'a, T, C>(
-        chan: &C,
+    pub fn mtx_sleep<'a, T>(
+        chan: &Channel,
         guard: MutexGuard<'a, T>,
         pri: c_int,
         wmesg: &CStr,
@@ -274,7 +275,7 @@ pub mod wrappers {
 
         let res = unsafe {
             bindings::_sleep(
-                (chan as *const C).cast::<c_void>(),
+                chan.get_ptr(),
                 lock_obj_ptr,
                 pri,
                 wmesg.as_ptr(),
@@ -295,8 +296,8 @@ pub mod wrappers {
         (new_guard, result)
     }
 
-    pub fn mtx_sleep_spin<'a, T, C>(
-        chan: &C,
+    pub fn mtx_sleep_spin<'a, T>(
+        chan: &Channel,
         guard: SpinLockGuard<'a, T>,
         wmesg: &CStr,
         timo: i32,
@@ -308,7 +309,7 @@ pub mod wrappers {
 
         let res = unsafe {
             bindings::msleep_spin_sbt(
-                (chan as *const C).cast::<c_void>(),
+                chan.get_ptr(),
                 mtx_ptr,
                 wmesg.as_ptr(),
                 bindings::tick_sbt * timo as i64,

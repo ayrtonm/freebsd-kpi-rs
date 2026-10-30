@@ -17,6 +17,7 @@ use kpi::ErrCode;
 use kpi::boxed::Box;
 use kpi::cdev::{CDevSw, MakeDevArgs, UioRef};
 use kpi::ffi::{Ptr, Softc};
+use kpi::intr::Channel;
 use kpi::misc::Thread;
 use kpi::module::Module;
 use kpi::sync::Checked;
@@ -44,6 +45,7 @@ define_projectable! {
     #[derive(Default)]
     pub struct EchoDevSoftc {
         state: SxLock<EchoDevState>,
+        chan: Channel,
     }
 }
 
@@ -96,7 +98,7 @@ impl CDevSw for EchoDev {
             let mut state = sx_xlock(&sc.state);
             state.writers -= 1;
             if state.writers == 0 {
-                wakeup(&sc.state);
+                wakeup(&sc.chan);
             }
             sx_xunlock(state);
         }
@@ -117,7 +119,7 @@ impl CDevSw for EchoDev {
             } else if ioflag & bindings::O_NONBLOCK != 0 {
                 Err(EWOULDBLOCK)
             } else {
-                let (new_guard, res) = sx_sleep(sc, state, bindings::PCATCH, c"echord", 0);
+                let (new_guard, res) = sx_sleep(&sc.chan, state, bindings::PCATCH, c"echord", 0);
                 state = new_guard;
                 res
             };
@@ -134,7 +136,7 @@ impl CDevSw for EchoDev {
         if res.is_ok() {
             /* Wakeup any waiting writers. */
             if state.valid == state.buf.len() {
-                wakeup(&sc.state);
+                wakeup(&sc.chan);
             }
             state.valid -= todo;
             // Do a memmove from state.buf[todo..todo + state.valid] to state.buf[0..state.valid]
@@ -169,7 +171,7 @@ impl CDevSw for EchoDev {
                 } else if ioflag & bindings::O_NONBLOCK != 0 {
                     Err(EWOULDBLOCK)
                 } else {
-                    let (new_guard, res) = sx_sleep(sc, state, bindings::PCATCH, c"echowr", 0);
+                    let (new_guard, res) = sx_sleep(&sc.chan, state, bindings::PCATCH, c"echowr", 0);
                     state = new_guard;
                     res
                 };
@@ -184,7 +186,7 @@ impl CDevSw for EchoDev {
             if res.is_ok() {
                 /* Wakeup any waiting readers. */
                 if state.valid == 0 {
-                    //wakeup(sc);
+                    wakeup(&sc.chan);
                 }
                 state.valid += todo;
                 // selwakeup()
@@ -280,7 +282,7 @@ impl Module for EchoDev {
         let sc = ECHODEV.get_mut().take().unwrap();
         let mut state = sx_xlock(&sc.state);
         state.dying = true;
-        wakeup(&sc.state);
+        wakeup(&sc.chan);
         sx_xunlock(state);
         // Give ownership of the Ptr to destroy_dev. This will wait for all cdevsw operations to
         // stop, check that there are no other remaining leases to the softc and finally drop
