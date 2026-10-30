@@ -39,6 +39,7 @@
 #include <sys/bus.h>
 #include <sys/cpuset.h>
 #include <sys/fcntl.h>
+#include <sys/firmware.h>
 #ifdef INTRNG
 #include <sys/intr.h>
 #endif
@@ -126,7 +127,7 @@ int apple_smc_pin_set(device_t dev, uint32_t pin, uint32_t value);
 #include <dev/hid/hidquirk.h>
 #include "hid_if.h"
 
-#include <arm64/apple/apple_bindings.h>
+#include <arm64/apple/apple_sart.h>
 #include <dt-bindings/interrupt-controller/apple-aic.h>
 #include "nvme_if.h"
 #endif
