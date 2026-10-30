@@ -234,7 +234,7 @@ impl<T, M: Malloc> Vec<T, M> {
     }
 
     pub fn try_into_boxed_slice(mut self, _flags: MallocFlags) -> Result<Box<[T], M>> {
-        if self.len != self.capacity {
+        if self.len != self.capacity || self.len == 0 {
             return Err(EDOOFUS);
         }
         let fat_ptr = ptr::from_mut(self.deref_mut());
