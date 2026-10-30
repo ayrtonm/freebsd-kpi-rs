@@ -161,18 +161,30 @@ impl<M: Malloc> CString<M> {
     }
 
     pub fn push(&mut self, b: u8) -> Result<()> {
-        if self.0.push(b).is_none() {
-            return Ok(());
+        match self.0.last_mut() {
+            Some(null_byte) => { *null_byte = b; }
+            None => {
+                let res = self.0.push(b);
+                if res.is_some() {
+                    return Err(ENOBUFS);
+                }
+            }
         }
-        Err(ENOBUFS)
+        let res = self.0.push(0);
+        if res.is_some() {
+            return Err(ENOBUFS);
+        }
+
+        Ok(())
     }
 
     pub fn pop(&mut self, n: usize) {
-        for _ in 0..n {
+        for _ in 0..n + 1 {
             if self.0.pop().is_none() {
                 return;
             }
         }
+        assert!(self.0.push(0).is_none());
     }
 
     pub fn push_c_str(&mut self, other: &CStr) -> usize {
