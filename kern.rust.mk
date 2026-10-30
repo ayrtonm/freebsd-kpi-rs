@@ -80,6 +80,7 @@ RUSTFLAGS+= -Ccode-model=kernel \
 BINDGEN_DEPS= bindgen.d
 BINDGEN_GENERATED_SRC= bindgen_inlines.c
 BINDGEN_INLINE_SRC= inlines.c
+CWARNFLAGS.${BINDGEN_INLINE_SRC}+= -Wno-duplicate-decl-specifier -Wno-incompatible-pointer-types-discards-qualifiers
 BINDGEN_FLAGS= \
 	--use-core \
 	--depfile ${BINDGEN_DEPS} \
