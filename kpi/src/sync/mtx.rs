@@ -32,6 +32,7 @@ use crate::prelude::*;
 use crate::sync::Mutable;
 use core::cell::UnsafeCell;
 use core::ffi::{CStr, c_int, c_void};
+use core::marker::PhantomData;
 use core::mem::{MaybeUninit, drop};
 use core::ops::{Deref, DerefMut};
 use core::pin::Pin;
@@ -39,7 +40,13 @@ use core::ptr::null_mut;
 
 pub struct MutexGuard<'a, T> {
     lock: &'a Mutex<T>,
+    // Alternative to `impl !Send for MutexGuard {}`
+    _marker: PhantomData<*const ()>,
 }
+
+// TODO: Replace _marker field with this once negative_impls are stable
+//impl<'a, T> !Send for MutexGuard<'a, T> {}
+unsafe impl<'a, T: Sync> Sync for MutexGuard<'a, T> {}
 
 impl<T> Deref for MutexGuard<'_, T> {
     type Target = T;
@@ -238,7 +245,7 @@ pub mod wrappers {
         unsafe {
             bindings::fn_mtx_lock(mtx_ptr);
         };
-        MutexGuard { lock: mutex }
+        MutexGuard { lock: mutex, _marker: PhantomData }
     }
     pub fn mtx_lock_spin<T>(mutex: &SpinLock<T>) -> SpinLockGuard<'_, T> {
         let mtx_impl = &mutex.mtx_impl;
@@ -275,7 +282,7 @@ pub mod wrappers {
             )
         };
 
-        let new_guard = MutexGuard { lock };
+        let new_guard = MutexGuard { lock, _marker: PhantomData };
 
         let result = if res != 0 {
             Err(ErrCode::from(res))
