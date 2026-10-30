@@ -35,7 +35,7 @@ use core::alloc::Layout;
 use core::ffi::c_void;
 use core::fmt::{Debug, Formatter};
 use core::marker::PhantomData;
-use core::mem::{forget, replace};
+use core::mem::{forget, replace, ManuallyDrop};
 use core::ops::{Deref, DerefMut};
 use core::ptr::{NonNull, drop_in_place, read, write};
 use core::{fmt, ptr, slice};
@@ -319,7 +319,18 @@ unsafe impl<T: Send, M: Malloc> Send for Vec<T, M> {}
 
 pub struct VecDeque<T, M: Malloc = M_DEVBUF> {
     head: usize,
-    vec: Vec<T, M>,
+    vec: ManuallyDrop<Vec<T, M>>,
+}
+
+impl<T, M: Malloc> Drop for VecDeque<T, M> {
+    fn drop(&mut self) {
+        for n in self.head..self.vec.len {
+            unsafe {
+                drop_in_place(self.vec.as_mut_ptr().add(n));
+            }
+        }
+        unsafe { free(self.vec.as_mut_ptr().cast::<c_void>(), M::malloc_type()) }
+    }
 }
 
 impl<T: Debug, M: Malloc> Debug for VecDeque<T, M> {
@@ -335,14 +346,14 @@ impl<T, M: Malloc> VecDeque<T, M> {
     pub const fn new() -> Self {
         Self {
             head: 0,
-            vec: Vec::new(),
+            vec: ManuallyDrop::new(Vec::new()),
         }
     }
 
     pub fn with_capacity(capacity: usize, flags: MallocFlags) -> Self {
         Self {
             head: 0,
-            vec: Vec::with_capacity(capacity, flags),
+            vec: ManuallyDrop::new(Vec::with_capacity(capacity, flags)),
         }
     }
 
