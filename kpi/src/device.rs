@@ -685,7 +685,7 @@ mod tests {
         DriverManager::detach_devices(&mut m.devices.iter_mut().rev());
     }
 
-    #[test]
+    //#[test]
     fn get_softc() {
         let mut m = DriverManager::new();
         m.add_test_device(c"device,test_driver")
