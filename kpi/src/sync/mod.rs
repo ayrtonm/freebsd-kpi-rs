@@ -247,6 +247,17 @@ pub struct Unchecked<T> {
     t: UnsafeCell<T>,
 }
 
+impl<T> Debug for Unchecked<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        // Reading the contents would need the caller's guarantee of exclusive access
+        f.debug_struct("Unchecked").finish_non_exhaustive()
+    }
+}
+
+// All access to the contents goes through unsafe fns whose callers guarantee there are no
+// conflicting accesses, so sharing an Unchecked<T> between threads is as safe as sending a T.
+unsafe impl<T: Send> Sync for Unchecked<T> {}
+
 impl<T> Unchecked<T> {
     pub const fn new(t: T) -> Self {
         Self {

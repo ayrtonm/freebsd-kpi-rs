@@ -208,7 +208,9 @@ impl<'a, T> UninitPtr<'a, T> {
         let sc_ptr = self.0.as_mut_ptr();
 
         unsafe {
-            (*sc_ptr).inner = t;
+            let inner_ptr = &raw mut (*sc_ptr).inner;
+            // Use the write method to avoid calling drop on the old (zeroed) softc value
+            inner_ptr.write(t);
         }
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*sc_ptr).count });
 
