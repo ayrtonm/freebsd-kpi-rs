@@ -32,7 +32,7 @@ use crate::prelude::*;
 use crate::sync::Mutable;
 use core::cell::UnsafeCell;
 use core::ffi::{CStr, c_int, c_void};
-use core::marker::PhantomData;
+use core::marker::{PhantomData, PhantomPinned};
 use core::mem::{MaybeUninit, drop};
 use core::ops::{Deref, DerefMut};
 use core::pin::Pin;
@@ -134,6 +134,7 @@ unsafe impl<T: Send> Sync for SpinLock<T> {}
 pub struct Mutex<T> {
     mtx_impl: MtxCommon,
     data: UnsafeCell<T>,
+    _marker: PhantomPinned,
 }
 
 impl<T> Mutex<T> {
@@ -142,6 +143,7 @@ impl<T> Mutex<T> {
         Self {
             mtx_impl,
             data: UnsafeCell::new(t),
+            _marker: PhantomPinned,
         }
     }
 

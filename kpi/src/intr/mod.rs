@@ -32,6 +32,7 @@ use crate::ffi::{Ptr, Softc};
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::ffi::{c_int, c_void};
+use core::marker::PhantomPinned;
 use core::mem::transmute;
 use core::pin::Pin;
 use core::ptr;
@@ -55,6 +56,7 @@ pub use intrng::*;
 #[derive(Debug, Default)]
 pub struct ConfigHook {
     inner: UnsafeCell<intr_config_hook>,
+    _marker: PhantomPinned,
 }
 
 unsafe impl Sync for ConfigHook {}
@@ -67,6 +69,7 @@ impl ConfigHook {
         let c_hook = intr_config_hook::default();
         Self {
             inner: UnsafeCell::new(c_hook),
+            _marker: PhantomPinned,
         }
     }
 

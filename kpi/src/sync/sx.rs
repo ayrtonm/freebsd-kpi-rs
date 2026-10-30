@@ -33,6 +33,7 @@ use core::cell::UnsafeCell;
 use core::ffi::{CStr, c_int, c_void};
 use core::mem::drop;
 use core::ops::{Deref, DerefMut};
+use core::marker::PhantomPinned;
 
 pub struct SxSharedGuard<'a, T> {
     lock: &'a SxLock<T>,
@@ -85,6 +86,7 @@ unsafe impl<T: Send + Sync> Sync for SxLock<T> {}
 pub struct SxLock<T> {
     inner: UnsafeCell<sx>,
     data: UnsafeCell<T>,
+    _marker: PhantomPinned,
 }
 
 impl<T> SxLock<T> {
@@ -92,6 +94,7 @@ impl<T> SxLock<T> {
         Self {
             inner: UnsafeCell::new(sx::default()),
             data: UnsafeCell::new(t),
+            _marker: PhantomPinned,
         }
     }
 
