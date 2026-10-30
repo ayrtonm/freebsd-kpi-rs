@@ -26,7 +26,7 @@
  * SUCH DAMAGE.
  */
 
-use crate::bindings::{_device, device_state_t, device_t, driver_t, kobjop_desc};
+use crate::bindings::{_device, device_state_t, device_t, driver_t, kobjop_desc, DS_ATTACHED};
 use crate::boxed::Box;
 use crate::driver::Driver;
 use crate::ffi::{ArrayCString, Ptr, Softc, UninitPtr};
@@ -362,6 +362,7 @@ pub mod wrappers {
     /// associated lifetime so the returned Ref has a matching lifetime. To use the softc past that
     /// scope, turn it into a lease using Ref::lease.
     pub fn device_get_softc<D: DeviceIf>(dev: Device<'_>) -> &Softc<D::Softc> {
+        assert!(device_get_state(dev) == DS_ATTACHED);
         assert!(device_matches_driver::<D>(dev));
         let void_ptr = unsafe { bindings::device_get_softc(dev.as_ptr()) };
         unsafe { void_ptr.cast::<Softc<D::Softc>>().as_ref().unwrap() }
