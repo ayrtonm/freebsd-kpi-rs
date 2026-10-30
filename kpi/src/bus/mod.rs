@@ -366,10 +366,11 @@ pub mod wrappers {
         rid: c_int,
         flags: ResFlags,
     ) -> Result<Resource> {
+        let mut rid = rid;
         // TODO: as u32 needed because bindgen flag makes macros default to signed, but RF_ACTIVE is
         // a bitfield. Ideally there'd be a heuristic for choosing signedness in cases like this
         let res =
-            unsafe { bindings::bus_alloc_resource_any(dev.as_ptr(), ty.0, rid, flags.0 as u32) };
+            unsafe { bindings::bus_alloc_resource_any(dev.as_ptr(), ty.0, &raw mut rid, flags.0 as u32) };
         if res.is_null() {
             Err(ENULLPTR)
         } else {
