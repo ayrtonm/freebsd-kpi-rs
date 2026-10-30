@@ -81,9 +81,25 @@ impl CDevSw for EchoDev {
     // softc. That returns a cdev that has a lifetime tied to the `Ref`/`Ptr` so there's no way
     // to stash away a copy of the cdev and use it after the device is destroyed.
     fn d_open(sc: &Softc<EchoDevSoftc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
+        if fflag & bindings::FWRITE != 0 {
+            let mut state = sx_xlock(&sc.state);
+            if state.writers == usize::MAX {
+                sx_xunlock(state);
+                return Err(EBUSY);
+            }
+            state.writers += 1;
+        }
         Ok(())
     }
     fn d_close(sc: &Softc<EchoDevSoftc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
+        if fflag & bindings::FWRITE != 0 {
+            let mut state = sx_xlock(&sc.state);
+            state.writers -= 1;
+            if state.writers == 0 {
+                wakeup(&sc.state);
+            }
+            sx_xunlock(state);
+        }
         Ok(())
     }
     fn d_read(sc: &Softc<EchoDevSoftc>, uio: UioRef, ioflag: c_int) -> Result<()> {
@@ -101,7 +117,9 @@ impl CDevSw for EchoDev {
             } else if ioflag & bindings::O_NONBLOCK != 0 {
                 Err(EWOULDBLOCK)
             } else {
-                unimplemented!("sx_sleep()")
+                let (new_guard, res) = sx_sleep(sc, state, bindings::PCATCH, c"echord", 0);
+                state = new_guard;
+                res
             };
             if res.is_err() {
                 // Unlock added for clarity, but not necessary since the lock gets unlocked when
@@ -116,7 +134,7 @@ impl CDevSw for EchoDev {
         if res.is_ok() {
             /* Wakeup any waiting writers. */
             if state.valid == state.buf.len() {
-                //wakeup(sc);
+                wakeup(&sc.state);
             }
             state.valid -= todo;
             // Do a memmove from state.buf[todo..todo + state.valid] to state.buf[0..state.valid]
@@ -151,7 +169,9 @@ impl CDevSw for EchoDev {
                 } else if ioflag & bindings::O_NONBLOCK != 0 {
                     Err(EWOULDBLOCK)
                 } else {
-                    unimplemented!("sx_sleep()")
+                    let (new_guard, res) = sx_sleep(sc, state, bindings::PCATCH, c"echowr", 0);
+                    state = new_guard;
+                    res
                 };
                 if res.is_err() {
                     sx_xunlock(state);
@@ -258,6 +278,10 @@ impl Module for EchoDev {
     fn on_unload(data: *mut c_void) -> Result<()> {
         // Take the lease we previously stored in ECHODEV out of the slot.
         let sc = ECHODEV.get_mut().take().unwrap();
+        let mut state = sx_xlock(&sc.state);
+        state.dying = true;
+        wakeup(&sc.state);
+        sx_xunlock(state);
         // Give ownership of the Ptr to destroy_dev. This will wait for all cdevsw operations to
         // stop, check that there are no other remaining leases to the softc and finally drop
         // (read: deallocate) the softc memory. If any cdevsw operation created a new lease (e.g. to
