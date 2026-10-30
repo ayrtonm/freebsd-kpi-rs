@@ -192,7 +192,7 @@ RUST_MAKEFILE= ${SRCTOP}/sys/rust/kern.rust.mk
 
 RUST_DEFAULT_DEP= ${RUST_KPI} ${RUST_CORE} ${RUST_FAKE_BUILTINS}
 # TODO: Use the depfile
-RLIB_RULE= ${RUSTC} ${RUSTFLAGS} -Cdebuginfo=full --crate-type rlib --sysroot=$(PWD)/${RUST_SYSROOT} -L. --emit link,dep-info=.depend.${.TARGET}
+RLIB_RULE= ${RUSTC} ${RUSTFLAGS} -Cdebuginfo=full --crate-type rlib --sysroot=${.OBJDIR}/${RUST_SYSROOT} -L. --emit link,dep-info=.depend.${.TARGET}
 
 NORMAL_R= ${RLIB_RULE} ${RUST_KPI_FEATURES} -o ${.TARGET} ${.ALLSRC:[1]} \
 	${.ALLSRC:T:Nlibcore.rlib:Nlibcompiler_builtins.rlib:M*.rlib:C/.rlib$//:C/^lib//:C/.*/--extern \0=lib\0.rlib/}
@@ -214,4 +214,4 @@ ${BINDINGS_RS}: ${SRCTOP}/sys/rust/bindings.h ${RUST_MAKEFILE}
 	${BINDGEN} ${BINDGEN_FLAGS} ${SRCTOP}/sys/rust/bindings.h -- ${CFLAGS} ${BINDGEN_DEFINES} > bindings.rs
 
 ${RUST_KPI}: ${RUST_FAKE_BUILTINS} ${BINDINGS_RS} ${RUST_KPI_SOURCES}
-	OUT_DIR=$(PWD) ${RLIB_RULE} --crate-name kpi ${RUST_KPI_FEATURES} ${SRCTOP}/sys/rust/kpi/src/lib.rs -o ${.TARGET}
+	OUT_DIR=${.OBJDIR} ${RLIB_RULE} --crate-name kpi ${RUST_KPI_FEATURES} ${SRCTOP}/sys/rust/kpi/src/lib.rs -o ${.TARGET}

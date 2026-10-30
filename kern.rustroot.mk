@@ -3,7 +3,7 @@ _LDFLAGS += --whole-archive
 RLIBS += ${RUST_KPI}
 
 .for rlib in ${RLIBS}
-.-include ".depend.${rlib}"
+.-include "${.OBJDIR}/.depend.${rlib}"
 .endfor
 
 ${RUSTROOT_RS}: ${RUST_MAKEFILE} ${RLIBS}
@@ -11,7 +11,7 @@ ${RUSTROOT_RS}: ${RUST_MAKEFILE} ${RLIBS}
 
 ${RUSTROOT_A}: ${RUSTROOT_RS} ${RUST_CORE} ${RUST_FAKE_BUILTINS} ${RLIBS}
 	${RUSTC} ${RUSTFLAGS} --crate-type staticlib -o ${RUSTROOT_A} ${RUSTROOT_RS} \
-		--sysroot=$(PWD)/${RUST_SYSROOT} ${RLIBS:C/.rlib//:C/^lib//:C/.*/--extern \0=lib\0.rlib/} \
+		--sysroot=${.OBJDIR}/${RUST_SYSROOT} ${RLIBS:C/.rlib//:C/^lib//:C/.*/--extern \0=lib\0.rlib/} \
 		-L.
 
 # Print the N largest stack frames in rustroot.a and error if any exceed the limit.
