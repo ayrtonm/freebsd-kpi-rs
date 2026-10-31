@@ -61,17 +61,12 @@ macro_rules! define_class {
             total_size: 0,
             total_size_inited: false,
             baseclasses: {
-                $crate::expand_if_something_or_else_null!({
-                    // expand to this
-                    const NUM_BASE_CLASSES: usize = [$(stringify!($($base_classes)*)),*].len();
+                    const NUM_BASE_CLASSES: usize = <[&str]>::len(&[$(stringify!($($base_classes)*)),*]);
                     static BASE_CLASSES: $crate::kobj::BaseClasses<{NUM_BASE_CLASSES + 1}> = $crate::kobj::BaseClasses(core::cell::UnsafeCell::new([
                         $(&raw mut $crate::bindings::$($base_classes)*,)*
                         core::ptr::null_mut(),
                     ]));
                     BASE_CLASSES.0.get().cast::<$crate::bindings::kobj_class_t>()
-                },
-                // if this is something
-                $($($base_classes)*)*)
             },
             refs: 0,
             ops: core::ptr::null_mut(),

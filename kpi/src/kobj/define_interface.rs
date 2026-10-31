@@ -46,17 +46,6 @@ macro_rules! from_bindings_if_c {
         $crate::bindings::$var_name
     };
 }
-/// Expands to an expression if $condition is passed in. Otherwise expands to null_mut()
-#[doc(hidden)]
-#[macro_export]
-macro_rules! expand_if_something_or_else_null {
-    ($thing:expr, ) => {
-        core::ptr::null_mut()
-    };
-    ($thing:expr, $($condition:tt)*) => {
-        $thing
-    };
-}
 
 // TODO: Make this macro unsafe (e.g. possibly by making AsRustType and AsCType unsafe) and specify
 // the exact rules one needs to follow. This may produce a giant number of errors if unsafe is
