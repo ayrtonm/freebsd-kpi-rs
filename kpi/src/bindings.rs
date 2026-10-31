@@ -35,7 +35,7 @@
     dead_code,
     unsafe_op_in_unsafe_fn
 )]
-#![cfg_attr(test, allow(invalid_runtime_symbol_definitions))]
+#![cfg_attr(feature = "std", allow(invalid_runtime_symbol_definitions))]
 
 pub type void = core::ffi::c_void;
 pub type char = core::ffi::c_char;
