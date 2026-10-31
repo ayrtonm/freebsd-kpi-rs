@@ -124,15 +124,21 @@ macro_rules! define_cdev {
 
         static $cdevsw_name: $cdev_ty = $cdev_ty(core::cell::UnsafeCell::new({
             use $crate::bindings::cdevsw;
+            use $cdevsw_name::*;
 
-            let mut res: cdevsw = unsafe { MaybeUninit::zeroed().assume_init() };
+            let mut res: cdevsw = unsafe { core::mem::MaybeUninit::zeroed().assume_init() };
             res.d_version = $crate::bindings::D_VERSION;
             let _ty_ck: &'static core::ffi::CStr = $driver_name;
             res.d_name = $driver_name.as_ptr();
             $(res.$trait_fn = Some($unmangled_name);)*
             res
         }));
-        $($crate::$trait_fn!($cdev_ty $unmangled_name);)*
+        mod $cdevsw_name {
+            use $crate::*;
+            use super::$cdev_ty;
+            use $crate::cdev::CDevSw;
+            $($trait_fn!($cdev_ty $unmangled_name);)*
+        }
     };
 }
 
@@ -287,6 +293,25 @@ pub mod wrappers {
             Err(ErrCode::from(res))
         } else {
             Ok(())
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    pub struct TestCDevSoftc;
+
+    impl CDevSw for TestCDev {
+        type Softc = TestCDevSoftc;
+    }
+
+    define_cdev! {
+        static test_cdevsw: TestCDev = {
+            d_name: c"test_cdev",
+            d_read: test_cdev_read,
+            d_write: test_cdev_write,
         }
     }
 }
