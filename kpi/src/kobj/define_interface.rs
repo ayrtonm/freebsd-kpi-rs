@@ -26,25 +26,11 @@
  * SUCH DAMAGE.
  */
 
-/// Expands to aif $condition is not passed in.
 #[doc(hidden)]
 #[macro_export]
-macro_rules! expand_if_not_c {
-    ($function:item, ) => {
-        $function
-    };
-    ($function:item, $condition:ident) => {};
-}
-
-#[doc(hidden)]
-#[macro_export]
-macro_rules! from_bindings_if_c {
-    ($var_name:ident, ) => {
-        $var_name
-    };
-    ($var_name:ident, $condition:ident) => {
-        $crate::bindings::$var_name
-    };
+macro_rules! if_c {
+    (C { $($c:tt)* } else { $($rust:tt)* }) => { $($c)* };
+    (  { $($c:tt)* } else { $($rust:tt)* }) => { $($rust)* };
 }
 
 // TODO: Make this macro unsafe (e.g. possibly by making AsRustType and AsCType unsafe) and specify

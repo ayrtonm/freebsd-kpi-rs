@@ -44,8 +44,7 @@ macro_rules! method_table {
             use core::mem::transmute;
             use $crate::bindings::kobj_method_t;
             use $crate::kobj::MethodTable;
-            use $crate::from_bindings_if_c;
-            use $crate::expand_if_not_c;
+            use $crate::if_c;
 
             // Import the class type
             use super::$class_ty;
@@ -83,7 +82,11 @@ macro_rules! method_table {
                     $(
                         {
                             let desc = &raw mut $if_fn!(get_desc);
-                            let func_as_ptr = from_bindings_if_c!($impl, $($lang)*) as *const ();
+                            let func_as_ptr = if_c!($($lang)? {
+                                $crate::bindings::$impl
+                            } else {
+                                $impl
+                            }) as *const ();
                             let func = unsafe { transmute::<*const (), MethodTableFn>(func_as_ptr) };
                             kobj_method_t { desc, func }
                         },
@@ -91,13 +94,13 @@ macro_rules! method_table {
                     // Add the method table's null-terminator
                     kobj_method_t { desc: null_mut(), func: None }
             ]));
-            $(expand_if_not_c! {
+            $(if_c! ($($lang)? {
+            } else {
                 // Invoke the interface function macro with two identifiers so it expands to the
                 // extern "C" functions that were inserted in the method table and call the
                 // corresponding interface trait methods
-                $if_fn!($class_ty $impl);,
-                $($lang)*
-            })*
+                $if_fn!($class_ty $impl);
+            });)*
         }
     };
 }
