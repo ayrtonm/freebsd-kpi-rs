@@ -65,7 +65,7 @@ macro_rules! method_table {
             // Import all macros and interfaces from extra imports
             $($(use $extra_imports::*;)*)*
 
-            const NUM_METHODS: usize = $crate::count!($($impl)*);
+            const NUM_METHODS: usize = [$(stringify!($impl)),*].len();
 
             type MethodTableFn = Option<unsafe extern "C" fn()>;
 

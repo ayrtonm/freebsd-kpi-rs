@@ -63,7 +63,8 @@ macro_rules! define_class {
             baseclasses: {
                 $crate::expand_if_something_or_else_null!({
                     // expand to this
-                    static BASE_CLASSES: $crate::kobj::BaseClasses<{$crate::count!($($($base_classes)*)*) + 1 }> = $crate::kobj::BaseClasses(core::cell::UnsafeCell::new([
+                    const NUM_BASE_CLASSES: usize = [$(stringify!($($base_classes)*)),*].len();
+                    static BASE_CLASSES: $crate::kobj::BaseClasses<{NUM_BASE_CLASSES + 1}> = $crate::kobj::BaseClasses(core::cell::UnsafeCell::new([
                         $(&raw mut $crate::bindings::$($base_classes)*,)*
                         core::ptr::null_mut(),
                     ]));

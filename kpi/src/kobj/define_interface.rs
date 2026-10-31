@@ -58,21 +58,6 @@ macro_rules! expand_if_something_or_else_null {
     };
 }
 
-/// Count the number of idents
-#[doc(hidden)]
-#[macro_export]
-macro_rules! count {
-    () => {
-        0
-    };
-    ($x:ident) => {
-        1
-    };
-    ($x:ident $($y:ident)*) => {
-        1 + $crate::count!($($y)*)
-    };
-}
-
 // TODO: Make this macro unsafe (e.g. possibly by making AsRustType and AsCType unsafe) and specify
 // the exact rules one needs to follow. This may produce a giant number of errors if unsafe is
 // omitted so another option might be to use rust diagnostics hacks to create a custom message
