@@ -2,7 +2,7 @@ name: Build aarch64 rust demo
 
 on:
   push:
-    branches: [ "demos" ]
+    branches: [ "main" ]
 
 jobs:
   build:
@@ -25,11 +25,11 @@ jobs:
         mkdir -p ../obj
         echo "MAKEOBJDIRPREFIX=${PWD%/*}/obj" >> $GITHUB_ENV
 
-    - name: Checkout FreeBSD src virtio branch
+    - name: Checkout FreeBSD src apple branch
       uses: actions/checkout@v5
       with:
         repository: ayrtonm/freebsd-src
-        ref: virtio
+        ref: apple
 
     - name: Checkout KPI repo
       uses: actions/checkout@v5
@@ -50,22 +50,9 @@ jobs:
     - name: Bootstrap bmake
       run: ./tools/build/make.py -j$NPROC $EXTRA_BUILD_ARGS TARGET=amd64 TARGET_ARCH=amd64 -n
 
-    - name: Build arm64 kernel toolchain
-      run: ./tools/build/make.py -j$NPROC $EXTRA_BUILD_ARGS kernel-toolchain \
+    - name: Build config(8) 
+      run: ./tools/build/make.py -j$NPROC $EXTRA_BUILD_ARGS _bootstrap-tools \
           KERNCONF=VIRT TARGET=arm64 TARGET_ARCH=aarch64
-
-    - name: Build virtio_snd driver for aarch64
-      run: |
-        RUSTC=`which rustc` \
-        RUSTFMT=`which rustfmt` \
-        BINDGEN=`which bindgen` \
-        ./tools/build/make.py --debug -j$NPROC $EXTRA_BUILD_ARGS buildkernel \
-          KERNCONF=VIRT NO_MODULES=yes TARGET=arm64 TARGET_ARCH=aarch64
-
-    - name: Checkout FreeBSD src apple branch
-      run: |
-        git fetch origin apple --depth 1
-        git checkout origin/apple
 
     - name: Build apple drivers
       run: |
