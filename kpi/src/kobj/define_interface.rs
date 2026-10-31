@@ -73,14 +73,6 @@ macro_rules! count {
     };
 }
 
-#[doc(hidden)]
-#[macro_export]
-macro_rules! get_first {
-    ($x:ident $($rest:ident)*) => {
-        $x
-    };
-}
-
 // TODO: Make this macro unsafe (e.g. possibly by making AsRustType and AsCType unsafe) and specify
 // the exact rules one needs to follow. This may produce a giant number of errors if unsafe is
 // omitted so another option might be to use rust diagnostics hacks to create a custom message
