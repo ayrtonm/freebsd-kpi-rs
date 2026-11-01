@@ -66,7 +66,11 @@ macro_rules! define_class {
                         $(&raw mut $crate::bindings::$($base_classes)*,)*
                         core::ptr::null_mut(),
                     ]));
-                    BASE_CLASSES.0.get().cast::<$crate::bindings::kobj_class_t>()
+                    if NUM_BASE_CLASSES == 0 {
+                        core::ptr::null_mut()
+                    } else {
+                        BASE_CLASSES.0.get().cast::<$crate::bindings::kobj_class_t>()
+                    }
             },
             refs: 0,
             ops: core::ptr::null_mut(),
