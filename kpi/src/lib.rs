@@ -105,7 +105,7 @@ pub mod tty;
 pub mod vec;
 
 const _VERSION_CHECK: () = {
-    if bindings::__FreeBSD_version / 100000 != 16 {
+    if bindings::__FreeBSD_version / 100000 != 15 {
         panic!(
             "The FreeBSD versions for src and the rust kpi repo don't match. In the kpi repo check out the `releng/15.1` branch or `main` for tip of tree"
         )
