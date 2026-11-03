@@ -102,6 +102,12 @@ pub mod tty;
 /// The `Vec` type to manage a contiguous growable array on the heap
 pub mod vec;
 
+const _VERSION_CHECK: () = {
+    if bindings::__FreeBSD_version / 100000 != 16 {
+        panic!("Found unexpected value for `#define __FreeBSD_version`");
+    };
+};
+
 #[doc(hidden)]
 #[macro_export]
 macro_rules! define_stub_syms {
