@@ -103,7 +103,7 @@ pub mod tty;
 pub mod vec;
 
 const _VERSION_CHECK: () = {
-    if bindings::__FreeBSD_version / 100000 != 16 {
+    if bindings::__FreeBSD_version / 100000 != 15 {
         panic!("Found unexpected value for `#define __FreeBSD_version`");
     };
 };
