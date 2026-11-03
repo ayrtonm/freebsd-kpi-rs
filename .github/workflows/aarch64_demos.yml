@@ -63,7 +63,7 @@ jobs:
         RUSTFMT=`which rustfmt` \
         BINDGEN=`which bindgen` \
         XNM=`which nm` \
-        XOBJCOPY=`which objcopy` \
+        XOBJCOPY=/usr/lib/llvm-18/bin/llvm-objcopy \
         XSIZE=`which size` \
         ./tools/build/make.py --debug -j$NPROC $EXTRA_BUILD_ARGS buildkernel \
           KERNCONF=APPLE WITHOUT_CTF=yes NO_MODULES=yes TARGET=arm64 TARGET_ARCH=aarch64
