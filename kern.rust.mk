@@ -76,11 +76,33 @@ RUSTFLAGS+= -Ccode-model=kernel \
 
 .endif
 
+# TODO: It would be better to have the existing build system set make flags and preprocessor defines
+# based on the options in the KERNCONF instead of requiring the rust makefile to define these. The
+# current solution should work for general KERNCONFs but adding new headers which are not available
+# for all configs to bindings.h is a slight pain.
+.if ${KERNCONF} == "APPLE"
+BINDGEN_DEFINES= \
+	-DKERNCONF_APPLE \
+
+.elif ${KERNCONF} == "VIRT"
+BINDGEN_DEFINES= \
+	-DWITH_VIRTIO \
+	-DWITH_SOUND \
+
+.elif ${KERNCONF} == "GENERIC"
+BINDGEN_DEFINES= \
+	-DWITH_VIRTIO \
+	-DWITH_SOUND \
+
+.elif ${KERNCONF} == "MINIMAL"
+
+.endif
+
 # TODO: Use the depfile
 BINDGEN_DEPS= bindgen.d
 BINDGEN_GENERATED_SRC= bindgen_inlines.c
-BINDGEN_INLINE_SRC= inlines.c
-CWARNFLAGS.${BINDGEN_INLINE_SRC}+= -Wno-duplicate-decl-specifier -Wno-incompatible-pointer-types-discards-qualifiers
+CWARNFLAGS.${BINDGEN_GENERATED_SRC}+= -Wno-duplicate-decl-specifier -Wno-incompatible-pointer-types-discards-qualifiers
+CFLAGS.${BINDGEN_GENERATED_SRC}+= ${BINDGEN_DEFINES}
 BINDGEN_FLAGS= \
 	--use-core \
 	--depfile ${BINDGEN_DEPS} \
@@ -115,28 +137,6 @@ BINDGEN_FLAGS= \
 	--experimental \
 	--wrap-static-fns \
 	--wrap-static-fns-path ${BINDGEN_GENERATED_SRC}
-
-# TODO: It would be better to have the existing build system set make flags and preprocessor defines
-# based on the options in the KERNCONF instead of requiring the rust makefile to define these. The
-# current solution should work for general KERNCONFs but adding new headers which are not available
-# for all configs to bindings.h is a slight pain.
-.if ${KERNCONF} == "APPLE"
-BINDGEN_DEFINES= \
-	-DKERNCONF_APPLE \
-
-.elif ${KERNCONF} == "VIRT"
-BINDGEN_DEFINES= \
-	-DWITH_VIRTIO \
-	-DWITH_SOUND \
-
-.elif ${KERNCONF} == "GENERIC"
-BINDGEN_DEFINES= \
-	-DWITH_VIRTIO \
-	-DWITH_SOUND \
-
-.elif ${KERNCONF} == "MINIMAL"
-
-.endif
 
 # An arbitrary directory for the sysroot
 RUST_SYSROOT= rust_sysroot
@@ -188,7 +188,7 @@ RUSTROOT_RS= rustroot.rs
 # The only rust build artifact that gets directly linked into the kernel is this static lib.
 RUSTROOT_A= rustroot.a
 # This must be here to ensure it gets added to SYSTEM_OBJS
-RUST_OBJS= ${RUSTROOT_A} ${BINDGEN_INLINE_SRC:S/.c/.o/}
+RUST_OBJS= ${RUSTROOT_A} ${BINDGEN_GENERATED_SRC:S/.c/.o/}
 RUST_MAKEFILE= ${SRCTOP}/sys/rust/kern.rust.mk
 
 RUST_DEFAULT_DEP= ${RUST_KPI} ${RUST_CORE} ${RUST_FAKE_BUILTINS}
@@ -208,8 +208,9 @@ ${RUST_FAKE_BUILTINS}: ${RUST_CORE} ${RUST_MAKEFILE}
 		--extern core=${RUST_CORE} \
 		-o ${RUST_LIBDIR}/libcompiler_builtins.rlib
 
-${BINDGEN_INLINE_SRC}: ${BINDINGS_RS} ${RUST_MAKEFILE}
-	printf "${BINDGEN_DEFINES:C/$/\n/g:C/-D/#define /g}#include \"${BINDGEN_GENERATED_SRC}\"" > ${BINDGEN_INLINE_SRC}
+# This tells make that generating bindings.rs by invoking bindgen also produces bindgen_inlines.c
+# FIXME: If bindgen_inlines.c is deleted while bindings.rs is up-to-date this doesn't work
+${BINDGEN_GENERATED_SRC}: ${BINDINGS_RS} ${RUST_MAKEFILE}
 
 ${BINDINGS_RS}: ${SRCTOP}/sys/rust/bindings.h ${RUST_MAKEFILE}
 	${BINDGEN} ${BINDGEN_FLAGS} ${SRCTOP}/sys/rust/bindings.h -- ${CFLAGS} ${BINDGEN_DEFINES} > bindings.rs
