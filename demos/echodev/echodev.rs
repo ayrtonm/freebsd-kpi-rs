@@ -15,7 +15,7 @@ use core::ptr::{NonNull, null_mut};
 use core::sync::atomic::{AtomicPtr, Ordering};
 use kpi::ErrCode;
 use kpi::boxed::Box;
-use kpi::cdev::{CDevSw, MakeDevArgs, UioRef};
+use kpi::cdev::{CDevSw, MakeDevArgs, Uio};
 use kpi::ffi::{Ptr, Softc};
 use kpi::intr::Channel;
 use kpi::misc::Thread;
@@ -104,8 +104,8 @@ impl CDevSw for EchoDev {
         }
         Ok(())
     }
-    fn d_read(sc: &Softc<EchoDevSoftc>, uio: UioRef, ioflag: c_int) -> Result<()> {
-        if uio.resid() == 0 {
+    fn d_read(sc: &Softc<EchoDevSoftc>, uio: &Uio, ioflag: c_int) -> Result<()> {
+        if uio.uio_resid() == 0 {
             return Ok(());
         }
         // sx_xunlock are also added for clarity, but not necessary since the lock gets unlocked
@@ -131,7 +131,7 @@ impl CDevSw for EchoDev {
             }
         }
 
-        let todo = min(uio.resid(), state.valid);
+        let todo = min(uio.uio_resid(), state.valid);
         let res = uiomove_read(&mut state.buf[..todo], uio);
         if res.is_ok() {
             /* Wakeup any waiting writers. */
@@ -157,13 +157,13 @@ impl CDevSw for EchoDev {
         res
     }
 
-    fn d_write(sc: &Softc<EchoDevSoftc>, uio: UioRef, ioflag: c_int) -> Result<()> {
-        if uio.resid() == 0 {
+    fn d_write(sc: &Softc<EchoDevSoftc>, uio: &Uio, ioflag: c_int) -> Result<()> {
+        if uio.uio_resid() == 0 {
             return Ok(());
         }
         let mut state = sx_xlock(&sc.state);
         let mut res = Ok(());
-        while uio.resid() != 0 {
+        while uio.uio_resid() != 0 {
             /* Wait for space to write */
             while state.valid == state.buf.len() {
                 res = if state.dying {
@@ -181,7 +181,7 @@ impl CDevSw for EchoDev {
                 }
             }
 
-            let todo = min(uio.resid(), state.buf.len() - state.valid);
+            let todo = min(uio.uio_resid(), state.buf.len() - state.valid);
             res = uiomove_write(&state.buf[state.valid..state.valid + todo], uio);
             if res.is_ok() {
                 /* Wakeup any waiting readers. */

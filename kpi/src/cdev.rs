@@ -62,10 +62,10 @@ pub trait CDevSw: CDevSwInternal {
     fn d_close(sc: &Softc<Self::Softc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
         unimplemented!()
     }
-    fn d_read(sc: &Softc<Self::Softc>, uio: UioRef, ioflag: c_int) -> Result<()> {
+    fn d_read(sc: &Softc<Self::Softc>, uio: &Uio, ioflag: c_int) -> Result<()> {
         unimplemented!()
     }
-    fn d_write(sc: &Softc<Self::Softc>, uio: UioRef, ioflag: c_int) -> Result<()> {
+    fn d_write(sc: &Softc<Self::Softc>, uio: &Uio, ioflag: c_int) -> Result<()> {
         unimplemented!()
     }
 }
@@ -150,26 +150,15 @@ impl<'a, T> AsRustType<'a, &'a Softc<T>, T> for *mut cdev {
     }
 }
 
-#[derive(Copy, Clone)]
-pub struct UioRef<'a>(NonNull<bindings::uio>, PhantomData<&'a bindings::uio>);
+define_wrapper_type!(Uio, uio);
 
-impl<'a> AsRustType<'a, UioRef<'a>> for *mut bindings::uio {
-    fn as_rust_type(&'a self) -> UioRef<'a> {
-        UioRef(NonNull::new(*self).unwrap(), PhantomData)
-    }
-}
-
-impl<'a> UioRef<'a> {
-    pub fn offset(&self) -> usize {
-        unsafe { self.0.read().uio_offset.try_into().unwrap() }
-    }
-
-    pub fn resid(&self) -> usize {
-        unsafe { self.0.read().uio_resid.try_into().unwrap() }
-    }
+impl Uio {
+    define_getter!(uio_offset, i64);
+    define_getter!(uio_resid, force into usize);
+    define_getter!(uio_rw, u32);
 
     pub fn is_read(&self) -> bool {
-        let flags = unsafe { self.0.read().uio_rw };
+        let flags = self.uio_rw();
         if flags == bindings::UIO_READ {
             true
         } else {
@@ -260,7 +249,7 @@ pub mod wrappers {
         unsafe { free(sc_ptr.cast::<c_void>(), mtype) };
     }
 
-    pub fn uiomove_read(buf: &mut [u8], uio_ref: UioRef) -> Result<()> {
+    pub fn uiomove_read(buf: &mut [u8], uio_ref: &Uio) -> Result<()> {
         if uio_ref.is_write() {
             return Err(EDOOFUS);
         }
@@ -268,7 +257,7 @@ pub mod wrappers {
             bindings::uiomove(
                 buf.as_mut_ptr().cast::<c_void>(),
                 buf.len() as i32,
-                uio_ref.0.as_ptr(),
+                uio_ref.as_ptr(),
             )
         };
         if res != 0 {
@@ -278,7 +267,7 @@ pub mod wrappers {
         }
     }
 
-    pub fn uiomove_write(buf: &[u8], uio_ref: UioRef) -> Result<()> {
+    pub fn uiomove_write(buf: &[u8], uio_ref: &Uio) -> Result<()> {
         if uio_ref.is_read() {
             return Err(EDOOFUS);
         }
@@ -286,7 +275,7 @@ pub mod wrappers {
             bindings::uiomove(
                 buf.as_ptr().cast_mut().cast::<c_void>(),
                 buf.len() as i32,
-                uio_ref.0.as_ptr(),
+                uio_ref.as_ptr(),
             )
         };
         if res != 0 {
