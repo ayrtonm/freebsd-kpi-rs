@@ -4,4 +4,4 @@ KMOD=	echodev
 SRCS=	echodev.c
 RUST_SRCS=	echodev.rs
 
-.include <bsd.kmod.mk>
+.include "${SRCTOP}/sys/rust/kmod.rust.mk"
