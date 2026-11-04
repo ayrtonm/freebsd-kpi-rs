@@ -282,10 +282,10 @@ pub mod wrappers {
     }
 
     /// Creates a mapping in device visible address space of buflen bytes of buf, associated with the DMA map map.
-    pub fn bus_dmamap_load<T>(
+    pub fn bus_dmamap_load<T, D>(
         dmat: BusDmaTag,
         map: BusDmaMap,
-        kva: BusDmaMem,
+        kva: BusDmaMem<D>,
         len: bus_size_t,
         callback: Option<BusDmaMapFn<T>>,
         arg: Ptr<T>,
@@ -303,7 +303,7 @@ pub mod wrappers {
             bindings::bus_dmamap_load(
                 dmat.0,
                 map.map,
-                kva.as_ptr(),
+                kva.as_ptr().cast::<c_void>(),
                 len,
                 callback,
                 arg_ptr.cast::<c_void>(),
