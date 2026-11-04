@@ -26,6 +26,8 @@
  * SUCH DAMAGE.
  */
 
+// This is a dummy file which is intentionally left empty but required by the compiler
+
 #![no_std]
 #![no_builtins]
 #![allow(internal_features)]
