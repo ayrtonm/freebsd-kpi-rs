@@ -83,6 +83,7 @@ RUSTFLAGS+= -Ccode-model=kernel \
 .if ${KERNCONF} == "APPLE"
 BINDGEN_DEFINES= \
 	-DKERNCONF_APPLE \
+	-I${SRCTOP}/sys/contrib/device-tree/include \
 
 .elif ${KERNCONF} == "VIRT"
 BINDGEN_DEFINES= \
