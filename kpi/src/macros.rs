@@ -122,17 +122,17 @@ macro_rules! define_projectable {
 
 #[macro_export]
 macro_rules! define_wrapper_type {
-    ($wrapper_name:ident, $original_type:ty) => {
+    ($wrapper_name:ident, $original_type:ident) => {
         #[repr(C)]
-        pub struct $wrapper_name(core::cell::UnsafeCell<core::mem::MaybeUninit<$original_type>>);
+        pub struct $wrapper_name(core::cell::UnsafeCell<core::mem::MaybeUninit<$crate::bindings::$original_type>>);
 
         impl $wrapper_name {
-            pub fn as_ptr(&self) -> *mut $original_type {
-                self.0.get().cast::<$original_type>()
+            pub fn as_ptr(&self) -> *mut $crate::bindings::$original_type {
+                self.0.get().cast::<$crate::bindings::$original_type>()
             }
         }
 
-        impl<'a> $crate::kobj::AsRustType<'a, &'a $wrapper_name> for *mut $original_type {
+        impl<'a> $crate::kobj::AsRustType<'a, &'a $wrapper_name> for *mut $crate::bindings::$original_type {
             fn as_rust_type(&self) -> &$wrapper_name {
                 let ptr = *self;
                 unsafe { ptr.cast::<$wrapper_name>().as_ref().unwrap() }
@@ -146,6 +146,12 @@ macro_rules! define_getter {
     ($field_name:ident, $field_ty:ty) => {
         pub fn $field_name(&self) -> $field_ty {
             unsafe { (*self.as_ptr()).$field_name }
+        }
+    };
+    ($field_name:ident, force into $res_ty:ty) => {
+        pub fn $field_name(&self) -> $res_ty {
+            let value = unsafe { (*self.as_ptr()).$field_name };
+            value.try_into().unwrap()
         }
     };
 }
