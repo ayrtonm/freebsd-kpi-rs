@@ -120,7 +120,6 @@ int apple_smc_pin_set(device_t dev, uint32_t pin, uint32_t value);
 
 #if defined(KERNCONF_APPLE)
 #include <dev/nvme/nvme_private.h>
-#include <dev/nvme/nvme_ans.h>
 
 #include <dev/evdev/input.h>
 #include <dev/hid/hid.h>
