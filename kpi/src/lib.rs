@@ -193,7 +193,7 @@ pub mod misc {
 
     impl CurProc {
         // x - created at fork, only changes during single threading in exec
-        define_getter!(p_comm, [c_char; MAXCOMLEN + 1]);
+        define_getter!(p_comm, [c_char; MAXCOMLEN as usize + 1]);
 
         // b - created at fork, never changes
         define_getter!(p_pid, i32);
