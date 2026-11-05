@@ -162,7 +162,9 @@ impl<M: Malloc> CString<M> {
 
     pub fn push(&mut self, b: u8) -> Result<()> {
         match self.0.last_mut() {
-            Some(null_byte) => { *null_byte = b; }
+            Some(null_byte) => {
+                *null_byte = b;
+            }
             None => {
                 let res = self.0.push(b);
                 if res.is_some() {

@@ -28,11 +28,11 @@
 
 use core::any::type_name;
 use core::cell::UnsafeCell;
+use core::fmt;
 use core::fmt::{Debug, Formatter};
 use core::mem::MaybeUninit;
 use core::ops::{Deref, DerefMut};
 use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
-use core::{fmt};
 
 /// Rust-style atomic reference counting with memory backed malloc(9)
 pub mod arc;
@@ -156,8 +156,15 @@ pub struct Checked<T> {
 impl<T: Debug> Debug for Checked<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut res = f.debug_struct("Checked");
-        if self.borrowed.compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed).is_ok() {
-            let guard = CheckedGuard { value: self.t.get(), borrowed: &self.borrowed };
+        if self
+            .borrowed
+            .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
+            .is_ok()
+        {
+            let guard = CheckedGuard {
+                value: self.t.get(),
+                borrowed: &self.borrowed,
+            };
             res.field("t", &*guard);
         } else {
             res.field("t", &"<borrowed>");

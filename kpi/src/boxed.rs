@@ -32,11 +32,11 @@ use crate::malloc::{Malloc, MallocFlags};
 use crate::prelude::*;
 use core::cmp::PartialEq;
 use core::ffi::c_void;
-use core::pin::Pin;
 use core::fmt::{Debug, Formatter};
 use core::marker::PhantomData;
 use core::mem::{forget, size_of};
 use core::ops::{Deref, DerefMut};
+use core::pin::Pin;
 use core::ptr::{NonNull, drop_in_place};
 use core::{fmt, slice};
 

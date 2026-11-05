@@ -133,14 +133,13 @@ pub mod misc {
     #[cfg(target_arch = "aarch64")]
     use core::sync::atomic::AtomicU32;
 
-    use crate::bindings;
-    use crate::bindings::{cpuset_t, u_int, device_t};
+    use crate::bindings::{cpuset_t, device_t, u_int};
     #[cfg(target_arch = "aarch64")]
     use crate::device::Device;
-    use core::ffi::c_int;
-    use crate::define_interface;
-    use crate::ffi::Softc;
     use crate::device::DeviceIf;
+    use crate::ffi::Softc;
+    use crate::{bindings, define_interface};
+    use core::ffi::c_int;
 
     define_wrapper_type!(Thread, thread);
 

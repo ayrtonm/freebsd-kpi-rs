@@ -26,13 +26,13 @@
  * SUCH DAMAGE.
  */
 
+use crate::ffi::{Embeds, PinProject};
 use core::cell::UnsafeCell;
 use core::fmt;
 use core::fmt::{Debug, Formatter};
 use core::mem::MaybeUninit;
 use core::ops::{Deref, DerefMut};
 use core::pin::Pin;
-use crate::ffi::{PinProject, Embeds};
 
 pub trait SubClassOf<B> {}
 
@@ -121,7 +121,10 @@ impl<B, F> SubClass<B, F> {
 }
 
 impl<B, F: PinProject> PinProject for SubClass<B, F> {
-    type ProjHelper<'a> = F::ProjHelper<'a> where Self: 'a;
+    type ProjHelper<'a>
+        = F::ProjHelper<'a>
+    where
+        Self: 'a;
     fn project<'a>(self: Pin<&'a Self>) -> F::ProjHelper<'a> {
         self.as_pin().project()
     }

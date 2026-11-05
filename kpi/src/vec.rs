@@ -35,7 +35,7 @@ use core::alloc::Layout;
 use core::ffi::c_void;
 use core::fmt::{Debug, Formatter};
 use core::marker::PhantomData;
-use core::mem::{forget, replace, ManuallyDrop};
+use core::mem::{ManuallyDrop, forget, replace};
 use core::ops::{Deref, DerefMut};
 use core::ptr::{NonNull, drop_in_place, read, write};
 use core::{fmt, ptr, slice};

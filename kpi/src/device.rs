@@ -26,7 +26,7 @@
  * SUCH DAMAGE.
  */
 
-use crate::bindings::{_device, device_state_t, device_t, driver_t, kobjop_desc, DS_ATTACHED};
+use crate::bindings::{_device, DS_ATTACHED, device_state_t, device_t, driver_t, kobjop_desc};
 use crate::boxed::Box;
 use crate::driver::Driver;
 use crate::ffi::{ArrayCString, Ptr, Softc, UninitPtr};
@@ -512,7 +512,7 @@ pub mod wrappers {
 mod tests {
     use super::*;
     use crate::define_driver;
-    use crate::ffi::{UninitPtr};
+    use crate::ffi::UninitPtr;
     use crate::tests::{DriverManager, LoudDrop};
     use core::ptr::null_mut;
     use core::sync::atomic::{AtomicPtr, Ordering};

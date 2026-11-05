@@ -28,8 +28,8 @@
 
 use crate::ErrCode;
 use crate::bindings::{MTX_DEF, MTX_SPIN, mtx};
-use crate::prelude::*;
 use crate::intr::Channel;
+use crate::prelude::*;
 use crate::sync::Mutable;
 use core::cell::UnsafeCell;
 use core::ffi::{CStr, c_int};
@@ -248,7 +248,10 @@ pub mod wrappers {
         unsafe {
             bindings::fn_mtx_lock(mtx_ptr);
         };
-        MutexGuard { lock: mutex, _marker: PhantomData }
+        MutexGuard {
+            lock: mutex,
+            _marker: PhantomData,
+        }
     }
     pub fn mtx_lock_spin<T>(mutex: &SpinLock<T>) -> SpinLockGuard<'_, T> {
         let mtx_impl = &mutex.mtx_impl;
@@ -285,7 +288,10 @@ pub mod wrappers {
             )
         };
 
-        let new_guard = MutexGuard { lock, _marker: PhantomData };
+        let new_guard = MutexGuard {
+            lock,
+            _marker: PhantomData,
+        };
 
         let result = if res != 0 {
             Err(ErrCode::from(res))

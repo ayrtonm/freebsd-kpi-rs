@@ -36,7 +36,7 @@ use crate::misc::Thread;
 use crate::prelude::*;
 use core::ffi::{CStr, c_int, c_void};
 use core::marker::PhantomData;
-use core::ptr::{drop_in_place};
+use core::ptr::drop_in_place;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]

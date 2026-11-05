@@ -27,19 +27,19 @@
  */
 
 use crate::bindings::{_device, cdev, device_t, u_int};
+use crate::boxed::Box;
 use crate::cdev::CDev;
 use crate::device::Device;
+use crate::ffi::PinProject;
+use crate::malloc::{Malloc, MallocFlags};
 use crate::prelude::*;
 use core::cell::UnsafeCell;
-use crate::boxed::Box;
-use crate::malloc::{Malloc, MallocFlags};
 use core::fmt::{Debug, Formatter};
 use core::mem::{MaybeUninit, forget};
 use core::ops::{Deref, DerefMut};
 use core::pin::Pin;
 use core::ptr::NonNull;
 use core::{fmt, ptr};
-use crate::ffi::PinProject;
 
 /// The layout of the softc that Ref and Ptr point to.
 ///
@@ -72,12 +72,15 @@ impl<T> Softc<T> {
     }
 
     pub fn try_new<M: Malloc>(t: T, flags: MallocFlags) -> Result<Box<Self, M>> {
-        let mut res = Box::try_new(Self {
-            inner: t,
-            dev: None,
-            cdev: None,
-            count: UnsafeCell::new(0),
-        }, flags)?;
+        let mut res = Box::try_new(
+            Self {
+                inner: t,
+                dev: None,
+                cdev: None,
+                count: UnsafeCell::new(0),
+            },
+            flags,
+        )?;
         let count_ptr = UnsafeCell::raw_get(&raw mut res.count);
         // This is just an address-insensitive atomic write
         unsafe { bindings::refcount_init(count_ptr, 1) };
@@ -120,7 +123,9 @@ impl<T> Softc<T> {
     }
 
     pub fn project(&self) -> T::ProjHelper<'_>
-    where T: PinProject {
+    where
+        T: PinProject,
+    {
         self.as_pin().project()
     }
 
@@ -161,10 +166,7 @@ impl<T> DerefMut for Softc<T> {
 pub struct UninitPtr<'a, T>(&'a mut MaybeUninit<Softc<T>>);
 
 impl<'a, T> UninitPtr<'a, T> {
-    pub(crate) unsafe fn from_raw(
-        sc_ref: &'a mut MaybeUninit<Softc<T>>,
-        dev: device_t,
-    ) -> Self {
+    pub(crate) unsafe fn from_raw(sc_ref: &'a mut MaybeUninit<Softc<T>>, dev: device_t) -> Self {
         // Get a pointer to the Softc on the heap from the MaybeUninit<Softc<T>> reference
         let sc_ptr: *mut Softc<T> = sc_ref.as_mut_ptr();
         // SAFETY: Since the softc has not been initialized we can't create a mutable reference to
@@ -264,7 +266,9 @@ impl<T> Ptr<T> {
     }
 
     pub fn project(&self) -> T::ProjHelper<'_>
-    where T: PinProject {
+    where
+        T: PinProject,
+    {
         self.as_pin().project()
     }
 

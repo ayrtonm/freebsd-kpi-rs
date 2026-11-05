@@ -391,7 +391,7 @@ mod tests {
     use super::*;
     use crate::define_driver;
     use crate::device::{BusProbe, Device, DeviceIf};
-    use crate::ffi::{UninitPtr};
+    use crate::ffi::UninitPtr;
     use crate::tests::DriverManager;
 
     #[repr(C)]

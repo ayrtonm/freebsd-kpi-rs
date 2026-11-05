@@ -28,13 +28,13 @@
 
 use crate::ErrCode;
 use crate::bindings::sx;
+use crate::intr::Channel;
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::ffi::{CStr, c_int};
+use core::marker::PhantomPinned;
 use core::mem::drop;
 use core::ops::{Deref, DerefMut};
-use core::marker::PhantomPinned;
-use crate::intr::Channel;
 
 pub struct SxSharedGuard<'a, T> {
     lock: &'a SxLock<T>,
@@ -146,15 +146,8 @@ pub mod wrappers {
 
         core::mem::forget(guard);
 
-        let res = unsafe {
-            bindings::fn_sx_sleep(
-                chan.get_ptr(),
-                sx_ptr,
-                pri,
-                wmesg.as_ptr(),
-                timo,
-            )
-        };
+        let res =
+            unsafe { bindings::fn_sx_sleep(chan.get_ptr(), sx_ptr, pri, wmesg.as_ptr(), timo) };
 
         let new_guard = SxExclusiveGuard { lock };
 

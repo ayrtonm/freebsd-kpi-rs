@@ -28,9 +28,9 @@
 
 //! Utilities related to FFI with C.
 
+use core::ops::Index;
 use core::pin::Pin;
 use core::slice::SliceIndex;
-use core::ops::Index;
 
 mod cstring;
 mod softc;
@@ -41,7 +41,9 @@ pub use softc::{Ptr, Softc, UninitPtr};
 pub use subclass::{SubClass, SubClassOf};
 
 pub trait PinProject {
-    type ProjHelper<'a> where Self: 'a;
+    type ProjHelper<'a>
+    where
+        Self: 'a;
     fn project<'a>(self: Pin<&'a Self>) -> Self::ProjHelper<'a>;
 }
 
@@ -57,8 +59,8 @@ pub unsafe trait PinIndex<I>: Index<I> {
     }
 }
 
-unsafe impl <T, I: SliceIndex<[T]>> PinIndex<I> for [T] {}
-unsafe impl <T, I, const N: usize> PinIndex<I> for [T; N] where [T]: Index<I> {}
+unsafe impl<T, I: SliceIndex<[T]>> PinIndex<I> for [T] {}
+unsafe impl<T, I, const N: usize> PinIndex<I> for [T; N] where [T]: Index<I> {}
 
 pub trait Embeds<T> {
     fn get_embedded(self: Pin<&Self>) -> Pin<&T>;

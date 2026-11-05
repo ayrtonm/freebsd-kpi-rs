@@ -124,7 +124,9 @@ macro_rules! define_projectable {
 macro_rules! define_wrapper_type {
     ($wrapper_name:ident, $original_type:ident) => {
         #[repr(C)]
-        pub struct $wrapper_name(core::cell::UnsafeCell<core::mem::MaybeUninit<$crate::bindings::$original_type>>);
+        pub struct $wrapper_name(
+            core::cell::UnsafeCell<core::mem::MaybeUninit<$crate::bindings::$original_type>>,
+        );
 
         impl $wrapper_name {
             pub fn as_ptr(&self) -> *mut $crate::bindings::$original_type {
@@ -132,7 +134,9 @@ macro_rules! define_wrapper_type {
             }
         }
 
-        impl<'a> $crate::kobj::AsRustType<'a, &'a $wrapper_name> for *mut $crate::bindings::$original_type {
+        impl<'a> $crate::kobj::AsRustType<'a, &'a $wrapper_name>
+            for *mut $crate::bindings::$original_type
+        {
             fn as_rust_type(&self) -> &$wrapper_name {
                 let ptr = *self;
                 unsafe { ptr.cast::<$wrapper_name>().as_ref().unwrap() }

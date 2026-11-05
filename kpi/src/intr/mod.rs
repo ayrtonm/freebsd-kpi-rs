@@ -293,8 +293,7 @@ pub mod wrappers {
             Some(Priority(p)) => p,
             None => 0,
         };
-        let res =
-            unsafe { bindings::fn_tsleep(chan.get_ptr(), priority, wmesg_ptr, timo) };
+        let res = unsafe { bindings::fn_tsleep(chan.get_ptr(), priority, wmesg_ptr, timo) };
         if res != 0 {
             return Err(ErrCode::from(res));
         }
@@ -311,7 +310,7 @@ mod tests {
     use super::*;
     use crate::define_driver;
     use crate::device::{BusProbe, Device, DeviceIf};
-    use crate::ffi::{UninitPtr};
+    use crate::ffi::UninitPtr;
     use crate::tests::{DriverManager, LoudDrop};
 
     define_projectable! {

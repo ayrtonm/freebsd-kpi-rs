@@ -180,9 +180,7 @@ pub mod wrappers {
     ///
     /// Note that this function ensure that the device won't be detached later.
     pub fn OF_device_register_xref(xref: XRef, dev: Device<'static>) {
-        let _always_ok = unsafe {
-            bindings::OF_device_register_xref(xref.0, dev.as_ptr())
-        };
+        let _always_ok = unsafe { bindings::OF_device_register_xref(xref.0, dev.as_ptr()) };
     }
 
     pub fn OF_device_unregister_xref(xref: XRef) {
