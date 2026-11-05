@@ -1,6 +1,6 @@
 use crate::kobj::AsRustType;
 use crate::malloc::Malloc;
-use crate::misc::Thread;
+use crate::proc::Thread;
 use crate::prelude::*;
 use crate::sync::arc::Arc;
 use crate::{ErrCode, define_interface};

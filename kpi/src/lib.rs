@@ -92,6 +92,8 @@ pub mod net;
 pub mod ofw;
 #[cfg(not(feature = "std"))]
 mod panic;
+/// Processes, threads and user credentials
+pub mod proc;
 /// Synchronization primitives
 pub mod sync;
 /// Taskqueue functions
@@ -139,84 +141,7 @@ pub mod misc {
     use crate::device::DeviceIf;
     use crate::ffi::Softc;
     use crate::{bindings, define_interface};
-    use core::ffi::{c_int, c_char};
-    use crate::bindings::MAXCOMLEN;
-
-    define_wrapper_type!(CurThread, thread);
-    define_wrapper_type!(CurProc, proc);
-
-    define_wrapper_type!(Thread, thread);
-    define_wrapper_type!(Proc, proc);
-
-    define_wrapper_type!(Ucred, ucred);
-
-    impl CurThread {
-        // b - created at fork, never changes
-        define_getter!(td_tid, i32);
-
-        // td_proc is set once by thread_link() before the thread is runnable or in any queue and
-        // nothing reassigns it
-        define_getter!(td_proc, *mut crate::bindings::proc);
-
-        // k - only accessed by curthread
-        define_getter!(td_ucred, *mut crate::bindings::ucred);
-
-        pub fn ucred(&self) -> &Ucred {
-            let ptr = self.td_ucred();
-            unsafe { ptr.cast::<Ucred>().as_ref().unwrap() }
-        }
-
-        pub fn proc(&self) -> &CurProc {
-            let ptr = self.td_proc();
-            unsafe { ptr.cast::<CurProc>().as_ref().unwrap() }
-        }
-
-        pub fn as_thread(&self) -> &Thread {
-            let ptr = self.as_ptr();
-            unsafe { ptr.cast::<Thread>().as_ref().unwrap() }
-        }
-    }
-
-    impl Thread {
-        // b - created at fork, never changes
-        define_getter!(td_tid, i32);
-
-        // td_proc is set once by thread_link() before the thread is runnable or in any queue and
-        // nothing reassigns it
-        define_getter!(td_proc, *mut crate::bindings::proc);
-
-        pub fn proc(&self) -> &Proc {
-            let ptr = self.td_proc();
-            unsafe { ptr.cast::<Proc>().as_ref().unwrap() }
-        }
-    }
-
-    impl CurProc {
-        // x - created at fork, only changes during single threading in exec
-        define_getter!(p_comm, [c_char; MAXCOMLEN as usize + 1]);
-
-        // b - created at fork, never changes
-        define_getter!(p_pid, i32);
-
-        pub fn as_proc(&self) -> &Proc {
-            let ptr = self.as_ptr();
-            unsafe { ptr.cast::<Proc>().as_ref().unwrap() }
-        }
-    }
-
-    impl Proc {
-        // b - created at fork, never changes
-        define_getter!(p_pid, i32);
-    }
-
-    impl Ucred {
-        define_getter!(cr_uid, u32);
-        define_getter!(cr_ruid, u32);
-        define_getter!(cr_svuid, u32);
-        define_getter!(cr_gid, u32);
-        define_getter!(cr_rgid, u32);
-        define_getter!(cr_svgid, u32);
-    }
+    use core::ffi::c_int;
 
     #[cfg(target_arch = "aarch64")]
     pub const PAGE_SHIFT_4K: u64 = crate::bindings::PAGE_SHIFT_4K as u64;

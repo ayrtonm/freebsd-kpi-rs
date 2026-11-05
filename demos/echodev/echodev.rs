@@ -18,7 +18,7 @@ use kpi::boxed::Box;
 use kpi::cdev::{CDevSw, MakeDevArgs, Uio};
 use kpi::ffi::{Ptr, Softc};
 use kpi::intr::Channel;
-use kpi::misc::Thread;
+use kpi::proc::Thread;
 use kpi::module::Module;
 use kpi::sync::Checked;
 use kpi::sync::sx::SxLock;
