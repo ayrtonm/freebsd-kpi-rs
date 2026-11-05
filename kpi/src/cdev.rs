@@ -154,23 +154,46 @@ impl<'a, T> AsRustType<'a, &'a Softc<T>, T> for *mut cdev {
 
 define_wrapper_type!(Uio, uio);
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum SegFlag {
+    UserSpace,
+    SysSpace,
+    NoCopy,
+}
+
 impl Uio {
     define_getter!(uio_offset, i64);
     define_getter!(uio_resid, force into usize);
     define_getter!(uio_rw, u32);
+    define_getter!(uio_td, *mut crate::bindings::thread);
+    define_getter!(uio_segflg, u32);
+    define_getter!(uio_iov, *mut crate::bindings::iovec);
+    define_getter!(uio_iovcnt, force into usize);
 
-    pub fn is_read(&self) -> bool {
-        let flags = self.uio_rw();
-        if flags == bindings::UIO_READ {
-            true
+    pub fn thread(&self) -> Option<&Thread> {
+        let ptr = self.uio_td();
+        if ptr.is_null() {
+            None
         } else {
-            assert!(flags == bindings::UIO_WRITE);
-            false
+            unsafe { Some(ptr.cast::<Thread>().as_ref().unwrap()) }
         }
     }
 
-    pub fn is_write(&self) -> bool {
-        !self.is_read()
+    pub fn segment_flag(&self) -> Result<SegFlag> {
+        match self.uio_segflg() {
+            bindings::UIO_USERSPACE => Ok(SegFlag::UserSpace),
+            bindings::UIO_SYSSPACE => Ok(SegFlag::SysSpace),
+            bindings::UIO_NOCOPY => Ok(SegFlag::NoCopy),
+            _ => Err(EINVAL),
+        }
+    }
+
+    pub fn is_buffer_to_iov(&self) -> bool {
+        self.uio_rw() == bindings::UIO_READ
+    }
+
+    pub fn is_iov_to_buffer(&self) -> bool {
+        self.uio_rw() == bindings::UIO_WRITE
     }
 }
 
@@ -252,7 +275,7 @@ pub mod wrappers {
     }
 
     pub fn uiomove_read(buf: &mut [u8], uio_ref: &Uio) -> Result<()> {
-        if uio_ref.is_write() {
+        if uio_ref.is_buffer_to_iov() {
             return Err(EDOOFUS);
         }
         let res = unsafe {
@@ -270,7 +293,7 @@ pub mod wrappers {
     }
 
     pub fn uiomove_write(buf: &[u8], uio_ref: &Uio) -> Result<()> {
-        if uio_ref.is_read() {
+        if uio_ref.is_iov_to_buffer() {
             return Err(EDOOFUS);
         }
         let res = unsafe {
