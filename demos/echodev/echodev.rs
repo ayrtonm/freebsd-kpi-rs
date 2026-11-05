@@ -203,10 +203,14 @@ static ECHODEV: Checked<Option<Ptr<EchoDevSoftc>>> = Checked::new(None);
 
 impl Module for EchoDev {
     fn on_load(data: *mut c_void) -> Result<()> {
+        let mut sc = EchoDevSoftc::default();
+
+        sc.state.get_mut().buf = Vec::fill_with_capacity(0, 64, M_WAITOK);
+
         // Allocate the softc on the heap. We use Softc::new instead of just the softc type
         // because make_dev_args_init requires a Softc<T> where T is the softc in the CDevSw
         // trait impl. This Box<Softc<EchoDevSoftc>> is ABI-compatible with a `void *`
-        let mut sc = Softc::new::<M_DEVBUF>(EchoDevSoftc::default(), M_WAITOK);
+        let sc = Softc::new::<M_DEVBUF>(sc, M_WAITOK);
 
         // We haven't passed the pointer anywhere and Box<Softc<T>> provides mutable access to T so we can
         // mutate it at this point. Even though rust uses `.` for field accesses via pointers, this
@@ -225,7 +229,6 @@ impl Module for EchoDev {
         //
         // That makes this `Vec::fill_with_capacity(0, 64, M_WAITOK)` equivalent to
         // `malloc(64, M_DEVBUF, M_WAITOK | M_ZERO)`
-        sc.state.get_mut().buf = Vec::fill_with_capacity(0, 64, M_WAITOK);
 
         // make_dev_args_init takes a reference to the cdevsw variable we defined with define_cdev!
         // and a pointer to the softc. It takes ownership of the boxed softc so we can't access it

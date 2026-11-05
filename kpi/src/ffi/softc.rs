@@ -149,12 +149,6 @@ impl<T> Deref for Softc<T> {
     }
 }
 
-impl<T> DerefMut for Softc<T> {
-    fn deref_mut(&mut self) -> &mut <Self as Deref>::Target {
-        &mut self.inner
-    }
-}
-
 /// A pointer to an uninitialized softc with no aliases.
 ///
 /// This struct also carries a mutable reference to a bool so the glue code creating the UninitPtr can
