@@ -474,7 +474,7 @@ mod tests {
         #[derive(Debug)]
         pub struct IrqSoftc {
             irq: Irq,
-            loud: LoudDrop,
+            _loud: LoudDrop,
         }
     }
 
@@ -512,7 +512,7 @@ mod tests {
         fn device_attach(uninit_sc: UninitPtr<Self::Softc>) -> Result<()> {
             let sc = uninit_sc.init(IrqSoftc {
                 irq: Irq::default(),
-                loud: LoudDrop,
+                _loud: LoudDrop,
             });
             let dev = sc.device();
             assert_eq!(

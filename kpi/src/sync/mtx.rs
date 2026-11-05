@@ -32,7 +32,7 @@ use crate::prelude::*;
 use crate::intr::Channel;
 use crate::sync::Mutable;
 use core::cell::UnsafeCell;
-use core::ffi::{CStr, c_int, c_void};
+use core::ffi::{CStr, c_int};
 use core::marker::{PhantomData, PhantomPinned};
 use core::mem::{MaybeUninit, drop};
 use core::ops::{Deref, DerefMut};

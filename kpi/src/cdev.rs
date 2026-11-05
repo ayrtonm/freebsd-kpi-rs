@@ -36,7 +36,7 @@ use crate::misc::Thread;
 use crate::prelude::*;
 use core::ffi::{CStr, c_int, c_void};
 use core::marker::PhantomData;
-use core::ptr::{NonNull, drop_in_place};
+use core::ptr::{drop_in_place};
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
@@ -133,6 +133,8 @@ macro_rules! define_cdev {
             $(res.$trait_fn = Some($unmangled_name);)*
             res
         }));
+
+        #[allow(nonstandard_style)]
         mod $cdevsw_name {
             use $crate::*;
             use super::$cdev_ty;
@@ -286,6 +288,7 @@ pub mod wrappers {
     }
 }
 
+#[allow(dead_code)]
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -297,7 +300,7 @@ mod tests {
     }
 
     define_cdev! {
-        static test_cdevsw: TestCDev = {
+        static TEST_CDEVSW: TestCDev = {
             d_name: c"test_cdev",
             d_read: test_cdev_read,
             d_write: test_cdev_write,

@@ -137,13 +137,10 @@ pub mod misc {
     use crate::bindings::{cpuset_t, u_int, device_t};
     #[cfg(target_arch = "aarch64")]
     use crate::device::Device;
-    use crate::kobj::AsRustType;
     use core::ffi::c_int;
-    use core::ptr::NonNull;
     use crate::define_interface;
     use crate::ffi::Softc;
     use crate::device::DeviceIf;
-    use crate::define_wrapper_type;
 
     define_wrapper_type!(Thread, thread);
 

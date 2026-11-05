@@ -30,7 +30,7 @@ use crate::ErrCode;
 use crate::bindings::sx;
 use crate::prelude::*;
 use core::cell::UnsafeCell;
-use core::ffi::{CStr, c_int, c_void};
+use core::ffi::{CStr, c_int};
 use core::mem::drop;
 use core::ops::{Deref, DerefMut};
 use core::marker::PhantomPinned;

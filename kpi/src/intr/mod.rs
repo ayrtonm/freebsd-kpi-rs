@@ -35,7 +35,6 @@ use core::ffi::{c_int, c_void};
 use core::marker::PhantomPinned;
 use core::mem::transmute;
 use core::pin::Pin;
-use core::ptr;
 use core::ptr::null_mut;
 
 #[cfg(feature = "intrng")]
@@ -319,7 +318,7 @@ mod tests {
         #[repr(C)]
         pub struct HookSoftc {
             hook: ConfigHook,
-            loud: LoudDrop,
+            _loud: LoudDrop,
         }
     }
     impl DeviceIf for HookDriver {
@@ -332,8 +331,8 @@ mod tests {
         }
         fn device_attach(uninit_sc: UninitPtr<Self::Softc>) -> Result<()> {
             let hook = ConfigHook::new();
-            let loud = LoudDrop;
-            let sc = uninit_sc.init(HookSoftc { hook, loud });
+            let _loud = LoudDrop;
+            let sc = uninit_sc.init(HookSoftc { hook, _loud });
             sc.project().hook.init(hook_driver_deferred_attach, sc);
             config_intrhook_establish(sc.project().hook).unwrap();
             Ok(())
