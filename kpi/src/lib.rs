@@ -139,7 +139,8 @@ pub mod misc {
     use crate::device::DeviceIf;
     use crate::ffi::Softc;
     use crate::{bindings, define_interface};
-    use core::ffi::c_int;
+    use core::ffi::{c_int, c_char};
+    use crate::bindings::MAXCOMLEN;
 
     define_wrapper_type!(CurThread, thread);
     define_wrapper_type!(CurProc, proc);
@@ -169,6 +170,11 @@ pub mod misc {
             let ptr = self.td_proc();
             unsafe { ptr.cast::<CurProc>().as_ref().unwrap() }
         }
+
+        pub fn as_thread(&self) -> &Thread {
+            let ptr = self.as_ptr();
+            unsafe { ptr.cast::<Thread>().as_ref().unwrap() }
+        }
     }
 
     impl Thread {
@@ -187,10 +193,15 @@ pub mod misc {
 
     impl CurProc {
         // x - created at fork, only changes during single threading in exec
-        define_getter!(p_comm, [core::ffi::c_char; 20]);
+        define_getter!(p_comm, [c_char; MAXCOMLEN + 1]);
 
         // b - created at fork, never changes
         define_getter!(p_pid, i32);
+
+        pub fn as_proc(&self) -> &Proc {
+            let ptr = self.as_ptr();
+            unsafe { ptr.cast::<Proc>().as_ref().unwrap() }
+        }
     }
 
     impl Proc {
