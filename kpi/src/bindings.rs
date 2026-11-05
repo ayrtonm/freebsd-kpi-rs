@@ -52,6 +52,11 @@ struct pcb(());
 #[repr(C)]
 struct vfpstate(());
 
+// Bindgen is overly cautious since 'proc' used to be a reserved keyword... in pre-1.0 rust. This
+// crate is edition 2024 or newer so let's patch over this wart so crate::bindings contains what
+// you'd expect.
+pub use crate::bindings::proc_ as proc;
+
 #[cfg(not(feature = "std"))]
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 

@@ -142,6 +142,7 @@ pub mod misc {
     use core::ffi::c_int;
 
     define_wrapper_type!(Thread, thread);
+    define_wrapper_type!(Proc, proc);
 
     #[cfg(target_arch = "aarch64")]
     pub const PAGE_SHIFT_4K: u64 = crate::bindings::PAGE_SHIFT_4K as u64;
