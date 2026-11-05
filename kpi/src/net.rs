@@ -50,19 +50,19 @@ pub trait ProtoSw {
     // Protocol control block storing state of an active connection
     type Pcb: 'static + Sync;
 
-    fn pr_attach(so: Socket<Self::Pcb>, proto: i32, td: Thread) -> Result<()> {
+    fn pr_attach(so: Socket<Self::Pcb>, proto: i32, td: &Thread) -> Result<()> {
         unimplemented!()
     }
-    fn pr_bind(so: Socket<Self::Pcb>, addr: Option<&SockAddr>, td: Thread) -> Result<()> {
+    fn pr_bind(so: Socket<Self::Pcb>, addr: Option<&SockAddr>, td: &Thread) -> Result<()> {
         unimplemented!()
     }
-    fn pr_listen(so: Socket<Self::Pcb>, backlog: i32, td: Thread) -> Result<()> {
+    fn pr_listen(so: Socket<Self::Pcb>, backlog: i32, td: &Thread) -> Result<()> {
         unimplemented!()
     }
     fn pr_accept(so: Socket<Self::Pcb>, addr: Option<&SockAddr>) -> Result<()> {
         unimplemented!()
     }
-    fn pr_connect(so: Socket<Self::Pcb>, addr: Option<&SockAddr>, td: Thread) -> Result<()> {
+    fn pr_connect(so: Socket<Self::Pcb>, addr: Option<&SockAddr>, td: &Thread) -> Result<()> {
         unimplemented!()
     }
 }

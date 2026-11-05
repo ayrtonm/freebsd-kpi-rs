@@ -56,10 +56,10 @@ pub trait CDevSwInternal {
 pub trait CDevSw: CDevSwInternal {
     type Softc: 'static + Sync;
 
-    fn d_open(sc: &Softc<Self::Softc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
+    fn d_open(sc: &Softc<Self::Softc>, fflag: i32, devtype: i32, td: &Thread) -> Result<()> {
         unimplemented!()
     }
-    fn d_close(sc: &Softc<Self::Softc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
+    fn d_close(sc: &Softc<Self::Softc>, fflag: i32, devtype: i32, td: &Thread) -> Result<()> {
         unimplemented!()
     }
     fn d_read(sc: &Softc<Self::Softc>, uio: &Uio, ioflag: c_int) -> Result<()> {

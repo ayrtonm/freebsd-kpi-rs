@@ -143,14 +143,9 @@ pub mod misc {
     use crate::define_interface;
     use crate::ffi::Softc;
     use crate::device::DeviceIf;
+    use crate::define_wrapper_type;
 
-    pub struct Thread(pub NonNull<bindings::thread>);
-
-    impl AsRustType<'_, Thread> for *mut bindings::thread {
-        fn as_rust_type(&self) -> Thread {
-            Thread(NonNull::new(*self).unwrap())
-        }
-    }
+    define_wrapper_type!(Thread, thread);
 
     #[cfg(target_arch = "aarch64")]
     pub const PAGE_SHIFT_4K: u64 = crate::bindings::PAGE_SHIFT_4K as u64;

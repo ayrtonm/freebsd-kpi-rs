@@ -82,7 +82,7 @@ impl CDevSw for EchoDev {
     // To access the cdev pointer itself we can use `sc.cdev()` on any `Ref` or `Ptr` to a cdev
     // softc. That returns a cdev that has a lifetime tied to the `Ref`/`Ptr` so there's no way
     // to stash away a copy of the cdev and use it after the device is destroyed.
-    fn d_open(sc: &Softc<EchoDevSoftc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
+    fn d_open(sc: &Softc<EchoDevSoftc>, fflag: i32, devtype: i32, td: &Thread) -> Result<()> {
         if fflag & bindings::FWRITE != 0 {
             let mut state = sx_xlock(&sc.state);
             if state.writers == usize::MAX {
@@ -93,7 +93,7 @@ impl CDevSw for EchoDev {
         }
         Ok(())
     }
-    fn d_close(sc: &Softc<EchoDevSoftc>, fflag: i32, devtype: i32, td: Thread) -> Result<()> {
+    fn d_close(sc: &Softc<EchoDevSoftc>, fflag: i32, devtype: i32, td: &Thread) -> Result<()> {
         if fflag & bindings::FWRITE != 0 {
             let mut state = sx_xlock(&sc.state);
             state.writers -= 1;
