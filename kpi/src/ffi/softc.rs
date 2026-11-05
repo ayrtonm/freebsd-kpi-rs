@@ -223,32 +223,6 @@ impl<'a, T> UninitPtr<'a, T> {
 pub struct Ptr<T: 'static>(pub(crate) NonNull<Softc<T>>);
 
 impl<T> Ptr<T> {
-    /// Get a Device that owns the softc.
-    ///
-    /// The Device may only be used for the lifetime of the Ptr. Attempting to use it after
-    /// passing on ownership of the Ptr somewhere else is a compile-time error. Calling this on a
-    /// softc owned by a char device will panic.
-    pub fn device(&self) -> Device<'_> {
-        // SAFETY: The pointee is freed in device_detach, but the KPI glue for it panics if there is
-        // an outstanding softc Ptr when it's ready to free it. The return value lifetime is tied
-        // to the Ptr borrow.
-        unsafe { self.0.as_ref().device() }
-        // SAFETY: The lifetime of the return value is tied to the Ptr borrow (&self)
-        //unsafe { Device::new_unchecked(dev_ptr) }
-    }
-
-    /// Get a CDev that owns the softc.
-    ///
-    /// The CDev may only be used for the lifetime of the Ptr. Attempting to use it after
-    /// passing on ownership of the Ptr somewhere else is a compile-time error. Calling this on a
-    /// softc owned by a device driver will panic.
-    pub fn cdev(&self) -> CDev<'_> {
-        // SAFETY: The pointee is freed in device_detach, but the KPI glue for it panics if there is
-        // an outstanding softc Ptr when it's ready to free it. The return value lifetime is tied
-        // to the Ptr borrow.
-        unsafe { self.0.as_ref().cdev() }
-    }
-
     pub fn get_ptr(&self) -> Self {
         // SAFETY: The pointee is freed in device_detach, but the KPI glue for it panics if there is
         // an outstanding softc Ptr when it's ready to free it.
@@ -289,13 +263,13 @@ impl<T> Drop for Ptr<T> {
 }
 
 impl<T> Deref for Ptr<T> {
-    type Target = T;
+    type Target = Softc<T>;
 
     fn deref(&self) -> &Self::Target {
         // SAFETY: The pointee is freed in device_detach, but the KPI glue for it panics if there is
         // an outstanding softc Ptr when it's ready to free it. The return value lifetime is tied
         // to the Ptr borrow.
-        unsafe { &self.0.as_ref().inner }
+        unsafe { self.0.as_ref() }
     }
 }
 
