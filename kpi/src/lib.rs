@@ -201,35 +201,6 @@ pub mod misc {
     pub fn CPU_ISSET(cpu: u_int, set: &cpuset_t) -> bool {
         unsafe { bindings::rust_bindings_CPU_ISSET(cpu, set as *const cpuset_t as *mut cpuset_t) }
     }
-    #[cfg(target_arch = "aarch64")]
-    pub fn gpiobus_add_bus(dev: &Device) -> Result<&Device> {
-        let res = unsafe { bindings::gpiobus_add_bus(dev.as_ptr()) };
-        if res.is_null() {
-            Err(ENULLPTR)
-        } else {
-            // TODO: The output lifetime is wrong just like device_add_child
-            Ok(unsafe { res.cast::<Device>().as_ref().unwrap() })
-        }
-    }
-    #[allow(unused_variables)]
-    pub unsafe trait GpioIf: DeviceIf {
-        fn gpio_get_bus(sc: &Softc<Self::Softc>) -> device_t {
-            unimplemented!()
-        }
-        fn gpio_pin_set(sc: &Softc<Self::Softc>, pin: u32, value: u32) -> Result<()> {
-            unimplemented!()
-        }
-    }
-    define_interface! {
-        in GpioIf
-        fn gpio_get_bus(dev: device_t) -> device_t,
-            with desc gpio_get_bus_desc
-            and typedef gpio_get_bus_t,
-            is infallible;
-        fn gpio_pin_set(dev: device_t, pin: u32, value: u32) -> core::ffi::c_int,
-            with desc gpio_pin_set_desc
-            and typedef gpio_pin_set_t;
-    }
 }
 
 /// Contains all rust wrappers for C KPI functions.
