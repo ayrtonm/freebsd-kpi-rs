@@ -225,7 +225,7 @@ pub mod wrappers {
         BUS_DMASYNC_POSTWRITE,
     }
 
-    pub fn bus_get_dma_tag(dev: Device) -> BusDmaTag {
+    pub fn bus_get_dma_tag(dev: &Device) -> BusDmaTag {
         BusDmaTag(unsafe { bindings::bus_get_dma_tag(dev.as_ptr()) })
     }
 

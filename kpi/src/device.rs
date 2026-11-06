@@ -43,6 +43,8 @@ use core::fmt::{Debug, Formatter};
 
 define_wrapper_type!(Device, _device);
 
+unsafe impl Sync for Device {}
+
 impl Debug for Device {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         Debug::fmt(&self.0.get(), f)
@@ -423,6 +425,10 @@ pub mod wrappers {
                 .try_into_boxed_slice(M_NOWAIT)?
         };
         Ok(children)
+    }
+
+    pub fn bus_attach_children(dev: &Device) {
+        unsafe { bindings::bus_attach_children(dev.as_ptr()) }
     }
 
     pub fn device_probe_and_attach(dev: &Device) -> Result<()> {
