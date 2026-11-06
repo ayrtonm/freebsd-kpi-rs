@@ -130,11 +130,11 @@ pub use wrappers::*;
 pub mod wrappers {
     use super::*;
 
-    pub fn ofw_bus_status_okay(dev: Device) -> bool {
+    pub fn ofw_bus_status_okay(dev: &Device) -> bool {
         unsafe { bindings::ofw_bus_status_okay(dev.as_ptr()) != 0 }
     }
 
-    pub fn ofw_bus_is_compatible(dev: Device, compat: &CStr) -> bool {
+    pub fn ofw_bus_is_compatible(dev: &Device, compat: &CStr) -> bool {
         let compat_ptr = compat.as_ptr();
         let res = unsafe { bindings::ofw_bus_is_compatible(dev.as_ptr(), compat_ptr) };
         res == 1
@@ -145,7 +145,7 @@ pub mod wrappers {
     /// Returns a reference to the first compatible entry or `Err` if none are found. Unlike the C
     /// version, `compat` does not need to be explicitly terminated by a null entry.
     pub fn ofw_bus_search_compatible<T, const N: usize>(
-        dev: Device,
+        dev: &Device,
         compat: &OfwCompatData<T, N>,
     ) -> Result<&'static T> {
         let compat_ptr = unsafe {
@@ -171,7 +171,7 @@ pub mod wrappers {
         found.ok_or(ENULLPTR)
     }
 
-    pub fn ofw_bus_get_node(dev: Device) -> Node {
+    pub fn ofw_bus_get_node(dev: &Device) -> Node {
         let node = unsafe { bindings::ofw_bus_get_node(dev.as_ptr()) };
         Node(node)
     }
@@ -179,7 +179,7 @@ pub mod wrappers {
     /// Registers a device with the given devicetree xref
     ///
     /// Note that this function ensure that the device won't be detached later.
-    pub fn OF_device_register_xref(xref: XRef, dev: Device<'static>) {
+    pub fn OF_device_register_xref(xref: XRef, dev: &'static Device) {
         let _always_ok = unsafe { bindings::OF_device_register_xref(xref.0, dev.as_ptr()) };
     }
 
@@ -241,7 +241,7 @@ pub mod wrappers {
     }
 
     /// Get a device from a devicetree XRef.
-    pub fn OF_device_from_xref(xref: XRef) -> Result<Device<'static>> {
+    pub fn OF_device_from_xref(xref: XRef) -> Result<&'static Device> {
         let ptr = unsafe { bindings::OF_device_from_xref(xref.0) };
         if ptr.is_null() {
             Err(ENULLPTR)
@@ -249,7 +249,7 @@ pub mod wrappers {
             // SAFETY: OF_device_register_xref ensures this is always an undetachable Device. If the
             // C version of OF_device_register_xref is called instead the burden for ensuring the
             // device_t never has its driver detached is on that unsafe block.
-            Ok(unsafe { Device::new_unchecked(ptr) })
+            Ok(unsafe { ptr.cast::<Device>().as_ref().unwrap() })
         }
     }
 

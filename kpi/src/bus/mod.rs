@@ -291,7 +291,7 @@ pub mod wrappers {
     }
 
     pub fn bus_setup_intr<T>(
-        dev: Device,
+        dev: &Device,
         irq: Pin<&Irq>,
         flags: c_int,
         filter: FilterFn<T>,
@@ -332,7 +332,7 @@ pub mod wrappers {
         Ok(())
     }
 
-    pub fn bus_teardown_intr(dev: Device, irq: &Irq) -> Result<()> {
+    pub fn bus_teardown_intr(dev: &Device, irq: &Irq) -> Result<()> {
         let dev_ptr = dev.as_ptr();
         let cookiep = irq.cookie.get();
         let cookie = unsafe { *cookiep };
@@ -361,7 +361,7 @@ pub mod wrappers {
     }
 
     pub fn bus_alloc_resource_any(
-        dev: Device,
+        dev: &Device,
         ty: SysRes,
         rid: c_int,
         flags: ResFlags,
@@ -382,7 +382,7 @@ pub mod wrappers {
     }
 
     pub fn bus_alloc_resources<const N: usize>(
-        dev: Device,
+        dev: &Device,
         spec: [ResourceSpec; N],
     ) -> Result<[Resource; N]> {
         #[repr(C)]
@@ -481,7 +481,7 @@ mod tests {
     impl IrqDriver {
         fn setup(
             &self,
-            dev: Device,
+            dev: &Device,
             sc: &Softc<IrqSoftc>,
             filter: bool,
             handler: bool,
@@ -503,7 +503,7 @@ mod tests {
     impl DeviceIf for IrqDriver {
         type Softc = IrqSoftc;
 
-        fn device_probe(dev: Device) -> Result<BusProbe> {
+        fn device_probe(dev: &Device) -> Result<BusProbe> {
             if !ofw_bus_is_compatible(dev, c"bus,irq_driver") {
                 return Err(ENXIO);
             }

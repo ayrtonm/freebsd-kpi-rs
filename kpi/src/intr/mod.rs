@@ -322,7 +322,7 @@ mod tests {
     }
     impl DeviceIf for HookDriver {
         type Softc = HookSoftc;
-        fn device_probe(dev: Device) -> Result<BusProbe> {
+        fn device_probe(dev: &Device) -> Result<BusProbe> {
             if !ofw_bus_is_compatible(dev, c"intr,hook_driver") {
                 return Err(ENXIO);
             }

@@ -310,7 +310,7 @@ pub mod wrappers {
 
     pub fn intr_isrc_register<T>(
         isrc: Pin<&IrqSrc<T>>,
-        dev: Device,
+        dev: &Device,
         flags: Option<IntrIsrcf>,
         name: &ArrayCString,
     ) -> Result<()> {
@@ -331,7 +331,7 @@ pub mod wrappers {
         Ok(())
     }
 
-    pub fn intr_pic_register(dev: Device, xref: XRef) -> Result<()> {
+    pub fn intr_pic_register(dev: &Device, xref: XRef) -> Result<()> {
         let pic = unsafe { bindings::intr_pic_register(dev.as_ptr(), xref.0 as _) };
         if pic.is_null() {
             Err(ENULLPTR)
@@ -342,7 +342,7 @@ pub mod wrappers {
     }
 
     pub fn intr_pic_claim_root<T>(
-        dev: Device,
+        dev: &Device,
         xref: XRef,
         filter: IrqFilter<T>,
         arg: Ptr<T>,
@@ -368,7 +368,7 @@ pub mod wrappers {
         Ok(())
     }
 
-    pub fn intr_ipi_pic_register(dev: Device, priority: u32) -> Result<()> {
+    pub fn intr_ipi_pic_register(dev: &Device, priority: u32) -> Result<()> {
         let res = unsafe { bindings::intr_ipi_pic_register(dev.as_ptr(), priority) };
         if res != 0 {
             return Err(ErrCode::from(res));
@@ -399,7 +399,7 @@ mod tests {
     pub struct IntcSoftc;
     impl DeviceIf for IntcDriver {
         type Softc = IntcSoftc;
-        fn device_probe(dev: Device) -> Result<BusProbe> {
+        fn device_probe(dev: &Device) -> Result<BusProbe> {
             if !ofw_bus_is_compatible(dev, c"intr,intc_driver") {
                 return Err(ENXIO);
             }

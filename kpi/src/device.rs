@@ -38,43 +38,23 @@ use core::ffi::{CStr, c_int};
 use core::marker::PhantomData;
 use core::ptr;
 use core::ptr::null_mut;
+use core::fmt;
+use core::fmt::{Debug, Formatter};
 
-/// A device which is being managed by a rust driver.
-///
-/// Device has a lifetime `'a` attached representing the scope for which the device is known to be
-/// attached. Functions that require the device is attached for longer than the Device instance may
-/// be unsafe and require the caller to justify their usage by explaining how they know the device
-/// won't get detached while it's in use.
-///
-/// Note that rust drivers may have some (or even all) methods written in C so the only thing that
-/// that allows you to assume is that the memory layout of the softc matches Softc<TheSoftc>.
-#[repr(C)]
-#[derive(Copy, Clone, Debug)]
-pub struct Device<'a>(device_t, PhantomData<&'a ()>);
+define_wrapper_type!(Device, _device);
 
-unsafe impl<'a> Sync for Device<'a> {}
-unsafe impl<'a> Send for Device<'a> {}
-
-impl<'a> Device<'a> {
-    /// # Safety
-    ///
-    /// The caller must ensure that the device is managed by a rust driver and will be valid (i.e.
-    /// not detached) for the lifetime of the returned value. If the caller does not explicitly
-    /// annotate the lifetime and tie it to another reference the lifetime is inferred from context.
-    pub unsafe fn new_unchecked(ptr: device_t) -> Self {
-        Self(ptr, PhantomData)
+impl Debug for Device {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Debug::fmt(&self.0.get(), f)
     }
+}
 
-    pub fn as_ptr(&self) -> device_t {
-        self.0
-    }
-
-    pub fn as_undetachable(&self) -> Result<Device<'static>> {
-        if !device_is_undetachable(*self) {
+impl Device {
+    pub fn as_undetachable(&self) -> Result<&'static Device> {
+        if !device_is_undetachable(self) {
             return Err(EDOOFUS);
         }
-        let ptr = self.0;
-        Ok(Device(ptr, PhantomData))
+        Ok(unsafe { self.as_ptr().cast::<Device>().as_ref().unwrap() })
     }
 }
 
@@ -87,8 +67,8 @@ unsafe impl Sync for BusyDevice {}
 unsafe impl Send for BusyDevice {}
 
 impl BusyDevice {
-    pub fn new(dev: Device) -> Self {
-        let ptr = dev.0;
+    pub fn new(dev: &Device) -> Self {
+        let ptr = dev.as_ptr();
         unsafe { bindings::device_busy(ptr) };
         Self(ptr)
     }
@@ -129,15 +109,6 @@ pub struct BusProbe(pub c_int);
 impl AsCType<c_int> for BusProbe {
     fn as_c_type(self) -> c_int {
         self.0
-    }
-}
-
-// Used in device_probe
-impl<'a> AsRustType<'a, Device<'a>> for device_t {
-    fn as_rust_type(&'a self) -> Device<'a> {
-        // TODO: Make AsRustType unsafe
-        // SAFETY: Safety requirements delegated to caller
-        unsafe { Device::new_unchecked(*self) }
     }
 }
 
@@ -248,7 +219,7 @@ pub trait DeviceIf: Driver {
     type Softc: 'static + Sync + Send;
 
     /// Used to probe whether the given device is supported by the driver.
-    fn device_probe(dev: Device) -> Result<BusProbe> {
+    fn device_probe(dev: &Device) -> Result<BusProbe> {
         unimplemented!()
     }
 
@@ -303,11 +274,11 @@ pub mod wrappers {
         BUS_PROBE_NOWILDCARD,
     }
 
-    pub fn device_get_driver(dev: Device) -> *mut driver_t {
+    pub fn device_get_driver(dev: &Device) -> *mut driver_t {
         unsafe { bindings::device_get_driver(dev.as_ptr()) }
     }
 
-    pub fn device_matches_driver<D: DeviceIf>(dev: Device) -> bool {
+    pub fn device_matches_driver<D: DeviceIf>(dev: &Device) -> bool {
         ptr::eq(device_get_driver(dev), <D as Driver>::DRIVER)
     }
 
@@ -338,7 +309,7 @@ pub mod wrappers {
         false
     }
 
-    pub fn device_is_undetachable(dev: Device) -> bool {
+    pub fn device_is_undetachable(dev: &Device) -> bool {
         let driver = device_get_driver(dev);
         let mut method_ptr = unsafe { (*driver).methods };
         while unsafe { !(*method_ptr).desc.is_null() } {
@@ -361,7 +332,7 @@ pub mod wrappers {
     /// Note the existence of the Device ensures that the device won't be detached for its
     /// associated lifetime so the returned Ref has a matching lifetime. To use the softc past that
     /// scope, turn it into a lease using Ref::lease.
-    pub fn device_get_softc<D: DeviceIf>(dev: Device<'_>) -> &Softc<D::Softc> {
+    pub fn device_get_softc<D: DeviceIf>(dev: &Device) -> &Softc<D::Softc> {
         assert!(device_get_state(dev) == DS_ATTACHED);
         assert!(device_matches_driver::<D>(dev));
         let void_ptr = unsafe { bindings::device_get_softc(dev.as_ptr()) };
@@ -390,7 +361,7 @@ pub mod wrappers {
         // SAFETY: Safety requirements delegated to caller
         assert!(unsafe { device_has_rust_driver(dev_ptr) });
         // SAFETY: Lifetime safety requirements delegated to caller
-        let dev = unsafe { Device::new_unchecked(dev_ptr) };
+        let dev = unsafe { dev_ptr.cast::<Device>().as_ref().unwrap() };
 
         let sc = device_get_softc::<D>(dev);
 
@@ -404,7 +375,7 @@ pub mod wrappers {
     /// being detached. All devices stay busy until the BusyDevice is dropped or destroyed with
     /// device_unbusy. The lack of an associated lifetime in BusyDevice means that it can be stashed
     /// in a global or another softc is desired.
-    pub fn device_busy(dev: Device) -> BusyDevice {
+    pub fn device_busy(dev: &Device) -> BusyDevice {
         BusyDevice::new(dev)
     }
 
@@ -412,11 +383,11 @@ pub mod wrappers {
         drop(busy_dev)
     }
 
-    pub fn device_claim_softc(dev: Device) {
+    pub fn device_claim_softc(dev: &Device) {
         unsafe { bindings::device_claim_softc(dev.as_ptr()) }
     }
 
-    pub fn device_get_state(dev: Device) -> device_state_t {
+    pub fn device_get_state(dev: &Device) -> device_state_t {
         unsafe { bindings::device_get_state(dev.as_ptr()) }
     }
 
@@ -424,7 +395,7 @@ pub mod wrappers {
     ///
     /// Note that the parent may actually have a longer lifetime since the return value's lifetime
     /// is tied to the argument.
-    pub fn device_get_parent<'a>(dev: Device<'a>) -> Result<Device<'a>> {
+    pub fn device_get_parent(dev: &Device) -> Result<&Device> {
         let dev_ptr = dev.as_ptr();
         let res = unsafe { bindings::device_get_parent(dev_ptr) };
         if res.is_null() {
@@ -434,11 +405,11 @@ pub mod wrappers {
             // which is fine since the parent must live at least as long as the child. The function
             // signature annotates lifetimes explicitly for clarity, but omitting them gives the
             // same result due to rust's lifetime elision rules.
-            Ok(unsafe { Device::new_unchecked(res) })
+            Ok(unsafe { res.cast::<Device>().as_ref().unwrap() })
         }
     }
 
-    pub fn device_get_children(dev: Device) -> Result<Box<[Device], M_TEMP>> {
+    pub fn device_get_children(dev: &Device) -> Result<Box<[&Device], M_TEMP>> {
         let mut devlistp = null_mut();
         let mut devcountp = 0;
         let res = unsafe {
@@ -448,13 +419,13 @@ pub mod wrappers {
             return Err(ErrCode::from(res));
         }
         let children = unsafe {
-            Vec::from_raw(devlistp.cast::<Device>(), devcountp.try_into().unwrap())
+            Vec::from_raw(devlistp.cast::<&Device>(), devcountp.try_into().unwrap())
                 .try_into_boxed_slice(M_NOWAIT)?
         };
         Ok(children)
     }
 
-    pub fn device_probe_and_attach(dev: Device) -> Result<()> {
+    pub fn device_probe_and_attach(dev: &Device) -> Result<()> {
         let dev_ptr = dev.as_ptr();
         let res = unsafe { bindings::device_probe_and_attach(dev_ptr) };
         if res != 0 {
@@ -463,13 +434,13 @@ pub mod wrappers {
         Ok(())
     }
 
-    pub fn device_set_desc(dev: Device, desc: &'static CStr) {
+    pub fn device_set_desc(dev: &Device, desc: &'static CStr) {
         let dev_ptr = dev.as_ptr();
         let desc_ptr = desc.as_ptr();
         unsafe { bindings::device_set_desc(dev_ptr, desc_ptr) }
     }
 
-    pub fn device_get_desc(dev: Device) -> ArrayCString {
+    pub fn device_get_desc(dev: &Device) -> ArrayCString {
         let name_ptr = unsafe { bindings::device_get_desc(dev.as_ptr()) };
         assert!(!name_ptr.is_null());
         let name = unsafe { CStr::from_ptr(name_ptr) };
@@ -477,7 +448,7 @@ pub mod wrappers {
     }
 
     /// Returns a copy of the device name
-    pub fn device_get_name(dev: Device) -> ArrayCString {
+    pub fn device_get_name(dev: &Device) -> ArrayCString {
         let name_ptr = unsafe { bindings::device_get_name(dev.as_ptr()) };
         assert!(!name_ptr.is_null());
         let name = unsafe { CStr::from_ptr(name_ptr) };
@@ -485,15 +456,15 @@ pub mod wrappers {
     }
 
     /// Returns a copy of the device name and unit number
-    pub fn device_get_nameunit(dev: Device) -> ArrayCString {
+    pub fn device_get_nameunit(dev: &Device) -> ArrayCString {
         let name_ptr = unsafe { bindings::device_get_nameunit(dev.as_ptr()) };
         assert!(!name_ptr.is_null());
         let name = unsafe { CStr::from_ptr(name_ptr) };
         ArrayCString::new(name)
     }
 
-    pub fn device_add_child<'a>(
-        dev: Device<'a>,
+    pub fn device_add_child(
+        dev: &Device,
         name: &'static CStr,
         unit: Option<u32>,
     ) -> Result<ChildDevice> {
@@ -531,7 +502,7 @@ mod tests {
     static STASHED_DEVICE: AtomicPtr<_device> = AtomicPtr::new(null_mut());
 
     impl AnotherDriver {
-        fn get_stashed_softc(dev: Device) {
+        fn get_stashed_softc(dev: &Device) {
             let test_driver_dev = STASHED_DEVICE.load(Ordering::Relaxed);
             let test_driver_sc =
                 unsafe { device_get_softc_unchecked::<TestDriver>(test_driver_dev) };
@@ -540,7 +511,7 @@ mod tests {
     }
     impl DeviceIf for TestDriver {
         type Softc = TestDriverSoftc;
-        fn device_probe(dev: Device) -> Result<BusProbe> {
+        fn device_probe(dev: &Device) -> Result<BusProbe> {
             if !ofw_bus_status_okay(dev) {
                 println!("test_driver: rejected {dev:x?} as not ok");
                 return Err(ENXIO);
@@ -590,7 +561,7 @@ mod tests {
     }
     impl DeviceIf for AnotherDriver {
         type Softc = AnotherDriverSoftc;
-        fn device_probe(dev: Device) -> Result<BusProbe> {
+        fn device_probe(dev: &Device) -> Result<BusProbe> {
             if !ofw_bus_status_okay(dev) {
                 println!("another_driver: rejected {dev:x?} as not ok");
                 return Err(ENXIO);
@@ -631,7 +602,7 @@ mod tests {
     pub struct UndetachableDriverSoftc {}
     impl DeviceIf for UndetachableDriver {
         type Softc = UndetachableDriverSoftc;
-        fn device_probe(dev: Device) -> Result<BusProbe> {
+        fn device_probe(dev: &Device) -> Result<BusProbe> {
             if !ofw_bus_status_okay(dev) {
                 return Err(ENXIO);
             }

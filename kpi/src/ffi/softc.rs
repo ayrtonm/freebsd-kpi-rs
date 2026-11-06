@@ -103,13 +103,13 @@ impl<T> Softc<T> {
     }
 
     /// Panics if this `Softc` is not attached to a device_t.
-    pub fn device(&self) -> Device<'_> {
+    pub fn device(&self) -> &Device {
         let ptr = match self.dev {
             Some(nonnull_dev) => nonnull_dev.as_ptr(),
             None => panic!("softc does not have an associated device_t"),
         };
         // SAFETY: The lifetime of the return value is tied to the Ref borrow (&self)
-        unsafe { Device::new_unchecked(ptr) }
+        unsafe { ptr.cast::<Device>().as_ref().unwrap() }
     }
 
     pub fn get_ptr(&self) -> Ptr<T> {
@@ -178,7 +178,7 @@ impl<'a, T> UninitPtr<'a, T> {
         Self(sc_ref)
     }
 
-    pub fn device(&self) -> Device<'_> {
+    pub fn device(&self) -> &Device {
         // We still can't make a reference to the entire Softc<T> so calling Softc::device
         // is not an option to get a device_t.
         let sc_ptr: *const Softc<T> = self.0.as_ptr();
@@ -187,7 +187,7 @@ impl<'a, T> UninitPtr<'a, T> {
         match dev {
             Some(nonnull_dev) => {
                 // SAFETY: The lifetime of the Device matches the UninitPtr borrow
-                unsafe { Device::new_unchecked(nonnull_dev.as_ptr()) }
+                unsafe { nonnull_dev.as_ptr().cast::<Device>().as_ref().unwrap() }
             }
             None => unreachable!(),
         }
