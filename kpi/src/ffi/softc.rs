@@ -38,8 +38,9 @@ use core::fmt::{Debug, Formatter};
 use core::mem::{MaybeUninit, forget};
 use core::ops::{Deref, DerefMut};
 use core::pin::Pin;
-use core::ptr::NonNull;
+use core::ptr::{NonNull, null_mut};
 use core::{fmt, ptr};
+use core::sync::atomic::{AtomicPtr, Ordering};
 
 /// The layout of the softc that Ref and Ptr point to.
 ///
@@ -67,11 +68,11 @@ pub struct Softc<T> {
 }
 
 impl<T> Softc<T> {
-    pub fn new<M: Malloc>(t: T, flags: MallocFlags) -> Box<Self, M> {
-        Softc::try_new(t, flags).unwrap()
+    pub fn new_boxed<M: Malloc>(t: T, flags: MallocFlags) -> Box<Self, M> {
+        Softc::try_new_boxed(t, flags).unwrap()
     }
 
-    pub fn try_new<M: Malloc>(t: T, flags: MallocFlags) -> Result<Box<Self, M>> {
+    pub fn try_new_boxed<M: Malloc>(t: T, flags: MallocFlags) -> Result<Box<Self, M>> {
         let mut res = Box::try_new(
             Self {
                 inner: t,
@@ -275,3 +276,35 @@ impl<T> Deref for Ptr<T> {
 
 unsafe impl<T: Sync + Send> Sync for Ptr<T> {}
 unsafe impl<T: Sync + Send> Send for Ptr<T> {}
+
+#[repr(C)]
+pub struct NullablePtr<T: 'static>(pub(crate) AtomicPtr<T>);
+
+impl<T> NullablePtr<T> {
+    pub const fn new() -> NullablePtr<T> {
+        NullablePtr(AtomicPtr::new(null_mut()))
+    }
+
+    pub fn take(&self) -> Option<Ptr<T>> {
+        let ptr = self.0.swap(null_mut(), Ordering::Acquire);
+        if ptr.is_null() {
+            return None;
+        }
+        Some(unsafe { Ptr::from_raw(ptr) })
+    }
+
+    pub fn swap(&self, ptr: Ptr<T>) -> Option<Ptr<T>> {
+        let (new_ptr, _count_ptr) = Ptr::into_raw(ptr);
+        let old_ptr = self.0.swap(new_ptr, Ordering::AcqRel);
+        if old_ptr.is_null() {
+            return None;
+        }
+        Some(unsafe { Ptr::from_raw(old_ptr) })
+    }
+}
+
+impl<T> Drop for NullablePtr<T> {
+    fn drop(&mut self) {
+        let _ptr = self.take();
+    }
+}
