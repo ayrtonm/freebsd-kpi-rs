@@ -10,7 +10,7 @@
 
 .include <bsd.kmod.mk>
 .if !empty(RUST_SRCS) && !defined(RUST_OBJS)
-.error Tried building a rust modules but RUST_OBJS is not defined. Did you apply patches/rust_mk_integration.diff?
+.error Tried building a rust module but RUST_OBJS is not defined. Did you apply patches/rust_mk_integration.diff?
 .endif
 
 .else
