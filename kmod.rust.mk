@@ -15,23 +15,22 @@
 
 .else
 
-.include "${SYSDIR}/rust/kern.rust.mk"
-
-# Override variables that are kernel-specific
+# Override variables that are kernel-specific. These must be set before including kern.rust.mk.
 RUST_MAKEFILE=	${SRCTOP}/sys/rust/kmod.rust.mk
-
-.if ${__KLD_SHARED} == yes
-RUSTFLAGS:=	${RUSTFLAGS:N-Crelocation-model=*} -Crelocation-model=pic
-.endif
 
 .for _rs in ${RUST_SRCS}
 RLIBS+=	lib${_rs:R}.rlib
 
-lib${_rs:R}.rlib: ${.CURDIR}/${_rs} ${RUST_DEFAULT_DEP} ${RUST_MAKEFILE}
+# kern.rust.mk adds ${RUST_DEFAULT_DEP} to everything in RLIBS
+lib${_rs:R}.rlib: ${.CURDIR}/${_rs} ${RUST_MAKEFILE}
 	${NORMAL_R}
 .endfor
 
-.include "${SYSDIR}/rust/kern.rustroot.mk"
+.include "${SYSDIR}/rust/kern.rust.mk"
+
+.if ${__KLD_SHARED} == yes
+RUSTFLAGS:=	${RUSTFLAGS:N-Crelocation-model=*} -Crelocation-model=pic
+.endif
 
 _RUST_LOCAL_FILES=	${RLIBS} ${RUSTROOT_OBJS} ${RUSTROOT_RS} ${BINDINGS_RS} \
 	${BINDGEN_GENERATED_SRC} ${BINDGEN_DEPS} \

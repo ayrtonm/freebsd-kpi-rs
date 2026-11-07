@@ -190,7 +190,7 @@ RUSTROOT_RS= rustroot.rs
 RUSTROOT_A= rustroot.a
 # This must be here to ensure it gets added to SYSTEM_OBJS
 RUST_OBJS= ${RUSTROOT_A} ${BINDGEN_GENERATED_SRC:S/.c/.o/}
-RUST_MAKEFILE= ${SRCTOP}/sys/rust/kern.rust.mk
+RUST_MAKEFILE?= ${SRCTOP}/sys/rust/kern.rust.mk
 
 RUST_DEFAULT_DEP= ${RUST_KPI} ${RUST_CORE} ${RUST_FAKE_BUILTINS}
 # TODO: Use the depfile
@@ -218,3 +218,26 @@ ${BINDINGS_RS}: ${SRCTOP}/sys/rust/bindings.h ${RUST_MAKEFILE}
 
 ${RUST_KPI}: ${RUST_FAKE_BUILTINS} ${BINDINGS_RS} ${RUST_KPI_SOURCES}
 	OUT_DIR=${.OBJDIR} ${RLIB_RULE} --crate-name kpi ${RUST_KPI_FEATURES} ${SRCTOP}/sys/rust/kpi/src/lib.rs -o ${.TARGET}
+
+_LDFLAGS += --whole-archive
+
+# This file must be included after RLIBS is set. config(8) emits `libfoo.rlib: foo.rs
+# ${RUST_DEFAULT_DEP} ...` before that point so RUST_DEFAULT_DEP expands to nothing there. Add it
+# here instead, before RUST_KPI is added to RLIBS so libkpi.rlib doesn't depend on itself.
+.if !empty(RLIBS)
+${RLIBS}: ${RUST_DEFAULT_DEP}
+.endif
+
+RLIBS += ${RUST_KPI}
+
+.for rlib in ${RLIBS}
+.-include "${.OBJDIR}/.depend.${rlib}"
+.endfor
+
+${RUSTROOT_RS}: ${RUST_MAKEFILE} ${RLIBS}
+	printf "#![no_std]\n${RLIBS:S/.rlib/;/:S/lib/extern crate /}" > ${RUSTROOT_RS}
+
+${RUSTROOT_A}: ${RUSTROOT_RS} ${RUST_CORE} ${RUST_FAKE_BUILTINS} ${RLIBS}
+	${RUSTC} ${RUSTFLAGS} --crate-type staticlib -o ${RUSTROOT_A} ${RUSTROOT_RS} \
+		--sysroot=${.OBJDIR}/${RUST_SYSROOT} ${RLIBS:C/.rlib//:C/^lib//:C/.*/--extern \0=lib\0.rlib/} \
+		-L.

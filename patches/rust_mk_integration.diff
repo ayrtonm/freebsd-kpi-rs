@@ -5,30 +5,22 @@ Date:   Mon Nov 10 23:25:51 2025 -0500
     conf: Integrate rust into kernel build system
 
 diff --git a/sys/conf/kern.post.mk b/sys/conf/kern.post.mk
-index 2abf1889d33..68c1c697d8c 100644
+index 2abf1889d33..bd91e24ec22 100644
 --- a/sys/conf/kern.post.mk
 +++ b/sys/conf/kern.post.mk
 @@ -7,6 +7,7 @@
  # should be defined in the kern.pre.mk so that port makefiles can
  # override or augment them.
  
-+.include "../rust/kern.rustroot.mk"
++.include "../rust/kern.rust.mk"
  .if defined(DTS) || defined(DTSO) || defined(FDT_DTS_FILE)
  .include "dtb.build.mk"
  
 diff --git a/sys/conf/kern.pre.mk b/sys/conf/kern.pre.mk
-index d1556660094..8ffcb07b929 100644
+index d1556660094..130c2442440 100644
 --- a/sys/conf/kern.pre.mk
 +++ b/sys/conf/kern.pre.mk
-@@ -21,6 +21,7 @@ _srcconf_included_:
- .include <bsd.own.mk>
- .include <bsd.compiler.mk>
- .include "kern.opts.mk"
-+.include "../rust/kern.rust.mk"
- .-include <local.kern.pre.mk>
- 
- # The kernel build always occurs in the object directory which is .CURDIR.
-@@ -293,8 +294,8 @@ IPFILTER_C=		${NORMAL_C} ${IPFILTER_CFLAGS}
+@@ -293,8 +293,8 @@ IPFILTER_C=		${NORMAL_C} ${IPFILTER_CFLAGS}
  
  GEN_CFILES= $S/$M/$M/genassym.c ${MFILES:T:S/.m$/.c/}
  SYSTEM_CFILES= config.c env.c hints.c vnode_if.c
