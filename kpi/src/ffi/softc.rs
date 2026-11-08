@@ -60,7 +60,7 @@ pub struct Softc<T> {
     // The type in these Option<T>s must be non-null so NULL is used as a niche value to represent
     // None. That means the following two fields are each the size of void*.
     dev: Option<NonNull<_device>>,
-    cdev: Option<NonNull<cdev>>,
+    cdev: AtomicPtr<cdev>,
     // The u_int must be behind an UnsafeCell since it's modified while behind a shared reference.
     // It avoids data races by using the atomic C KPI refcount_* functions. This is a u32 so there
     // should be at least a u32 of padding after it.
@@ -77,7 +77,7 @@ impl<T> Softc<T> {
             Self {
                 inner: t,
                 dev: None,
-                cdev: None,
+                cdev: AtomicPtr::new(null_mut()),
                 count: UnsafeCell::new(0),
             },
             flags,
@@ -89,16 +89,15 @@ impl<T> Softc<T> {
     }
 
     pub fn set_cdev(&mut self, dev: *mut cdev) {
-        assert!(self.cdev.is_none());
-        self.cdev = Some(NonNull::new(dev).unwrap());
+        self.cdev = AtomicPtr::new(dev);
     }
 
     /// Panics if this `Softc` is not attached to a cdev.
     pub fn cdev(&self) -> &CDev {
-        let ptr = match self.cdev {
-            Some(nonnull_cdev) => nonnull_cdev.as_ptr(),
-            None => panic!("softc does not have an associated *mut cdev"),
-        };
+        let ptr = self.cdev.load(Ordering::Relaxed);
+        if ptr.is_null() {
+            panic!("softc does not have an associated *mut cdev");
+        }
         // SAFETY: The lifetime of the return value is tied to the Ref borrow (&self)
         unsafe { ptr.cast::<CDev>().as_ref().unwrap() }
     }
@@ -174,7 +173,7 @@ impl<'a, T> UninitPtr<'a, T> {
             // first since newbus allocates the device softc. That means there should be no case
             // where this was already initialized to Some. We have to initialize it to soundly
             // create references to the entire Softc so None is the correct value here.
-            (*sc_ptr).cdev = None;
+            (*sc_ptr).cdev = AtomicPtr::new(null_mut());
         }
         Self(sc_ref)
     }
