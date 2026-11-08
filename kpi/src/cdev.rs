@@ -75,13 +75,18 @@ define_interface! {
     fn d_write(dev: *mut bindings::cdev, uio: *mut bindings::uio, iof: i32) -> i32;
 }
 
-pub struct MakeDevArgs<T, M: Malloc> {
+enum CDevSoftc<T: 'static, M: Malloc = ()> {
+    Shared(Ptr<T>),
+    Unique(Box<Softc<T>, M>),
+}
+
+pub struct MakeDevArgs<T: 'static, M: Malloc = ()> {
     pub flags: i32,
     pub uid: i32,
     pub gid: i32,
     pub mode: i32,
     pub name: &'static CStr,
-    sc: Box<Softc<T>, M>,
+    sc: CDevSoftc<T, M>,
     size: usize,
     cdevsw_ptr: *mut bindings::cdevsw,
 }
@@ -94,9 +99,18 @@ impl<T, M: Malloc> MakeDevArgs<T, M> {
         args.mda_uid = self.uid.try_into().unwrap();
         args.mda_gid = self.gid.try_into().unwrap();
         args.mda_mode = self.mode;
-        args.mda_si_drv1 = Box::into_raw(self.sc).cast::<c_void>();
-        // Record the softc's allocator so destroy_dev can free it later.
-        args.mda_si_drv2 = M::malloc_type().as_raw().cast::<c_void>();
+        match self.sc {
+            CDevSoftc::Unique(sc) => {
+                args.mda_si_drv1 = Box::into_raw(sc).cast::<c_void>();
+                // Record the softc's allocator so destroy_dev can free it later. This is the union
+                // tag that the destroy_dev path needs to check.
+                args.mda_si_drv2 = M::malloc_type().as_ptr().cast::<c_void>();
+            },
+            CDevSoftc::Shared(sc) => {
+                let (sc_ptr, _count_ptr) = Ptr::into_raw(sc);
+                args.mda_si_drv1 = sc_ptr.cast::<c_void>();
+            }
+        }
         args.mda_devsw = self.cdevsw_ptr;
         (args, self.name)
     }
@@ -201,13 +215,13 @@ pub mod wrappers {
     use core::ffi::c_void;
     use core::ptr::null_mut;
 
-    /// Initializes a [`MakeDevArgs`] for the given cdevsw (as declared by [`define_cdev!`][crate::define_cdev]).
-    pub fn make_dev_args_init<D: CDevSw, M: Malloc>(
-        sc: Box<Softc<D::Softc>, M>,
-        dev: &'static D,
-    ) -> MakeDevArgs<D::Softc, M> {
+    /// Initializes a [`MakeDevArgs`] for the given cdevsw using a softc shared with another driver.
+    pub fn make_dev_args_init_shared<D: CDevSw>(
+        sc: Ptr<D::Softc>,
+        driver: &'static D,
+    ) -> MakeDevArgs<D::Softc> {
         MakeDevArgs {
-            sc,
+            sc: CDevSoftc::Shared(sc),
             // Follows make_dev_args_init's behavior
             size: core::mem::size_of::<bindings::make_dev_args>(),
             flags: 0,
@@ -215,7 +229,25 @@ pub mod wrappers {
             gid: 0,
             mode: 0,
             name: c"",
-            cdevsw_ptr: dev.get_cdevsw_ptr(),
+            cdevsw_ptr: driver.get_cdevsw_ptr(),
+        }
+    }
+
+    /// Initializes a [`MakeDevArgs`] for the given cdevsw (as declared by [`define_cdev!`][crate::define_cdev]).
+    pub fn make_dev_args_init<D: CDevSw, M: Malloc>(
+        sc: Box<Softc<D::Softc>, M>,
+        driver: &'static D,
+    ) -> MakeDevArgs<D::Softc, M> {
+        MakeDevArgs {
+            sc: CDevSoftc::Unique(sc),
+            // Follows make_dev_args_init's behavior
+            size: core::mem::size_of::<bindings::make_dev_args>(),
+            flags: 0,
+            uid: 0,
+            gid: 0,
+            mode: 0,
+            name: c"",
+            cdevsw_ptr: driver.get_cdevsw_ptr(),
         }
     }
 
@@ -261,8 +293,10 @@ pub mod wrappers {
                 num_refs
             );
         }
-        unsafe { drop_in_place(sc_ptr) };
-        unsafe { free(sc_ptr.cast::<c_void>(), mtype) };
+        if !mtype.as_ptr().is_null() {
+            unsafe { drop_in_place(sc_ptr) };
+            unsafe { free(sc_ptr.cast::<c_void>(), mtype) };
+        }
     }
 
     pub fn uiomove_read(buf: &mut [u8], uio_ref: &Uio) -> Result<()> {

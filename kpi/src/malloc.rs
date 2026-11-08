@@ -45,7 +45,7 @@ impl MallocType {
         Self(ptr)
     }
 
-    pub(crate) fn as_raw(self) -> *mut malloc_type {
+    pub(crate) fn as_ptr(self) -> *mut malloc_type {
         self.0
     }
 }
