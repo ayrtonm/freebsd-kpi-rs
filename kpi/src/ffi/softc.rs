@@ -88,8 +88,15 @@ impl<T> Softc<T> {
         Ok(res)
     }
 
-    pub fn set_cdev(&mut self, dev: *mut cdev) {
-        self.cdev = AtomicPtr::new(dev);
+    pub fn claim_cdev(&self) -> Result<()> {
+        if self.cdev.compare_exchange(null_mut(), 1 as *mut cdev, Ordering::Acquire, Ordering::Relaxed).is_ok() {
+            return Ok(());
+        }
+        Err(EDOOFUS)
+    }
+
+    pub fn set_cdev(&self, dev: *mut cdev) {
+        self.cdev.store(dev, Ordering::Relaxed);
     }
 
     /// Panics if this `Softc` is not attached to a cdev.

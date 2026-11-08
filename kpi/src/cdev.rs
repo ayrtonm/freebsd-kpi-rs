@@ -223,6 +223,7 @@ pub mod wrappers {
         let mut outp = null_mut();
         let (mut args_raw, name) = args.into_raw();
         let sc_ptr = args_raw.mda_si_drv1.cast::<Softc<T>>();
+        unsafe { (*sc_ptr).claim_cdev()? };
         let res = unsafe { bindings::make_dev_s(&raw mut args_raw, &raw mut outp, name.as_ptr()) };
         if res != 0 {
             // Reclaim the boxed softc that into_raw moved into mda_si_drv1 so it is dropped
