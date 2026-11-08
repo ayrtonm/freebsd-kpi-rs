@@ -94,13 +94,13 @@ impl<T> Softc<T> {
     }
 
     /// Panics if this `Softc` is not attached to a cdev.
-    pub fn cdev(&self) -> CDev<'_> {
+    pub fn cdev(&self) -> &CDev {
         let ptr = match self.cdev {
             Some(nonnull_cdev) => nonnull_cdev.as_ptr(),
             None => panic!("softc does not have an associated *mut cdev"),
         };
         // SAFETY: The lifetime of the return value is tied to the Ref borrow (&self)
-        unsafe { CDev::new_unchecked(ptr) }
+        unsafe { ptr.cast::<CDev>().as_ref().unwrap() }
     }
 
     /// Panics if this `Softc` is not attached to a device_t.
