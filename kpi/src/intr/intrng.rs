@@ -411,7 +411,7 @@ mod tests {
                 sc.device(),
                 XRef(0),
                 IntcDriver::handle_irq,
-                sc.get_ptr(),
+                sc.acquire_ptr(),
                 INTR_ROOT_IRQ,
             )
         }

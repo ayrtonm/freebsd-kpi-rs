@@ -234,7 +234,7 @@ pub mod wrappers {
         // need a dual-owner variant.
         // Record the cdev so destroy_dev can find it later.
         unsafe { (*sc_ptr).set_cdev(outp) };
-        Ok(unsafe { sc_ptr.as_ref().unwrap().get_ptr() })
+        Ok(unsafe { sc_ptr.as_ref().unwrap().acquire_ptr() })
     }
 
     /// Destroys the character device created by [`make_dev_s`] and frees its softc.

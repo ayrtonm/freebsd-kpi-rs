@@ -496,7 +496,7 @@ mod tests {
             } else {
                 None
             };
-            bus_setup_intr(dev, sc.project().irq, 0, filter, handler, sc.get_ptr())
+            bus_setup_intr(dev, sc.project().irq, 0, filter, handler, sc.acquire_ptr())
         }
     }
 
@@ -516,7 +516,7 @@ mod tests {
             });
             let dev = sc.device();
             assert_eq!(
-                bus_setup_intr(dev, sc.project().irq, 0, None, None, sc.get_ptr()),
+                bus_setup_intr(dev, sc.project().irq, 0, None, None, sc.acquire_ptr()),
                 Err(EDOOFUS)
             );
             if ofw_bus_is_compatible(dev, c"irq_driver,set_both") {

@@ -368,7 +368,7 @@ pub mod wrappers {
         let sc = device_get_softc::<D>(dev);
 
         // If device_detach runs after this point it will panic if this Ptr hasn't been dropped
-        sc.get_ptr()
+        sc.acquire_ptr()
     }
 
     /// Marks the device as busy returning a BusyDevice without an associated lifetime.

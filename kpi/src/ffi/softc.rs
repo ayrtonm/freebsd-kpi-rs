@@ -112,7 +112,7 @@ impl<T> Softc<T> {
         unsafe { ptr.cast::<Device>().as_ref().unwrap() }
     }
 
-    pub fn get_ptr(&self) -> Ptr<T> {
+    pub fn acquire_ptr(&self) -> Ptr<T> {
         let count_ptr = self.count.get();
         unsafe { bindings::refcount_acquire(count_ptr) };
         Ptr(NonNull::from_ref(self))
