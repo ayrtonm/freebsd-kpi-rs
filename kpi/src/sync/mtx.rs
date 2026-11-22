@@ -80,7 +80,13 @@ impl<T> Mutable<T> for Mutex<T> {
 
 pub struct SpinLockGuard<'a, T> {
     lock: &'a SpinLock<T>,
+    // Alternative to `impl !Send for SpinLockGuard {}`
+    _marker: PhantomData<*const ()>,
 }
+
+// TODO: Replace _marker field with this once negative_impls are stable
+//impl<'a, T> !Send for SpinLockGuard<'a, T> {}
+unsafe impl<'a, T: Sync> Sync for SpinLockGuard<'a, T> {}
 
 impl<T> Deref for SpinLockGuard<'_, T> {
     type Target = T;
@@ -161,6 +167,7 @@ impl<T> Mutex<T> {
 pub struct SpinLock<T> {
     mtx_impl: MtxCommon,
     data: UnsafeCell<T>,
+    _marker: PhantomPinned,
 }
 
 impl<T> SpinLock<T> {
@@ -169,6 +176,7 @@ impl<T> SpinLock<T> {
         Self {
             mtx_impl,
             data: UnsafeCell::new(t),
+            _marker: PhantomPinned,
         }
     }
 
@@ -260,7 +268,10 @@ pub mod wrappers {
         unsafe {
             bindings::fn_mtx_lock_spin(mtx_ptr);
         };
-        SpinLockGuard { lock: mutex }
+        SpinLockGuard {
+            lock: mutex,
+            _marker: PhantomData,
+        }
     }
 
     pub fn mtx_sleep<'a, T>(
@@ -324,7 +335,10 @@ pub mod wrappers {
             )
         };
 
-        let new_guard = SpinLockGuard { lock };
+        let new_guard = SpinLockGuard {
+            lock,
+            _marker: PhantomData,
+        };
 
         let result = if res != 0 {
             Err(ErrCode::from(res))
