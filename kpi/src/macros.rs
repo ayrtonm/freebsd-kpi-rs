@@ -159,3 +159,30 @@ macro_rules! define_getter {
         }
     };
 }
+
+#[macro_export]
+macro_rules! define_pod_struct {
+    (
+        $(#[$attr:meta])*
+        $vis:vis struct $name:ident {
+            $($(#[$field_attr:meta])* $field_vis:vis $field:ident : $field_ty:ty),*$(,)?
+        }
+    ) => {
+        $(#[$attr])*
+        #[repr(C)]
+        #[derive(Clone, Copy)]
+        $vis struct $name {
+            $($(#[$field_attr])* $field_vis $field: $field_ty),*
+        }
+        const _ASSERT_FIELD_SIZES_ADD_UP_TO_TOTAL_SIZE: () = {
+            $($crate::collections::assert_is_pod::<$field_ty>();)*
+            use core::mem::size_of;
+            assert!(
+                size_of::<$name>() == 0 $(+ size_of::<$field_ty>())*,
+                concat!(stringify!($name), " has implicit padding"),
+            );
+        };
+
+        unsafe impl $crate::collections::Pod for $name {}
+    };
+}

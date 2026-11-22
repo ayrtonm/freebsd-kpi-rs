@@ -33,22 +33,31 @@ use crate::malloc::MallocFlags;
 use crate::prelude::*;
 use crate::vec::Vec;
 use core::ffi::c_void;
+use core::marker::PhantomData;
 use core::mem::{forget, size_of};
+use core::num::{Saturating, Wrapping};
 use core::ops::DerefMut;
 use core::sync::atomic::{AtomicPtr, Ordering};
 
-/// Plain-ol-data which is valid for any bitpattern
+// TODO: drop the Copy bound to allow impl Pod for atomics
+/// Plain-ol-data which is valid for any bitpattern and has no implicit padding
 ///
 /// # Implementation Safety
 ///
 /// This may only be implemented for types that are valid for an arbitrary bitpattern. Typically
-/// this will be a struct, union or tuple consisting of other types implementing `Pod`. Usually
-/// enums cannot implement `Pod` since the arbitrary bitpattern also covers the discriminant.
+/// this will be a struct consisting of other types implementing `Pod`. Unions may also implement it
+/// if all variants impl `Pod` and have the same size. Usually enums cannot implement `Pod` since
+/// the arbitrary bitpattern also covers the discriminant. Tuples also cannot implement it.
+///
+/// If you're defining a struct yourself wrap the type definition in `define_pod_struct!` to get
+/// this implemented safely for free. If the type has implicit padding you'll get a compiler error.
 pub unsafe trait Pod: Sized + Copy + 'static {}
 
 macro_rules! impl_pod_for {
     ($($ty:ty)*) => {
         $(unsafe impl Pod for $ty {})*
+        $(unsafe impl Pod for Wrapping<$ty> {})*
+        $(unsafe impl Pod for Saturating<$ty> {})*
         $(unsafe impl<const N: usize> Pod for [$ty; N] {})*
     };
 }
@@ -57,6 +66,9 @@ impl_pod_for! {
     u8 u16 u32 u64 u128 usize
     i8 i16 i32 i64 i128 isize
 }
+
+unsafe impl Pod for () {}
+unsafe impl<T: 'static> Pod for PhantomData<T> {}
 
 // TODO: Move all Pod stuff somewhere else (maybe the ffi module)
 pub fn assert_is_pod<T: Pod>() {}
