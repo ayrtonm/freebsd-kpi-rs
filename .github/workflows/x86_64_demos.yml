@@ -2,7 +2,7 @@ name: Build x86_64 rust demo
 
 on:
   push:
-    branches: [ "demos" ]
+    branches: [ "main" ]
 
 jobs:
   build:
