@@ -223,12 +223,6 @@ impl<'a, T> UninitPtr<'a, T> {
 pub struct Ptr<T: 'static>(pub(crate) NonNull<Softc<T>>);
 
 impl<T> Ptr<T> {
-    pub fn get_ptr(&self) -> Self {
-        // SAFETY: The pointee is freed in device_detach, but the KPI glue for it panics if there is
-        // an outstanding softc Ptr when it's ready to free it.
-        unsafe { self.0.as_ref().get_ptr() }
-    }
-
     pub fn as_pin(&self) -> Pin<&T> {
         unsafe { Pin::new_unchecked(&self.0.as_ref().inner) }
     }
