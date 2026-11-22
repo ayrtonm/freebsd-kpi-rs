@@ -138,13 +138,46 @@ BINDGEN_FLAGS= \
 	--wrap-static-fns \
 	--wrap-static-fns-path ${BINDGEN_GENERATED_SRC}
 
-# An arbitrary directory for the sysroot
-RUST_SYSROOT= rust_sysroot
-# sysroot path required by rustc
-RUST_LIBDIR= ${RUST_SYSROOT}/lib/rustlib/${RUST_TARGET}/lib
+# Modules are shared objects on all architectures except amd64 (see __KLD_SHARED in kmod.mk) so
+# they need PIC code and a separate sysroot. amd64 modules use the same flags as the kernel.
+.if ${MACHINE_CPUARCH} != amd64
+RUSTFLAGS_KMOD:= ${RUSTFLAGS:N-Crelocation-model=*} -Crelocation-model=pic
+RUST_SYSROOT_KMOD_NAME= rust_sysroot_kmod
+.else
+RUSTFLAGS_KMOD:= ${RUSTFLAGS}
+RUST_SYSROOT_KMOD_NAME= rust_sysroot
+.endif
 
-RUST_CORE= ${RUST_LIBDIR}/libcore.rlib
-RUST_FAKE_BUILTINS= ${RUST_LIBDIR}/libcompiler_builtins.rlib
+# Paths of the sysroot crates relative to the sysroot directory expected by rustc
+_RUST_LIBSUBDIR= lib/rustlib/${RUST_TARGET}/lib
+_RUST_CORE_RLIB= ${_RUST_LIBSUBDIR}/libcore.rlib
+_RUST_BUILTINS_RLIB= ${_RUST_LIBSUBDIR}/libcompiler_builtins.rlib
+
+# _RUST_SYSROOTS is a list of (sysroot directory, flags variable) pairs to build sysroots for.
+# __KLD_SHARED is only defined when building a module.
+.if defined(__KLD_SHARED)
+RUSTFLAGS:= ${RUSTFLAGS_KMOD}
+.if defined(KERNBUILDDIR)
+# Modules built as part of a kernel build share the module sysroot built by the kernel
+RUST_SYSROOT= ${KERNBUILDDIR}/${RUST_SYSROOT_KMOD_NAME}
+.else
+RUST_SYSROOT= ${.OBJDIR}/rust_sysroot
+_RUST_SYSROOTS= ${RUST_SYSROOT} RUSTFLAGS
+.endif
+.else
+RUST_SYSROOT= ${.OBJDIR}/rust_sysroot
+_RUST_SYSROOTS= ${RUST_SYSROOT} RUSTFLAGS
+.if ${RUST_SYSROOT_KMOD_NAME} != rust_sysroot
+_RUST_SYSROOTS+= ${.OBJDIR}/${RUST_SYSROOT_KMOD_NAME} RUSTFLAGS_KMOD
+.endif
+.if !defined(NO_MODULES)
+# The module sysroot must exist before building modules
+modules-all: ${.OBJDIR}/${RUST_SYSROOT_KMOD_NAME}/${_RUST_BUILTINS_RLIB}
+.endif
+.endif
+
+RUST_CORE= ${RUST_SYSROOT}/${_RUST_CORE_RLIB}
+RUST_FAKE_BUILTINS= ${RUST_SYSROOT}/${_RUST_BUILTINS_RLIB}
 RUST_KPI= libkpi.rlib
 RUST_KPI_SOURCES= \
 	${SRCTOP}/sys/rust/kpi/src/kobj/casts.rs \
@@ -193,20 +226,22 @@ RUST_MAKEFILE?= ${SRCTOP}/sys/rust/kern.rust.mk
 
 RUST_DEFAULT_DEP= ${RUST_KPI} ${RUST_CORE} ${RUST_FAKE_BUILTINS}
 # TODO: Use the depfile
-RLIB_RULE= ${RUSTC} ${RUSTFLAGS} -Cdebuginfo=full --crate-type rlib --sysroot=${.OBJDIR}/${RUST_SYSROOT} -L. --emit link,dep-info=.depend.${.TARGET}
+RLIB_RULE= ${RUSTC} ${RUSTFLAGS} -Cdebuginfo=full --crate-type rlib --sysroot=${RUST_SYSROOT} -L. --emit link,dep-info=.depend.${.TARGET}
 
 NORMAL_R= ${RLIB_RULE} ${RUST_KPI_FEATURES} -o ${.TARGET} ${.ALLSRC:[1]} \
 	${.ALLSRC:T:Nlibcore.rlib:Nlibcompiler_builtins.rlib:M*.rlib:C/.rlib$//:C/^lib//:C/.*/--extern \0=lib\0.rlib/}
 
-${RUST_CORE}: ${RUST_MAKEFILE}
-	${RUSTC} ${RUSTFLAGS} --crate-name core ${RUST_COMPILER_DIR}/library/core/src/lib.rs \
-		--crate-type rlib --out-dir ${RUST_LIBDIR} \
+.for _sysroot _flags in ${_RUST_SYSROOTS}
+${_sysroot}/${_RUST_CORE_RLIB}: ${RUST_MAKEFILE}
+	${RUSTC} ${${_flags}} --crate-name core ${RUST_COMPILER_DIR}/library/core/src/lib.rs \
+		--crate-type rlib --out-dir ${.TARGET:H} \
 		-Cstrip=debuginfo -Zforce-unstable-if-unmarked
 
-${RUST_FAKE_BUILTINS}: ${RUST_CORE} ${RUST_MAKEFILE}
-	${RUSTC} ${RUSTFLAGS} ${SRCTOP}/sys/rust/compiler_builtins.rs --crate-type rlib \
-		--extern core=${RUST_CORE} \
-		-o ${RUST_LIBDIR}/libcompiler_builtins.rlib
+${_sysroot}/${_RUST_BUILTINS_RLIB}: ${_sysroot}/${_RUST_CORE_RLIB} ${RUST_MAKEFILE}
+	${RUSTC} ${${_flags}} ${SRCTOP}/sys/rust/compiler_builtins.rs --crate-type rlib \
+		--extern core=${.ALLSRC:[1]} \
+		-o ${.TARGET}
+.endfor
 
 # This tells make that generating bindings.rs by invoking bindgen also produces bindgen_inlines.c
 # FIXME: If bindgen_inlines.c is deleted while bindings.rs is up-to-date this doesn't work
@@ -240,5 +275,5 @@ ${RUSTROOT_RS}: ${RUST_MAKEFILE} ${RLIBS}
 
 ${RUSTROOT_A}: ${RUSTROOT_RS} ${RUST_CORE} ${RUST_FAKE_BUILTINS} ${RLIBS}
 	${RUSTC} ${RUSTFLAGS} --crate-type staticlib -o ${RUSTROOT_A} ${RUSTROOT_RS} \
-		--sysroot=${.OBJDIR}/${RUST_SYSROOT} ${RLIBS:C/.rlib//:C/^lib//:C/.*/--extern \0=lib\0.rlib/} \
+		--sysroot=${RUST_SYSROOT} ${RLIBS:C/.rlib//:C/^lib//:C/.*/--extern \0=lib\0.rlib/} \
 		-L.

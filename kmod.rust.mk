@@ -28,13 +28,12 @@ lib${_rs:R}.rlib: ${_rs} ${RUST_MAKEFILE}
 
 .include "${SYSDIR}/rust/kern.rust.mk"
 
-.if ${__KLD_SHARED} == yes
-RUSTFLAGS:=	${RUSTFLAGS:N-Crelocation-model=*} -Crelocation-model=pic
-.endif
-
 _RUST_LOCAL_FILES=	${RLIBS} ${RUSTROOT_OBJS} ${RUSTROOT_RS} ${BINDINGS_RS} \
-	${BINDGEN_GENERATED_SRC} ${BINDGEN_DEPS} \
-	${RUST_CORE} ${RUST_FAKE_BUILTINS} ${RUST_KPI}
+	${BINDGEN_GENERATED_SRC} ${BINDGEN_DEPS} ${RUST_KPI}
+# Don't let `make clean` in a module remove the kernel build's sysroot
+.if !defined(KERNBUILDDIR)
+_RUST_LOCAL_FILES+=	${RUST_CORE} ${RUST_FAKE_BUILTINS}
+.endif
 
 .NOPATH: ${_RUST_LOCAL_FILES}
 
