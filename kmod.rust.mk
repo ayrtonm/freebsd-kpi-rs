@@ -22,7 +22,7 @@ RUST_MAKEFILE=	${SRCTOP}/sys/rust/kmod.rust.mk
 RLIBS+=	lib${_rs:R}.rlib
 
 # kern.rust.mk adds ${RUST_DEFAULT_DEP} to everything in RLIBS
-lib${_rs:R}.rlib: ${.CURDIR}/${_rs} ${RUST_MAKEFILE}
+lib${_rs:R}.rlib: ${_rs} ${RUST_MAKEFILE}
 	${NORMAL_R}
 .endfor
 
