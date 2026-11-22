@@ -261,7 +261,7 @@ impl<T: Copy, M: Malloc> Vec<T, M> {
     }
 
     pub fn fill_to_capacity(&mut self, value: T) {
-        for _ in self.len..self.capacity {
+        while self.len < self.capacity {
             self.push(value);
         }
     }
