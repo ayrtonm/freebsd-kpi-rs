@@ -99,7 +99,6 @@ BINDGEN_DEFINES= \
 
 .endif
 
-# TODO: Use the depfile
 BINDGEN_DEPS= bindgen.d
 BINDGEN_GENERATED_SRC= bindgen_inlines.c
 CWARNFLAGS.${BINDGEN_GENERATED_SRC}+= -Wno-duplicate-decl-specifier -Wno-incompatible-pointer-types-discards-qualifiers
@@ -214,7 +213,9 @@ ${RUST_FAKE_BUILTINS}: ${RUST_CORE} ${RUST_MAKEFILE}
 ${BINDGEN_GENERATED_SRC}: ${BINDINGS_RS} ${RUST_MAKEFILE}
 
 ${BINDINGS_RS}: ${SRCTOP}/sys/rust/bindings.h ${RUST_MAKEFILE}
-	${BINDGEN} ${BINDGEN_FLAGS} ${SRCTOP}/sys/rust/bindings.h -- ${CFLAGS} ${BINDGEN_DEFINES} > bindings.rs
+	${BINDGEN} ${BINDGEN_FLAGS} -o ${.TARGET} ${SRCTOP}/sys/rust/bindings.h -- ${CFLAGS} ${BINDGEN_DEFINES}
+
+.-include "${.OBJDIR}/${BINDGEN_DEPS}"
 
 ${RUST_KPI}: ${RUST_FAKE_BUILTINS} ${BINDINGS_RS} ${RUST_KPI_SOURCES}
 	OUT_DIR=${.OBJDIR} ${RLIB_RULE} --crate-name kpi ${RUST_KPI_FEATURES} ${SRCTOP}/sys/rust/kpi/src/lib.rs -o ${.TARGET}
