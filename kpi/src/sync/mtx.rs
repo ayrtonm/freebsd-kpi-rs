@@ -220,7 +220,7 @@ pub mod wrappers {
     gen_newtype! {
         MtxFlags as i32,
         // TODO: This shouldn't be supported
-        //MTX_RECURSE,
+        MTX_RECURSE,
         MTX_QUIET,
         MTX_NOWITNESS,
         MTX_DUPOK,
