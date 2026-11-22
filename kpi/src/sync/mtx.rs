@@ -27,7 +27,7 @@
  */
 
 use crate::ErrCode;
-use crate::bindings::{MTX_DEF, MTX_SPIN, mtx};
+use crate::bindings::{MTX_DEF, MTX_SPIN, MTX_UNOWNED, mtx};
 use crate::intr::Channel;
 use crate::prelude::*;
 use crate::sync::Mutable;
@@ -38,6 +38,7 @@ use core::mem::{MaybeUninit, drop};
 use core::ops::{Deref, DerefMut};
 use core::pin::Pin;
 use core::ptr::null_mut;
+use core::sync::atomic::{AtomicU64, Ordering};
 
 pub struct MutexGuard<'a, T> {
     lock: &'a Mutex<T>,
@@ -218,7 +219,8 @@ pub mod wrappers {
 
     gen_newtype! {
         MtxFlags as i32,
-        MTX_RECURSE,
+        // TODO: This shouldn't be supported
+        //MTX_RECURSE,
         MTX_QUIET,
         MTX_NOWITNESS,
         MTX_DUPOK,
@@ -361,13 +363,20 @@ pub mod wrappers {
 impl Drop for MtxCommon {
     fn drop(&mut self) {
         let mtx_ptr = self.inner.get();
-        // TODO: Check that another thread does not hold the lock
         let was_init = unsafe { bindings::fn_mtx_initialized(mtx_ptr) != 0 };
-        if was_init {
-            unsafe {
-                bindings::fn_mtx_destroy(mtx_ptr)
+        if !was_init {
+            return;
+        }
+        let mtx_lock_ptr = unsafe { &raw mut (*mtx_ptr).mtx_lock };
+        let mtx_lock = unsafe { AtomicU64::from_ptr(mtx_lock_ptr) };
+        let val = mtx_lock.load(Ordering::Relaxed);
+        if val != MTX_UNOWNED as u64 {
+            let owned_by_curthread = unsafe { bindings::fn_mtx_owned(mtx_ptr) != 0 };
+            if !owned_by_curthread {
+                panic!("tried to destroy a mutex held by another thread");
             }
         }
+        unsafe { bindings::fn_mtx_destroy(mtx_ptr) }
     }
 }
 
@@ -432,5 +441,9 @@ mod tests {
         extern "C" fn fn_mtx_destroy() {}
         #[unsafe(no_mangle)]
         extern "C" fn fn_mtx_initialized() {}
+        #[unsafe(no_mangle)]
+        extern "C" fn fn_mtx_owned() -> u64 {
+            0
+        }
     }
 }

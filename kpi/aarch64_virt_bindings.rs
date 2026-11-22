@@ -23830,6 +23830,7 @@ unsafe extern "C" {
         d: ::core::ffi::c_int,
     );
     pub fn fn_mtx_initialized(a: *const mtx) -> usize;
+    pub fn fn_mtx_owned(a: *const mtx) -> ::core::ffi::c_int;
     pub fn fn_mtx_lock(a: *mut mtx);
     pub fn fn_mtx_lock_spin(a: *mut mtx);
     pub fn fn_mtx_unlock(a: *mut mtx);
