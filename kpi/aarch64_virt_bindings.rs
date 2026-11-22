@@ -23834,6 +23834,7 @@ unsafe extern "C" {
     pub fn fn_mtx_lock_spin(a: *mut mtx);
     pub fn fn_mtx_unlock(a: *mut mtx);
     pub fn fn_mtx_unlock_spin(a: *mut mtx);
+    pub fn fn_mtx_destroy(a: *mut mtx);
     pub fn fn_sx_init(a: *mut sx, b: *const ::core::ffi::c_char);
     pub fn fn_sx_slock(a: *mut sx);
     pub fn fn_sx_sunlock(a: *mut sx);

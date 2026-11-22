@@ -211,6 +211,7 @@ FN1(mtx_lock, void, struct mtx*);
 FN1(mtx_lock_spin, void, struct mtx*);
 FN1(mtx_unlock, void, struct mtx*);
 FN1(mtx_unlock_spin, void, struct mtx*);
+FN1(mtx_destroy, void, struct mtx*);
 
 FN2(sx_init, void, struct sx *, const char *);
 FN1(sx_slock, void, struct sx *);

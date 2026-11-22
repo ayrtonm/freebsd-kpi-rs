@@ -358,6 +358,19 @@ pub mod wrappers {
     }
 }
 
+impl Drop for MtxCommon {
+    fn drop(&mut self) {
+        let mtx_ptr = self.inner.get();
+        // TODO: Check that another thread does not hold the lock
+        let was_init = unsafe { bindings::fn_mtx_initialized(mtx_ptr) != 0 };
+        if was_init {
+            unsafe {
+                bindings::fn_mtx_destroy(mtx_ptr)
+            }
+        }
+    }
+}
+
 impl<T> Drop for MutexGuard<'_, T> {
     fn drop(&mut self) {
         let mtx_impl = &self.lock.mtx_impl;
@@ -415,5 +428,9 @@ mod tests {
         extern "C" fn fn_mtx_lock_spin() {}
         #[unsafe(no_mangle)]
         extern "C" fn fn_mtx_unlock_spin() {}
+        #[unsafe(no_mangle)]
+        extern "C" fn fn_mtx_destroy() {}
+        #[unsafe(no_mangle)]
+        extern "C" fn fn_mtx_initialized() {}
     }
 }
