@@ -58,8 +58,6 @@ macro_rules! define_class {
             },
             methods: $class_sym::$method_table.0.get().cast::<$crate::bindings::kobj_method_t>(),
             size: core::mem::size_of::<<$class_ty as $crate::kobj::KobjLayout>::Layout>(),
-            total_size: 0,
-            total_size_inited: false,
             baseclasses: {
                     const NUM_BASE_CLASSES: usize = <[&str]>::len(&[$(stringify!($($base_classes)*)),*]);
                     static BASE_CLASSES: $crate::kobj::BaseClasses<{NUM_BASE_CLASSES + 1}> = $crate::kobj::BaseClasses(core::cell::UnsafeCell::new([
