@@ -28,8 +28,8 @@
 
 use crate::kobj::AsRustType;
 use crate::malloc::Malloc;
-use crate::proc::Thread;
 use crate::prelude::*;
+use crate::proc::Thread;
 use crate::sync::arc::Arc;
 use crate::{ErrCode, define_interface};
 use core::ffi::c_void;

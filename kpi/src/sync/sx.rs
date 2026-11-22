@@ -133,13 +133,19 @@ pub mod wrappers {
     pub fn sx_slock<T>(lock: &SxLock<T>) -> SxSharedGuard<'_, T> {
         let sx_ptr = lock.inner.get();
         unsafe { bindings::fn_sx_slock(sx_ptr) };
-        SxSharedGuard { lock, _marker: PhantomData }
+        SxSharedGuard {
+            lock,
+            _marker: PhantomData,
+        }
     }
 
     pub fn sx_xlock<T>(lock: &SxLock<T>) -> SxExclusiveGuard<'_, T> {
         let sx_ptr = lock.inner.get();
         unsafe { bindings::fn_sx_xlock(sx_ptr) };
-        SxExclusiveGuard { lock, _marker: PhantomData }
+        SxExclusiveGuard {
+            lock,
+            _marker: PhantomData,
+        }
     }
 
     pub fn sx_sleep<'a, T>(
@@ -157,7 +163,10 @@ pub mod wrappers {
         let res =
             unsafe { bindings::fn_sx_sleep(chan.get_ptr(), sx_ptr, pri, wmesg.as_ptr(), timo) };
 
-        let new_guard = SxExclusiveGuard { lock, _marker: PhantomData };
+        let new_guard = SxExclusiveGuard {
+            lock,
+            _marker: PhantomData,
+        };
 
         let result = if res != 0 {
             Err(ErrCode::from(res))

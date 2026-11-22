@@ -39,8 +39,8 @@ use core::mem::{MaybeUninit, forget};
 use core::ops::{Deref, DerefMut};
 use core::pin::Pin;
 use core::ptr::{NonNull, null_mut};
-use core::{fmt, ptr};
 use core::sync::atomic::{AtomicPtr, Ordering};
+use core::{fmt, ptr};
 
 /// The layout of the softc that Ref and Ptr point to.
 ///
