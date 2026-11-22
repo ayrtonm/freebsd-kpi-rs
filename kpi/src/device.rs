@@ -29,7 +29,7 @@
 use crate::bindings::{_device, DS_ATTACHED, device_state_t, device_t, driver_t, kobjop_desc};
 use crate::boxed::Box;
 use crate::driver::Driver;
-use crate::ffi::{ArrayCString, Ptr, Softc, UninitPtr};
+use crate::ffi::{ArrayCString, Ptr, Softc, Uninit};
 use crate::kobj::{AsCType, AsRustType, rust_driver_marker_desc};
 use crate::prelude::*;
 use crate::vec::Vec;
@@ -115,12 +115,10 @@ impl AsCType<c_int> for BusProbe {
 }
 
 // Used in device_attach
-impl<'a, T> AsRustType<'a, UninitPtr<'a, T>> for device_t {
-    fn as_rust_type(&'a self) -> UninitPtr<'a, T> {
+impl<'a, T> AsRustType<'a, &'a Uninit<T>> for device_t {
+    fn as_rust_type(&'a self) -> &'a Uninit<T> {
         let void_ptr = unsafe { bindings::device_get_softc(*self) };
-        let sc_ptr = void_ptr.cast::<core::mem::MaybeUninit<Softc<T>>>();
-        let sc_ref = unsafe { sc_ptr.as_mut().unwrap() };
-        unsafe { UninitPtr::from_raw(sc_ref, *self) }
+        unsafe { Uninit::from_raw(void_ptr.cast::<Softc<T>>(), *self) }
     }
 }
 
@@ -144,7 +142,7 @@ define_interface! {
         with desc device_attach_desc
         and typedef device_attach_t,
         with init glue {
-            let _: $crate::ffi::UninitPtr<_> = dev;
+            let _: &$crate::ffi::Uninit<_> = dev;
             let dev_ptr = dev.device().as_ptr();
         },
         with drop glue {
@@ -152,7 +150,7 @@ define_interface! {
             // TODO: re-enable
             //if !init {
             //    let dev = unsafe { $crate::device::Device::new_unchecked(dev_ptr) };
-            //    device_println!(dev, "Must call .init() on UninitPtr<Softc> in device_attach");
+            //    device_println!(dev, "Must call .init() on Uninit<Softc> in device_attach");
             //    return bindings::ENXIO;
             //}
         };
@@ -227,9 +225,9 @@ pub trait DeviceIf: Driver {
 
     /// Used to initialize a driver.
     ///
-    /// All implementations must call [`init`][crate::ffi::UninitPtr::init] on the `uninit_sc`
+    /// All implementations must call [`init`][crate::ffi::Uninit::init] on the `uninit_sc`
     /// argument before this function returns to avoid a panic at runtime.
-    fn device_attach(uninit_sc: UninitPtr<Self::Softc>) -> Result<()> {
+    fn device_attach(uninit_sc: &Uninit<Self::Softc>) -> Result<()> {
         unimplemented!()
     }
 
@@ -489,7 +487,7 @@ pub mod wrappers {
 mod tests {
     use super::*;
     use crate::define_driver;
-    use crate::ffi::UninitPtr;
+    use crate::ffi::Uninit;
     use crate::tests::{DriverManager, LoudDrop};
     use core::ptr::null_mut;
     use core::sync::atomic::{AtomicPtr, Ordering};
@@ -530,7 +528,7 @@ mod tests {
             println!("test_driver: accepted {dev:x?}");
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: UninitPtr<Self::Softc>) -> Result<()> {
+        fn device_attach(uninit_sc: &Uninit<Self::Softc>) -> Result<()> {
             let sc = uninit_sc.init(TestDriverSoftc {
                 const_data: 0xdeadbeef,
             });
@@ -580,7 +578,7 @@ mod tests {
             println!("another_driver: accepted {dev:x?}");
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: UninitPtr<Self::Softc>) -> Result<()> {
+        fn device_attach(uninit_sc: &Uninit<Self::Softc>) -> Result<()> {
             let sc = uninit_sc.init(AnotherDriverSoftc { loud: LoudDrop });
             println!("attaching another driver");
             // Store a pointer owning a refcount to AnotherDriver's Softc in a TestDriverSoftc for
@@ -618,7 +616,7 @@ mod tests {
             device_set_desc(dev, c"undetachable driver");
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: UninitPtr<UndetachableDriverSoftc>) -> Result<()> {
+        fn device_attach(uninit_sc: &Uninit<UndetachableDriverSoftc>) -> Result<()> {
             let sc = uninit_sc.init(UndetachableDriverSoftc {});
             if ofw_bus_is_compatible(sc.device(), c"undetachable_driver,check_undetachable") {
                 assert!(device_is_undetachable(sc.device()));

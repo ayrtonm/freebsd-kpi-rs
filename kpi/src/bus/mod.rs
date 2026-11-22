@@ -466,7 +466,7 @@ mod tests {
     use super::*;
     use crate::define_driver;
     use crate::device::{BusProbe, Device, DeviceIf};
-    use crate::ffi::UninitPtr;
+    use crate::ffi::Uninit;
     use crate::tests::{DriverManager, LoudDrop};
 
     define_projectable! {
@@ -509,7 +509,7 @@ mod tests {
             }
             Ok(BUS_PROBE_DEFAULT)
         }
-        fn device_attach(uninit_sc: UninitPtr<Self::Softc>) -> Result<()> {
+        fn device_attach(uninit_sc: &Uninit<Self::Softc>) -> Result<()> {
             let sc = uninit_sc.init(IrqSoftc {
                 irq: Irq::default(),
                 _loud: LoudDrop,

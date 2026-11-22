@@ -37,7 +37,7 @@ mod softc;
 mod subclass;
 
 pub use cstring::{ArrayCString, CString, ToArrayCString};
-pub use softc::{Ptr, Softc, UninitPtr, NullablePtr};
+pub use softc::{Ptr, Softc, Uninit, NullablePtr};
 pub use subclass::{SubClass, SubClassOf};
 
 pub trait PinProject {

@@ -149,24 +149,15 @@ impl<T> Deref for Softc<T> {
     }
 }
 
-/// A pointer to an uninitialized softc with no aliases.
-///
-/// This struct also carries a mutable reference to a bool so the glue code creating the UninitPtr can
-/// later see whether the init method was called or not.
-///
-/// The second field is wrapped in Option rather than just &mut bool because UninitPtr is created from
-/// an AsRustType impl which cannot grab references to locals on the stack frame of device_attach.
-/// This kludge means that the glue code must call set_init_flag before handing it off to a driver.
-pub struct UninitPtr<'a, T>(&'a mut MaybeUninit<Softc<T>>);
+/// An uninitialized softc.
+#[repr(C)]
+pub struct Uninit<T>(UnsafeCell<MaybeUninit<Softc<T>>>);
 
-impl<'a, T> UninitPtr<'a, T> {
-    pub(crate) unsafe fn from_raw(sc_ref: &'a mut MaybeUninit<Softc<T>>, dev: device_t) -> Self {
-        // Get a pointer to the Softc on the heap from the MaybeUninit<Softc<T>> reference
-        let sc_ptr: *mut Softc<T> = sc_ref.as_mut_ptr();
-        // SAFETY: Since the softc has not been initialized we can't create a mutable reference to
-        // the entire thing. Instead we'll just write directly to the fields that need to be set
-        // here. An unsynchronized write is safe here since there are it has no aliases (the ptr arg
-        // was a mutable reference).
+impl<T> Uninit<T> {
+    pub(crate) unsafe fn from_raw<'a>(sc_ptr: *mut Softc<T>, dev: device_t) -> &'a Self {
+        // SAFETY: Since the softc has not been initialized we can't create a reference to the
+        // entire thing. Instead we'll just write directly to the fields that need to be set here.
+        // The caller ensures the softc has no aliases.
         unsafe {
             (*sc_ptr).dev = Some(NonNull::new(dev).unwrap());
             // If a softc has both a device_t and a cdev pointer, the device_t is always initialized
@@ -174,48 +165,48 @@ impl<'a, T> UninitPtr<'a, T> {
             // where this was already initialized to Some. We have to initialize it to soundly
             // create references to the entire Softc so None is the correct value here.
             (*sc_ptr).cdev = AtomicPtr::new(null_mut());
+            sc_ptr.cast::<Self>().as_ref().unwrap()
         }
-        Self(sc_ref)
     }
 
     pub fn device(&self) -> &Device {
         // We still can't make a reference to the entire Softc<T> so calling Softc::device
         // is not an option to get a device_t.
-        let sc_ptr: *const Softc<T> = self.0.as_ptr();
+        let sc_ptr: *const Softc<T> = self.0.get().cast();
         // SAFETY: `dev` was initialized in `from_raw`.
         let dev = unsafe { (*sc_ptr).dev };
         match dev {
             Some(nonnull_dev) => {
-                // SAFETY: The lifetime of the Device matches the UninitPtr borrow
+                // SAFETY: The lifetime of the Device matches the Uninit borrow
                 unsafe { nonnull_dev.as_ptr().cast::<Device>().as_ref().unwrap() }
             }
             None => unreachable!(),
         }
     }
 
-    /// Initialize the softc to `t` and return a Ref<T> pointer.
+    /// Initialize the softc to `t`.
     ///
-    /// The returned pointer may only be used for the lifetime of the UninitPtr it was created from.
-    /// The KPI glue sets the UninitPtr lifetime parameter using a local on the device_attach stack
-    /// frame so in practical terms this means that trying to stash the Ref in a global or
-    /// equivalent (e.g. another softc) is a compile-time error.
-    pub fn init(self, t: T) -> &'a Softc<T> {
-        // Get a pointer to the Softc on the heap from the MaybeUninit<Softc<T>> reference
-        let sc_ptr = self.0.as_mut_ptr();
+    /// Panics if the softc was already initialized.
+    pub fn init(&self, t: T) -> &Softc<T> {
+        let sc_ptr: *mut Softc<T> = self.0.get().cast();
+        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*sc_ptr).count });
+
+        // newbus zeroes the softc so count is only nonzero after init. Uninit is !Sync so this
+        // can't race.
+        assert!(unsafe { *count_ptr } == 0, "softc was already initialized");
 
         unsafe {
             let inner_ptr = &raw mut (*sc_ptr).inner;
             // Use the write method to avoid calling drop on the old (zeroed) softc value
             inner_ptr.write(t);
         }
-        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*sc_ptr).count });
 
         // This points to the heap, but this is just an address-insensitive atomic write anyway
         unsafe { bindings::refcount_init(count_ptr, 1) };
 
         // All fields are now initialized since `dev` was written in `from_raw` and `inner` and
         // `count` were written above.
-        unsafe { self.0.assume_init_ref() }
+        unsafe { sc_ptr.as_ref().unwrap() }
     }
 }
 
