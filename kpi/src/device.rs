@@ -143,16 +143,13 @@ define_interface! {
         and typedef device_attach_t,
         with init glue {
             let _: &$crate::ffi::Uninit<_> = dev;
-            let dev_ptr = dev.device().as_ptr();
         },
         with drop glue {
             // drop glue is only called if device_attach succeeded
-            // TODO: re-enable
-            //if !init {
-            //    let dev = unsafe { $crate::device::Device::new_unchecked(dev_ptr) };
-            //    device_println!(dev, "Must call .init() on Uninit<Softc> in device_attach");
-            //    return bindings::ENXIO;
-            //}
+            if !dev.is_init() {
+                device_println!(dev.device(), "Must call .init() on Uninit<Softc> in device_attach");
+                return bindings::ENXIO;
+            }
         };
     fn device_detach(dev: device_t) -> int,
         with desc device_detach_desc

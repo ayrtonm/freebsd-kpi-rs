@@ -208,6 +208,13 @@ impl<T> Uninit<T> {
         // `count` were written above.
         unsafe { sc_ptr.as_ref().unwrap() }
     }
+
+    #[doc(hidden)]
+    pub fn is_init(&self) -> bool {
+        let sc_ptr: *mut Softc<T> = self.0.get().cast();
+        let count_ptr = UnsafeCell::raw_get(unsafe { &raw const (*sc_ptr).count });
+        unsafe { bindings::refcount_load(count_ptr) != 0 }
+    }
 }
 
 #[repr(C)]
