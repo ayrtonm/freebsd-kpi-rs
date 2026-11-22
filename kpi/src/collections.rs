@@ -54,8 +54,8 @@ macro_rules! impl_pod_for {
 }
 
 impl_pod_for! {
-    u8 u16 u32 u64 u128
-    i8 i16 i32 i64 i128
+    u8 u16 u32 u64 u128 usize
+    i8 i16 i32 i64 i128 isize
 }
 
 // TODO: Move all Pod stuff somewhere else (maybe the ffi module)
