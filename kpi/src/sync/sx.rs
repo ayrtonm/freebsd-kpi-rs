@@ -32,13 +32,17 @@ use crate::intr::Channel;
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::ffi::{CStr, c_int};
-use core::marker::PhantomPinned;
+use core::marker::{PhantomData, PhantomPinned};
 use core::mem::drop;
 use core::ops::{Deref, DerefMut};
 
 pub struct SxSharedGuard<'a, T> {
     lock: &'a SxLock<T>,
+    // Alternative to `impl !Send for SxSharedGuard {}`
+    _marker: PhantomData<*const ()>,
 }
+
+unsafe impl<'a, T: Sync> Sync for SxSharedGuard<'a, T> {}
 
 impl<T> Deref for SxSharedGuard<'_, T> {
     type Target = T;
@@ -57,7 +61,11 @@ impl<T> Drop for SxSharedGuard<'_, T> {
 
 pub struct SxExclusiveGuard<'a, T> {
     lock: &'a SxLock<T>,
+    // Alternative to `impl !Send for SxExclusiveGuard {}`
+    _marker: PhantomData<*const ()>,
 }
+
+unsafe impl<'a, T: Sync> Sync for SxExclusiveGuard<'a, T> {}
 
 impl<T> Deref for SxExclusiveGuard<'_, T> {
     type Target = T;
@@ -125,13 +133,13 @@ pub mod wrappers {
     pub fn sx_slock<T>(lock: &SxLock<T>) -> SxSharedGuard<'_, T> {
         let sx_ptr = lock.inner.get();
         unsafe { bindings::fn_sx_slock(sx_ptr) };
-        SxSharedGuard { lock }
+        SxSharedGuard { lock, _marker: PhantomData }
     }
 
     pub fn sx_xlock<T>(lock: &SxLock<T>) -> SxExclusiveGuard<'_, T> {
         let sx_ptr = lock.inner.get();
         unsafe { bindings::fn_sx_xlock(sx_ptr) };
-        SxExclusiveGuard { lock }
+        SxExclusiveGuard { lock, _marker: PhantomData }
     }
 
     pub fn sx_sleep<'a, T>(
@@ -149,7 +157,7 @@ pub mod wrappers {
         let res =
             unsafe { bindings::fn_sx_sleep(chan.get_ptr(), sx_ptr, pri, wmesg.as_ptr(), timo) };
 
-        let new_guard = SxExclusiveGuard { lock };
+        let new_guard = SxExclusiveGuard { lock, _marker: PhantomData };
 
         let result = if res != 0 {
             Err(ErrCode::from(res))
