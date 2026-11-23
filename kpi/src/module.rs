@@ -28,7 +28,37 @@
 
 use crate::prelude::*;
 use core::ffi::c_void;
+use core::marker::PhantomData;
 
+// Autoref specialization is incredibly ugly, but it works and keeps the API clean. Basically the
+// MOD_UNLOAD arm in the modevent extern "C" function will try various receivers because of
+// automatic referencing. First it will try &PhantomData<M: UnloadableModule> as the receiver and
+// insert a call to that receiver's on_unload_impl function. If the module doesn't impl
+// UnloadableModule then it tries PhantomData<M> as the receiver. This search order means that the
+// bounded case must always be on &PhantomData because the unbounded case always passes. Note this
+// all happens at compile-time when rustc is picking out what function call to insert for the call
+// to on_unload_impl.
+#[doc(hidden)]
+pub trait UnloadSupported {
+    fn on_unload_impl(&self, data: *mut c_void) -> Result<()>;
+}
+
+impl<M: UnloadableModule> UnloadSupported for &PhantomData<M> {
+    fn on_unload_impl(&self, data: *mut c_void) -> Result<()> {
+        M::on_unload(data)
+    }
+}
+
+#[doc(hidden)]
+pub trait UnloadUnsupported {
+    fn on_unload_impl(&self, _data: *mut c_void) -> Result<()> {
+        Err(ENOTSUP)
+    }
+}
+
+impl<M> UnloadUnsupported for PhantomData<M> {}
+
+/// Defines what happens when a module is loaded, quiesced or receives the shutdown signal.
 #[allow(unused_variables)]
 pub trait Module {
     fn on_load(data: *mut c_void) -> Result<()> {
@@ -42,7 +72,12 @@ pub trait Module {
     fn on_quiesce(data: *mut c_void) -> Result<()> {
         Ok(())
     }
+}
 
+/// Defines what happens when a module is unloaded.
+/// # Safety
+#[allow(unused_variables)]
+pub unsafe trait UnloadableModule {
     fn on_unload(data: *mut c_void) -> Result<()> {
         Ok(())
     }
@@ -59,11 +94,13 @@ macro_rules! define_module {
         ) -> core::ffi::c_int {
             use $crate::kobj::AsCType;
             use $crate::module::Module;
+            use $crate::module::{UnloadSupported, UnloadUnsupported};
+            use core::marker::PhantomData;
             let res = match ty as core::ffi::c_uint {
                 $crate::bindings::MOD_LOAD => <$module_ty as Module>::on_load(data),
-                $crate::bindings::MOD_UNLOAD => <$module_ty as Module>::on_unload(data),
                 $crate::bindings::MOD_QUIESCE => <$module_ty as Module>::on_quiesce(data),
                 $crate::bindings::MOD_SHUTDOWN => <$module_ty as Module>::on_shutdown(data),
+                $crate::bindings::MOD_UNLOAD => (&&PhantomData::<$module_ty>).on_unload_impl(data),
                 _ => Err(ENOTSUP),
             };
             match res {

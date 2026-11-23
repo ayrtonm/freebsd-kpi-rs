@@ -2,7 +2,7 @@
 
 use kpi::prelude::*;
 use kpi::define_module;
-use kpi::module::Module;
+use kpi::module::{Module, UnloadableModule};
 use core::ffi::c_void;
 
 struct HelloWorldMod;
@@ -12,6 +12,9 @@ impl Module for HelloWorldMod {
         println!("hello world: loaded the module");
         Ok(())
     }
+}
+
+unsafe impl UnloadableModule for HelloWorldMod {
     fn on_unload(data: *mut c_void) -> Result<()> {
         println!("hello world: unloaded the module");
         Ok(())

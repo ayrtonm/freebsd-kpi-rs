@@ -18,7 +18,7 @@ use kpi::cdev::{CDevSw, MakeDevArgs, Uio};
 use kpi::ffi::{Ptr, Softc};
 use kpi::intr::Channel;
 use kpi::proc::Thread;
-use kpi::module::Module;
+use kpi::module::{Module, UnloadableModule};
 use kpi::sync::Checked;
 use kpi::sync::sx::SxLock;
 use kpi::vec::Vec;
@@ -185,7 +185,9 @@ impl Module for EchoDev {
         ECHODEV.swap(sc);
         Ok(())
     }
+}
 
+unsafe impl UnloadableModule for EchoDev {
     fn on_unload(data: *mut c_void) -> Result<()> {
         let sc = ECHODEV.take().unwrap();
         let mut state = sx_xlock(&sc.state);
