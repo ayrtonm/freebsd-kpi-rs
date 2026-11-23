@@ -26,19 +26,20 @@
  * SUCH DAMAGE.
  */
 
-use crate::bindings::{_device, cdev, device_t, u_int};
+use crate::bindings::{_device, cdev, device_t, malloc_type, u_int};
 use crate::boxed::Box;
 use crate::cdev::CDev;
 use crate::device::Device;
 use crate::ffi::PinProject;
-use crate::malloc::{Malloc, MallocFlags};
+use crate::malloc::{Malloc, MallocFlags, MallocType};
 use crate::prelude::*;
 use core::cell::UnsafeCell;
+use core::ffi::c_void;
 use core::fmt::{Debug, Formatter};
 use core::mem::{MaybeUninit, forget};
 use core::ops::{Deref, DerefMut};
 use core::pin::Pin;
-use core::ptr::{NonNull, null_mut};
+use core::ptr::{NonNull, drop_in_place, null_mut};
 use core::sync::atomic::{AtomicPtr, Ordering};
 use core::{fmt, ptr};
 
@@ -58,9 +59,11 @@ pub struct Softc<T> {
     // field is aligned to 8 bytes.
     inner: T,
     // The type in these Option<T>s must be non-null so NULL is used as a niche value to represent
-    // None. That means the following two fields are each the size of void*.
+    // None. That means the following fields are each the size of void *.
     dev: Option<NonNull<_device>>,
+    // This can change after init without synchronization so it must be atomic
     cdev: AtomicPtr<cdev>,
+    mtype: Option<NonNull<malloc_type>>,
     // The u_int must be behind an UnsafeCell since it's modified while behind a shared reference.
     // It avoids data races by using the atomic C KPI refcount_* functions. This is a u32 so there
     // should be at least a u32 of padding after it.
@@ -68,23 +71,26 @@ pub struct Softc<T> {
 }
 
 impl<T> Softc<T> {
-    pub fn new_boxed<M: Malloc>(t: T, flags: MallocFlags) -> Box<Self, M> {
-        Softc::try_new_boxed(t, flags).unwrap()
+    pub fn new<M: Malloc>(t: T, flags: MallocFlags) -> Ptr<T> {
+        Softc::try_new::<M>(t, flags).unwrap()
     }
 
-    pub fn try_new_boxed<M: Malloc>(t: T, flags: MallocFlags) -> Result<Box<Self, M>> {
-        let mut res = Box::try_new(
+    pub fn try_new<M: Malloc>(t: T, flags: MallocFlags) -> Result<Ptr<T>> {
+        let sc = Box::<Softc<T>, M>::try_new(
             Self {
                 inner: t,
                 dev: None,
                 cdev: AtomicPtr::new(null_mut()),
+                mtype: Some(NonNull::new(M::malloc_type().as_raw()).unwrap()),
                 count: UnsafeCell::new(0),
             },
             flags,
         )?;
-        let count_ptr = UnsafeCell::raw_get(&raw mut res.count);
+        let sc_ptr = Box::into_raw(sc);
+        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*sc_ptr).count });
         // This is just an address-insensitive atomic write
         unsafe { bindings::refcount_init(count_ptr, 1) };
+        let res = unsafe { Ptr::from_raw(sc_ptr.cast::<T>()) };
         Ok(res)
     }
 
@@ -165,6 +171,7 @@ impl<T> Uninit<T> {
             // where this was already initialized to Some. We have to initialize it to soundly
             // create references to the entire Softc so None is the correct value here.
             (*sc_ptr).cdev = AtomicPtr::new(null_mut());
+            (*sc_ptr).mtype = None;
             sc_ptr.cast::<Self>().as_ref().unwrap()
         }
     }
@@ -221,6 +228,27 @@ impl<T> Uninit<T> {
 pub struct Ptr<T: 'static>(pub(crate) NonNull<Softc<T>>);
 
 impl<T> Ptr<T> {
+    pub fn free(sc: Self) {
+        // Ptr Derefs to Softc which lets us access its mtype field transparently
+        let mtype = sc
+            .mtype
+            .expect("Softc allocated by newbus cannot be freed manually");
+        let sc_ptr = sc.0.as_ptr();
+        let (_, count_ptr) = Ptr::into_raw(sc);
+        let last = unsafe { bindings::refcount_release(count_ptr) };
+        if !last {
+            let num_refs = unsafe { bindings::refcount_load(count_ptr) };
+            panic!("Attempted to free a softc with {num_refs} references still held");
+        }
+        unsafe {
+            drop_in_place(sc_ptr);
+            free(
+                sc_ptr.cast::<c_void>(),
+                MallocType::from_raw(mtype.as_ptr()),
+            );
+        }
+    }
+
     pub fn as_pin(&self) -> Pin<&T> {
         unsafe { Pin::new_unchecked(&self.0.as_ref().inner) }
     }
