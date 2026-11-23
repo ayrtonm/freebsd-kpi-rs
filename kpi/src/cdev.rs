@@ -214,7 +214,7 @@ pub mod wrappers {
         args_raw.mda_devsw = args.cdevsw_ptr;
 
         let res =
-            unsafe { bindings::make_dev_s(&raw mut args_raw, &raw mut outp, args.name.as_ptr()) };
+            unsafe { bindings::make_dev_s(&raw mut args_raw, &raw mut outp, c"%s".as_ptr(), args.name.as_ptr()) };
         if res != 0 {
             // Reclaim the softc Ptr that into_raw moved into mda_si_drv1 so it is dropped
             drop(unsafe { Ptr::from_raw(sc_ptr) });
