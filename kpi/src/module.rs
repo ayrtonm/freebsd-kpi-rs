@@ -35,6 +35,14 @@ pub trait Module {
         Ok(())
     }
 
+    fn on_shutdown(data: *mut c_void) -> Result<()> {
+        Ok(())
+    }
+
+    fn on_quiesce(data: *mut c_void) -> Result<()> {
+        Ok(())
+    }
+
     fn on_unload(data: *mut c_void) -> Result<()> {
         Ok(())
     }
@@ -54,6 +62,8 @@ macro_rules! define_module {
             let res = match ty as core::ffi::c_uint {
                 $crate::bindings::MOD_LOAD => <$module_ty as Module>::on_load(data),
                 $crate::bindings::MOD_UNLOAD => <$module_ty as Module>::on_unload(data),
+                $crate::bindings::MOD_QUIESCE => <$module_ty as Module>::on_quiesce(data),
+                $crate::bindings::MOD_SHUTDOWN => <$module_ty as Module>::on_shutdown(data),
                 _ => Err(ENOTSUP),
             };
             match res {
