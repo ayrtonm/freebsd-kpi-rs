@@ -68,12 +68,6 @@ pub trait Malloc {
     fn malloc_type() -> MallocType;
 }
 
-impl Malloc for () {
-    fn malloc_type() -> MallocType {
-        MallocType(null_mut())
-    }
-}
-
 macro_rules! gen_malloc_type {
     ($($name:ident)*) => {
     $(
