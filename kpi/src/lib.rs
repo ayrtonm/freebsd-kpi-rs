@@ -133,16 +133,11 @@ pub type Result<T> = core::result::Result<T, ErrCode>;
 /// A catch-all module for miscellaneous functions
 #[allow(non_snake_case)]
 pub mod misc {
-    use crate::prelude::*;
     #[cfg(target_arch = "aarch64")]
     use core::sync::atomic::AtomicU32;
 
-    use crate::bindings::{cpuset_t, device_t, u_int};
-    #[cfg(target_arch = "aarch64")]
-    use crate::device::Device;
-    use crate::device::DeviceIf;
-    use crate::ffi::Softc;
-    use crate::{bindings, define_interface};
+    use crate::bindings;
+    use crate::bindings::{cpuset_t, u_int};
     use core::ffi::c_int;
 
     #[cfg(target_arch = "aarch64")]

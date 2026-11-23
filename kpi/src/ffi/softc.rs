@@ -37,7 +37,7 @@ use core::cell::UnsafeCell;
 use core::ffi::c_void;
 use core::fmt::{Debug, Formatter};
 use core::mem::{MaybeUninit, forget};
-use core::ops::{Deref, DerefMut};
+use core::ops::Deref;
 use core::pin::Pin;
 use core::ptr::{NonNull, drop_in_place, null_mut};
 use core::sync::atomic::{AtomicPtr, Ordering};

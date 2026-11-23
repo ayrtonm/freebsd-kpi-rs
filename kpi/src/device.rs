@@ -36,7 +36,6 @@ use crate::vec::Vec;
 use crate::{ErrCode, define_interface};
 use core::ffi::{CStr, c_int};
 use core::fmt::{Debug, Formatter};
-use core::marker::PhantomData;
 use core::ptr::null_mut;
 use core::{fmt, ptr};
 

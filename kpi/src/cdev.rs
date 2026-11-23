@@ -35,7 +35,6 @@ use crate::malloc::{Malloc, MallocType};
 use crate::prelude::*;
 use crate::proc::Thread;
 use core::ffi::{CStr, c_int, c_void};
-use core::marker::PhantomData;
 use core::ptr::drop_in_place;
 
 define_wrapper_type!(CDev, cdev);
