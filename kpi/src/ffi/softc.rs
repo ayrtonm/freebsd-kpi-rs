@@ -62,8 +62,8 @@ pub struct Softc<T> {
     // None. That means the following fields are each the size of void *.
     dev: Option<NonNull<_device>>,
     // This can change after init without synchronization so it must be atomic
-    cdev: AtomicPtr<cdev>,
-    mtype: Option<NonNull<malloc_type>>,
+    pub(crate) cdev: AtomicPtr<cdev>,
+    pub(crate) mtype: Option<NonNull<malloc_type>>,
     // The u_int must be behind an UnsafeCell since it's modified while behind a shared reference.
     // It avoids data races by using the atomic C KPI refcount_* functions. This is a u32 so there
     // should be at least a u32 of padding after it.
@@ -92,10 +92,6 @@ impl<T> Softc<T> {
         unsafe { bindings::refcount_init(count_ptr, 1) };
         let res = unsafe { Ptr::from_raw(sc_ptr.cast::<T>()) };
         Ok(res)
-    }
-
-    pub fn set_cdev(&mut self, dev: *mut cdev) {
-        self.cdev = AtomicPtr::new(dev);
     }
 
     /// Panics if this `Softc` is not attached to a cdev.
@@ -135,9 +131,9 @@ impl<T> Softc<T> {
         self.as_pin().project()
     }
 
-    pub fn as_raw(&self) -> (*mut T, *mut u_int) {
-        let t_ptr = ptr::from_ref(&self.inner).cast_mut();
-        (t_ptr, self.count.get())
+    pub fn as_raw(sc: &Self) -> (*mut T, *mut u_int) {
+        let t_ptr = ptr::from_ref(&sc.inner).cast_mut();
+        (t_ptr, sc.count.get())
     }
 }
 

@@ -26,16 +26,14 @@
  * SUCH DAMAGE.
  */
 
-use crate::bindings::{cdev, malloc_type};
-use crate::boxed::Box;
+use crate::bindings::cdev;
 use crate::define_interface;
 use crate::ffi::{Ptr, Softc};
 use crate::kobj::AsRustType;
-use crate::malloc::{Malloc, MallocType};
 use crate::prelude::*;
 use crate::proc::Thread;
 use core::ffi::{CStr, c_int, c_void};
-use core::ptr::drop_in_place;
+use core::sync::atomic::Ordering;
 
 define_wrapper_type!(CDev, cdev);
 
@@ -74,31 +72,15 @@ define_interface! {
     fn d_write(dev: *mut bindings::cdev, uio: *mut bindings::uio, iof: i32) -> i32;
 }
 
-pub struct MakeDevArgs<T, M: Malloc> {
+pub struct MakeDevArgs<T: 'static> {
     pub flags: i32,
     pub uid: i32,
     pub gid: i32,
     pub mode: i32,
     pub name: &'static CStr,
-    sc: Box<Softc<T>, M>,
+    sc: Ptr<T>,
     size: usize,
     cdevsw_ptr: *mut bindings::cdevsw,
-}
-
-impl<T, M: Malloc> MakeDevArgs<T, M> {
-    pub fn into_raw(self) -> (bindings::make_dev_args, &'static CStr) {
-        let mut args = bindings::make_dev_args::default();
-        args.mda_size = self.size;
-        args.mda_flags = self.flags;
-        args.mda_uid = self.uid.try_into().unwrap();
-        args.mda_gid = self.gid.try_into().unwrap();
-        args.mda_mode = self.mode;
-        args.mda_si_drv1 = Box::into_raw(self.sc).cast::<c_void>();
-        // Record the softc's allocator so destroy_dev can free it later.
-        args.mda_si_drv2 = M::malloc_type().as_raw().cast::<c_void>();
-        args.mda_devsw = self.cdevsw_ptr;
-        (args, self.name)
-    }
 }
 
 #[macro_export]
@@ -201,10 +183,10 @@ pub mod wrappers {
     use core::ptr::null_mut;
 
     /// Initializes a [`MakeDevArgs`] for the given cdevsw (as declared by [`define_cdev!`][crate::define_cdev]).
-    pub fn make_dev_args_init<D: CDevSw, M: Malloc>(
-        sc: Box<Softc<D::Softc>, M>,
+    pub fn make_dev_args_init<D: CDevSw>(
+        sc: Ptr<D::Softc>,
         dev: &'static D,
-    ) -> MakeDevArgs<D::Softc, M> {
+    ) -> MakeDevArgs<D::Softc> {
         MakeDevArgs {
             sc,
             // Follows make_dev_args_init's behavior
@@ -218,22 +200,32 @@ pub mod wrappers {
         }
     }
 
-    pub fn make_dev_s<T: 'static, M: Malloc>(args: MakeDevArgs<T, M>) -> Result<Ptr<T>> {
+    pub fn make_dev_s<T: 'static>(args: MakeDevArgs<T>) -> Result<Ptr<T>> {
         let mut outp = null_mut();
-        let (mut args_raw, name) = args.into_raw();
-        let sc_ptr = args_raw.mda_si_drv1.cast::<Softc<T>>();
-        let res = unsafe { bindings::make_dev_s(&raw mut args_raw, &raw mut outp, name.as_ptr()) };
+
+        let mut args_raw = bindings::make_dev_args::default();
+        args_raw.mda_size = args.size;
+        args_raw.mda_flags = args.flags;
+        args_raw.mda_uid = args.uid.try_into().unwrap();
+        args_raw.mda_gid = args.gid.try_into().unwrap();
+        args_raw.mda_mode = args.mode;
+        let (sc_ptr, _count_ptr) = Ptr::into_raw(args.sc);
+        args_raw.mda_si_drv1 = sc_ptr.cast::<c_void>();
+        args_raw.mda_devsw = args.cdevsw_ptr;
+
+        let res =
+            unsafe { bindings::make_dev_s(&raw mut args_raw, &raw mut outp, args.name.as_ptr()) };
         if res != 0 {
-            // Reclaim the boxed softc that into_raw moved into mda_si_drv1 so it is dropped
-            // and freed.
-            drop(unsafe { Box::<Softc<T>, M>::from_raw(sc_ptr) });
+            // Reclaim the softc Ptr that into_raw moved into mda_si_drv1 so it is dropped
+            drop(unsafe { Ptr::from_raw(sc_ptr) });
             return Err(ErrCode::from(res));
         }
-        // TODO: How would this work if the softc that was passed in belonged to a Device? Owner may
-        // need a dual-owner variant.
-        // Record the cdev so destroy_dev can find it later.
-        unsafe { (*sc_ptr).set_cdev(outp) };
-        Ok(unsafe { sc_ptr.as_ref().unwrap().acquire_ptr() })
+        let sc = unsafe { Ptr::from_raw(sc_ptr) };
+        sc.cdev.store(outp, Ordering::Relaxed);
+        let res = sc.acquire_ptr();
+        // This is si_drv1's refcount so don't release it
+        Ptr::into_raw(sc);
+        Ok(res)
     }
 
     /// Destroys the character device created by [`make_dev_s`] and frees its softc.
@@ -242,25 +234,17 @@ pub mod wrappers {
     /// other `Ptr` to the softc is still outstanding.
     pub fn destroy_dev<T: 'static>(sc: Ptr<T>) {
         let dev = sc.cdev();
-        // The allocator the softc was boxed with, recorded in si_drv2 by make_dev_s.
-        let mtype = MallocType::from_raw(dev.si_drv2().cast::<malloc_type>());
+
         // Blocks until all threads have left this driver's cdevsw callbacks, so no new Refs
         // can be created from the cdev afterwards.
         unsafe { bindings::destroy_dev(dev.as_ptr()) };
-        // Release our lease and the device's original reference, then free the softc.
-        let (sc_ptr, count_ptr) = Ptr::into_raw(sc);
 
-        unsafe { bindings::refcount_release(count_ptr) };
+        // Release the arg's refcount and the char device's original reference, then free the softc.
+        let (_sc_ptr, count_ptr) = Softc::as_raw(&sc);
+
         let last = unsafe { bindings::refcount_release(count_ptr) };
-        if !last {
-            let num_refs = unsafe { bindings::refcount_load(count_ptr) };
-            panic!(
-                "tried to destroy cdev with {} outstanding softc leases",
-                num_refs
-            );
-        }
-        unsafe { drop_in_place(sc_ptr) };
-        unsafe { free(sc_ptr.cast::<c_void>(), mtype) };
+        assert!(!last);
+        Ptr::free(sc);
     }
 
     pub fn uiomove_read(buf: &mut [u8], uio_ref: &Uio) -> Result<()> {

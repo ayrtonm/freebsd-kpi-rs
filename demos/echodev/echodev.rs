@@ -169,7 +169,7 @@ impl Module for EchoDev {
 
         sc.state.get_mut().buf = Vec::fill_with_capacity(0, 64, M_WAITOK);
 
-        let sc = Softc::new_boxed::<M_DEVBUF>(sc, M_WAITOK);
+        let sc = Softc::new::<M_DEVBUF>(sc, M_WAITOK);
         sx_init(sc.project().state, c"echo");
 
         let mut args = make_dev_args_init(sc, &echo_cdevsw);
