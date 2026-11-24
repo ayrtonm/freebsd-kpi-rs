@@ -96,6 +96,8 @@
 #include <dev/virtio/virtqueue.h>
 #endif
 
+#include <dev/vmm/vmm_dev.h>
+
 #include <sys/protosw.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>

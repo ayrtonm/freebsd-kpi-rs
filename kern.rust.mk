@@ -129,6 +129,10 @@ BINDGEN_FLAGS= \
 	--blocklist-function 'fo_chmod' \
 	--blocklist-function 'fo_chown' \
 	--blocklist-function 'fo_sendfile' \
+	--blocklist-function 'vm_inject_ud' \
+	--blocklist-function 'vm_inject_gp' \
+	--blocklist-function 'vm_inject_ac' \
+	--blocklist-function 'vm_inject_ss' \
 	--no-debug _device \
 	--no-debug mdproc \
 	--no-debug nvme_namespace_data \
