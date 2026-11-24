@@ -26,13 +26,14 @@
  * SUCH DAMAGE.
  */
 
-use crate::bindings::cdev;
+use crate::bindings::{cdev, IOC_IN, IOC_OUT, IOC_VOID, IOCPARM_MASK};
 use crate::define_interface;
 use crate::ffi::{Ptr, Softc};
 use crate::kobj::AsRustType;
 use crate::prelude::*;
 use crate::proc::Thread;
-use core::ffi::{CStr, c_int, c_void};
+use core::ffi::{CStr, c_char, c_int, c_void};
+use core::slice::from_raw_parts_mut;
 use core::sync::atomic::Ordering;
 
 define_wrapper_type!(CDev, cdev);
@@ -62,6 +63,9 @@ pub trait CDevSw: CDevSwInternal {
     fn d_write(sc: &Softc<Self::Softc>, uio: &Uio, ioflag: c_int) -> Result<()> {
         unimplemented!()
     }
+    fn d_ioctl(sc: &Softc<Self::Softc>, cmd: IoctlCmd, data: Option<&mut [u8]>, fflag: i32, td: &Thread) -> Result<()> {
+        unimplemented!()
+    }
 }
 
 define_interface! {
@@ -70,6 +74,10 @@ define_interface! {
     fn d_close(dev: *mut bindings::cdev, fflag: i32, devtype: i32, td: *mut bindings::thread) -> i32;
     fn d_read(dev: *mut bindings::cdev, uio: *mut bindings::uio, iof: i32) -> i32;
     fn d_write(dev: *mut bindings::cdev, uio: *mut bindings::uio, iof: i32) -> i32;
+    fn d_ioctl(dev: *mut bindings::cdev, cmd: bindings::u_long, data: bindings::caddr_t, fflag: i32, td: *mut bindings::thread) -> i32,
+    with init glue {
+        let data = unsafe { $crate::cdev::ioctl_buf(cmd, &data) };
+    };
 }
 
 pub struct MakeDevArgs<T: 'static> {
@@ -128,6 +136,49 @@ impl<'a, T> AsRustType<'a, &'a Softc<T>, T> for *mut cdev {
         let sc_ptr = unsafe { (*dev).si_drv1 };
         unsafe { sc_ptr.cast::<Softc<T>>().as_ref().unwrap() }
     }
+}
+
+#[derive(Copy, Clone)]
+pub struct IoctlCmd(u64);
+
+impl IoctlCmd {
+    fn number(&self) -> u8 {
+        self.0 as u8
+    }
+    fn group(&self) -> u8 {
+        (self.0 >> 8) as u8
+    }
+    fn length(&self) -> u64 {
+        (self.0 >> 16) & IOCPARM_MASK as u64
+    }
+    fn is_void(&self) -> bool {
+        self.0 & IOC_VOID as u64 != 0
+    }
+    fn is_in(&self) -> bool {
+        self.0 & IOC_IN as u64 != 0
+    }
+    fn is_out(&self) -> bool {
+        self.0 & IOC_OUT as u64 != 0
+    }
+    fn is_inout(&self) -> bool {
+        self.is_in() && self.is_out()
+    }
+}
+
+impl AsRustType<'_, IoctlCmd> for u64 {
+    fn as_rust_type(&self) -> IoctlCmd {
+        IoctlCmd(*self)
+    }
+}
+
+#[doc(hidden)]
+pub unsafe fn ioctl_buf(cmd: IoctlCmd, buf: &*mut c_char) -> Option<&mut [u8]> {
+    // This covers invalid ioctls like IOC_VOID && (IOC_IN || IOC_OUT) too
+    if cmd.is_void() {
+        return None;
+    }
+    let ptr = buf.cast::<u8>();
+    Some(unsafe { from_raw_parts_mut(ptr, cmd.length() as usize) })
 }
 
 define_wrapper_type!(Uio, uio);
