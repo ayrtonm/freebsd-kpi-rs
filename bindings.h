@@ -96,6 +96,7 @@
 #include <dev/virtio/virtqueue.h>
 #endif
 
+#include <sys/ioccom.h>
 #include <dev/vmm/vmm_dev.h>
 
 #include <sys/protosw.h>
