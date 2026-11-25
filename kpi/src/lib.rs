@@ -250,6 +250,9 @@ pub mod prelude {
     pub use crate::ofw::wrappers::*;
 
     #[doc(inline)]
+    pub use crate::proc::wrappers::*;
+
+    #[doc(inline)]
     pub use crate::sync::mtx::wrappers::*;
 
     #[doc(inline)]

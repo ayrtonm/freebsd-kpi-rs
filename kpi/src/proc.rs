@@ -26,8 +26,11 @@
  * SUCH DAMAGE.
  */
 
+use crate::prelude::*;
 use crate::bindings::{MAXCOMLEN, proc, ucred};
 use core::ffi::c_char;
+use core::mem::forget;
+use core::ptr::NonNull;
 
 define_wrapper_type!(CurThread, thread);
 define_wrapper_type!(CurProc, proc);
@@ -103,4 +106,42 @@ impl Ucred {
     define_getter!(cr_gid, u32);
     define_getter!(cr_rgid, u32);
     define_getter!(cr_svgid, u32);
+}
+
+// FIXME: this is bad since it would lead to duplicating the NullablePtr machinery on a per-type
+// basis. Merge these two at some point
+pub struct UcredPtr(NonNull<ucred>);
+
+impl UcredPtr {
+    pub fn as_ref(&self) -> &Ucred {
+        unsafe { self.0.as_ptr().cast::<Ucred>().as_ref().unwrap() }
+    }
+}
+
+unsafe impl Send for UcredPtr {}
+unsafe impl Sync for UcredPtr {}
+
+impl Drop for UcredPtr {
+    fn drop(&mut self) {
+        unsafe { bindings::crfree(self.0.as_ptr()) }
+    }
+}
+
+#[doc(hidden)]
+pub mod wrappers {
+    use super::*;
+
+    pub fn crhold(cred: &Ucred) -> UcredPtr {
+        unsafe { bindings::crhold(cred.as_ptr()) };
+        UcredPtr(NonNull::new(cred.as_ptr()).unwrap())
+    }
+
+    pub fn crfree(cred: UcredPtr) {
+        unsafe { bindings::crfree(cred.0.as_ptr()) };
+        forget(cred);
+    }
+
+    pub fn cr_cansee(cr1: &Ucred, cr2: &Ucred) -> bool {
+        unsafe { bindings::cr_cansee(cr1.as_ptr(), cr2.as_ptr()) == 0 }
+    }
 }
