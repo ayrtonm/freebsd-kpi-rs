@@ -111,7 +111,6 @@ BINDGEN_FLAGS= \
 	--no-prepend-enum-name \
 	--no-layout-tests \
 	--with-derive-default \
-	--no-derive-copy \
 	--default-macro-constant-type signed \
 	--merge-extern-blocks \
 	--builtins \
