@@ -53,7 +53,20 @@ use core::sync::atomic::{AtomicPtr, Ordering};
 ///
 /// If you're defining a struct yourself wrap the type definition in `define_pod_struct!` to get
 /// this implemented safely for free. If the type has implicit padding you'll get a compiler error.
-pub unsafe trait Pod: Sized + Copy + 'static {}
+pub unsafe trait Pod: Sized + Copy + 'static {
+    fn from_bytes(b: &[u8]) -> Result<&Self> {
+        if b.len() < size_of::<Self>() {
+            return Err(EINVAL);
+        }
+        Ok(unsafe { b.as_ptr().cast::<Self>().as_ref().unwrap() })
+    }
+    fn from_bytes_mut(b: &mut [u8]) -> Result<&mut Self> {
+        if b.len() < size_of::<Self>() {
+            return Err(EINVAL);
+        }
+        Ok(unsafe { b.as_mut_ptr().cast::<Self>().as_mut().unwrap() })
+    }
+}
 
 macro_rules! impl_pod_for {
     ($($ty:ty)*) => {
@@ -71,6 +84,11 @@ impl_pod_for! {
 
 unsafe impl Pod for () {}
 unsafe impl<T: 'static> Pod for PhantomData<T> {}
+
+unsafe impl Pod for bindings::vmmctl_vm_create {}
+unsafe impl Pod for bindings::vmmctl_vm_destroy {}
+unsafe impl Pod for bindings::vm_run {}
+unsafe impl Pod for bindings::vm_suspend {}
 
 // TODO: Move all Pod stuff somewhere else (maybe the ffi module)
 pub fn assert_is_pod<T: Pod>() {}

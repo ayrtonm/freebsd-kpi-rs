@@ -246,3 +246,7 @@ BUS_N(4, uint32_t);
 #if defined(__aarch64__)
 BUS_N(8, uint64_t);
 #endif
+
+#define FNLIKE_MACRO(name) const uint64_t macro_##name = name;
+FNLIKE_MACRO(VMMCTL_VM_CREATE);
+FNLIKE_MACRO(VMMCTL_VM_DESTROY);
