@@ -31,7 +31,7 @@ use crate::define_interface;
 use crate::ffi::{Ptr, Softc};
 use crate::kobj::AsRustType;
 use crate::prelude::*;
-use crate::proc::Thread;
+use crate::proc::{Thread, CurThread};
 use core::ffi::{CStr, c_char, c_int, c_void};
 use core::slice::from_raw_parts_mut;
 use core::sync::atomic::Ordering;
@@ -63,7 +63,7 @@ pub trait CDevSw: CDevSwInternal {
     fn d_write(sc: &Softc<Self::Softc>, uio: &Uio, ioflag: c_int) -> Result<()> {
         unimplemented!()
     }
-    fn d_ioctl(sc: &Softc<Self::Softc>, cmd: IoctlCmd, data: Option<&mut [u8]>, fflag: i32, td: &Thread) -> Result<()> {
+    fn d_ioctl(sc: &Softc<Self::Softc>, cmd: IoctlCmd, data: Option<&mut [u8]>, fflag: i32, td: &CurThread) -> Result<()> {
         unimplemented!()
     }
 }
@@ -142,25 +142,28 @@ impl<'a, T> AsRustType<'a, &'a Softc<T>, T> for *mut cdev {
 pub struct IoctlCmd(u64);
 
 impl IoctlCmd {
-    fn number(&self) -> u8 {
+    pub fn as_raw(&self) -> u64 {
+        self.0
+    }
+    pub fn number(&self) -> u8 {
         self.0 as u8
     }
-    fn group(&self) -> u8 {
+    pub fn group(&self) -> u8 {
         (self.0 >> 8) as u8
     }
-    fn length(&self) -> u64 {
+    pub fn length(&self) -> u64 {
         (self.0 >> 16) & IOCPARM_MASK as u64
     }
-    fn is_void(&self) -> bool {
+    pub fn is_void(&self) -> bool {
         self.0 & IOC_VOID as u64 != 0
     }
-    fn is_in(&self) -> bool {
+    pub fn is_in(&self) -> bool {
         self.0 & IOC_IN as u64 != 0
     }
-    fn is_out(&self) -> bool {
+    pub fn is_out(&self) -> bool {
         self.0 & IOC_OUT as u64 != 0
     }
-    fn is_inout(&self) -> bool {
+    pub fn is_inout(&self) -> bool {
         self.is_in() && self.is_out()
     }
 }
@@ -170,6 +173,8 @@ impl AsRustType<'_, IoctlCmd> for u64 {
         IoctlCmd(*self)
     }
 }
+
+pub struct IoctlData<'a>(IoctlCmd, &'a mut [u8]);
 
 #[doc(hidden)]
 pub unsafe fn ioctl_buf(cmd: IoctlCmd, buf: &*mut c_char) -> Option<&mut [u8]> {
