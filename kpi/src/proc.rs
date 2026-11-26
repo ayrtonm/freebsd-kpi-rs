@@ -128,7 +128,6 @@ pub mod wrappers {
     use super::*;
 
     pub fn crhold(cred: &Ucred) -> Ptr<Ucred> {
-        cred.acquire_ref();
         Ptr::new(cred)
     }
 
