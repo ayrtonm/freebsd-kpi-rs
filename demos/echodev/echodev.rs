@@ -192,7 +192,7 @@ impl Module for EchoDev {
         state.dying = true;
         wakeup(&sc.chan);
         sx_xunlock(state);
-        destroy_dev(sc);
+        destroy_dev(sc)?;
         Ok(())
     }
 }
