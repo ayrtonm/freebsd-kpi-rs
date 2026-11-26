@@ -31,6 +31,7 @@
 use core::ops::Index;
 use core::pin::Pin;
 use core::slice::SliceIndex;
+use core::ptr::NonNull;
 
 mod cstring;
 mod softc;
@@ -64,4 +65,10 @@ unsafe impl<T, I, const N: usize> PinIndex<I> for [T; N] where [T]: Index<I> {}
 
 pub trait Embeds<T> {
     fn get_embedded(self: Pin<&Self>) -> Pin<&T>;
+}
+
+pub unsafe trait Refcounted {
+    fn acquire_ref(&self);
+    // The pointee might be freed during this call so this can't take a &self
+    unsafe fn release_ref(ptr: NonNull<Self>) -> bool;
 }

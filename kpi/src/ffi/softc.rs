@@ -30,7 +30,7 @@ use crate::bindings::{_device, cdev, device_t, malloc_type, u_int};
 use crate::boxed::Box;
 use crate::cdev::CDev;
 use crate::device::Device;
-use crate::ffi::PinProject;
+use crate::ffi::{Refcounted, PinProject};
 use crate::malloc::{Malloc, MallocFlags, MallocType};
 use crate::prelude::*;
 use core::cell::UnsafeCell;
@@ -43,12 +43,6 @@ use core::pin::Pin;
 use core::ptr::{NonNull, drop_in_place, null_mut};
 use core::sync::atomic::{AtomicPtr, Ordering};
 use core::{fmt, ptr};
-
-unsafe trait Refcounted {
-    fn acquire_ref(&self);
-    // The pointee might be freed during this call so this can't take a &self
-    unsafe fn release_ref(ptr: NonNull<Self>) -> bool;
-}
 
 unsafe impl<T: 'static> Refcounted for Softc<T> {
     fn acquire_ref(&self) {
@@ -101,6 +95,9 @@ pub struct Softc<T> {
     // should be at least a u32 of padding after it.
     count: UnsafeCell<u_int>,
 }
+
+unsafe impl<T: Sync> Sync for Softc<T> {}
+unsafe impl<T: Send> Send for Softc<T> {}
 
 impl<T> Softc<T> {
     pub fn new<M: Malloc>(t: T, flags: MallocFlags) -> Ptr<T> {
@@ -278,6 +275,11 @@ impl<T: 'static> Ptr<T> {
 pub struct Ref<T: Refcounted + 'static>(pub(crate) NonNull<T>, PhantomData<T>);
 
 impl<T: Refcounted> Ref<T> {
+    pub fn new(t: &T) -> Self {
+        t.acquire_ref();
+        Self(NonNull::from(t), PhantomData)
+    }
+
     pub fn free(t: Self) {
         let ptr = t.0;
         forget(t);

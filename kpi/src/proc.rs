@@ -28,6 +28,7 @@
 
 use crate::prelude::*;
 use crate::bindings::{MAXCOMLEN, proc, ucred};
+use crate::ffi::{Refcounted, Ref};
 use core::ffi::c_char;
 use core::mem::forget;
 use core::ptr::NonNull;
@@ -108,22 +109,17 @@ impl Ucred {
     define_getter!(cr_svgid, u32);
 }
 
-// FIXME: this is bad since it would lead to duplicating the NullablePtr machinery on a per-type
-// basis. Merge these two at some point
-pub struct UcredPtr(NonNull<ucred>);
+unsafe impl Sync for Ucred {}
+unsafe impl Send for Ucred {}
 
-impl UcredPtr {
-    pub fn as_ref(&self) -> &Ucred {
-        unsafe { self.0.as_ptr().cast::<Ucred>().as_ref().unwrap() }
+unsafe impl Refcounted for Ucred {
+    fn acquire_ref(&self) {
+        unsafe { bindings::crhold(self.as_ptr()) };
     }
-}
 
-unsafe impl Send for UcredPtr {}
-unsafe impl Sync for UcredPtr {}
-
-impl Drop for UcredPtr {
-    fn drop(&mut self) {
-        unsafe { bindings::crfree(self.0.as_ptr()) }
+    unsafe fn release_ref(ptr: NonNull<Ucred>) -> bool {
+        unsafe { bindings::crfree(ptr.as_ptr().cast::<ucred>()) };
+        false
     }
 }
 
@@ -131,14 +127,13 @@ impl Drop for UcredPtr {
 pub mod wrappers {
     use super::*;
 
-    pub fn crhold(cred: &Ucred) -> UcredPtr {
-        unsafe { bindings::crhold(cred.as_ptr()) };
-        UcredPtr(NonNull::new(cred.as_ptr()).unwrap())
+    pub fn crhold(cred: &Ucred) -> Ref<Ucred> {
+        cred.acquire_ref();
+        Ref::new(cred)
     }
 
-    pub fn crfree(cred: UcredPtr) {
-        unsafe { bindings::crfree(cred.0.as_ptr()) };
-        forget(cred);
+    pub fn crfree(cred: Ref<Ucred>) {
+        drop(cred);
     }
 
     pub fn cr_cansee(cr1: &Ucred, cr2: &Ucred) -> bool {
