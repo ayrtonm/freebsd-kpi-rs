@@ -22,12 +22,12 @@ use kpi::module::Module;
 use kpi::sync::Checked;
 use kpi::sync::sx::SxLock;
 use kpi::vec::Vec;
-use kpi::{define_cdev, define_module, define_projectable};
+use kpi::{define_cdev, define_module, define_pinned_struct};
 use kpi::ffi::NullablePtr;
 
 use kpi::prelude::*;
 
-define_projectable! {
+define_pinned_struct! {
     #[derive(Default)]
     pub struct EchoDevSoftc {
         state: SxLock<EchoDevState>,

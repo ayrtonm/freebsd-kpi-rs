@@ -313,7 +313,7 @@ mod tests {
     use crate::ffi::Uninit;
     use crate::tests::{DriverManager, LoudDrop};
 
-    define_projectable! {
+    define_pinned_struct! {
         #[repr(C)]
         pub struct HookSoftc {
             hook: ConfigHook,

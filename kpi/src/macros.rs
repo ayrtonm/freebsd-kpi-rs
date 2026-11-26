@@ -87,7 +87,7 @@ macro_rules! base {
 }
 
 #[macro_export]
-macro_rules! define_projectable {
+macro_rules! define_pinned_struct {
     (
         $(#[$attr:meta])*
         $vis:vis struct $name:ident {
