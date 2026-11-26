@@ -27,16 +27,18 @@
  */
 
 use crate::ErrCode;
-use crate::bindings::sglist;
+use crate::bindings::{sglist, sglist_seg};
 use crate::boxed::Box;
 use crate::malloc::MallocFlags;
 use crate::prelude::*;
 use crate::vec::Vec;
+use core::array;
 use core::ffi::c_void;
 use core::marker::PhantomData;
 use core::mem::{forget, size_of};
 use core::num::{Saturating, Wrapping};
 use core::ops::DerefMut;
+use core::slice;
 use core::sync::atomic::{AtomicPtr, Ordering};
 
 // TODO: drop the Copy bound to allow impl Pod for atomics
@@ -187,6 +189,107 @@ impl Drop for SgList {
     fn drop(&mut self) {
         // If any buffers were appended they also hold refcounts to the sglist just in case
         unsafe { bindings::sglist_free(self.as_ptr()) }
+    }
+}
+
+pub struct LocalSgList<'a, const N: usize> {
+    sg: sglist,
+    segs: [sglist_seg; N],
+    read_end: Option<u16>,
+    _marker: PhantomData<&'a mut ()>,
+}
+
+impl<'a, const N: usize> LocalSgList<'a, N> {
+    pub fn new() -> Self {
+        const { assert!(N <= u16::MAX as usize); }
+        let mut sg = sglist::default();
+        sg.sg_maxseg = N.try_into().unwrap();
+        let segs = array::from_fn(|_| sglist_seg::default());
+        LocalSgList {
+            sg,
+            segs,
+            read_end: None,
+            _marker: PhantomData,
+        }
+    }
+
+    pub fn as_ptr(&mut self) -> *mut sglist {
+        self.sg.sg_segs = self.segs.as_mut_ptr();
+        (&raw const self.sg).cast_mut()
+    }
+
+    pub fn nseg_readable(&self) -> u16 {
+        match self.read_end {
+            Some(r) => r,
+            None => self.sg.sg_nseg,
+        }
+    }
+
+    pub fn nseg_writeable(&self) -> u16 {
+        match self.read_end {
+            Some(r) => self.sg.sg_nseg - r,
+            None => 0,
+        }
+    }
+
+    pub fn append_readable<T: Pod>(&mut self, buf: &'a T) -> Result<()> {
+        self.append_readable_slice(slice::from_ref(buf))
+    }
+
+    pub fn append_readable_slice<T: Pod>(&mut self, buf: &'a [T]) -> Result<()> {
+        // FIXME: This is only a virtqueue requirement
+        if self.read_end.is_some() {
+            return Err(EINVAL);
+        }
+        let len = size_of_val(buf);
+        if len == 0 {
+            return Ok(());
+        }
+        self.sg.sg_segs = self.segs.as_mut_ptr();
+        let sg_ptr = &raw mut self.sg;
+        let buf_ptr = buf.as_ptr().cast_mut();
+        let res = unsafe { bindings::sglist_append(sg_ptr, buf_ptr.cast::<c_void>(), len) };
+        if res != 0 {
+            return Err(ErrCode::from(res));
+        }
+        Ok(())
+    }
+
+    pub fn append_writeable<T: Pod>(&mut self, buf: &'a mut T) -> Result<()> {
+        self.append_writeable_slice(slice::from_mut(buf))
+    }
+
+    pub fn append_writeable_slice<T: Pod>(&mut self, buf: &'a mut [T]) -> Result<()> {
+        let len = size_of_val(buf);
+        if len == 0 {
+            return Ok(());
+        }
+        let nseg_readable = self.sg.sg_nseg;
+        let first = self.read_end.is_none();
+        self.sg.sg_segs = self.segs.as_mut_ptr();
+
+        let mut tail = sglist::default();
+        let sg_ptr = if first {
+            let start = usize::from(nseg_readable);
+            if start >= self.segs.len() {
+                return Err(EFBIG);
+            }
+            tail.sg_segs = self.segs[start..].as_mut_ptr();
+            tail.sg_maxseg = (self.segs.len() - start) as u16;
+            &raw mut tail
+        } else {
+            &raw mut self.sg
+        };
+        let buf_ptr = buf.as_mut_ptr();
+        let res = unsafe { bindings::sglist_append(sg_ptr, buf_ptr.cast::<c_void>(), len) };
+        if res != 0 {
+            return Err(ErrCode::from(res));
+        }
+        if first {
+            self.sg.sg_nseg += tail.sg_nseg;
+            self.read_end = Some(nseg_readable);
+        }
+        Ok(())
     }
 }
 
