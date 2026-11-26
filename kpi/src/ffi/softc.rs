@@ -125,7 +125,7 @@ impl<T> Softc<T> {
 
     /// Panics if this `Softc` is not attached to a cdev.
     pub fn cdev(&self) -> &CDev {
-        let ptr = self.cdev.load(Ordering::Relaxed);
+        let ptr = self.cdev.load(Ordering::Acquire);
         if ptr.is_null() {
             panic!("softc does not have an associated *mut cdev");
         }
@@ -283,6 +283,10 @@ impl<T: Refcounted> Ptr<T> {
         forget(t);
         let last = unsafe { T::release_ref(ptr) };
         assert!(last, "Freed a softc with other references still held");
+    }
+
+    pub fn as_raw(t: &Self) -> *mut T {
+        t.0.as_ptr()
     }
 
     pub fn into_raw(t: Self) -> *mut T {

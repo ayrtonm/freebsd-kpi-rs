@@ -28,11 +28,12 @@
 
 use crate::bindings::{cdev, IOC_IN, IOC_OUT, IOC_VOID, IOCPARM_MASK};
 use crate::define_interface;
-use crate::ffi::{Ptr, Softc};
+use crate::ffi::{Ptr, Softc, Refcounted};
 use crate::kobj::AsRustType;
 use crate::prelude::*;
 use crate::proc::{Thread, CurThread};
 use core::ffi::{CStr, c_char, c_int, c_void};
+use core::ptr::NonNull;
 use core::slice::from_raw_parts_mut;
 use core::sync::atomic::Ordering;
 
@@ -265,42 +266,37 @@ pub mod wrappers {
         args_raw.mda_uid = args.uid.try_into().unwrap();
         args_raw.mda_gid = args.gid.try_into().unwrap();
         args_raw.mda_mode = args.mode;
-        let sc_ptr = Ptr::into_raw(args.sc);
-        args_raw.mda_si_drv1 = sc_ptr.cast::<c_void>();
+        args_raw.mda_si_drv1 = Ptr::as_raw(&args.sc).cast::<c_void>();
         args_raw.mda_devsw = args.cdevsw_ptr;
 
         let res =
             unsafe { bindings::make_dev_s(&raw mut args_raw, &raw mut outp, c"%s".as_ptr(), args.name.as_ptr()) };
         if res != 0 {
-            // Reclaim the softc Ptr that into_raw moved into mda_si_drv1 so it is dropped
-            drop(unsafe { Ptr::from_raw(sc_ptr) });
             return Err(ErrCode::from(res));
         }
-        let sc = unsafe { Ptr::from_raw(sc_ptr) };
-        sc.cdev.store(outp, Ordering::Relaxed);
-        let res = sc.acquire_ptr();
         // This is si_drv1's refcount so don't release it
-        Ptr::into_raw(sc);
-        Ok(res)
+        args.sc.acquire_ref();
+        args.sc.cdev.store(outp, Ordering::Release);
+        Ok(args.sc)
     }
 
     /// Destroys the character device created by [`make_dev_s`] and frees its softc.
     ///
     /// The softc is freed with the allocator recorded in the cdev by `make_dev_s`. Panics if any
     /// other `Ptr` to the softc is still outstanding.
-    pub fn destroy_dev<T: 'static>(sc: Ptr<Softc<T>>) {
-        let dev = sc.cdev();
+    pub fn destroy_dev<T: 'static>(sc: Ptr<Softc<T>>) -> Result<()> {
+        let dev = sc.cdev.swap(null_mut(), Ordering::AcqRel);
+        if dev.is_null() {
+            return Err(EALREADY);
+        }
 
-        // Blocks until all threads have left this driver's cdevsw callbacks, so no new Ptrs
-        // can be created from the cdev afterwards.
-        unsafe { bindings::destroy_dev(dev.as_ptr()) };
+        // Blocks until all threads have left this driver's cdevsw callbacks
+        unsafe { bindings::destroy_dev(dev) };
 
         // Release the arg's refcount and the char device's original reference, then free the softc.
-        let (_sc_ptr, count_ptr) = Softc::as_raw(&sc);
-
-        let last = unsafe { bindings::refcount_release(count_ptr) };
-        assert!(!last);
-        Ptr::free(sc);
+        let sc_ptr = NonNull::from(&*sc);
+        unsafe { Softc::release_ref(sc_ptr) };
+        Ok(())
     }
 
     pub fn uiomove_read(buf: &mut [u8], uio_ref: &Uio) -> Result<()> {
