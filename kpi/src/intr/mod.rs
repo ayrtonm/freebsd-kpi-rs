@@ -259,7 +259,7 @@ pub mod wrappers {
             let last = unsafe { bindings::refcount_release(c.count_ptr) };
             assert!(!last);
         }
-        let (arg_ptr, count_ptr) = Ptr::into_raw(arg);
+        let (arg_ptr, count_ptr) = Ptr::into_raw_with_count(arg);
         c.count_ptr = count_ptr;
 
         let c_callout = c.inner.get();

@@ -265,7 +265,7 @@ pub mod wrappers {
         args_raw.mda_uid = args.uid.try_into().unwrap();
         args_raw.mda_gid = args.gid.try_into().unwrap();
         args_raw.mda_mode = args.mode;
-        let (sc_ptr, _count_ptr) = Ptr::into_raw(args.sc);
+        let sc_ptr = Ptr::into_raw(args.sc);
         args_raw.mda_si_drv1 = sc_ptr.cast::<c_void>();
         args_raw.mda_devsw = args.cdevsw_ptr;
 
@@ -291,7 +291,7 @@ pub mod wrappers {
     pub fn destroy_dev<T: 'static>(sc: Ptr<T>) {
         let dev = sc.cdev();
 
-        // Blocks until all threads have left this driver's cdevsw callbacks, so no new Refs
+        // Blocks until all threads have left this driver's cdevsw callbacks, so no new Ptrs
         // can be created from the cdev afterwards.
         unsafe { bindings::destroy_dev(dev.as_ptr()) };
 

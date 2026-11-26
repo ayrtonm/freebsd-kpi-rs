@@ -29,7 +29,7 @@
 use crate::bindings::{_device, DS_ATTACHED, device_state_t, device_t, driver_t, kobjop_desc};
 use crate::boxed::Box;
 use crate::driver::Driver;
-use crate::ffi::{ArrayCString, Ptr, Softc, Uninit};
+use crate::ffi::{ArrayCString, Ref, Ptr, Softc, Uninit};
 use crate::kobj::{AsCType, AsRustType, rust_driver_marker_desc};
 use crate::prelude::*;
 use crate::vec::Vec;
@@ -334,7 +334,7 @@ pub mod wrappers {
         unsafe { void_ptr.cast::<Softc<D::Softc>>().as_ref().unwrap() }
     }
 
-    /// Get a Ptr to the softc for a device managed by a rust driver.
+    /// Get a Ref to the softc for a device managed by a rust driver.
     ///
     /// Although this function takes the more generic device_t instead of a rust-specific Device,
     /// the device must be managed by a rust driver. If it's not an error is returned.
@@ -360,7 +360,7 @@ pub mod wrappers {
 
         let sc = device_get_softc::<D>(dev);
 
-        // If device_detach runs after this point it will panic if this Ptr hasn't been dropped
+        // If device_detach runs after this point it will panic if this Ref hasn't been dropped
         sc.acquire_ptr()
     }
 

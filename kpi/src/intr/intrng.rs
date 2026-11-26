@@ -351,7 +351,7 @@ pub mod wrappers {
         let xref = xref.0 as isize;
         let filter = unsafe { transmute::<Option<IrqFilter<T>>, intr_irq_filter_t>(Some(filter)) };
         // FIXME: What is bus_setup_intr fails?
-        let (arg_ptr, _count_ptr) = Ptr::into_raw(arg);
+        let arg_ptr = Ptr::into_raw(arg);
 
         let res = unsafe {
             bindings::intr_pic_claim_root(

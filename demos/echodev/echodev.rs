@@ -161,7 +161,7 @@ impl CDevSw for EchoDev {
     }
 }
 
-static ECHODEV: NullablePtr<EchoDevSoftc> = NullablePtr::new();
+static ECHODEV: NullablePtr<Softc<EchoDevSoftc>> = NullablePtr::new();
 
 impl Module for EchoDev {
     fn on_load(data: *mut c_void) -> Result<()> {

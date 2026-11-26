@@ -98,7 +98,7 @@ impl Task {
         }
     }
 
-    pub fn init<T: 'static + Sync>(&self, func: TaskFn<T>, lease: Ptr<T>) -> Result<()> {
+    pub fn init<T: 'static + Sync>(&self, func: TaskFn<T>, arg: Ptr<T>) -> Result<()> {
         if self
             .count_ptr
             .compare_exchange(
@@ -111,7 +111,7 @@ impl Task {
         {
             return Err(EDOOFUS);
         }
-        let (ctx, count_ptr) = Ptr::into_raw(lease);
+        let (ctx, count_ptr) = Ptr::into_raw_with_count(arg);
 
         unsafe {
             let c_task = self.inner.get();

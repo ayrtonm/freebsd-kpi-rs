@@ -36,6 +36,7 @@ use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::ffi::c_void;
 use core::fmt::{Debug, Formatter};
+use core::marker::PhantomData;
 use core::mem::{MaybeUninit, forget};
 use core::ops::Deref;
 use core::pin::Pin;
@@ -46,20 +47,20 @@ use core::{fmt, ptr};
 unsafe trait Refcounted {
     fn acquire_ref(&self);
     // The pointee might be freed during this call so this can't take a &self
-    unsafe fn release_ref(ptr: NonNull<Self>);
+    unsafe fn release_ref(ptr: NonNull<Self>) -> bool;
 }
 
-unsafe impl<T> Refcounted for Softc<T> {
+unsafe impl<T: 'static> Refcounted for Softc<T> {
     fn acquire_ref(&self) {
         let count_ptr = self.count.get();
         unsafe { bindings::refcount_acquire(count_ptr) };
     }
-    unsafe fn release_ref(sc: NonNull<Self>) {
+    unsafe fn release_ref(sc: NonNull<Self>) -> bool {
         let sc_ptr = sc.as_ptr();
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*sc_ptr).count });
         let last = unsafe { bindings::refcount_release(count_ptr) };
         if !last {
-            return;
+            return last;
         }
         let mtype = unsafe { (*sc_ptr).mtype };
         match mtype {
@@ -70,10 +71,11 @@ unsafe impl<T> Refcounted for Softc<T> {
             // device_detach glue owns a reference
             None => unreachable!("released the last referene to a newbus softc"),
         }
+        last
     }
 }
 
-/// The layout of the softc that Ref and Ptr point to.
+/// The layout of the softc that Ref and Ref point to.
 ///
 /// This determines the memory layout of all driver and char device softc managed by rust drivers.
 /// It uses repr(C) and the driver-defined T is intentionally placed first to allow using rust
@@ -120,7 +122,7 @@ impl<T> Softc<T> {
         let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*sc_ptr).count });
         // This is just an address-insensitive atomic write
         unsafe { bindings::refcount_init(count_ptr, 1) };
-        let res = unsafe { Ptr::from_raw(sc_ptr.cast::<T>()) };
+        let res = unsafe { Ptr::from_raw(sc_ptr) };
         Ok(res)
     }
 
@@ -147,7 +149,7 @@ impl<T> Softc<T> {
     pub fn acquire_ptr(&self) -> Ptr<T> {
         let count_ptr = self.count.get();
         unsafe { bindings::refcount_acquire(count_ptr) };
-        Ptr(NonNull::from_ref(self))
+        Ref(NonNull::from_ref(self), PhantomData)
     }
 
     pub fn as_pin(&self) -> Pin<&T> {
@@ -250,29 +252,14 @@ impl<T> Uninit<T> {
     }
 }
 
-#[repr(C)]
-pub struct Ptr<T: 'static>(pub(crate) NonNull<Softc<T>>);
+pub type Ptr<T> = Ref<Softc<T>>;
 
-impl<T> Ptr<T> {
-    pub fn free(sc: Self) {
-        // Ptr Derefs to Softc which lets us access its mtype field transparently
-        let mtype = sc
-            .mtype
-            .expect("Softc allocated by newbus cannot be freed manually");
-        let sc_ptr = sc.0.as_ptr();
-        let (_, count_ptr) = Ptr::into_raw(sc);
-        let last = unsafe { bindings::refcount_release(count_ptr) };
-        if !last {
-            let num_refs = unsafe { bindings::refcount_load(count_ptr) };
-            panic!("Attempted to free a softc with {num_refs} references still held");
-        }
-        unsafe {
-            drop_in_place(sc_ptr);
-            free(
-                sc_ptr.cast::<c_void>(),
-                MallocType::from_raw(mtype.as_ptr()),
-            );
-        }
+impl<T: 'static> Ptr<T> {
+    pub fn into_raw_with_count(t: Self) -> (*mut T, *mut u_int) {
+        let ptr = t.0.as_ptr();
+        let count_ptr = UnsafeCell::raw_get(unsafe { &raw const (*ptr).count });
+        forget(t);
+        (ptr.cast::<T>(), count_ptr)
     }
 
     pub fn as_pin(&self) -> Pin<&T> {
@@ -285,70 +272,77 @@ impl<T> Ptr<T> {
     {
         self.as_pin().project()
     }
+}
 
-    pub fn into_raw(lease: Self) -> (*mut T, *mut u_int) {
-        let inner_ptr = lease.0.as_ptr();
-        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
-        let t_ptr = unsafe { &raw mut (*lease.0.as_ptr()).inner };
-        forget(lease);
-        (t_ptr, count_ptr)
+#[repr(C)]
+pub struct Ref<T: Refcounted + 'static>(pub(crate) NonNull<T>, PhantomData<T>);
+
+impl<T: Refcounted> Ref<T> {
+    pub fn free(t: Self) {
+        let ptr = t.0;
+        forget(t);
+        let last = unsafe { T::release_ref(ptr) };
+        assert!(last, "Freed a softc with other references still held");
+    }
+
+    pub fn into_raw(t: Self) -> *mut T {
+        let ptr = t.0.as_ptr();
+        forget(t);
+        ptr
     }
 
     pub unsafe fn from_raw(ptr: *mut T) -> Self {
-        Self(NonNull::new(ptr.cast::<Softc<T>>()).unwrap())
+        Self(NonNull::new(ptr).unwrap(), PhantomData)
     }
 }
 
-impl<T> Drop for Ptr<T> {
+impl<T: Refcounted> Drop for Ref<T> {
     fn drop(&mut self) {
-        let inner_ptr = self.0.as_ptr();
-        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*inner_ptr).count });
-        let last = unsafe { bindings::refcount_release(count_ptr) };
-        assert!(!last);
+        unsafe { T::release_ref(self.0) };
     }
 }
 
-impl<T> Deref for Ptr<T> {
-    type Target = Softc<T>;
+impl<T: Refcounted> Deref for Ref<T> {
+    type Target = T;
 
     fn deref(&self) -> &Self::Target {
         // SAFETY: The pointee is freed in device_detach, but the KPI glue for it panics if there is
-        // an outstanding softc Ptr when it's ready to free it. The return value lifetime is tied
-        // to the Ptr borrow.
+        // an outstanding softc Ref when it's ready to free it. The return value lifetime is tied
+        // to the Ref borrow.
         unsafe { self.0.as_ref() }
     }
 }
 
-unsafe impl<T: Sync + Send> Sync for Ptr<T> {}
-unsafe impl<T: Sync + Send> Send for Ptr<T> {}
+unsafe impl<T: Refcounted + Sync + Send> Sync for Ref<T> {}
+unsafe impl<T: Refcounted + Sync + Send> Send for Ref<T> {}
 
 #[repr(C)]
-pub struct NullablePtr<T: 'static>(pub(crate) AtomicPtr<T>);
+pub struct NullablePtr<T: Refcounted + 'static>(pub(crate) AtomicPtr<T>);
 
-impl<T> NullablePtr<T> {
+impl<T: Refcounted> NullablePtr<T> {
     pub const fn new() -> NullablePtr<T> {
         NullablePtr(AtomicPtr::new(null_mut()))
     }
 
-    pub fn take(&self) -> Option<Ptr<T>> {
+    pub fn take(&self) -> Option<Ref<T>> {
         let ptr = self.0.swap(null_mut(), Ordering::Acquire);
         if ptr.is_null() {
             return None;
         }
-        Some(unsafe { Ptr::from_raw(ptr) })
+        Some(unsafe { Ref::from_raw(ptr) })
     }
 
-    pub fn swap(&self, ptr: Ptr<T>) -> Option<Ptr<T>> {
-        let (new_ptr, _count_ptr) = Ptr::into_raw(ptr);
+    pub fn swap(&self, ptr: Ref<T>) -> Option<Ref<T>> {
+        let new_ptr = Ref::into_raw(ptr);
         let old_ptr = self.0.swap(new_ptr, Ordering::AcqRel);
         if old_ptr.is_null() {
             return None;
         }
-        Some(unsafe { Ptr::from_raw(old_ptr) })
+        Some(unsafe { Ref::from_raw(old_ptr) })
     }
 }
 
-impl<T> Drop for NullablePtr<T> {
+impl<T: Refcounted> Drop for NullablePtr<T> {
     fn drop(&mut self) {
         let _ptr = self.take();
     }

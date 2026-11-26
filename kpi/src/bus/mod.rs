@@ -312,7 +312,7 @@ pub mod wrappers {
 
         let cookiep = irq.cookie.get();
 
-        let (arg_ptr, count_ptr) = Ptr::into_raw(arg);
+        let (arg_ptr, count_ptr) = Ptr::into_raw_with_count(arg);
         irq.count_ptr.store(count_ptr, Ordering::Relaxed);
 
         let res = unsafe {

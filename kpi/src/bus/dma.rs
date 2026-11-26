@@ -39,7 +39,7 @@ use core::mem::transmute;
 use core::ops::{BitOr, Range};
 use core::ptr::null_mut;
 
-// This callback is invoked once per registration so just recreate the Ptr and let the callback drop it.
+// This callback is invoked once per registration so just recreate the Ref and let the callback drop it.
 pub type BusDmaMapFn<T> = extern "C" fn(Ptr<T>, &bus_dma_segment_t, c_int, c_int);
 type RawBusDmaMapFn = unsafe extern "C" fn(*mut c_void, *mut bus_dma_segment_t, c_int, c_int);
 
@@ -298,7 +298,7 @@ pub mod wrappers {
         let callback =
             unsafe { transmute::<Option<BusDmaMapFn<T>>, bus_dmamap_callback_t>(callback) };
         assert!(TypeId::of::<bus_dmamap_callback_t>() == TypeId::of::<Option<RawBusDmaMapFn>>());
-        let (arg_ptr, _count_ptr) = Ptr::into_raw(arg);
+        let arg_ptr = Ptr::into_raw(arg);
         let res = unsafe {
             bindings::bus_dmamap_load(
                 dmat.0,
