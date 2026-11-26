@@ -43,6 +43,36 @@ use core::ptr::{NonNull, drop_in_place, null_mut};
 use core::sync::atomic::{AtomicPtr, Ordering};
 use core::{fmt, ptr};
 
+unsafe trait Refcounted {
+    fn acquire_ref(&self);
+    // The pointee might be freed during this call so this can't take a &self
+    unsafe fn release_ref(ptr: NonNull<Self>);
+}
+
+unsafe impl<T> Refcounted for Softc<T> {
+    fn acquire_ref(&self) {
+        let count_ptr = self.count.get();
+        unsafe { bindings::refcount_acquire(count_ptr) };
+    }
+    unsafe fn release_ref(sc: NonNull<Self>) {
+        let sc_ptr = sc.as_ptr();
+        let count_ptr = UnsafeCell::raw_get(unsafe { &raw mut (*sc_ptr).count });
+        let last = unsafe { bindings::refcount_release(count_ptr) };
+        if !last {
+            return;
+        }
+        let mtype = unsafe { (*sc_ptr).mtype };
+        match mtype {
+            Some(mtype) => unsafe {
+                drop_in_place(sc_ptr);
+                free(sc_ptr.cast::<c_void>(), MallocType::from_raw(mtype.as_ptr()));
+            },
+            // device_detach glue owns a reference
+            None => unreachable!("released the last referene to a newbus softc"),
+        }
+    }
+}
+
 /// The layout of the softc that Ref and Ptr point to.
 ///
 /// This determines the memory layout of all driver and char device softc managed by rust drivers.
