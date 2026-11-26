@@ -447,19 +447,23 @@ pub mod wrappers {
     }
 
     /// Returns a copy of the device name
-    pub fn device_get_name(dev: &Device) -> ArrayCString {
+    pub fn device_get_name(dev: &Device) -> Result<ArrayCString> {
         let name_ptr = unsafe { bindings::device_get_name(dev.as_ptr()) };
-        assert!(!name_ptr.is_null());
+        if name_ptr.is_null() {
+            return Err(ENULLPTR);
+        }
         let name = unsafe { CStr::from_ptr(name_ptr) };
-        ArrayCString::new(name)
+        Ok(ArrayCString::new(name))
     }
 
     /// Returns a copy of the device name and unit number
-    pub fn device_get_nameunit(dev: &Device) -> ArrayCString {
+    pub fn device_get_nameunit(dev: &Device) -> Result<ArrayCString> {
         let name_ptr = unsafe { bindings::device_get_nameunit(dev.as_ptr()) };
-        assert!(!name_ptr.is_null());
+        if name_ptr.is_null() {
+            return Err(ENULLPTR);
+        }
         let name = unsafe { CStr::from_ptr(name_ptr) };
-        ArrayCString::new(name)
+        Ok(ArrayCString::new(name))
     }
 
     pub fn device_add_child(
