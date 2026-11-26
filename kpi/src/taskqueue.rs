@@ -98,7 +98,7 @@ impl Task {
         }
     }
 
-    pub fn init<T: 'static + Sync>(&self, func: TaskFn<T>, arg: Ptr<T>) -> Result<()> {
+    pub fn init<T: 'static + Sync>(&self, func: TaskFn<T>, arg: Ptr<Softc<T>>) -> Result<()> {
         if self
             .count_ptr
             .compare_exchange(

@@ -28,7 +28,7 @@
 
 use crate::prelude::*;
 use crate::bindings::{MAXCOMLEN, proc, ucred};
-use crate::ffi::{Refcounted, Ref};
+use crate::ffi::{Refcounted, Ptr};
 use core::ffi::c_char;
 use core::mem::forget;
 use core::ptr::NonNull;
@@ -127,12 +127,12 @@ unsafe impl Refcounted for Ucred {
 pub mod wrappers {
     use super::*;
 
-    pub fn crhold(cred: &Ucred) -> Ref<Ucred> {
+    pub fn crhold(cred: &Ucred) -> Ptr<Ucred> {
         cred.acquire_ref();
-        Ref::new(cred)
+        Ptr::new(cred)
     }
 
-    pub fn crfree(cred: Ref<Ucred>) {
+    pub fn crfree(cred: Ptr<Ucred>) {
         drop(cred);
     }
 

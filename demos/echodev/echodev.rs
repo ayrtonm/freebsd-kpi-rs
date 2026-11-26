@@ -15,7 +15,7 @@ use core::sync::atomic::{AtomicPtr, Ordering};
 use kpi::ErrCode;
 use kpi::boxed::Box;
 use kpi::cdev::{CDevSw, MakeDevArgs, Uio};
-use kpi::ffi::{Ptr, Softc};
+use kpi::ffi::{Softc};
 use kpi::intr::Channel;
 use kpi::proc::Thread;
 use kpi::module::Module;

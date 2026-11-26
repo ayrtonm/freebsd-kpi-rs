@@ -29,7 +29,7 @@
 use crate::bindings::{_device, DS_ATTACHED, device_state_t, device_t, driver_t, kobjop_desc};
 use crate::boxed::Box;
 use crate::driver::Driver;
-use crate::ffi::{ArrayCString, Ref, Ptr, Softc, Uninit};
+use crate::ffi::{ArrayCString, Ptr, Softc, Uninit};
 use crate::kobj::{AsCType, AsRustType, rust_driver_marker_desc};
 use crate::prelude::*;
 use crate::vec::Vec;
@@ -121,7 +121,7 @@ impl<'a, T> AsRustType<'a, &'a Uninit<T>> for device_t {
 }
 
 // Allows turning a device_t argument appearing in kobj interfaces into a Pin<&T> to any type. It's
-// the responsibility of a kobj trait authors to restrict the Ref to the softc's type or to one of
+// the responsibility of a kobj trait authors to restrict the Ptr to the softc's type or to one of
 // its base classes.
 impl<'a, T> AsRustType<'a, &'a Softc<T>> for device_t {
     fn as_rust_type(&'a self) -> &'a Softc<T> {
@@ -322,11 +322,11 @@ pub mod wrappers {
         true
     }
 
-    /// Get a Ref to a device softc.
+    /// Get a Ptr to a device softc.
     ///
     /// Note the existence of the Device ensures that the device won't be detached for its
-    /// associated lifetime so the returned Ref has a matching lifetime. To use the softc past that
-    /// scope, turn it into a lease using Ref::lease.
+    /// associated lifetime so the returned Ptr has a matching lifetime. To use the softc past that
+    /// scope, turn it into a lease using Ptr::lease.
     pub fn device_get_softc<D: DeviceIf>(dev: &Device) -> &Softc<D::Softc> {
         assert!(device_get_state(dev) == DS_ATTACHED);
         assert!(device_matches_driver::<D>(dev));
@@ -334,7 +334,7 @@ pub mod wrappers {
         unsafe { void_ptr.cast::<Softc<D::Softc>>().as_ref().unwrap() }
     }
 
-    /// Get a Ref to the softc for a device managed by a rust driver.
+    /// Get a Ptr to the softc for a device managed by a rust driver.
     ///
     /// Although this function takes the more generic device_t instead of a rust-specific Device,
     /// the device must be managed by a rust driver. If it's not an error is returned.
@@ -350,9 +350,9 @@ pub mod wrappers {
     /// no reliable way to ensure the device won't be detached while this function runs. Before
     /// returning this function gets a lease to the softc which may catch cases where the caller is
     /// racing with device_detach, but before that there is no guarantee for detachable devices.
-    pub unsafe fn device_get_softc_unchecked<D: DeviceIf>(dev_ptr: device_t) -> Ptr<D::Softc> {
+    pub unsafe fn device_get_softc_unchecked<D: DeviceIf>(dev_ptr: device_t) -> Ptr<Softc<D::Softc>> {
         assert!(!dev_ptr.is_null());
-        // Required to let this function return a Ref
+        // Required to let this function return a Ptr
         // SAFETY: Safety requirements delegated to caller
         assert!(unsafe { device_has_rust_driver(dev_ptr) });
         // SAFETY: Lifetime safety requirements delegated to caller
@@ -360,7 +360,7 @@ pub mod wrappers {
 
         let sc = device_get_softc::<D>(dev);
 
-        // If device_detach runs after this point it will panic if this Ref hasn't been dropped
+        // If device_detach runs after this point it will panic if this Ptr hasn't been dropped
         sc.acquire_ptr()
     }
 

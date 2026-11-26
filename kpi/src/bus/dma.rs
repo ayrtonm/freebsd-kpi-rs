@@ -31,7 +31,7 @@ use crate::bindings::{
     bus_addr_t, bus_dma_lock_t, bus_dma_segment_t, bus_dma_tag_t, bus_dmamap_t, bus_size_t,
 };
 use crate::device::Device;
-use crate::ffi::Ptr;
+use crate::ffi::{Softc, Ptr};
 use crate::prelude::*;
 use core::any::TypeId;
 use core::ffi::{c_int, c_void};
@@ -39,8 +39,8 @@ use core::mem::transmute;
 use core::ops::{BitOr, Range};
 use core::ptr::null_mut;
 
-// This callback is invoked once per registration so just recreate the Ref and let the callback drop it.
-pub type BusDmaMapFn<T> = extern "C" fn(Ptr<T>, &bus_dma_segment_t, c_int, c_int);
+// This callback is invoked once per registration so just recreate the Ptr and let the callback drop it.
+pub type BusDmaMapFn<T> = extern "C" fn(Ptr<Softc<T>>, &bus_dma_segment_t, c_int, c_int);
 type RawBusDmaMapFn = unsafe extern "C" fn(*mut c_void, *mut bus_dma_segment_t, c_int, c_int);
 
 #[must_use]
@@ -288,7 +288,7 @@ pub mod wrappers {
         kva: BusDmaMem<D>,
         len: bus_size_t,
         callback: Option<BusDmaMapFn<T>>,
-        arg: Ptr<T>,
+        arg: Ptr<Softc<T>>,
         flags: Option<BusDmaFlags>,
     ) -> Result<()> {
         let flags = match flags {

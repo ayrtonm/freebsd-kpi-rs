@@ -345,7 +345,7 @@ pub mod wrappers {
         dev: &Device,
         xref: XRef,
         filter: IrqFilter<T>,
-        arg: Ptr<T>,
+        arg: Ptr<Softc<T>>,
         root: IntrRoot,
     ) -> Result<()> {
         let xref = xref.0 as isize;

@@ -253,7 +253,7 @@ pub mod wrappers {
         c: &mut Callout,
         ticks: u32,
         func: CalloutFn<T>,
-        arg: Ptr<T>,
+        arg: Ptr<Softc<T>>,
     ) -> Result<()> {
         if !c.count_ptr.is_null() {
             let last = unsafe { bindings::refcount_release(c.count_ptr) };

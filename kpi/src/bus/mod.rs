@@ -296,7 +296,7 @@ pub mod wrappers {
         flags: c_int,
         filter: FilterFn<T>,
         handler: Handler<T>,
-        arg: Ptr<T>,
+        arg: Ptr<Softc<T>>,
     ) -> Result<()> {
         let dev_ptr = dev.as_ptr();
         if filter.is_none() && handler.is_none() {

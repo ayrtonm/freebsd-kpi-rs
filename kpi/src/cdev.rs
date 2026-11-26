@@ -86,7 +86,7 @@ pub struct MakeDevArgs<T: 'static> {
     pub gid: i32,
     pub mode: i32,
     pub name: &'static CStr,
-    sc: Ptr<T>,
+    sc: Ptr<Softc<T>>,
     size: usize,
     cdevsw_ptr: *mut bindings::cdevsw,
 }
@@ -240,7 +240,7 @@ pub mod wrappers {
 
     /// Initializes a [`MakeDevArgs`] for the given cdevsw (as declared by [`define_cdev!`][crate::define_cdev]).
     pub fn make_dev_args_init<D: CDevSw>(
-        sc: Ptr<D::Softc>,
+        sc: Ptr<Softc<D::Softc>>,
         dev: &'static D,
     ) -> MakeDevArgs<D::Softc> {
         MakeDevArgs {
@@ -256,7 +256,7 @@ pub mod wrappers {
         }
     }
 
-    pub fn make_dev_s<T: 'static>(args: MakeDevArgs<T>) -> Result<Ptr<T>> {
+    pub fn make_dev_s<T: 'static>(args: MakeDevArgs<T>) -> Result<Ptr<Softc<T>>> {
         let mut outp = null_mut();
 
         let mut args_raw = bindings::make_dev_args::default();
@@ -288,7 +288,7 @@ pub mod wrappers {
     ///
     /// The softc is freed with the allocator recorded in the cdev by `make_dev_s`. Panics if any
     /// other `Ptr` to the softc is still outstanding.
-    pub fn destroy_dev<T: 'static>(sc: Ptr<T>) {
+    pub fn destroy_dev<T: 'static>(sc: Ptr<Softc<T>>) {
         let dev = sc.cdev();
 
         // Blocks until all threads have left this driver's cdevsw callbacks, so no new Ptrs
