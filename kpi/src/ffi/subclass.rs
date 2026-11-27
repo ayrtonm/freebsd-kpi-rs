@@ -85,7 +85,7 @@ unsafe impl<B, F: Sync + Send> Send for SubClass<B, F> {}
 impl<B, F> SubClass<B, F> {
     pub const fn new(sub_fields: F) -> Self {
         Self {
-            base_class: UnsafeCell::new(MaybeUninit::uninit()),
+            base_class: UnsafeCell::new(MaybeUninit::zeroed()),
             sub_fields,
         }
     }
