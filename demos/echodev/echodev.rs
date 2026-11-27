@@ -167,9 +167,9 @@ impl Module for EchoDev {
     fn on_load(data: *mut c_void) -> Result<()> {
         let mut sc = EchoDevSoftc::default();
 
-        sc.state.get_mut().buf = Vec::fill_with_capacity(0, 64, M_WAITOK);
+        sc.state.get_mut().buf = Vec::fill_with_capacity(0, 64, M_DEVBUF, M_WAITOK);
 
-        let sc = Softc::new::<M_DEVBUF>(sc, M_WAITOK);
+        let sc = Softc::alloc(sc, M_DEVBUF, M_WAITOK);
         sx_init(sc.project().state, c"echo");
 
         let mut args = make_dev_args_init(sc, &echo_cdevsw);

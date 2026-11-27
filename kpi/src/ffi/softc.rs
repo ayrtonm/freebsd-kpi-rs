@@ -100,12 +100,12 @@ unsafe impl<T: Sync> Sync for Softc<T> {}
 unsafe impl<T: Send> Send for Softc<T> {}
 
 impl<T> Softc<T> {
-    pub fn new<M: Malloc>(t: T, flags: MallocFlags) -> Ptr<Softc<T>> {
-        Softc::try_new::<M>(t, flags).unwrap()
+    pub fn alloc<M: Malloc>(t: T, mtype: M, flags: MallocFlags) -> Ptr<Softc<T>> {
+        Softc::try_alloc(t, mtype, flags).unwrap()
     }
 
-    pub fn try_new<M: Malloc>(t: T, flags: MallocFlags) -> Result<Ptr<Softc<T>>> {
-        let sc = Box::<Softc<T>, M>::try_new(
+    pub fn try_alloc<M: Malloc>(t: T, mtype: M, flags: MallocFlags) -> Result<Ptr<Softc<T>>> {
+        let sc = Box::try_new(
             Self {
                 inner: t,
                 dev: None,
@@ -113,6 +113,7 @@ impl<T> Softc<T> {
                 mtype: Some(NonNull::new(M::malloc_type().as_raw()).unwrap()),
                 count: UnsafeCell::new(0),
             },
+            mtype,
             flags,
         )?;
         let sc_ptr = Box::into_raw(sc);

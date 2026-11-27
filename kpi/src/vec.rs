@@ -108,14 +108,14 @@ impl<T, M: Malloc> Vec<T, M> {
         self.len
     }
 
-    pub fn with_capacity(capacity: usize, flags: MallocFlags) -> Self {
+    pub fn with_capacity(capacity: usize, mtype: M, flags: MallocFlags) -> Self {
         assert!(flags.contains(M_WAITOK));
         assert!(!flags.contains(M_NOWAIT));
-        Self::try_with_capacity(capacity, flags).unwrap()
+        Self::try_with_capacity(capacity, mtype, flags).unwrap()
     }
 
     /// Constructs an empty `Vec<T>` with *exactly* the specified capacity.
-    pub fn try_with_capacity(capacity: usize, flags: MallocFlags) -> Result<Self> {
+    pub fn try_with_capacity(capacity: usize, mtype: M, flags: MallocFlags) -> Result<Self> {
         if flags.contains(M_NOWAIT) && flags.contains(M_WAITOK) {
             return Err(EDOOFUS);
         };
@@ -143,7 +143,7 @@ impl<T, M: Malloc> Vec<T, M> {
             return Ok(());
         }
         if self.capacity == 0 {
-            let new_vec = Self::try_with_capacity(additional, flags)?;
+            let new_vec = Self::try_with_capacity(additional, M::malloc_kind(), flags)?;
             let _old_vec = replace(self, new_vec);
             // _old_vec gets dropped but since it had capacity 0 that's a no-op
             return Ok(());
@@ -229,14 +229,15 @@ impl<T, M: Malloc> Vec<T, M> {
         Some(unsafe { read(self.as_mut_ptr().add(self.len)) })
     }
 
-    pub fn into_boxed_slice(self, flags: MallocFlags) -> Box<[T], M> {
+    pub fn into_boxed_slice(mut self, flags: MallocFlags) -> Box<[T], M> {
         self.try_into_boxed_slice(flags).unwrap()
     }
 
-    pub fn try_into_boxed_slice(mut self, _flags: MallocFlags) -> Result<Box<[T], M>> {
-        if self.len != self.capacity || self.len == 0 {
-            return Err(EDOOFUS);
+    pub fn try_into_boxed_slice(mut self, flags: MallocFlags) -> Result<Box<[T], M>> {
+        if self.len == 0 {
+            return Err(EINVAL);
         }
+        self.try_shrink_to_fit(flags)?;
         let fat_ptr = ptr::from_mut(self.deref_mut());
         forget(self);
         Ok(unsafe { Box::from_raw(fat_ptr) })
@@ -254,8 +255,8 @@ impl<T, M: Malloc> Vec<T, M> {
 }
 
 impl<T: Copy, M: Malloc> Vec<T, M> {
-    pub fn fill_with_capacity(value: T, capacity: usize, flags: MallocFlags) -> Self {
-        let mut res = Vec::with_capacity(capacity, flags);
+    pub fn fill_with_capacity(value: T, capacity: usize, mtype: M, flags: MallocFlags) -> Self {
+        let mut res = Vec::with_capacity(capacity, mtype, flags);
         res.fill_to_capacity(value);
         res
     }
@@ -350,10 +351,10 @@ impl<T, M: Malloc> VecDeque<T, M> {
         }
     }
 
-    pub fn with_capacity(capacity: usize, flags: MallocFlags) -> Self {
+    pub fn with_capacity(capacity: usize, mtype: M, flags: MallocFlags) -> Self {
         Self {
             head: 0,
-            vec: ManuallyDrop::new(Vec::with_capacity(capacity, flags)),
+            vec: ManuallyDrop::new(Vec::with_capacity(capacity, mtype, flags)),
         }
     }
 

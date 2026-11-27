@@ -54,16 +54,16 @@ impl<T, M: Malloc> Arc<T, M> {
     ///
     /// Allocates space on the heap for the `T` as well as the `Arc`'s metadata. `flags` must
     /// contain `M_WAITOK`.
-    pub fn new(t: T, flags: MallocFlags) -> Self {
+    pub fn new(t: T, mtype: M, flags: MallocFlags) -> Self {
         assert!(flags.contains(M_WAITOK));
         assert!(!flags.contains(M_NOWAIT));
-        Self::try_new(t, flags).unwrap()
+        Self::try_new(t, mtype, flags).unwrap()
     }
 
     /// Attempts to creates a new `Arc<T>`.
     ///
     /// `flags` must contain either `M_NOWAIT` or `M_WAITOK`.
-    pub fn try_new(t: T, flags: MallocFlags) -> Result<Self> {
+    pub fn try_new(t: T, _mtype: M, flags: MallocFlags) -> Result<Self> {
         if flags.contains(M_NOWAIT) == flags.contains(M_WAITOK) {
             return Err(EDOOFUS);
         }

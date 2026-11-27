@@ -64,17 +64,21 @@ impl MallocFlags {
     }
 }
 
-pub trait Malloc {
+pub trait Malloc: Sized {
+    fn malloc_kind() -> Self;
     fn malloc_type() -> MallocType;
 }
 
 macro_rules! gen_malloc_type {
     ($($name:ident)*) => {
     $(
-    #[derive(Debug)]
-    pub struct $name(());
+    #[derive(Debug, Copy, Clone)]
+    pub struct $name;
 
     impl Malloc for $name {
+        fn malloc_kind() -> Self {
+            Self
+        }
         fn malloc_type() -> MallocType {
             MallocType(unsafe { &raw mut bindings::$name[0] })
         }

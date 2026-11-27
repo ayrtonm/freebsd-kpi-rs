@@ -138,14 +138,14 @@ impl_to_cstring!(usize, 20);
 pub struct CString<M: Malloc = M_DEVBUF>(Vec<u8, M>);
 
 impl<M: Malloc> CString<M> {
-    pub fn new(msg: &CStr, flags: MallocFlags) -> Self {
+    pub fn new(msg: &CStr, mtype: M, flags: MallocFlags) -> Self {
         assert!(flags.contains(M_WAITOK));
         assert!(!flags.contains(M_NOWAIT));
-        Self::try_new(msg, flags).unwrap()
+        Self::try_new(msg, mtype, flags).unwrap()
     }
 
-    pub fn try_new(msg: &CStr, flags: MallocFlags) -> Result<Self> {
-        let mut buf = Vec::try_with_capacity(msg.to_bytes().len() + 1, flags).unwrap();
+    pub fn try_new(msg: &CStr, mtype: M, flags: MallocFlags) -> Result<Self> {
+        let mut buf = Vec::try_with_capacity(msg.to_bytes().len() + 1, mtype, flags).unwrap();
         for &b in msg.to_bytes() {
             buf.push(b);
         }

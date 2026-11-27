@@ -90,13 +90,13 @@ impl<T: ?Sized, M: Malloc> Drop for Box<T, M> {
 }
 
 impl<T, M: Malloc> Box<T, M> {
-    pub fn new(t: T, flags: MallocFlags) -> Self {
+    pub fn new(t: T, mtype: M, flags: MallocFlags) -> Self {
         assert!(flags.contains(M_WAITOK));
         assert!(!flags.contains(M_NOWAIT));
-        Self::try_new(t, flags).unwrap()
+        Self::try_new(t, mtype, flags).unwrap()
     }
 
-    pub fn try_new(t: T, flags: MallocFlags) -> Result<Self> {
+    pub fn try_new(t: T, _mtype: M, flags: MallocFlags) -> Result<Self> {
         if flags.contains(M_NOWAIT) && flags.contains(M_WAITOK) {
             return Err(EDOOFUS);
         };
@@ -195,7 +195,7 @@ impl<T, M: Malloc> LinkedList<T, M> {
         self.len += 1;
         let mut node = Node::new(elt);
         node.prev = self.tail;
-        let boxed_node = Box::<Node<T>, M>::new(node, flags);
+        let boxed_node = Box::new(node, M::malloc_kind(), flags);
         let new_node_ptr = NonNull::new(Box::into_raw(boxed_node)).unwrap();
         if self.tail.is_none() && self.head.is_none() {
             self.head = Some(new_node_ptr);
@@ -210,7 +210,7 @@ impl<T, M: Malloc> LinkedList<T, M> {
         self.len += 1;
         let mut node = Node::new(elt);
         node.next = self.head;
-        let boxed_node = Box::<Node<T>, M>::new(node, flags);
+        let boxed_node = Box::new(node, M::malloc_kind(), flags);
         let new_node_ptr = NonNull::new(Box::into_raw(boxed_node)).unwrap();
         if self.tail.is_none() && self.head.is_none() {
             self.head = Some(new_node_ptr);
