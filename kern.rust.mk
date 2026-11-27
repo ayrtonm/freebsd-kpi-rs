@@ -229,7 +229,7 @@ RUST_MAKEFILE?= ${SRCTOP}/sys/rust/kern.rust.mk
 
 RUST_DEFAULT_DEP= ${RUST_KPI} ${RUST_CORE} ${RUST_FAKE_BUILTINS}
 # TODO: Use the depfile
-RLIB_RULE= ${RUSTC} ${RUSTFLAGS} -Cdebuginfo=full --crate-type rlib --sysroot=${RUST_SYSROOT} -L. --emit link,dep-info=.depend.${.TARGET}
+RLIB_RULE= ${RUSTC} ${RUSTFLAGS} -Funstable-features -Cdebuginfo=full --crate-type rlib --sysroot=${RUST_SYSROOT} -L. --emit link,dep-info=.depend.${.TARGET}
 
 NORMAL_R= ${RLIB_RULE} ${RUST_KPI_FEATURES} -o ${.TARGET} ${.ALLSRC:[1]} \
 	${.ALLSRC:T:Nlibcore.rlib:Nlibcompiler_builtins.rlib:M*.rlib:C/.rlib$//:C/^lib//:C/.*/--extern \0=lib\0.rlib/}
